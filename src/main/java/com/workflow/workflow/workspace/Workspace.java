@@ -10,6 +10,9 @@ import javax.persistence.ManyToOne;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.workflow.workflow.user.User;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
 @Entity
 public class Workspace {
 
@@ -29,9 +32,15 @@ public class Workspace {
 
     public Workspace(WorkspaceRequest request, User user) {
         this(request.getName(), user);
+        if (this.name == null || this.user == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        }
     }
 
     public void patch(WorkspaceRequest request) {
+        if (request.getName() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        }
         this.name = request.getName();
     }
     

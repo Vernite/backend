@@ -55,6 +55,7 @@ public class WorkspaceController {
             @ApiResponse(responseCode = "200", description = "Newly created workspace.", content = {
                     @Content(mediaType = "application/json", schema = @Schema(implementation = Workspace.class))
             }),
+            @ApiResponse(responseCode = "400", description = "Bad request data format.", content = @Content()),
             @ApiResponse(responseCode = "404", description = "User with given id not found.", content = @Content())
     })
     @PostMapping("/")
@@ -84,6 +85,7 @@ public class WorkspaceController {
             @ApiResponse(responseCode = "200", description = "Modified workspace with given id.", content = {
                     @Content(mediaType = "application/json", schema = @Schema(implementation = Workspace.class))
             }),
+            @ApiResponse(responseCode = "400", description = "Bad request data format.", content = @Content()),
             @ApiResponse(responseCode = "404", description = "Workspace or user with given id not found.", content = @Content())
     })
     @PatchMapping("/{id}")
@@ -102,6 +104,7 @@ public class WorkspaceController {
             @ApiResponse(responseCode = "200", description = "Modified or created workspace.", content = {
                     @Content(mediaType = "application/json", schema = @Schema(implementation = Workspace.class))
             }),
+            @ApiResponse(responseCode = "400", description = "Bad request data format.", content = @Content()),
             @ApiResponse(responseCode = "404", description = "User with given id not found", content = @Content())
     })
     @PutMapping("/{id}")
