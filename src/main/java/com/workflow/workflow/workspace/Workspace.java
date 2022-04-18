@@ -20,14 +20,14 @@ public class Workspace {
     @JsonIgnore
     private User user;
 
-    Workspace() {}
+    public Workspace() {}
 
-    Workspace(String name, User user) {
+    public Workspace(String name, User user) {
         this.name = name;
         this.user = user;
     }
 
-    Workspace(WorkspaceRequest request, User user) {
+    public Workspace(WorkspaceRequest request, User user) {
         this(request.getName(), user);
     }
 
