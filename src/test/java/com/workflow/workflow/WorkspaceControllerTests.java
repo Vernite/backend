@@ -104,6 +104,17 @@ public class WorkspaceControllerTests {
     }
 
     @Test
+    void addUnsupportedMedia() throws Exception {
+        mvc.perform(post("/user/1/workspace/").contentType(MediaType.MULTIPART_FORM_DATA))
+                .andExpect(status().isUnsupportedMediaType());
+        mvc.perform(post("/user/1/workspace/").contentType(MediaType.MULTIPART_FORM_DATA).content("{}"))
+                .andExpect(status().isUnsupportedMediaType());
+        mvc.perform(post("/user/1/workspace/").contentType(MediaType.MULTIPART_FORM_DATA)
+                .content("{\"name\": \"test\"}"))
+                .andExpect(status().isUnsupportedMediaType());
+    }
+
+    @Test
     void getSucess() throws Exception {
         Workspace workspace = workspaceRepository
                 .save(new Workspace("test 176", userRepository.findById(1L).orElseThrow()));
@@ -176,6 +187,22 @@ public class WorkspaceControllerTests {
     }
 
     @Test
+    void patchUnsupportedMedia() throws Exception {
+        Workspace workspace = workspaceRepository
+                .save(new Workspace("patch", userRepository.findById(1L).orElseThrow()));
+
+        mvc.perform(patch(String.format("/user/1/workspace/%d", workspace.getId()))
+                .contentType(MediaType.MULTIPART_FORM_DATA))
+                .andExpect(status().isUnsupportedMediaType());
+        mvc.perform(patch(String.format("/user/1/workspace/%d", workspace.getId()))
+                .contentType(MediaType.MULTIPART_FORM_DATA).content("{}"))
+                .andExpect(status().isUnsupportedMediaType());
+        mvc.perform(patch(String.format("/user/1/workspace/%d", workspace.getId()))
+                .contentType(MediaType.MULTIPART_FORM_DATA).content("{\"name\": \"test\"}"))
+                .andExpect(status().isUnsupportedMediaType());
+    }
+
+    @Test
     void putSucess() throws Exception {
         Workspace workspace = workspaceRepository
                 .save(new Workspace("put", userRepository.findById(1L).orElseThrow()));
@@ -234,6 +261,30 @@ public class WorkspaceControllerTests {
     }
 
     @Test
+    void putUnsupportedMedia() throws Exception {
+        Workspace workspace = workspaceRepository
+                .save(new Workspace("patch", userRepository.findById(1L).orElseThrow()));
+
+        mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId()))
+                .contentType(MediaType.MULTIPART_FORM_DATA))
+                .andExpect(status().isUnsupportedMediaType());
+        mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId()))
+                .contentType(MediaType.MULTIPART_FORM_DATA).content("{}"))
+                .andExpect(status().isUnsupportedMediaType());
+        mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId()))
+                .contentType(MediaType.MULTIPART_FORM_DATA).content("{\"name\": \"test\"}"))
+                .andExpect(status().isUnsupportedMediaType());
+
+        mvc.perform(put("/user/1/workspace/77").contentType(MediaType.MULTIPART_FORM_DATA))
+                .andExpect(status().isUnsupportedMediaType());
+        mvc.perform(put("/user/1/workspace/77").contentType(MediaType.MULTIPART_FORM_DATA).content("{}"))
+                .andExpect(status().isUnsupportedMediaType());
+        mvc.perform(put("/user/1/workspace/77").contentType(MediaType.MULTIPART_FORM_DATA)
+                .content("{\"name\": \"test\"}"))
+                .andExpect(status().isUnsupportedMediaType());
+    }
+
+    @Test
     void deleteSucess() throws Exception {
         Workspace workspace = workspaceRepository
                 .save(new Workspace("put", userRepository.findById(1L).orElseThrow()));
@@ -242,15 +293,14 @@ public class WorkspaceControllerTests {
                 .andExpect(status().isOk());
     }
 
-
     @Test
     void deleteNotFound() throws Exception {
         mvc.perform(delete("/user/1/workspace/23"))
                 .andExpect(status().isNotFound());
-        
+
         Workspace workspace = workspaceRepository
                 .save(new Workspace("put", userRepository.findById(1L).orElseThrow()));
-        
+
         mvc.perform(delete(String.format("/user/2/workspace/%d", workspace.getId())))
                 .andExpect(status().isNotFound());
     }
