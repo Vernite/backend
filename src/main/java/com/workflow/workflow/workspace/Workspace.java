@@ -30,6 +30,12 @@ public class Workspace {
         this.user = user;
     }
 
+    /**
+     * This constructor creates new workspace from post request data for given user.
+     * @param request - post request data.
+     * @param user - owner of new workspace.
+     * @throws ResponseStatusException - bad request when either user or request.name is null.
+     */
     public Workspace(WorkspaceRequest request, User user) {
         this(request.getName(), user);
         if (this.name == null || this.user == null) {
@@ -37,6 +43,11 @@ public class Workspace {
         }
     }
 
+    /**
+     * This method modifies workspace based on patch request data.
+     * @param request - patch request data
+     * @throws ResponseStatusException - bad request when either user or request.name is null.
+     */
     public void patch(WorkspaceRequest request) {
         if (request.getName() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
