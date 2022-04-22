@@ -1,13 +1,19 @@
 package com.workflow.workflow.workspace;
 
+import java.util.List;
+import java.util.Set;
+
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.workflow.workflow.projectworkspace.ProjectWithPrivileges;
+import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.user.User;
 
 import org.springframework.http.HttpStatus;
@@ -22,6 +28,9 @@ public class Workspace {
     @JoinColumn(name = "user_id")
     @JsonIgnore
     private User user;
+
+    @OneToMany(mappedBy = "workspace")
+    private Set<ProjectWorkspace> projectWorkspace;
 
     public Workspace() {}
 
@@ -77,5 +86,9 @@ public class Workspace {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public List<ProjectWithPrivileges> getProjectsWithPrivileges() {
+        return projectWorkspace.stream().map(ProjectWorkspace::getProjectWithPrivileges).toList();
     }
 }

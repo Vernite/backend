@@ -1,9 +1,16 @@
 package com.workflow.workflow.project;
 
+import java.util.List;
+import java.util.Set;
+
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.OneToMany;
+
+import com.workflow.workflow.projectworkspace.ProjectMember;
+import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -12,6 +19,9 @@ import org.springframework.web.server.ResponseStatusException;
 public class Project {
     private @Id @GeneratedValue(strategy = GenerationType.IDENTITY) Long id;
     private String name;
+
+    @OneToMany(mappedBy = "project")
+    private Set<ProjectWorkspace> projectWorkspace;
 
     public Project() {}
 
@@ -46,16 +56,20 @@ public class Project {
     public Long getId() {
         return id;
     }
+    
+    public String getName() {
+        return name;
+    }
 
     public void setId(Long id) {
         this.id = id;
     }
-
-    public String getName() {
-        return name;
-    }
     
     public void setName(String name) {
         this.name = name;
+    }
+
+    public List<ProjectMember> getProjectMembers() {
+        return projectWorkspace.stream().map(ProjectWorkspace::getProjectMember).toList();
     }
 }
