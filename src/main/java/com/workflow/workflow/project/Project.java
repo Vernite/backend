@@ -2,6 +2,7 @@ package com.workflow.workflow.project;
 
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -9,6 +10,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 
@@ -20,8 +22,9 @@ public class Project {
     private @Id @GeneratedValue(strategy = GenerationType.IDENTITY) Long id;
     private String name;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "project")
-    private Set<ProjectWorkspace> projectWorkspace;
+    private Set<ProjectWorkspace> projectWorkspace = new TreeSet<>();
 
     public Project() {}
 
@@ -61,12 +64,20 @@ public class Project {
         return name;
     }
 
+    public Set<ProjectWorkspace> getProjectWorkspace() {
+        return projectWorkspace;
+    }
+
     public void setId(Long id) {
         this.id = id;
     }
     
     public void setName(String name) {
         this.name = name;
+    }
+
+    public void setProjectWorkspace(Set<ProjectWorkspace> projectWorkspace) {
+        this.projectWorkspace = projectWorkspace;
     }
 
     public List<ProjectMember> getProjectMembers() {

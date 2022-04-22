@@ -2,6 +2,7 @@ package com.workflow.workflow.workspace;
 
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -29,8 +30,9 @@ public class Workspace {
     @JsonIgnore
     private User user;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "workspace")
-    private Set<ProjectWorkspace> projectWorkspace;
+    private Set<ProjectWorkspace> projectWorkspace = new TreeSet<>();
 
     public Workspace() {}
 
@@ -76,6 +78,10 @@ public class Workspace {
         return user;
     }
 
+    public Set<ProjectWorkspace> getProjectWorkspace() {
+        return projectWorkspace;
+    }
+
     public void setId(Long id) {
         this.id = id;
     }
@@ -86,6 +92,10 @@ public class Workspace {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public void setProjectWorkspace(Set<ProjectWorkspace> projectWorkspace) {
+        this.projectWorkspace = projectWorkspace;
     }
 
     public List<ProjectWithPrivileges> getProjectsWithPrivileges() {
