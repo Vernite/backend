@@ -26,6 +26,15 @@ public class ProjectWorkspace {
 
     Long privileges;
 
+    public ProjectWorkspace() {}
+
+    public ProjectWorkspace(Project project, Workspace workspace, Long privileges) {
+        this.id = new ProjectWorkspaceKey(workspace, project);
+        this.project = project;
+        this.workspace = workspace;
+        this.privileges = privileges;
+    }
+
     public ProjectWorkspaceKey getId() {
         return id;
     }
