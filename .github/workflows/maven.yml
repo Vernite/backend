@@ -8,7 +8,6 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v3
     - name: Set up JDK 17
@@ -19,10 +18,9 @@ jobs:
         cache: maven
     - name: Install and configure MySQL
       run: |
-        sudo apt-get install mysql-server
         sudo service mysql start
-        sudo mysql -e 'create database workflow charset utf8mb4'
-        sudo mysql -e 'create user "workflow"@"localhost" identified by "IBvmFN4LvHHVfzKRyGYRCQBKadMRyuIu7B5XL0AZ"'
-        sudo mysql -e 'grant all on *.* to "workflow"@"localhost" with grant option'
+        mysql -h 127.0.0.1 -uroot -proot -e 'create database workflow charset utf8mb4'
+        mysql -h 127.0.0.1 -uroot -proot -e 'create user "workflow"@"localhost" identified by "IBvmFN4LvHHVfzKRyGYRCQBKadMRyuIu7B5XL0AZ"'
+        mysql -h 127.0.0.1 -uroot -proot -e 'grant all on *.* to "workflow"@"localhost" with grant option'
     - name: Build with Maven
       run: mvn -B package --file pom.xml
