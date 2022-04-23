@@ -31,5 +31,4 @@ jobs:
         mkdir -p ~/.ssh
         chmod 700 ~/.ssh
         ssh-keyscan -t rsa -p 2224 51.77.50.209 >> ~/.ssh/known_hosts
-    - name: Restart service
-      run: ssh -p 2224 backend@51.77.50.209 "sudo /usr/bin/systemctl restart workflow.service"
+        ssh -p 2224 backend@51.77.50.209 "sudo /usr/bin/systemctl restart workflow.service"
