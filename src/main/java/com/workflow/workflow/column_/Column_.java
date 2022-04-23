@@ -1,4 +1,4 @@
-package com.workflow.workflow.db;
+package com.workflow.workflow.column_;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -9,6 +9,7 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.workflow.workflow.project.Project;
 
 @Entity
@@ -30,6 +31,7 @@ public class Column_ {
     @Column(nullable = false)
     private int ordinal;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "project_id", foreignKey = @ForeignKey(name = "fk_column_project"))
     private Project project;

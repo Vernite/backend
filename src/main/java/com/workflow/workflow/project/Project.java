@@ -1,16 +1,19 @@
 package com.workflow.workflow.project;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.workflow.workflow.column_.Column_;
 import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 
@@ -25,6 +28,9 @@ public class Project {
     @JsonIgnore
     @OneToMany(mappedBy = "project")
     private Set<ProjectWorkspace> projectWorkspace = new TreeSet<>();
+
+    @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
+    private Set<Column_> columns = new HashSet<>();
 
     public Project() {}
 
@@ -82,5 +88,13 @@ public class Project {
 
     public List<ProjectMember> getProjectMembers() {
         return projectWorkspace.stream().map(ProjectWorkspace::getProjectMember).toList();
+    }
+
+    public Set<Column_> getColumns() {
+        return columns;
+    }
+
+    public void setColumns(Set<Column_> columns) {
+        this.columns = columns;
     }
 }

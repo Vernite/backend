@@ -10,6 +10,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 
+import com.workflow.workflow.task.Task;
 import com.workflow.workflow.user.User;
 
 @Entity

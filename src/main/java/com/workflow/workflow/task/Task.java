@@ -1,4 +1,4 @@
-package com.workflow.workflow.db;
+package com.workflow.workflow.task;
 
 import java.util.Date;
 
@@ -12,6 +12,8 @@ import javax.persistence.JoinColumn;
 import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 
+import com.workflow.workflow.column_.Column_;
+import com.workflow.workflow.db.Sprint;
 import com.workflow.workflow.user.User;
 
 @Entity
