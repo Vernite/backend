@@ -20,6 +20,7 @@ jobs:
     - name: Install and configure MySQL
       run: |
         sudo apt-get install mysql-server
+        sudo service mysql start
         sudo mysql -e 'create database workflow charset utf8mb4'
         sudo mysql -e 'create user "workflow"@"localhost" identified by "IBvmFN4LvHHVfzKRyGYRCQBKadMRyuIu7B5XL0AZ"'
         sudo mysql -e 'grant all on *.* to "workflow"@"localhost" with grant option'
