@@ -18,9 +18,18 @@ jobs:
         cache: maven
     - name: Install and configure MySQL
       run: |
-        sudo service mysql start
+        sudo systemctl start mysql.service
         mysql -h 127.0.0.1 -uroot -proot -e 'create database workflow charset utf8mb4'
         mysql -h 127.0.0.1 -uroot -proot -e 'create user "workflow"@"localhost" identified by "IBvmFN4LvHHVfzKRyGYRCQBKadMRyuIu7B5XL0AZ"'
         mysql -h 127.0.0.1 -uroot -proot -e 'grant all on *.* to "workflow"@"localhost" with grant option'
     - name: Build with Maven
       run: mvn -B package --file pom.xml
+    - name: Prepare SSH
+      run: |
+        eval $(ssh-agent -s)
+        echo "${{ secrets.AUTO_DEPLOY_KEY }}" | tr -d '\r' | ssh-add - > /dev/null
+        mkdir -p ~/.ssh
+        chmod 700 ~/.ssh
+        ssh-keyscan -t rsa -p 2224 51.77.50.209 >> ~/.ssh/known_hosts
+        rsync -a -e 'ssh -p 2224' target/workflow*jar backend@51.77.50.209:~/workflow.jar
+        ssh -p 2224 backend@51.77.50.209 "sudo /usr/bin/systemctl restart workflow.service"
