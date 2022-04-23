@@ -1,6 +1,9 @@
 package com.workflow.workflow.projectworkspace;
 
+import java.util.Optional;
+
 import com.workflow.workflow.project.Project;
+import com.workflow.workflow.user.User;
 
 import org.springframework.data.repository.CrudRepository;
 
@@ -11,4 +14,12 @@ public interface ProjectWorkspaceRepository extends CrudRepository<ProjectWorksp
      * @return Iterable object with all pivot table entries for given project.
      */
     Iterable<ProjectWorkspace> findByProject(Project project);
+    
+    /**
+     * This method finds pivot table entry describing user membership in project.
+     * @param project - project which pivot table entry will be returned.
+     * @param user - user which workspace is element of pivot table entry.
+     * @return Pivot table entry connecting user workspace with project.
+     */
+    Optional<ProjectWorkspace> findByProjectAndWorkspaceUser(Project project, User user);
 }

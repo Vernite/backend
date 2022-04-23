@@ -64,9 +64,6 @@ public class ProjectController {
         Project project = projectRepository.save(new Project(request));
         ProjectWorkspace projectWorkspace = new ProjectWorkspace(project, workspace, 1L);
         projectWorkspaceRepository.save(projectWorkspace);
-        // TreeSet<ProjectWorkspace> ts = new TreeSet<>();
-        // ts.add(projectWorkspace);
-        // project.setProjectWorkspace(ts);
         return project;
     }
 
@@ -138,7 +135,7 @@ public class ProjectController {
     @Operation(summary = "Delete project.", description = "This method is used to delete project. On sucess does not return anything. Throws 404 when project does not exist.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Object with given id has been deleted."),
-            @ApiResponse(responseCode = "404", description = "Workspace or user with given id not found.")
+            @ApiResponse(responseCode = "404", description = "Project with given id not found.")
     })
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
