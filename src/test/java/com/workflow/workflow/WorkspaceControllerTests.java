@@ -1,6 +1,7 @@
 package com.workflow.workflow;
 
 import com.workflow.workflow.user.UserRepository;
+import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.workspace.Workspace;
 import com.workflow.workflow.workspace.WorkspaceRepository;
@@ -39,10 +40,15 @@ public class WorkspaceControllerTests {
     private WorkspaceRepository workspaceRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private ProjectWorkspaceRepository projectWorkspaceRepository;
 
     @BeforeAll
     void init() {
-        userRepository.save(new User("Name", "Surname", "Username", "Email", "Password"));
+        if (userRepository.findById(1L).isEmpty()) {
+            userRepository.save(new User("Name", "Surname", "Username", "Email", "Password"));
+        }
+        projectWorkspaceRepository.deleteAll();
     }
 
     @BeforeEach
