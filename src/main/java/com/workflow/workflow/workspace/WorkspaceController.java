@@ -1,5 +1,6 @@
 package com.workflow.workflow.workspace;
 
+import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
 
@@ -35,6 +36,8 @@ public class WorkspaceController {
     private UserRepository userRepository;
     @Autowired
     private WorkspaceRepository workspaceRepository;
+    @Autowired
+    private ProjectWorkspaceRepository projectWorkspaceRepository;
 
     @Operation(summary = "Retrive all workspaces.", description = "This method returns array of all workspaces for user with given id. Result can be empty array. Throws status 404 when user with given id does not exist.")
     @ApiResponses(value = {
@@ -122,9 +125,10 @@ public class WorkspaceController {
         return workspaceRepository.save(workspace);
     }
 
-    @Operation(summary = "Delete workspace.", description = "This method is used to delete workspace. On sucess does not return anything. Throws 404 when user or workspace does not exist. Throws 404 when workspace with given id is not in relation with given user.")
+    @Operation(summary = "Delete workspace.", description = "This method is used to delete workspace. On sucess does not return anything. Throws 404 when user or workspace does not exist. Throws 404 when workspace with given id is not in relation with given user. Throws 400 when workspace is not empty.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Object with given id has been deleted."),
+            @ApiResponse(responseCode = "400", description = "Workspace cannot be deleted; you can delete only empty workspaces."),
             @ApiResponse(responseCode = "404", description = "Workspace or user with given id not found.")
     })
     @DeleteMapping("/{id}")
@@ -134,6 +138,9 @@ public class WorkspaceController {
         Workspace workspace = workspaceRepository.findByIdAndUser(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         WORKSPACE_NOT_FOUND));
+        if (!projectWorkspaceRepository.findByWorkspace(workspace).isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "workspace not empty");
+        }
         workspaceRepository.delete(workspace);
     }
 }

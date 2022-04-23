@@ -1,6 +1,9 @@
 package com.workflow.workflow;
 
 import com.workflow.workflow.user.UserRepository;
+import com.workflow.workflow.project.Project;
+import com.workflow.workflow.project.ProjectRepository;
+import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.workspace.Workspace;
@@ -42,6 +45,8 @@ public class WorkspaceControllerTests {
     private UserRepository userRepository;
     @Autowired
     private ProjectWorkspaceRepository projectWorkspaceRepository;
+    @Autowired
+    private ProjectRepository projectRepository;
 
     @BeforeAll
     void init() {
@@ -309,5 +314,23 @@ public class WorkspaceControllerTests {
 
         mvc.perform(delete(String.format("/user/2/workspace/%d", workspace.getId())))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteBadRequest() throws Exception {
+        Workspace workspace = workspaceRepository
+        .save(new Workspace("delete", userRepository.findById(1L).orElseThrow()));
+        Project project = projectRepository.save(new Project("Test project"));
+        ProjectWorkspace projectWorkspace = projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+
+        mvc.perform(delete(String.format("/user/1/workspace/%d", workspace.getId())))
+                .andExpect(status().isBadRequest());
+        
+        projectWorkspaceRepository.delete(projectWorkspace);
+
+        mvc.perform(delete(String.format("/user/1/workspace/%d", workspace.getId())))
+                .andExpect(status().isOk());
+        
+        projectRepository.delete(project);
     }
 }

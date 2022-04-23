@@ -1,9 +1,11 @@
 package com.workflow.workflow.projectworkspace;
 
+import java.util.List;
 import java.util.Optional;
 
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.user.User;
+import com.workflow.workflow.workspace.Workspace;
 
 import org.springframework.data.repository.CrudRepository;
 
@@ -22,4 +24,11 @@ public interface ProjectWorkspaceRepository extends CrudRepository<ProjectWorksp
      * @return Pivot table entry connecting user workspace with project.
      */
     Optional<ProjectWorkspace> findByProjectAndWorkspaceUser(Project project, User user);
+
+    /**
+     * This methods finds all pivot table entry for given workspace.
+     * @param workspace - workspace which pivot entries will be returned.
+     * @return Pivot table entries list for workspace.
+     */
+    List<ProjectWorkspace> findByWorkspace(Workspace workspace);
 }
