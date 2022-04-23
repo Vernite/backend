@@ -86,7 +86,7 @@ public class WorkspaceControllerTests {
 
     @Test
     void allNotFound() throws Exception {
-        mvc.perform(get("/user/2/workspace/").contentType(MediaType.APPLICATION_JSON))
+        mvc.perform(get("/user/2222/workspace/").contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
     }
 
@@ -101,7 +101,7 @@ public class WorkspaceControllerTests {
 
     @Test
     void addNotFound() throws Exception {
-        mvc.perform(post("/user/2/workspace/").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/user/2222/workspace/").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\": \"test\"}"))
                 .andExpect(status().isNotFound());
     }
@@ -144,7 +144,7 @@ public class WorkspaceControllerTests {
         mvc.perform(get("/user/1/workspace/54"))
                 .andExpect(status().isNotFound());
 
-        mvc.perform(get(String.format("/user/2/workspace/%d", workspace.getId())))
+        mvc.perform(get(String.format("/user/2222/workspace/%d", workspace.getId())))
                 .andExpect(status().isNotFound());
     }
 
@@ -185,14 +185,14 @@ public class WorkspaceControllerTests {
                 .content("{\"name\": \"new patch\"}"))
                 .andExpect(status().isNotFound());
 
-        mvc.perform(patch("/user/2/workspace/1").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(patch("/user/2222/workspace/1").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\": \"new patch\"}"))
                 .andExpect(status().isNotFound());
 
         Workspace workspace = workspaceRepository
                 .save(new Workspace("patch", userRepository.findById(1L).orElseThrow()));
 
-        mvc.perform(patch(String.format("/user/2/workspace/%d", workspace.getId()))
+        mvc.perform(patch(String.format("/user/2222/workspace/%d", workspace.getId()))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"name\": \"new patch\"}"))
                 .andExpect(status().isNotFound());
     }
@@ -262,11 +262,11 @@ public class WorkspaceControllerTests {
         Workspace workspace = workspaceRepository
                 .save(new Workspace("put", userRepository.findById(1L).orElseThrow()));
 
-        mvc.perform(put(String.format("/user/2/workspace/%d", workspace.getId()))
+        mvc.perform(put(String.format("/user/2222/workspace/%d", workspace.getId()))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"name\": \"new put\"}"))
                 .andExpect(status().isNotFound());
 
-        mvc.perform(put("/user/2/workspace/77")
+        mvc.perform(put("/user/2222/workspace/77")
                 .contentType(MediaType.APPLICATION_JSON).content("{\"name\": \"new put\"}"))
                 .andExpect(status().isNotFound());
     }
@@ -306,13 +306,13 @@ public class WorkspaceControllerTests {
 
     @Test
     void deleteNotFound() throws Exception {
-        mvc.perform(delete("/user/1/workspace/23"))
+        mvc.perform(delete("/user/1/workspace/223"))
                 .andExpect(status().isNotFound());
 
         Workspace workspace = workspaceRepository
                 .save(new Workspace("put", userRepository.findById(1L).orElseThrow()));
 
-        mvc.perform(delete(String.format("/user/2/workspace/%d", workspace.getId())))
+        mvc.perform(delete(String.format("/user/222/workspace/%d", workspace.getId())))
                 .andExpect(status().isNotFound());
     }
 

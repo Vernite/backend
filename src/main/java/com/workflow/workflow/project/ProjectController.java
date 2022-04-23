@@ -80,13 +80,13 @@ public class ProjectController {
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
     }
 
-    @Operation(summary = "Modify project.", description = "This method is used to modify existing project. If workspace id is null it is ignored. If workspace id is not null it also changes workspace to given. On sucess returns modified project. Throws 404 when project or workspace from request data does not exist. Throws status 400 when sent data are incorrect. Throws status 415 when when content type is not application/json.")
+    @Operation(summary = "Modify project.", description = "This method is used to modify existing project. If workspace id is null it is ignored. If workspace id is not null it also changes workspace to given. On sucess returns modified project. Throws 404 when project or workspace from request data does not exist or user is not a member in project. Throws status 400 when sent data are incorrect. Throws status 415 when when content type is not application/json.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Modified project with given id.", content = {
                     @Content(mediaType = "application/json", schema = @Schema(implementation = Workspace.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad request data format.", content = @Content()),
-            @ApiResponse(responseCode = "404", description = "Project with given id not found.", content = @Content()),
+            @ApiResponse(responseCode = "404", description = "Project with given id not found or user is not a member in project.", content = @Content()),
             @ApiResponse(responseCode = "415", description = "Bad content type.", content = @Content())
     })
     @PatchMapping("/{id}")
@@ -100,7 +100,7 @@ public class ProjectController {
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                             WORKSPACE_NOT_FOUND));
             ProjectWorkspace projectWorkspace = projectWorkspaceRepository
-                    .findById(new ProjectWorkspaceKey(workspace, project)).orElseThrow();
+                    .findById(new ProjectWorkspaceKey(workspace, project)).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "user not a member in project"));
             projectWorkspace.setWorkspace(workspace);
             projectWorkspaceRepository.save(projectWorkspace);
         }
@@ -122,7 +122,7 @@ public class ProjectController {
     public Project put(@PathVariable Long id, @RequestBody ProjectRequest request) {
         User user = userRepository.findById(1L) // TODO: user with id 1 again
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
-        Project project = new Project(request.getName());
+        Project project = new Project(request);
         project.setId(id);
         Workspace workspace = workspaceRepository.findByIdAndUser(request.getWorkspaceId(), user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, WORKSPACE_NOT_FOUND));
