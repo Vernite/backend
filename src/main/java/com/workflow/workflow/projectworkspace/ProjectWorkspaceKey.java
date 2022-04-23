@@ -35,4 +35,35 @@ public class ProjectWorkspaceKey implements Serializable {
     public void setWorkspaceId(Long workspaceId) {
         this.workspaceId = workspaceId;
     }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((projectId == null) ? 0 : projectId.hashCode());
+        result = prime * result + ((workspaceId == null) ? 0 : workspaceId.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        ProjectWorkspaceKey other = (ProjectWorkspaceKey) obj;
+        if (projectId == null) {
+            if (other.projectId != null)
+                return false;
+        } else if (!projectId.equals(other.projectId))
+            return false;
+        if (workspaceId == null) {
+            if (other.workspaceId != null)
+                return false;
+        } else if (!workspaceId.equals(other.workspaceId))
+            return false;
+        return true;
+    }
 }
