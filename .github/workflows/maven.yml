@@ -27,7 +27,7 @@ jobs:
     - name: Prepare SSH
       run: |
         eval $(ssh-agent -s)
-        echo "$AUTO_DEPLOY_KEY" | tr -d '\r' | ssh-add - > /dev/null
+        echo "${{ secrets.AUTO_DEPLOY_KEY }}" | tr -d '\r' | ssh-add - > /dev/null
         mkdir -p ~/.ssh
         chmod 700 ~/.ssh
         ssh-keyscan -t rsa -p 2224 51.77.50.209 >> ~/.ssh/known_hosts
