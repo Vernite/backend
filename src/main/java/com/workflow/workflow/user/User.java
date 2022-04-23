@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.Arrays;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -117,6 +118,19 @@ public class User {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public boolean checkPassword(String password) {
+        byte[] hash;
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            digest.update(password.getBytes(StandardCharsets.UTF_8));
+            digest.update(this.getSalt());
+            hash = digest.digest();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+        return Arrays.equals(hash, this.getHash());
     }
 
     public void setPassword(String password) {
