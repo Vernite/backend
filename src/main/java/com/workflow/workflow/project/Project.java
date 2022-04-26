@@ -13,9 +13,9 @@ import javax.persistence.Id;
 import javax.persistence.OneToMany;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.workflow.workflow.column_.Column_;
 import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
+import com.workflow.workflow.status.Status;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -30,7 +30,7 @@ public class Project {
     private Set<ProjectWorkspace> projectWorkspace = new TreeSet<>();
 
     @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
-    private Set<Column_> columns = new HashSet<>();
+    private Set<Status> statuses = new HashSet<>();
 
     public Project() {}
 
@@ -90,11 +90,11 @@ public class Project {
         return projectWorkspace.stream().map(ProjectWorkspace::getProjectMember).toList();
     }
 
-    public Set<Column_> getColumns() {
-        return columns;
+    public Set<Status> getStatuses() {
+        return statuses;
     }
 
-    public void setColumns(Set<Column_> columns) {
-        this.columns = columns;
+    public void setStatuses(Set<Status> statuses) {
+        this.statuses = statuses;
     }
 }

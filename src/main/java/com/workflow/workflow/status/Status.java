@@ -1,4 +1,4 @@
-package com.workflow.workflow.column_;
+package com.workflow.workflow.status;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -13,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.workflow.workflow.project.Project;
 
 @Entity
-public class Column_ {
+public class Status {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

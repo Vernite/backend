@@ -12,8 +12,8 @@ import javax.persistence.JoinColumn;
 import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 
-import com.workflow.workflow.column_.Column_;
 import com.workflow.workflow.db.Sprint;
+import com.workflow.workflow.status.Status;
 import com.workflow.workflow.user.User;
 
 @Entity
@@ -38,8 +38,8 @@ public class Task {
     private Date createdAt;
 
     @ManyToOne
-    @JoinColumn(name = "column_id", nullable = false, foreignKey = @ForeignKey(name = "fk_task_column"))
-    private Column_ column;
+    @JoinColumn(name = "status_id", nullable = false, foreignKey = @ForeignKey(name = "fk_task_status"))
+    private Status status;
     
     @ManyToOne
     @JoinColumn(name = "created_by", nullable = false, foreignKey = @ForeignKey(name = "fk_task_user"))
@@ -90,12 +90,12 @@ public class Task {
         this.createdAt = createdAt;
     }
 
-    public Column_ getColumn() {
-        return column;
+    public Status getStatus() {
+        return status;
     }
 
-    public void setColumn(Column_ column) {
-        this.column = column;
+    public void setColumn(Status status) {
+        this.status = status;
     }
 
     public User getUser() {
