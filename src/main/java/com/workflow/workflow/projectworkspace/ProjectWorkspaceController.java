@@ -34,13 +34,13 @@ public class ProjectWorkspaceController {
     @Autowired
     private ProjectWorkspaceRepository projectWorkspaceRepository;
 
-    @Operation(summary = "Move project to another workspace.", description = "This method is used to move project to another workspace. For now uses user with id 1 later will be based on authentication. On sucess does not return anything. Throws 404 when project or workspace does not exist. Throws 404 when user is not member of project.")
+    @Operation(summary = "Move project to another workspace.", description = "This method is used to move project to another workspace. For now uses user with id 1 later will be based on authentication. On success does not return anything. Throws 404 when project or workspace does not exist. Throws 404 when user is not member of project.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Project has been moved."),
             @ApiResponse(responseCode = "404", description = "Workspace or project with given id not found. User is not member of project")
     })
     @PatchMapping("/workspace/{newWorkspaceId}")
-    public void moveWorkspace(@PathVariable Long projectId, @PathVariable Long newWorkspaceId) {
+    public void moveWorkspace(@PathVariable long projectId, @PathVariable long newWorkspaceId) {
         User user = userRepository.findById(1L) // TODO: user with id 1 again
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
         Project project = projectRepository.findById(projectId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));

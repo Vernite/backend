@@ -45,7 +45,7 @@ public class ProjectController {
     static final String PROJECT_NOT_FOUND = "project not found";
     static final String WORKSPACE_NOT_FOUND = "workspace not found";
 
-    @Operation(summary = "Create project.", description = "This method creates new project for user in given workspace. TODO: for now all projects are created for user with id 1, later this will be based on authentication. User creating project is added as member with privileges 1. On sucess returns newly created project. Throws status 404 when workspace with given id does not exist. Throws status 400 when sent data are incorrect. Throws status 415 when when content type is not application/json.")
+    @Operation(summary = "Create project.", description = "This method creates new project for user in given workspace. TODO: for now all projects are created for user with id 1, later this will be based on authentication. User creating project is added as member with privileges 1. On success returns newly created project. Throws status 404 when workspace with given id does not exist. Throws status 400 when sent data are incorrect. Throws status 415 when when content type is not application/json.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Newly created project.", content = {
                     @Content(mediaType = "application/json", schema = @Schema(implementation = Project.class))
@@ -67,7 +67,7 @@ public class ProjectController {
         return project;
     }
 
-    @Operation(summary = "Retrive project.", description = "This method is used to retrive project with given id. On sucess returns project with given id. Throws 404 when project does not exist.")
+    @Operation(summary = "Retrive project.", description = "This method is used to retrive project with given id. On success returns project with given id. Throws 404 when project does not exist.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Project with given id.", content = {
                     @Content(mediaType = "application/json", schema = @Schema(implementation = Project.class))
@@ -75,12 +75,12 @@ public class ProjectController {
             @ApiResponse(responseCode = "404", description = "Project with given id not found.", content = @Content())
     })
     @GetMapping("/{id}")
-    public Project get(@PathVariable Long id) {
+    public Project get(@PathVariable long id) {
         return projectRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
     }
 
-    @Operation(summary = "Modify project.", description = "This method is used to modify existing project. If workspace id is null it is ignored. If workspace id is not null it also changes workspace to given. On sucess returns modified project. Throws 404 when project or workspace from request data does not exist or user is not a member in project. Throws status 400 when sent data are incorrect. Throws status 415 when when content type is not application/json.")
+    @Operation(summary = "Modify project.", description = "This method is used to modify existing project. If workspace id is null it is ignored. If workspace id is not null it also changes workspace to given. On success returns modified project. Throws 404 when project or workspace from request data does not exist or user is not a member in project. Throws status 400 when sent data are incorrect. Throws status 415 when when content type is not application/json.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Modified project with given id.", content = {
                     @Content(mediaType = "application/json", schema = @Schema(implementation = Workspace.class))
@@ -90,7 +90,7 @@ public class ProjectController {
             @ApiResponse(responseCode = "415", description = "Bad content type.", content = @Content())
     })
     @PatchMapping("/{id}")
-    public Project patch(@PathVariable Long id, @RequestBody ProjectRequest request) {
+    public Project patch(@PathVariable long id, @RequestBody ProjectRequest request) {
         User user = userRepository.findById(1L) // TODO: user with id 1 again
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
         Project project = projectRepository.findById(id)
@@ -108,7 +108,7 @@ public class ProjectController {
         return projectRepository.save(project);
     }
 
-    @Operation(summary = "Modify or create project.", description = "This method is used to modify project. When project with given id does not exist this method create new project. Id of new object may not equal given one. On sucess returns modified/created project. Throws 404 when workspace does not exist. Throws status 400 when sent data are incorrect. Throws status 415 when when content type is not application/json.")
+    @Operation(summary = "Modify or create project.", description = "This method is used to modify project. When project with given id does not exist this method create new project. Id of new object may not equal given one. On success returns modified/created project. Throws 404 when workspace does not exist. Throws status 400 when sent data are incorrect. Throws status 415 when when content type is not application/json.")
     @Parameter(name = "id", description = "Id of object to modify. When object with given id does not exists new one is created. Id of new object may not equal given one.", in = ParameterIn.PATH, required = true, schema = @Schema(implementation = Integer.class))
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Modified or created project.", content = {
@@ -119,7 +119,7 @@ public class ProjectController {
             @ApiResponse(responseCode = "415", description = "Bad content type.", content = @Content())
     })
     @PutMapping("/{id}")
-    public Project put(@PathVariable Long id, @RequestBody ProjectRequest request) {
+    public Project put(@PathVariable long id, @RequestBody ProjectRequest request) {
         User user = userRepository.findById(1L) // TODO: user with id 1 again
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
         Project project = new Project(request);
@@ -132,13 +132,13 @@ public class ProjectController {
         return project;
     }
 
-    @Operation(summary = "Delete project.", description = "This method is used to delete project. On sucess does not return anything. Throws 404 when project does not exist.")
+    @Operation(summary = "Delete project.", description = "This method is used to delete project. On success does not return anything. Throws 404 when project does not exist.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Object with given id has been deleted."),
             @ApiResponse(responseCode = "404", description = "Project with given id not found.")
     })
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable long id) {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
         projectWorkspaceRepository.deleteAll(projectWorkspaceRepository.findByProject(project));

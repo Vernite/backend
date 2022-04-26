@@ -66,7 +66,7 @@ public class ProjectWorkspaceControllerTests {
     }
 
     @Test
-    void moveWorkspaceSucess() throws Exception {
+    void moveWorkspaceSuccess() throws Exception {
         Workspace newWorkspace = workspaceRepository.save(new Workspace("test 2", user));
 
         mvc.perform(get(String.format("/user/%d/workspace/%d", user.getId(), workspace.getId())))

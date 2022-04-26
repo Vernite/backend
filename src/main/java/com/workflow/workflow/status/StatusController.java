@@ -45,7 +45,7 @@ public class StatusController {
         return project.getStatuses();
     }
 
-    @Operation(summary = "Retrive status.", description = "This method is used to retrive status with given ID. On sucess returns status with given ID. Throws 404 when project or status does not exist.")
+    @Operation(summary = "Retrive status.", description = "This method is used to retrive status with given ID. On success returns status with given ID. Throws 404 when project or status does not exist.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Project with given id.", content = {
                     @Content(mediaType = "application/json", schema = @Schema(implementation = Status.class))
@@ -62,7 +62,7 @@ public class StatusController {
         return col;
     }
 
-    @Operation(summary = "Delete status.", description = "This method is used to delete status. On sucess does not return anything. Throws 404 when status or project does not exist.")
+    @Operation(summary = "Delete status.", description = "This method is used to delete status. On success does not return anything. Throws 404 when status or project does not exist.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Status with given ID has been deleted."),
             @ApiResponse(responseCode = "404", description = "Project or status with given ID not found.")

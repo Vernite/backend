@@ -65,7 +65,7 @@ public class ProjectControllerTests {
     }
 
     @Test
-    void addSucess() throws Exception {
+    void addSuccess() throws Exception {
         mvc.perform(post("/project/").contentType(MediaType.APPLICATION_JSON)
                 .content(String.format("{\"name\": \"test\", \"workspaceId\": %d}", workspace.getId())))
                 .andExpect(status().isOk())
@@ -102,7 +102,7 @@ public class ProjectControllerTests {
     }
 
     @Test
-    void getSucess() throws Exception {
+    void getSuccess() throws Exception {
         Project project = projectRepository.save(new Project("name 1"));
 
         mvc.perform(get(String.format("/project/%d", project.getId())))
@@ -128,7 +128,7 @@ public class ProjectControllerTests {
     }
 
     @Test
-    void patchSucess() throws Exception {
+    void patchSuccess() throws Exception {
         Project project = projectRepository.save(new Project("patch"));
 
         mvc.perform(patch(String.format("/project/%d", project.getId()))
@@ -190,7 +190,7 @@ public class ProjectControllerTests {
     }
 
     @Test
-    void putSucess() throws Exception {
+    void putSuccess() throws Exception {
         Project project = projectRepository.save(new Project("put"));
 
         mvc.perform(put(String.format("/project/%d", project.getId()))
@@ -269,7 +269,7 @@ public class ProjectControllerTests {
     }
 
     @Test
-    void deleteSucess() throws Exception {
+    void deleteSuccess() throws Exception {
         Project project = projectRepository.save(new Project("put"));
 
         mvc.perform(delete(String.format("/project/%d", project.getId())))

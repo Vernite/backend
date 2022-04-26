@@ -91,7 +91,7 @@ public class WorkspaceControllerTests {
     }
 
     @Test
-    void addSucess() throws Exception {
+    void addSuccess() throws Exception {
         mvc.perform(post("/user/1/workspace/").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\": \"test\"}"))
                 .andExpect(status().isOk())
@@ -126,7 +126,7 @@ public class WorkspaceControllerTests {
     }
 
     @Test
-    void getSucess() throws Exception {
+    void getSuccess() throws Exception {
         Workspace workspace = workspaceRepository
                 .save(new Workspace("test 176", userRepository.findById(1L).orElseThrow()));
 
@@ -149,7 +149,7 @@ public class WorkspaceControllerTests {
     }
 
     @Test
-    void patchSucess() throws Exception {
+    void patchSuccess() throws Exception {
         Workspace workspace = workspaceRepository
                 .save(new Workspace("patch", userRepository.findById(1L).orElseThrow()));
 
@@ -214,7 +214,7 @@ public class WorkspaceControllerTests {
     }
 
     @Test
-    void putSucess() throws Exception {
+    void putSuccess() throws Exception {
         Workspace workspace = workspaceRepository
                 .save(new Workspace("put", userRepository.findById(1L).orElseThrow()));
 
@@ -296,7 +296,7 @@ public class WorkspaceControllerTests {
     }
 
     @Test
-    void deleteSucess() throws Exception {
+    void deleteSuccess() throws Exception {
         Workspace workspace = workspaceRepository
                 .save(new Workspace("put", userRepository.findById(1L).orElseThrow()));
 
