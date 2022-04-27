@@ -29,6 +29,7 @@ public class Project {
     @OneToMany(mappedBy = "project")
     private Set<ProjectWorkspace> projectWorkspace = new TreeSet<>();
 
+    @JsonIgnore
     @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
     private Set<Status> statuses = new HashSet<>();
 
