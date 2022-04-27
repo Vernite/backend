@@ -107,17 +107,7 @@ public class ProjectControllerTests {
         mvc.perform(get(String.format("/project/%d", project.getId())))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.name", is(project.getName())))
-                .andExpect(jsonPath("$.projectMembers", hasSize(0)));
-
-        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
-
-        mvc.perform(get(String.format("/project/%d", project.getId())))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.name", is(project.getName())))
-                .andExpect(jsonPath("$.projectMembers", hasSize(1)))
-                .andExpect(jsonPath("$.projectMembers[0].privileges", is(1)));
+                .andExpect(jsonPath("$.name", is(project.getName())));
     }
 
     @Test
@@ -205,6 +195,31 @@ public class ProjectControllerTests {
     @Test
     void deleteNotFound() throws Exception {
         mvc.perform(delete("/project/77777"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getMembersSuccess() throws Exception {
+        Project project = projectRepository.save(new Project("name 1"));
+
+        mvc.perform(get(String.format("/project/%d/member", project.getId())))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$", hasSize(0)));
+
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+
+        mvc.perform(get(String.format("/project/%d/member", project.getId())))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].privileges", is(1)))
+                .andExpect(jsonPath("$[0].user.id", is(user.getId().intValue())));
+    }
+
+    @Test
+    void getMembersNotFound() throws Exception {
+        mvc.perform(get("/project/70000/member"))
                 .andExpect(status().isNotFound());
     }
 }

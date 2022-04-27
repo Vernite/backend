@@ -1,5 +1,6 @@
 package com.workflow.workflow.project;
 
+import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceKey;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
@@ -23,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
@@ -115,5 +117,18 @@ public class ProjectController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
         projectWorkspaceRepository.deleteAll(projectWorkspaceRepository.findByProject(project));
         projectRepository.delete(project);
+    }
+
+    @Operation(summary = "Get project members.", description = "This method is used to retrive members of project with given id. On success returns list with members of project with given id. Throws 404 when project does not exist.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Members of project with given id.", content = {
+                    @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = ProjectMember.class)))
+            }),
+            @ApiResponse(responseCode = "404", description = "Project with given id not found.", content = @Content())
+    })
+    @GetMapping("/{id}/member")
+    public Iterable<ProjectMember> getMembers(@PathVariable long id) {
+        return projectRepository.findById(id).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND)).getProjectMembers();
     }
 }

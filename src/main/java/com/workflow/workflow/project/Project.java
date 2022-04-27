@@ -87,6 +87,7 @@ public class Project {
         this.projectWorkspace = projectWorkspace;
     }
 
+    @JsonIgnore
     public List<ProjectMember> getProjectMembers() {
         return projectWorkspace.stream().map(ProjectWorkspace::getProjectMember).toList();
     }
