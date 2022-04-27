@@ -10,6 +10,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.workflow.workflow.project.Project;
 
 @Entity
@@ -17,23 +18,24 @@ public class Status {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Long id;
     
     @Column(nullable = false, length = 50)
     private String name;
 
     @Column(nullable = false)
-    private int color;
+    private Integer color;
 
     @Column(nullable = false)
-    private boolean isFinal;
+    private Boolean isFinal;
     
     @Column(nullable = false)
-    private int ordinal;
+    private Integer ordinal;
 
     @JsonIgnore
     @ManyToOne
-    @JoinColumn(name = "project_id", foreignKey = @ForeignKey(name = "fk_column_project"))
+    @JoinColumn(name = "project_id", nullable = false, foreignKey = @ForeignKey(name = "fk_column_project"))
     private Project project;
 
     public Long getId() {
@@ -52,27 +54,27 @@ public class Status {
         this.name = name;
     }
 
-    public int getColor() {
+    public Integer getColor() {
         return color;
     }
 
-    public void setColor(int color) {
+    public void setColor(Integer color) {
         this.color = color;
     }
 
-    public boolean isFinal() {
+    public Boolean isFinal() {
         return isFinal;
     }
 
-    public void setFinal(boolean isFinal) {
+    public void setFinal(Boolean isFinal) {
         this.isFinal = isFinal;
     }
 
-    public int getOrdinal() {
+    public Integer getOrdinal() {
         return ordinal;
     }
 
-    public void setOrdinal(int ordinal) {
+    public void setOrdinal(Integer ordinal) {
         this.ordinal = ordinal;
     }
 
@@ -84,5 +86,16 @@ public class Status {
         this.project = project;
     }
 
-    
+    public Status apply(Status o) {
+        if (o.getColor() != null) {
+            this.setColor(o.getColor());
+        }
+        if (o.getName() != null) {
+            this.setName(o.getName());
+        }
+        if (o.getOrdinal() != null) {
+            this.setOrdinal(o.getOrdinal());
+        }
+        return this;
+    }
 }

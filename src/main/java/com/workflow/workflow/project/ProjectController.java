@@ -42,14 +42,13 @@ public class ProjectController {
     static final String PROJECT_NOT_FOUND = "project not found";
     static final String WORKSPACE_NOT_FOUND = "workspace not found";
 
-    @Operation(summary = "Create project.", description = "This method creates new project for user in given workspace. TODO: for now all projects are created for user with id 1, later this will be based on authentication. User creating project is added as member with privileges 1. On success returns newly created project. Throws status 404 when workspace with given id does not exist. Throws status 400 when sent data are incorrect. Throws status 415 when when content type is not application/json.")
+    @Operation(summary = "Create project.", description = "This method creates new project for user in given workspace. TODO: for now all projects are created for user with id 1, later this will be based on authentication. User creating project is added as member with privileges 1. On success returns newly created project. Throws status 404 when workspace with given id does not exist. Throws status 400 when sent data are incorrect.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Newly created project.", content = {
                     @Content(mediaType = "application/json", schema = @Schema(implementation = Project.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad request data format.", content = @Content()),
-            @ApiResponse(responseCode = "404", description = "Workspace with given id not found.", content = @Content()),
-            @ApiResponse(responseCode = "415", description = "Bad content type.", content = @Content())
+            @ApiResponse(responseCode = "404", description = "Workspace with given id not found.", content = @Content())
     })
     @PostMapping("/")
     public Project add(@RequestBody ProjectRequest request) {
@@ -64,7 +63,7 @@ public class ProjectController {
         return project;
     }
 
-    @Operation(summary = "Retrive project.", description = "This method is used to retrive project with given id. On success returns project with given id. Throws 404 when project does not exist.")
+    @Operation(summary = "Get project information.", description = "This method is used to retrive project with given id. On success returns project with given id. Throws 404 when project does not exist.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Project with given id.", content = {
                     @Content(mediaType = "application/json", schema = @Schema(implementation = Project.class))
@@ -77,14 +76,13 @@ public class ProjectController {
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
     }
 
-    @Operation(summary = "Modify project.", description = "This method is used to modify existing project. If workspace id is null it is ignored. If workspace id is not null it also changes workspace to given. On success returns modified project. Throws 404 when project or workspace from request data does not exist or user is not a member in project. Throws status 400 when sent data are incorrect. Throws status 415 when when content type is not application/json.")
+    @Operation(summary = "Modify project.", description = "This method is used to modify existing project. If workspace id is null it is ignored. If workspace id is not null it also changes workspace to given. On success returns modified project. Throws 404 when project or workspace from request data does not exist or user is not a member in project. Throws status 400 when sent data are incorrect.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Modified project with given id.", content = {
                     @Content(mediaType = "application/json", schema = @Schema(implementation = Workspace.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad request data format.", content = @Content()),
-            @ApiResponse(responseCode = "404", description = "Project with given id not found or user is not a member in project.", content = @Content()),
-            @ApiResponse(responseCode = "415", description = "Bad content type.", content = @Content())
+            @ApiResponse(responseCode = "404", description = "Project with given id not found or user is not a member in project.", content = @Content())
     })
     @PutMapping("/{id}")
     public Project put(@PathVariable long id, @RequestBody ProjectRequest request) {
