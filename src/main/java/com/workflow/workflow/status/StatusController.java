@@ -53,11 +53,23 @@ public class StatusController {
             @ApiResponse(responseCode = "200", description = "Newly created workspace.", content = {
                     @Content(mediaType = "application/json", schema = @Schema(implementation = Status.class))
             }),
-            @ApiResponse(responseCode = "400", description = "Bad request data format.", content = @Content()),
+            @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content()),
             @ApiResponse(responseCode = "404", description = "User with given ID not found.", content = @Content())
     })
     @PostMapping("/")
     public Status add(@PathVariable long projectId, @RequestBody Status status) {
+        if (status.getColor() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing color");
+        }
+        if (status.getName() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing name");
+        }
+        if (status.getOrdinal() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing ordinal");
+        }
+        if (status.isFinal() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing final");
+        }
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
         status.setProject(project);
