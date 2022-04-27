@@ -9,8 +9,8 @@ import com.workflow.workflow.workspace.WorkspaceRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -39,7 +39,7 @@ public class ProjectWorkspaceController {
             @ApiResponse(responseCode = "200", description = "Project has been moved."),
             @ApiResponse(responseCode = "404", description = "Workspace or project with given id not found. User is not member of project")
     })
-    @PatchMapping("/workspace/{newWorkspaceId}")
+    @PutMapping("/workspace/{newWorkspaceId}")
     public void moveWorkspace(@PathVariable long projectId, @PathVariable long newWorkspaceId) {
         User user = userRepository.findById(1L) // TODO: user with id 1 again
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));

@@ -23,7 +23,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -149,71 +148,6 @@ public class WorkspaceControllerTests {
     }
 
     @Test
-    void patchSuccess() throws Exception {
-        Workspace workspace = workspaceRepository
-                .save(new Workspace("patch", userRepository.findById(1L).orElseThrow()));
-
-        mvc.perform(patch(String.format("/user/1/workspace/%d", workspace.getId()))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\": \"new patch\"}"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.name", is("new patch")));
-
-        mvc.perform(get(String.format("/user/1/workspace/%d", workspace.getId())))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.name", is("new patch")));
-    }
-
-    @Test
-    void patchBadRequest() throws Exception {
-        Workspace workspace = workspaceRepository
-                .save(new Workspace("patch", userRepository.findById(1L).orElseThrow()));
-
-        mvc.perform(patch(String.format("/user/1/workspace/%d", workspace.getId()))
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest());
-        mvc.perform(patch(String.format("/user/1/workspace/%d", workspace.getId()))
-                .contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void patchNotFound() throws Exception {
-        mvc.perform(patch("/user/1/workspace/1").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\": \"new patch\"}"))
-                .andExpect(status().isNotFound());
-
-        mvc.perform(patch("/user/2222/workspace/1").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\": \"new patch\"}"))
-                .andExpect(status().isNotFound());
-
-        Workspace workspace = workspaceRepository
-                .save(new Workspace("patch", userRepository.findById(1L).orElseThrow()));
-
-        mvc.perform(patch(String.format("/user/2222/workspace/%d", workspace.getId()))
-                .contentType(MediaType.APPLICATION_JSON).content("{\"name\": \"new patch\"}"))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void patchUnsupportedMedia() throws Exception {
-        Workspace workspace = workspaceRepository
-                .save(new Workspace("patch", userRepository.findById(1L).orElseThrow()));
-
-        mvc.perform(patch(String.format("/user/1/workspace/%d", workspace.getId()))
-                .contentType(MediaType.MULTIPART_FORM_DATA))
-                .andExpect(status().isUnsupportedMediaType());
-        mvc.perform(patch(String.format("/user/1/workspace/%d", workspace.getId()))
-                .contentType(MediaType.MULTIPART_FORM_DATA).content("{}"))
-                .andExpect(status().isUnsupportedMediaType());
-        mvc.perform(patch(String.format("/user/1/workspace/%d", workspace.getId()))
-                .contentType(MediaType.MULTIPART_FORM_DATA).content("{\"name\": \"test\"}"))
-                .andExpect(status().isUnsupportedMediaType());
-    }
-
-    @Test
     void putSuccess() throws Exception {
         Workspace workspace = workspaceRepository
                 .save(new Workspace("put", userRepository.findById(1L).orElseThrow()));
@@ -229,12 +163,6 @@ public class WorkspaceControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.name", is("new put")));
-
-        mvc.perform(put("/user/1/workspace/2000").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\": \"new put 2\"}"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.name", is("new put 2")));
     }
 
     @Test
@@ -248,25 +176,22 @@ public class WorkspaceControllerTests {
         mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId()))
                 .contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isBadRequest());
-
-        mvc.perform(put("/user/1/workspace/5")
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest());
-        mvc.perform(put("/user/1/workspace/5")
-                .contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isBadRequest());
     }
 
     @Test
     void putNotFound() throws Exception {
+        mvc.perform(put("/user/1/workspace/1").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\": \"new put\"}"))
+                .andExpect(status().isNotFound());
+
+        mvc.perform(put("/user/2222/workspace/1").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\": \"new put\"}"))
+                .andExpect(status().isNotFound());
+
         Workspace workspace = workspaceRepository
                 .save(new Workspace("put", userRepository.findById(1L).orElseThrow()));
 
         mvc.perform(put(String.format("/user/2222/workspace/%d", workspace.getId()))
-                .contentType(MediaType.APPLICATION_JSON).content("{\"name\": \"new put\"}"))
-                .andExpect(status().isNotFound());
-
-        mvc.perform(put("/user/2222/workspace/77")
                 .contentType(MediaType.APPLICATION_JSON).content("{\"name\": \"new put\"}"))
                 .andExpect(status().isNotFound());
     }
@@ -274,7 +199,7 @@ public class WorkspaceControllerTests {
     @Test
     void putUnsupportedMedia() throws Exception {
         Workspace workspace = workspaceRepository
-                .save(new Workspace("patch", userRepository.findById(1L).orElseThrow()));
+                .save(new Workspace("put", userRepository.findById(1L).orElseThrow()));
 
         mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId()))
                 .contentType(MediaType.MULTIPART_FORM_DATA))
@@ -284,14 +209,6 @@ public class WorkspaceControllerTests {
                 .andExpect(status().isUnsupportedMediaType());
         mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId()))
                 .contentType(MediaType.MULTIPART_FORM_DATA).content("{\"name\": \"test\"}"))
-                .andExpect(status().isUnsupportedMediaType());
-
-        mvc.perform(put("/user/1/workspace/77").contentType(MediaType.MULTIPART_FORM_DATA))
-                .andExpect(status().isUnsupportedMediaType());
-        mvc.perform(put("/user/1/workspace/77").contentType(MediaType.MULTIPART_FORM_DATA).content("{}"))
-                .andExpect(status().isUnsupportedMediaType());
-        mvc.perform(put("/user/1/workspace/77").contentType(MediaType.MULTIPART_FORM_DATA)
-                .content("{\"name\": \"test\"}"))
                 .andExpect(status().isUnsupportedMediaType());
     }
 

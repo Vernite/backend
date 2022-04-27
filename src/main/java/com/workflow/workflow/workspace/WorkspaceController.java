@@ -8,10 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -94,34 +93,15 @@ public class WorkspaceController {
             @ApiResponse(responseCode = "404", description = "Workspace or user with given id not found.", content = @Content()),
             @ApiResponse(responseCode = "415", description = "Bad content type.", content = @Content())
     })
-    @PatchMapping("/{id}")
-    public Workspace patch(@PathVariable long userID, @PathVariable long id,
+    @PutMapping("/{id}")
+    public Workspace put(@PathVariable long userID, @PathVariable long id,
             @RequestBody WorkspaceRequest request) {
         User user = userRepository.findById(userID)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
         Workspace workspace = workspaceRepository.findByIdAndUser(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         WORKSPACE_NOT_FOUND));
-        workspace.patch(request);
-        return workspaceRepository.save(workspace);
-    }
-
-    @Operation(summary = "Modify or create workspace.", description = "This method is used to modify workspace. When workspace with given id does not exist this method create new workspace. Id of new object may not equal given one. On success returns modified/created workspace. Throws 404 when user does not exist. Throws status 400 when sent data are incorrect. Throws status 415 when when content type is not application/json.")
-    @Parameter(name = "id", description = "Id of object to modify. When object with given id does not exists new one is created. Id of new object may not equal given one.", in = ParameterIn.PATH, required = true, schema = @Schema(implementation = Integer.class))
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Modified or created workspace.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = Workspace.class))
-            }),
-            @ApiResponse(responseCode = "400", description = "Bad request data format.", content = @Content()),
-            @ApiResponse(responseCode = "404", description = "User with given id not found", content = @Content()),
-            @ApiResponse(responseCode = "415", description = "Bad content type.", content = @Content())
-    })
-    @PutMapping("/{id}")
-    public Workspace put(@PathVariable long userID, @PathVariable long id, @RequestBody WorkspaceRequest request) {
-        User user = userRepository.findById(userID)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
-        Workspace workspace = new Workspace(request, user);
-        workspace.setId(id);
+        workspace.put(request);
         return workspaceRepository.save(workspace);
     }
 

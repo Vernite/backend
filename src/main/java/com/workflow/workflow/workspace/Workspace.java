@@ -55,11 +55,11 @@ public class Workspace {
     }
 
     /**
-     * This method modifies workspace based on patch request data.
-     * @param request - patch request data
+     * This method modifies workspace based on put request data.
+     * @param request - put request data
      * @throws ResponseStatusException - bad request when either user or request.name is null.
      */
-    public void patch(WorkspaceRequest request) {
+    public void put(WorkspaceRequest request) {
         if (request.getName() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         }

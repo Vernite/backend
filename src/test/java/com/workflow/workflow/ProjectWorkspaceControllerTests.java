@@ -20,7 +20,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.hamcrest.Matchers.hasSize;
@@ -56,12 +56,12 @@ public class ProjectWorkspaceControllerTests {
 
     @Test
     void moveWorkspaceNotFound() throws Exception {
-        mvc.perform(patch(String.format("/project/%d/workspace/%d", project.getId(), 7L)))
+        mvc.perform(put(String.format("/project/%d/workspace/%d", project.getId(), 7L)))
                 .andExpect(status().isNotFound());
-        mvc.perform(patch(String.format("/project/%d/workspace/%d", 7L, workspace.getId())))
+        mvc.perform(put(String.format("/project/%d/workspace/%d", 7L, workspace.getId())))
                 .andExpect(status().isNotFound());
         Project newProject = projectRepository.save(new Project("test project 2"));
-        mvc.perform(patch(String.format("/project/%d/workspace/%d", newProject.getId(), workspace.getId())))
+        mvc.perform(put(String.format("/project/%d/workspace/%d", newProject.getId(), workspace.getId())))
                 .andExpect(status().isNotFound());
     }
 
@@ -74,7 +74,7 @@ public class ProjectWorkspaceControllerTests {
                 .andExpect(jsonPath("$.name", is(workspace.getName())))
                 .andExpect(jsonPath("$.projectsWithPrivileges", hasSize(1)));
         
-        mvc.perform(patch(String.format("/project/%d/workspace/%d", project.getId(), newWorkspace.getId())))
+        mvc.perform(put(String.format("/project/%d/workspace/%d", project.getId(), newWorkspace.getId())))
                 .andExpect(status().isOk());
         
         mvc.perform(get(String.format("/user/%d/workspace/%d", user.getId(), workspace.getId())))

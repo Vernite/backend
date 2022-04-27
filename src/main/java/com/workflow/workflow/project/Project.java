@@ -51,11 +51,11 @@ public class Project {
     }
 
     /**
-     * This method modifies project based on patch request data.
-     * @param request - patch request data.
+     * This method modifies project based on put request data.
+     * @param request - put request data.
      * @throws ResponseStatusException - bad request when request.name is null.
      */
-    public void patch(ProjectRequest request) {
+    public void put(ProjectRequest request) {
         if (request.getName() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         }

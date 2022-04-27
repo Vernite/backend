@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -22,8 +21,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -89,8 +86,8 @@ public class ProjectController {
             @ApiResponse(responseCode = "404", description = "Project with given id not found or user is not a member in project.", content = @Content()),
             @ApiResponse(responseCode = "415", description = "Bad content type.", content = @Content())
     })
-    @PatchMapping("/{id}")
-    public Project patch(@PathVariable long id, @RequestBody ProjectRequest request) {
+    @PutMapping("/{id}")
+    public Project put(@PathVariable long id, @RequestBody ProjectRequest request) {
         User user = userRepository.findById(1L) // TODO: user with id 1 again
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
         Project project = projectRepository.findById(id)
@@ -100,36 +97,13 @@ public class ProjectController {
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                             WORKSPACE_NOT_FOUND));
             ProjectWorkspace projectWorkspace = projectWorkspaceRepository
-                    .findById(new ProjectWorkspaceKey(workspace, project)).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "user not a member in project"));
+                    .findById(new ProjectWorkspaceKey(workspace, project)).orElseThrow(
+                            () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "user not a member in project"));
             projectWorkspace.setWorkspace(workspace);
             projectWorkspaceRepository.save(projectWorkspace);
         }
-        project.patch(request);
+        project.put(request);
         return projectRepository.save(project);
-    }
-
-    @Operation(summary = "Modify or create project.", description = "This method is used to modify project. When project with given id does not exist this method create new project. Id of new object may not equal given one. On success returns modified/created project. Throws 404 when workspace does not exist. Throws status 400 when sent data are incorrect. Throws status 415 when when content type is not application/json.")
-    @Parameter(name = "id", description = "Id of object to modify. When object with given id does not exists new one is created. Id of new object may not equal given one.", in = ParameterIn.PATH, required = true, schema = @Schema(implementation = Integer.class))
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Modified or created project.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = Workspace.class))
-            }),
-            @ApiResponse(responseCode = "400", description = "Bad request data format.", content = @Content()),
-            @ApiResponse(responseCode = "404", description = "Workspace with given id not found", content = @Content()),
-            @ApiResponse(responseCode = "415", description = "Bad content type.", content = @Content())
-    })
-    @PutMapping("/{id}")
-    public Project put(@PathVariable long id, @RequestBody ProjectRequest request) {
-        User user = userRepository.findById(1L) // TODO: user with id 1 again
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
-        Project project = new Project(request);
-        project.setId(id);
-        Workspace workspace = workspaceRepository.findByIdAndUser(request.getWorkspaceId(), user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, WORKSPACE_NOT_FOUND));
-        project = projectRepository.save(project);
-        ProjectWorkspace projectWorkspace = new ProjectWorkspace(project, workspace, 1L);
-        projectWorkspaceRepository.save(projectWorkspace);
-        return project;
     }
 
     @Operation(summary = "Delete project.", description = "This method is used to delete project. On success does not return anything. Throws 404 when project does not exist.")
