@@ -8,17 +8,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -26,7 +24,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 @RestController
-@RequestMapping("/user/{userID}/workspace")
+@RequestMapping("/user/{userId}/workspace")
 public class WorkspaceController {
     static final String USER_NOT_FOUND = "user not found";
     static final String WORKSPACE_NOT_FOUND = "workspace not found";
@@ -46,8 +44,8 @@ public class WorkspaceController {
             @ApiResponse(responseCode = "404", description = "User with given id not found.", content = @Content())
     })
     @GetMapping("/")
-    public Iterable<Workspace> all(@PathVariable long userID) {
-        User user = userRepository.findById(userID)
+    public Iterable<Workspace> all(@PathVariable long userId) {
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
         return workspaceRepository.findByUser(user);
     }
@@ -62,8 +60,8 @@ public class WorkspaceController {
             @ApiResponse(responseCode = "415", description = "Bad content type.", content = @Content())
     })
     @PostMapping("/")
-    public Workspace add(@PathVariable long userID, @RequestBody WorkspaceRequest request) {
-        User user = userRepository.findById(userID)
+    public Workspace add(@PathVariable long userId, @RequestBody WorkspaceRequest request) {
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
         return workspaceRepository.save(new Workspace(request, user));
     }
@@ -76,8 +74,8 @@ public class WorkspaceController {
             @ApiResponse(responseCode = "404", description = "Workspace or user with given id not found.", content = @Content())
     })
     @GetMapping("/{id}")
-    public Workspace get(@PathVariable long userID, @PathVariable long id) {
-        User user = userRepository.findById(userID)
+    public Workspace get(@PathVariable long userId, @PathVariable long id) {
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
         return workspaceRepository.findByIdAndUser(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -94,9 +92,9 @@ public class WorkspaceController {
             @ApiResponse(responseCode = "415", description = "Bad content type.", content = @Content())
     })
     @PutMapping("/{id}")
-    public Workspace put(@PathVariable long userID, @PathVariable long id,
+    public Workspace put(@PathVariable long userId, @PathVariable long id,
             @RequestBody WorkspaceRequest request) {
-        User user = userRepository.findById(userID)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
         Workspace workspace = workspaceRepository.findByIdAndUser(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -112,8 +110,8 @@ public class WorkspaceController {
             @ApiResponse(responseCode = "404", description = "Workspace or user with given id not found.")
     })
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable long userID, @PathVariable long id) {
-        User user = userRepository.findById(userID)
+    public void delete(@PathVariable long userId, @PathVariable long id) {
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
         Workspace workspace = workspaceRepository.findByIdAndUser(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,

@@ -20,7 +20,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 @RestController
-@RequestMapping("/project/{projectID}/status")
+@RequestMapping("/project/{projectId}/status")
 public class StatusController {
 
     private static final String PROJECT_NOT_FOUND = "project not found";
@@ -39,8 +39,8 @@ public class StatusController {
             @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
     })
     @GetMapping("/")
-    public Iterable<Status> all(@PathVariable long projectID) {
-        Project project = projectRepository.findById(projectID)
+    public Iterable<Status> all(@PathVariable long projectId) {
+        Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
         return project.getStatuses();
     }
@@ -53,10 +53,10 @@ public class StatusController {
             @ApiResponse(responseCode = "404", description = "Project with given id not found.", content = @Content())
     })
     @GetMapping("/{id}")
-    public Status get(@PathVariable long projectID, @PathVariable long id) {
+    public Status get(@PathVariable long projectId, @PathVariable long id) {
         Status col = statusRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND));
-        if (col.getProject().getId() != projectID) {
+        if (col.getProject().getId() != projectId) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND);
         }
         return col;
@@ -68,10 +68,10 @@ public class StatusController {
             @ApiResponse(responseCode = "404", description = "Project or status with given ID not found.")
     })
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable long projectID, @PathVariable long id) {
+    public void delete(@PathVariable long projectId, @PathVariable long id) {
         Status col = statusRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND));
-        if (col.getProject().getId() != projectID) {
+        if (col.getProject().getId() != projectId) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND);
         }
         statusRepository.delete(col);
