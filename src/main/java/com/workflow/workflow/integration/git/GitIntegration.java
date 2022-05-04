@@ -4,8 +4,10 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.ManyToOne;
 import javax.persistence.OneToOne;
 
+import com.workflow.workflow.integration.ApiToken;
 import com.workflow.workflow.project.Project;
 
 @Entity
@@ -13,13 +15,14 @@ public class GitIntegration {
     private @Id @GeneratedValue(strategy = GenerationType.IDENTITY) Long id;
     @OneToOne
     private Project project;
-    private String apiToken;
+    @ManyToOne
+    private ApiToken apiToken;
     private String apiLink;
     private long repositoryId;
 
     public GitIntegration() {}
 
-    public GitIntegration(Project project, String apiToken, String apiLink, long repositoryId) {
+    public GitIntegration(Project project, ApiToken apiToken, String apiLink, long repositoryId) {
         this.project = project;
         this.apiToken = apiToken;
         this.apiLink = apiLink;
@@ -42,11 +45,11 @@ public class GitIntegration {
         this.project = project;
     }
 
-    public String getApiToken() {
+    public ApiToken getApiToken() {
         return apiToken;
     }
 
-    public void setApiToken(String apiToken) {
+    public void setApiToken(ApiToken apiToken) {
         this.apiToken = apiToken;
     }
 
