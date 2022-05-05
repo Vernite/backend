@@ -1,4 +1,4 @@
-package com.workflow.workflow.integration.git;
+package com.workflow.workflow.integration.git.github;
 
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
@@ -9,9 +9,9 @@ import javax.persistence.OneToOne;
 import com.workflow.workflow.task.Task;
 
 @Entity
-public class GitTask {
+public class GitHubTask {
     @EmbeddedId
-    private GitTaskKey id;
+    private GitHubTaskKey id;
 
     @OneToOne
     @MapsId("taskId")
@@ -21,24 +21,24 @@ public class GitTask {
     @OneToOne
     @MapsId("integrationId")
     @JoinColumn(name = "integration_id")
-    private GitIntegration gitIntegration;
+    private GitHubIntegration gitHubIntegration;
 
     private long issueId;
 
-    public GitTask() {}
+    public GitHubTask() {}
 
-    public GitTask(Task task, GitIntegration gitIntegration, long issueId) {
-        this.id = new GitTaskKey(task, gitIntegration);
+    public GitHubTask(Task task, GitHubIntegration gitHubIntegration, long issueId) {
+        this.id = new GitHubTaskKey(task, gitHubIntegration);
         this.task = task;
-        this.gitIntegration = gitIntegration;
+        this.gitHubIntegration = gitHubIntegration;
         this.issueId = issueId;
     }
 
-    public GitTaskKey getId() {
+    public GitHubTaskKey getId() {
         return id;
     }
 
-    public void setId(GitTaskKey id) {
+    public void setId(GitHubTaskKey id) {
         this.id = id;
     }
 
@@ -50,11 +50,11 @@ public class GitTask {
         this.task = task;
     }
 
-    public GitIntegration getGitIntegration() {
-        return gitIntegration;
+    public GitHubIntegration getGitHubIntegration() {
+        return gitHubIntegration;
     }
-    public void setGitIntegration(GitIntegration gitIntegration) {
-        this.gitIntegration = gitIntegration;
+    public void setGitHubIntegration(GitHubIntegration gitIntegration) {
+        this.gitHubIntegration = gitIntegration;
     }
 
     public long getIssueId() {

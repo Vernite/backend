@@ -1,4 +1,4 @@
-package com.workflow.workflow.integration.git;
+package com.workflow.workflow.integration.git.github;
 
 import java.io.Serializable;
 
@@ -8,13 +8,13 @@ import javax.persistence.Embeddable;
 import com.workflow.workflow.task.Task;
 
 @Embeddable
-public class GitTaskKey implements Serializable {
+public class GitHubTaskKey implements Serializable {
     @Column(name = "task_id") Long taskId;
     @Column(name = "integration_id") Long integrationId;
 
-    public GitTaskKey() {}
+    public GitHubTaskKey() {}
 
-    public GitTaskKey(Task task, GitIntegration integration) {
+    public GitHubTaskKey(Task task, GitHubIntegration integration) {
         this.taskId = task.getId();
         this.integrationId = integration.getId();
     }
@@ -52,7 +52,7 @@ public class GitTaskKey implements Serializable {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        GitTaskKey other = (GitTaskKey) obj;
+        GitHubTaskKey other = (GitHubTaskKey) obj;
         if (taskId == null) {
             if (other.taskId != null)
                 return false;
