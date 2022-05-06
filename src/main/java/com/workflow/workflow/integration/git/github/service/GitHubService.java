@@ -1,7 +1,6 @@
 package com.workflow.workflow.integration.git.github.service;
 
 import java.util.List;
-import java.util.Optional;
 
 import com.workflow.workflow.integration.git.github.GitHubInstallation;
 import com.workflow.workflow.integration.git.github.GitHubInstallationRepository;
@@ -35,9 +34,9 @@ public class GitHubService {
 
     public List<GitHubRepository> getRepositories(User user) {
         List<GitHubRepository> repositories = new ArrayList<>();
-        Optional<GitHubInstallation> optional = installationRepository.findByUser(user);
-        if (optional.isPresent()) {
-            GitHubInstallation installation = refreshToken(optional.get());
+        List<GitHubInstallation> installations = installationRepository.findByUser(user);
+        for (GitHubInstallation gitHubInstallation : installations) {
+            GitHubInstallation installation = refreshToken(gitHubInstallation);
             GitHubRepositoryList repositoryList = client.get()
                     .uri("https://api.github.com/installation/repositories")
                     .header("Authorization", "Bearer " + installation.getToken())
