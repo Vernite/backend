@@ -12,6 +12,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ResponseStatusException;
 
 import io.jsonwebtoken.Jwts;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,37 +34,38 @@ public class GitHubService {
         this.installationRepository = installationRepository;
     }
 
-    public List<GitHubRepository> getRepositories(User user) {
-        List<GitHubRepository> repositories = new ArrayList<>();
-        List<GitHubInstallation> installations = installationRepository.findByUser(user);
-        for (GitHubInstallation gitHubInstallation : installations) {
-            GitHubInstallation installation = refreshToken(gitHubInstallation);
-            GitHubRepositoryList repositoryList = client.get()
-                    .uri("https://api.github.com/installation/repositories")
-                    .header("Authorization", "Bearer " + installation.getToken())
-                    .header("Accept", "application/vnd.github.v3+json")
-                    .retrieve()
-                    .bodyToMono(GitHubRepositoryList.class)
-                    .block();
-            if (repositoryList != null) {
-                repositories.addAll(repositoryList.getRepositories());
-            }
-        }
-        return repositories;
+    public Mono<List<GitHubRepository>> getRepositories(User user) {
+        return Flux.fromIterable(installationRepository.findByUser(user))
+                .flatMap(this::refreshToken)
+                .flatMap(this::getRepositoryList)
+                .map(GitHubRepositoryList::getRepositories)
+                .reduce(new ArrayList<>(), (first, second) -> {
+                    first.addAll(second);
+                    return first;
+                });
     }
 
-    private GitHubInstallation refreshToken(GitHubInstallation installation) {
-        if (Instant.now().isAfter(installation.getExpiresAt().toInstant())) {
-            installation.update(client.post()
-                    .uri(String.format("https://api.github.com/app/installations/%d/access_tokens",
-                            installation.getInstallationId()))
-                    .header("Accept", "application/vnd.github.v3+json")
-                    .header("Authorization", "Bearer " + createJWT())
-                    .retrieve()
-                    .bodyToMono(InstallationToken.class)
-                    .block());
-        }
-        return installationRepository.save(installation);
+    private Mono<GitHubRepositoryList> getRepositoryList(GitHubInstallation installation) {
+        return client.get()
+                .uri("https://api.github.com/installation/repositories")
+                .header("Authorization", "Bearer " + installation.getToken())
+                .header("Accept", "application/vnd.github.v3+json")
+                .retrieve()
+                .bodyToMono(GitHubRepositoryList.class);
+    }
+
+    private Mono<GitHubInstallation> refreshToken(GitHubInstallation installation) {
+        return Instant.now().isAfter(installation.getExpiresAt().toInstant()) ? client.post()
+                .uri(String.format("https://api.github.com/app/installations/%d/access_tokens",
+                        installation.getInstallationId()))
+                .header("Accept", "application/vnd.github.v3+json")
+                .header("Authorization", "Bearer " + createJWT())
+                .retrieve()
+                .bodyToMono(InstallationToken.class)
+                .map(token -> {
+                    installation.update(token);
+                    return installationRepository.save(installation);
+                }) : Mono.just(installation);
     }
 
     private static String createJWT() {
