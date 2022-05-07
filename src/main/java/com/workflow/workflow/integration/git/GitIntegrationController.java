@@ -1,5 +1,7 @@
 package com.workflow.workflow.integration.git;
 
+import java.util.List;
+
 import com.workflow.workflow.integration.git.github.GitHubInstallation;
 import com.workflow.workflow.integration.git.github.GitHubInstallationRepository;
 import com.workflow.workflow.integration.git.github.GitHubIntegrationInfo;
@@ -35,7 +37,11 @@ public class GitIntegrationController {
     Mono<GitHubIntegrationInfo> postRepositories(long installationId) {
         // TODO: get current user for now 1
         User user = userRepository.findById(1L).orElseThrow();
-        installationRepository.save(new GitHubInstallation(installationId, user));
-        return service.getRepositories(user).map(repos -> new GitHubIntegrationInfo(INTEGRATION_LINK, repos));
+        return service.getInstallationUser(installationId)
+                .map(gitHubUser -> installationRepository
+                        .save(new GitHubInstallation(installationId, user, gitHubUser.getLogin())))
+                .map(List::of)
+                .flatMap(service::getRepositories)
+                .map(repos -> new GitHubIntegrationInfo(INTEGRATION_LINK, repos));
     }
 }

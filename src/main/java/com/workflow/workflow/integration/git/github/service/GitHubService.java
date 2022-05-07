@@ -27,6 +27,10 @@ import java.util.Date;
 @Service
 public class GitHubService {
     private static final String APP_ID = "195507";
+    private static final String AUTHORIZATION = "Authorization";
+    private static final String ACCEPT = "Accept";
+    private static final String BEARER = "Bearer ";
+    private static final String APPLICATION_JSON_GITHUB = "application/vnd.github.v3+json";
     private static final WebClient client = WebClient.create();
     private GitHubInstallationRepository installationRepository;
 
@@ -45,11 +49,32 @@ public class GitHubService {
                 });
     }
 
+    public Mono<List<GitHubRepository>> getRepositories(List<GitHubInstallation> installations) {
+        return Flux.fromIterable(installations)
+                .flatMap(this::refreshToken)
+                .flatMap(this::getRepositoryList)
+                .map(GitHubRepositoryList::getRepositories)
+                .reduce(new ArrayList<>(), (first, second) -> {
+                    first.addAll(second);
+                    return first;
+                });
+    }
+
+    public Mono<GitHubUser> getInstallationUser(long installationId) {
+        return client.get()
+                .uri("https://api.github.com/app/installations/" + Long.toString(installationId))
+                .header(AUTHORIZATION, BEARER + createJWT())
+                .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                .retrieve()
+                .bodyToMono(GitHubInstallationApi.class)
+                .map(GitHubInstallationApi::getAccount);
+    }
+
     private Mono<GitHubRepositoryList> getRepositoryList(GitHubInstallation installation) {
         return client.get()
                 .uri("https://api.github.com/installation/repositories")
-                .header("Authorization", "Bearer " + installation.getToken())
-                .header("Accept", "application/vnd.github.v3+json")
+                .header(AUTHORIZATION, BEARER + installation.getToken())
+                .header(ACCEPT, APPLICATION_JSON_GITHUB)
                 .retrieve()
                 .bodyToMono(GitHubRepositoryList.class);
     }
@@ -58,8 +83,8 @@ public class GitHubService {
         return Instant.now().isAfter(installation.getExpiresAt().toInstant()) ? client.post()
                 .uri(String.format("https://api.github.com/app/installations/%d/access_tokens",
                         installation.getInstallationId()))
-                .header("Accept", "application/vnd.github.v3+json")
-                .header("Authorization", "Bearer " + createJWT())
+                .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                .header(AUTHORIZATION, BEARER + createJWT())
                 .retrieve()
                 .bodyToMono(InstallationToken.class)
                 .map(token -> {
