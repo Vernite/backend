@@ -10,9 +10,13 @@ import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import reactor.core.publisher.Mono;
 
@@ -51,4 +55,13 @@ public class GitIntegrationController {
         User user = userRepository.findById(1L).orElseThrow();
         return installationRepository.findByUser(user);
     }
+
+    @DeleteMapping("/user/integration/github/{id}")
+    public void deleteInstallation(@PathVariable long id) {
+        // TODO: get current user for now 1
+        User user = userRepository.findById(1L).orElseThrow();
+        installationRepository.delete(installationRepository.findByIdAndUser(id, user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "installation not found")));
+    }
+
 }
