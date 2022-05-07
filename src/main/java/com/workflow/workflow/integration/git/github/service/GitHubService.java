@@ -1,6 +1,7 @@
 package com.workflow.workflow.integration.git.github.service;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.workflow.workflow.integration.git.github.GitHubInstallation;
 import com.workflow.workflow.integration.git.github.GitHubInstallationRepository;
@@ -46,27 +47,25 @@ public class GitHubService {
      * @return Future returning list with all repositories available for given user.
      */
     public Mono<List<GitHubRepository>> getRepositories(User user) {
-        return this.getRepositories(installationRepository.findByUser(user));
-    }
-
-    /**
-     * This method retrieves from GitHub api repositories available for given
-     * installations.
-     * 
-     * @param installations - list of installations for which repositories will be
-     *                      retrieved.
-     * @return Future returning list with all repositories available for given
-     *         installations.
-     */
-    public Mono<List<GitHubRepository>> getRepositories(List<GitHubInstallation> installations) {
-        return Flux.fromIterable(installations)
-                .flatMap(this::refreshToken)
-                .flatMap(this::getRepositoryList)
-                .map(GitHubRepositoryList::getRepositories)
+        return Flux.fromIterable(installationRepository.findByUser(user))
+                .flatMap(this::getRepositories)
                 .reduce(new ArrayList<>(), (first, second) -> {
                     first.addAll(second);
                     return first;
                 });
+    }
+
+    /**
+     * This method retrieves from GitHub api repositories available for given
+     * installation.
+     * 
+     * @param installation - installation for which repositories will be retrieved.
+     * @return Future returning list with all repositories available for given
+     *         installation.
+     */
+    public Mono<List<GitHubRepository>> getRepositories(GitHubInstallation installation) {
+        return refreshToken(installation)
+                .flatMap(this::getRepositoryList);
     }
 
     /**
@@ -87,6 +86,40 @@ public class GitHubService {
     }
 
     /**
+     * This method gets installation which contains repository with given id for
+     * given user.
+     * 
+     * @param user         - user which installations will be searched.
+     * @param repositoryId - id of repository which installation will be found.
+     * @return Found installation object; can be null when object is not found.
+     */
+    public Mono<Optional<GitHubInstallation>> getRepositoryInstallation(User user, long repositoryId) {
+        return Flux.fromIterable(installationRepository.findByUser(user))
+                .filterWhen(installation -> this.hasRepository(installation, repositoryId))
+                .reduce(Optional.empty(), (first, second) -> Optional.of(second));
+    }
+
+    /**
+     * This method checks if repository with given id belongs to installation.
+     * 
+     * @param installation - installation which will be check if contains
+     *                     repository.
+     * @param repositoryId - repository id which is looked for.
+     * @return Boolean value; True if repository belongs to installation.
+     */
+    private Mono<Boolean> hasRepository(GitHubInstallation installation, long repositoryId) {
+        return this.getRepositoryList(installation)
+                .map(list -> {
+                    for (GitHubRepository gitHubRepository : list) {
+                        if (gitHubRepository.getId() == repositoryId) {
+                            return true;
+                        }
+                    }
+                    return false;
+                });
+    }
+
+    /**
      * This method retrives GitHub api repositories available for given
      * installation.
      * 
@@ -94,13 +127,14 @@ public class GitHubService {
      * @return Future returning list with all repositories available for given
      *         installation.
      */
-    private Mono<GitHubRepositoryList> getRepositoryList(GitHubInstallation installation) {
+    private Mono<List<GitHubRepository>> getRepositoryList(GitHubInstallation installation) {
         return client.get()
                 .uri("https://api.github.com/installation/repositories")
                 .header(AUTHORIZATION, BEARER + installation.getToken())
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
                 .retrieve()
-                .bodyToMono(GitHubRepositoryList.class);
+                .bodyToMono(GitHubRepositoryList.class)
+                .map(GitHubRepositoryList::getRepositories);
     }
 
     /**

@@ -4,8 +4,12 @@ import java.util.List;
 
 import com.workflow.workflow.integration.git.github.GitHubInstallation;
 import com.workflow.workflow.integration.git.github.GitHubInstallationRepository;
+import com.workflow.workflow.integration.git.github.GitHubIntegration;
 import com.workflow.workflow.integration.git.github.GitHubIntegrationInfo;
+import com.workflow.workflow.integration.git.github.GitHubIntegrationRepository;
 import com.workflow.workflow.integration.git.github.service.GitHubService;
+import com.workflow.workflow.project.Project;
+import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
 
@@ -33,9 +37,13 @@ public class GitIntegrationController {
     @Autowired
     private UserRepository userRepository;
     @Autowired
+    private ProjectRepository projectRepository;
+    @Autowired
     private GitHubService service;
     @Autowired
     private GitHubInstallationRepository installationRepository;
+    @Autowired
+    private GitHubIntegrationRepository integrationRepository;
 
     @Operation(summary = "Get github application link and available repositories.", description = "This method returns link to github workflow application and list of repositories available to application for authenticated user. When list is empty authenticated user either dont have connected account or dont have any repository available for this application.")
     @ApiResponses(value = {
@@ -66,7 +74,6 @@ public class GitIntegrationController {
         return service.getInstallationUser(installationId)
                 .map(gitHubUser -> installationRepository
                         .save(new GitHubInstallation(installationId, user, gitHubUser.getLogin())))
-                .map(List::of)
                 .flatMap(service::getRepositories)
                 .map(repos -> new GitHubIntegrationInfo(INTEGRATION_LINK, repos));
     }
@@ -97,4 +104,25 @@ public class GitIntegrationController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "installation not found")));
     }
 
+    @Operation(summary = "Connect GitHub repository with project.", description = "This method is used to integrate GitHub repository with project. On success does not return anything.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Repository and project are connected."),
+            @ApiResponse(responseCode = "400", description = "Project with given id is already connected to GitHub repository."),
+            @ApiResponse(responseCode = "404", description = "Project with given id not found. Installation for repository not found."),
+            @ApiResponse(responseCode = "500", description = "Connection with GitHub api failed."),
+    })
+    @PostMapping("/project/{projectId}/integration/github/{repositoryId}")
+    Mono<Void> createRepositoryConnection(@PathVariable long projectId, @PathVariable long repositoryId) {
+        // TODO: get current user for now 1
+        User user = userRepository.findById(1L).orElseThrow();
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "project not found"));
+        if (integrationRepository.findByProject(project).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "given project is already integrated with github");
+        }
+        return service.getRepositoryInstallation(user, repositoryId)
+                .map(installation -> installation.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "installation for repository not found")))
+                .map(installation -> integrationRepository.save(new GitHubIntegration(project, installation, repositoryId)))
+                .then();
+    }
 }

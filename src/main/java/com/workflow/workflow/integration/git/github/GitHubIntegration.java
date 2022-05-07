@@ -14,7 +14,7 @@ public class GitHubIntegration {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     long id;
-    @OneToOne
+    @OneToOne(optional = false)
     private Project project;
     @ManyToOne
     private GitHubInstallation installation;
