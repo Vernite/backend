@@ -11,10 +11,12 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.workflow.workflow.integration.git.github.GitHubIntegration;
 import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.status.Status;
@@ -34,6 +36,9 @@ public class Project {
 
     @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
     private Set<Status> statuses = new HashSet<>();
+
+    @OneToOne(mappedBy = "project")
+    private GitHubIntegration gitHubIntegration;
 
     public Project() {
     }
@@ -102,5 +107,13 @@ public class Project {
 
     public void setStatuses(Set<Status> statuses) {
         this.statuses = statuses;
+    }
+
+    public boolean getGitHubIntegration() {
+        return gitHubIntegration != null;
+    }
+
+    public void setGitHubIntegration(GitHubIntegration gitHubIntegration) {
+        this.gitHubIntegration = gitHubIntegration;
     }
 }

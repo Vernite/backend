@@ -118,11 +118,27 @@ public class GitIntegrationController {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "project not found"));
         if (integrationRepository.findByProject(project).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "given project is already integrated with github");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "given project is already integrated with github");
         }
         return service.getRepositoryInstallation(user, repositoryId)
-                .map(installation -> installation.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "installation for repository not found")))
-                .map(installation -> integrationRepository.save(new GitHubIntegration(project, installation, repositoryId)))
+                .map(installation -> installation.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "installation for repository not found")))
+                .map(installation -> integrationRepository
+                        .save(new GitHubIntegration(project, installation, repositoryId)))
                 .then();
+    }
+
+    @Operation(summary = "Delete integration in project.", description = "This method is used to delete integration between GitHub repository and project. On success does not return anything.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Connection deleted."),
+            @ApiResponse(responseCode = "404", description = "Project with given id not found. Integration not found.")
+    })
+    @DeleteMapping("/project/{projectId}/integration/github")
+    void deleteRepositoryConnection(@PathVariable long projectId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "project not found"));
+        integrationRepository.delete(integrationRepository.findByProject(project)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "integration not found")));
     }
 }
