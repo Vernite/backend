@@ -44,4 +44,11 @@ public class GitIntegrationController {
                 .flatMap(service::getRepositories)
                 .map(repos -> new GitHubIntegrationInfo(INTEGRATION_LINK, repos));
     }
+
+    @GetMapping("/user/integration/github")
+    List<GitHubInstallation> getInstallations() {
+        // TODO: get current user for now 1
+        User user = userRepository.findById(1L).orElseThrow();
+        return installationRepository.findByUser(user);
+    }
 }
