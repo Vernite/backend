@@ -4,7 +4,8 @@ public class WorkspaceRequest {
 
     private String name;
 
-    WorkspaceRequest() {}
+    WorkspaceRequest() {
+    }
 
     WorkspaceRequest(String name) {
         this.name = name;

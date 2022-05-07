@@ -34,7 +34,8 @@ public class Workspace {
     @OneToMany(mappedBy = "workspace")
     private Set<ProjectWorkspace> projectWorkspace = new TreeSet<>();
 
-    public Workspace() {}
+    public Workspace() {
+    }
 
     public Workspace(String name, User user) {
         this.name = name;
@@ -43,9 +44,11 @@ public class Workspace {
 
     /**
      * This constructor creates new workspace from post request data for given user.
+     * 
      * @param request - post request data.
-     * @param user - owner of new workspace.
-     * @throws ResponseStatusException - bad request when either user or request.name is null.
+     * @param user    - owner of new workspace.
+     * @throws ResponseStatusException - bad request when either user or
+     *                                 request.name is null.
      */
     public Workspace(WorkspaceRequest request, User user) {
         this(request.getName(), user);
@@ -56,8 +59,10 @@ public class Workspace {
 
     /**
      * This method modifies workspace based on put request data.
+     * 
      * @param request - put request data
-     * @throws ResponseStatusException - bad request when either user or request.name is null.
+     * @throws ResponseStatusException - bad request when either user or
+     *                                 request.name is null.
      */
     public void put(WorkspaceRequest request) {
         if (request.getName() == null) {
@@ -65,7 +70,7 @@ public class Workspace {
         }
         this.name = request.getName();
     }
-    
+
     public Long getId() {
         return id;
     }

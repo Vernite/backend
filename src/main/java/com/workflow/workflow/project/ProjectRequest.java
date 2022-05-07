@@ -4,7 +4,8 @@ public class ProjectRequest {
     private String name;
     private Long workspaceId;
 
-    public ProjectRequest() {}
+    public ProjectRequest() {
+    }
 
     public ProjectRequest(String name, Long workspaceId) {
         this.name = name;
@@ -18,7 +19,7 @@ public class ProjectRequest {
     public Long getWorkspaceId() {
         return workspaceId;
     }
-    
+
     public void setName(String name) {
         this.name = name;
     }

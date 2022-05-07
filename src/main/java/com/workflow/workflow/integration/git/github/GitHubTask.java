@@ -25,7 +25,8 @@ public class GitHubTask {
 
     private long issueId;
 
-    public GitHubTask() {}
+    public GitHubTask() {
+    }
 
     public GitHubTask(Task task, GitHubIntegration gitHubIntegration, long issueId) {
         this.id = new GitHubTaskKey(task, gitHubIntegration);
@@ -53,6 +54,7 @@ public class GitHubTask {
     public GitHubIntegration getGitHubIntegration() {
         return gitHubIntegration;
     }
+
     public void setGitHubIntegration(GitHubIntegration gitIntegration) {
         this.gitHubIntegration = gitIntegration;
     }
@@ -60,7 +62,7 @@ public class GitHubTask {
     public long getIssueId() {
         return issueId;
     }
-    
+
     public void setIssueId(long issueId) {
         this.issueId = issueId;
     }

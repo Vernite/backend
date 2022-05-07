@@ -38,17 +38,26 @@ public class GitHubService {
         this.installationRepository = installationRepository;
     }
 
+    /**
+     * This method retrieves from GitHub api repositories available for all given
+     * users installations.
+     * 
+     * @param user - user which repositories will be retrieved.
+     * @return Future returning list with all repositories available for given user.
+     */
     public Mono<List<GitHubRepository>> getRepositories(User user) {
-        return Flux.fromIterable(installationRepository.findByUser(user))
-                .flatMap(this::refreshToken)
-                .flatMap(this::getRepositoryList)
-                .map(GitHubRepositoryList::getRepositories)
-                .reduce(new ArrayList<>(), (first, second) -> {
-                    first.addAll(second);
-                    return first;
-                });
+        return this.getRepositories(installationRepository.findByUser(user));
     }
 
+    /**
+     * This method retrieves from GitHub api repositories available for given
+     * installations.
+     * 
+     * @param installations - list of installations for which repositories will be
+     *                      retrieved.
+     * @return Future returning list with all repositories available for given
+     *         installations.
+     */
     public Mono<List<GitHubRepository>> getRepositories(List<GitHubInstallation> installations) {
         return Flux.fromIterable(installations)
                 .flatMap(this::refreshToken)
@@ -60,6 +69,13 @@ public class GitHubService {
                 });
     }
 
+    /**
+     * This method retrieves GitHub user information for given installation id.
+     * 
+     * @param installationId - id of installation which user information will be
+     *                       returned.
+     * @return GitHub user information for given GitHub application istallation.
+     */
     public Mono<GitHubUser> getInstallationUser(long installationId) {
         return client.get()
                 .uri("https://api.github.com/app/installations/" + Long.toString(installationId))
@@ -70,6 +86,14 @@ public class GitHubService {
                 .map(GitHubInstallationApi::getAccount);
     }
 
+    /**
+     * This method retrives GitHub api repositories available for given
+     * installation.
+     * 
+     * @param installation - installation for which repositories will be retrieved.
+     * @return Future returning list with all repositories available for given
+     *         installation.
+     */
     private Mono<GitHubRepositoryList> getRepositoryList(GitHubInstallation installation) {
         return client.get()
                 .uri("https://api.github.com/installation/repositories")
@@ -79,6 +103,15 @@ public class GitHubService {
                 .bodyToMono(GitHubRepositoryList.class);
     }
 
+    /**
+     * This method checks if token of installation needs to be refreshed and
+     * refreshes it when needed. When token does not need refreshing it does
+     * nothing.
+     * 
+     * @param installation - installation which token is checked/refreshed.
+     * @return Future returning updated installation with refreshed token or when
+     *         refreshing is not needed future with installation.
+     */
     private Mono<GitHubInstallation> refreshToken(GitHubInstallation installation) {
         return Instant.now().isAfter(installation.getExpiresAt().toInstant()) ? client.post()
                 .uri(String.format("https://api.github.com/app/installations/%d/access_tokens",
@@ -93,6 +126,12 @@ public class GitHubService {
                 }) : Mono.just(installation);
     }
 
+    /**
+     * This method creates Json Web Token from file with private key. Token created
+     * with this method lasts 10 minutes.
+     * 
+     * @return String with Json Web Token.
+     */
     private static String createJWT() {
         try {
             PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(

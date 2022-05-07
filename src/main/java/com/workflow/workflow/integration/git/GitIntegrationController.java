@@ -20,6 +20,13 @@ import org.springframework.web.server.ResponseStatusException;
 
 import reactor.core.publisher.Mono;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+
 @RestController
 public class GitIntegrationController {
     private static final String INTEGRATION_LINK = "https://github.com/apps/workflow-2022/installations/new";
@@ -30,6 +37,13 @@ public class GitIntegrationController {
     @Autowired
     private GitHubInstallationRepository installationRepository;
 
+    @Operation(summary = "Get github application link and available repositories.", description = "This method returns link to github workflow application and list of repositories available to application for authenticated user. When list is empty authenticated user either dont have connected account or dont have any repository available for this application.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Repositories list with link.", content = {
+                    @Content(mediaType = "application/json", schema = @Schema(implementation = GitHubIntegrationInfo.class))
+            }),
+            @ApiResponse(responseCode = "500", description = "Cannot make connection to GitHub api.", content = @Content())
+    })
     @GetMapping("/integration/github")
     Mono<GitHubIntegrationInfo> getRepositories() {
         // TODO: get current user for now 1
@@ -37,6 +51,14 @@ public class GitIntegrationController {
         return service.getRepositories(user).map(repos -> new GitHubIntegrationInfo(INTEGRATION_LINK, repos));
     }
 
+    @Operation(summary = "Register new github connection.", description = "This method creates new GitHub appplication installation; returns link to github workflow application and list of repositories available to application for authenticated user. When list is empty authenticated user either dont have connected account or dont have any repository available for this application.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Installation created. Returns repositories list with link.", content = {
+                    @Content(mediaType = "application/json", schema = @Schema(implementation = GitHubIntegrationInfo.class))
+            }),
+            @ApiResponse(responseCode = "500", description = "Cannot make connection to GitHub api.", content = @Content()),
+            @ApiResponse(responseCode = "503", description = "Cannot create JWT.", content = @Content())
+    })
     @PostMapping("/integration/github")
     Mono<GitHubIntegrationInfo> postRepositories(long installationId) {
         // TODO: get current user for now 1
@@ -49,6 +71,12 @@ public class GitIntegrationController {
                 .map(repos -> new GitHubIntegrationInfo(INTEGRATION_LINK, repos));
     }
 
+    @Operation(summary = "Get connected GitHub accounts.", description = "This method retrives all GitHub accounts associated with authenticated user.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "List of all GitHub account associated with user. Can be empty.", content = {
+                    @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = GitHubInstallation.class)))
+            })
+    })
     @GetMapping("/user/integration/github")
     List<GitHubInstallation> getInstallations() {
         // TODO: get current user for now 1
@@ -56,6 +84,11 @@ public class GitIntegrationController {
         return installationRepository.findByUser(user);
     }
 
+    @Operation(summary = "Delete GitHub account connection.", description = "This method is used to delete GitHub account connection. On success does not return anything. Throws 404 when connection does not exist.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Object with given id has been deleted."),
+            @ApiResponse(responseCode = "404", description = "Object with given id not found.")
+    })
     @DeleteMapping("/user/integration/github/{id}")
     public void deleteInstallation(@PathVariable long id) {
         // TODO: get current user for now 1

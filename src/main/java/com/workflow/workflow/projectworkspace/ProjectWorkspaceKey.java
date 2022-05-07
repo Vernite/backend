@@ -10,10 +10,13 @@ import com.workflow.workflow.workspace.Workspace;
 
 @Embeddable
 public class ProjectWorkspaceKey implements Serializable {
-    @Column(name = "workspace_id") Long workspaceId; 
-    @Column(name = "project_id") Long projectId;
-    
-    public ProjectWorkspaceKey() {}
+    @Column(name = "workspace_id")
+    Long workspaceId;
+    @Column(name = "project_id")
+    Long projectId;
+
+    public ProjectWorkspaceKey() {
+    }
 
     public ProjectWorkspaceKey(Workspace workspace, Project project) {
         this.projectId = project.getId();
@@ -31,7 +34,7 @@ public class ProjectWorkspaceKey implements Serializable {
     public void setProjectId(Long projectId) {
         this.projectId = projectId;
     }
-    
+
     public void setWorkspaceId(Long workspaceId) {
         this.workspaceId = workspaceId;
     }

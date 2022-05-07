@@ -9,10 +9,13 @@ import com.workflow.workflow.task.Task;
 
 @Embeddable
 public class GitHubTaskKey implements Serializable {
-    @Column(name = "task_id") Long taskId;
-    @Column(name = "integration_id") Long integrationId;
+    @Column(name = "task_id")
+    Long taskId;
+    @Column(name = "integration_id")
+    Long integrationId;
 
-    public GitHubTaskKey() {}
+    public GitHubTaskKey() {
+    }
 
     public GitHubTaskKey(Task task, GitHubIntegration integration) {
         this.taskId = task.getId();

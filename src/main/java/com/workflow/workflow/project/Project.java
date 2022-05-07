@@ -35,7 +35,8 @@ public class Project {
     @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
     private Set<Status> statuses = new HashSet<>();
 
-    public Project() {}
+    public Project() {
+    }
 
     public Project(String name) {
         this.name = name;
@@ -43,6 +44,7 @@ public class Project {
 
     /**
      * This constructor creates new project from post request data.
+     * 
      * @param request - post request data.
      * @throws ResponseStatusException - bad request when request.name is null.
      */
@@ -55,6 +57,7 @@ public class Project {
 
     /**
      * This method modifies project based on put request data.
+     * 
      * @param request - put request data.
      * @throws ResponseStatusException - bad request when request.name is null.
      */
@@ -68,7 +71,7 @@ public class Project {
     public Long getId() {
         return id;
     }
-    
+
     public String getName() {
         return name;
     }
@@ -80,7 +83,7 @@ public class Project {
     public void setId(Long id) {
         this.id = id;
     }
-    
+
     public void setName(String name) {
         this.name = name;
     }
