@@ -5,6 +5,8 @@ import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
+import com.workflow.workflow.status.StatusRepository;
+import com.workflow.workflow.task.TaskRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.workspace.Workspace;
 import com.workflow.workflow.workspace.WorkspaceRepository;
@@ -46,6 +48,10 @@ public class ProjectControllerTests {
     private ProjectWorkspaceRepository projectWorkspaceRepository;
     @Autowired
     private ProjectRepository projectRepository;
+    @Autowired
+    private StatusRepository statusRepository;
+    @Autowired
+    private TaskRepository taskRepository;
 
     private Workspace workspace;
     private User user;
@@ -60,6 +66,8 @@ public class ProjectControllerTests {
     @BeforeEach
     void reset() {
         projectWorkspaceRepository.deleteAll();
+        taskRepository.deleteAll();
+        statusRepository.deleteAll();
         projectRepository.deleteAll();
     }
 

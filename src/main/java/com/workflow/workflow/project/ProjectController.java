@@ -6,6 +6,7 @@ import com.workflow.workflow.projectworkspace.ProjectWorkspaceKey;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.status.StatusRepository;
+import com.workflow.workflow.task.TaskRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.workspace.Workspace;
@@ -43,6 +44,8 @@ public class ProjectController {
     private ProjectWorkspaceRepository projectWorkspaceRepository;
     @Autowired
     private StatusRepository statusRepository;
+    @Autowired
+    private TaskRepository taskRepository;
 
     static final String USER_NOT_FOUND = "USER_NOT_FOUND";
     static final String PROJECT_NOT_FOUND = "project not found";
@@ -141,6 +144,10 @@ public class ProjectController {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
         projectWorkspaceRepository.deleteAll(projectWorkspaceRepository.findByProject(project));
+        for (Status status : project.getStatuses()) {
+            taskRepository.deleteAll(taskRepository.findByStatus(status));
+        }
+        statusRepository.deleteAll(project.getStatuses());
         projectRepository.delete(project);
     }
 
