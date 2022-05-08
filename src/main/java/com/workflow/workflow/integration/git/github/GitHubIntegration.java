@@ -18,15 +18,15 @@ public class GitHubIntegration {
     private Project project;
     @ManyToOne
     private GitHubInstallation installation;
-    private long repositoryId;
+    private String repositoryFullName;
 
     public GitHubIntegration() {
     }
 
-    public GitHubIntegration(Project project, GitHubInstallation installation, long repositoryId) {
+    public GitHubIntegration(Project project, GitHubInstallation installation, String repositoryFullName) {
         this.project = project;
         this.installation = installation;
-        this.repositoryId = repositoryId;
+        this.repositoryFullName = repositoryFullName;
     }
 
     public long getId() {
@@ -53,11 +53,11 @@ public class GitHubIntegration {
         this.project = project;
     }
 
-    public long getRepositoryId() {
-        return repositoryId;
+    public String getRepositoryFullName() {
+        return repositoryFullName;
     }
 
-    public void setRepositoryId(long repositoryId) {
-        this.repositoryId = repositoryId;
+    public void setRepositoryFullName(String repositoryFullName) {
+        this.repositoryFullName = repositoryFullName;
     }
 }

@@ -93,9 +93,9 @@ public class GitHubService {
      * @param repositoryId - id of repository which installation will be found.
      * @return Found installation object; can be null when object is not found.
      */
-    public Mono<Optional<GitHubInstallation>> getRepositoryInstallation(User user, long repositoryId) {
+    public Mono<Optional<GitHubInstallation>> getRepositoryInstallation(User user, String repositoryFullName) {
         return Flux.fromIterable(installationRepository.findByUser(user))
-                .filterWhen(installation -> this.hasRepository(installation, repositoryId))
+                .filterWhen(installation -> this.hasRepository(installation, repositoryFullName))
                 .reduce(Optional.empty(), (first, second) -> Optional.of(second));
     }
 
@@ -104,14 +104,14 @@ public class GitHubService {
      * 
      * @param installation - installation which will be check if contains
      *                     repository.
-     * @param repositoryId - repository id which is looked for.
+     * @param repositoryFullName - full name of repository which is looked for.
      * @return Boolean value; True if repository belongs to installation.
      */
-    private Mono<Boolean> hasRepository(GitHubInstallation installation, long repositoryId) {
+    private Mono<Boolean> hasRepository(GitHubInstallation installation, String repositoryFullName) {
         return this.getRepositoryList(installation)
                 .map(list -> {
                     for (GitHubRepository gitHubRepository : list) {
-                        if (gitHubRepository.getId() == repositoryId) {
+                        if (gitHubRepository.getFullName().equals(repositoryFullName)) {
                             return true;
                         }
                     }

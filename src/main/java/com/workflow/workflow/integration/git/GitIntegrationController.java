@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -113,8 +114,8 @@ public class GitIntegrationController {
             @ApiResponse(responseCode = "404", description = "Project with given id not found. Installation for repository not found."),
             @ApiResponse(responseCode = "500", description = "Connection with GitHub api failed."),
     })
-    @PostMapping("/project/{projectId}/integration/github/{repositoryId}")
-    Mono<Void> createRepositoryConnection(@PathVariable long projectId, @PathVariable long repositoryId) {
+    @PostMapping("/project/{projectId}/integration/github")
+    Mono<Void> createRepositoryConnection(@PathVariable long projectId, @RequestBody String repositoryFullName) {
         // TODO: get current user for now 1
         User user = userRepository.findById(1L).orElseThrow();
         Project project = projectRepository.findById(projectId)
@@ -123,11 +124,11 @@ public class GitIntegrationController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "given project is already integrated with github");
         }
-        return service.getRepositoryInstallation(user, repositoryId)
+        return service.getRepositoryInstallation(user, repositoryFullName)
                 .map(installation -> installation.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "installation for repository not found")))
                 .map(installation -> integrationRepository
-                        .save(new GitHubIntegration(project, installation, repositoryId)))
+                        .save(new GitHubIntegration(project, installation, repositoryFullName)))
                 .then();
     }
 
