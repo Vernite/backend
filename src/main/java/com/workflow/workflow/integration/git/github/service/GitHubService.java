@@ -134,6 +134,12 @@ public class GitHubService {
                 .then();
     }
 
+    /**
+     * This method is used to modify issue on GitHub.
+     * 
+     * @param task - Task for which connected issue will be modified.
+     * @return Future which returns nothing.
+     */
     public Mono<Void> patchIssue(Task task) {
         Optional<GitHubTask> optional = taskRepository.findByTask(task);
         if (optional.isEmpty()) {
@@ -150,6 +156,26 @@ public class GitHubService {
                         .retrieve()
                         .bodyToMono(GitHubIssue.class))
                 .then();
+    }
+
+    /**
+     * This method is used to get issue for integration with given number from
+     * GitHub.
+     * 
+     * @param integration - integration for which repository will be searched for
+     *                    issue.
+     * @param issueNumber - number of searched issue.
+     * @return Future returning issue.
+     */
+    public Mono<GitHubIssue> getIssue(GitHubIntegration integration, long issueNumber) {
+        return refreshToken(integration.getInstallation())
+                .flatMap(installation -> client.get()
+                        .uri(String.format("https://api.github.com/repos/%s/issues/%d",
+                                integration.getRepositoryFullName(), issueNumber))
+                        .header(AUTHORIZATION, BEARER + installation.getToken())
+                        .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                        .retrieve()
+                        .bodyToMono(GitHubIssue.class));
     }
 
     /**

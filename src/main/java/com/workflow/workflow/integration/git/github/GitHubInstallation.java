@@ -2,6 +2,7 @@ package com.workflow.workflow.integration.git.github;
 
 import java.sql.Timestamp;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -21,6 +22,7 @@ public class GitHubInstallation {
     private Timestamp expiresAt;
     @ManyToOne
     private User user;
+    @Column(unique = true)
     private long installationId;
     private String gitHubUsername;
 
