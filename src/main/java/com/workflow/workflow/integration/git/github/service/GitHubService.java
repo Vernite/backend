@@ -5,6 +5,11 @@ import java.util.Optional;
 
 import com.workflow.workflow.integration.git.github.GitHubInstallation;
 import com.workflow.workflow.integration.git.github.GitHubInstallationRepository;
+import com.workflow.workflow.integration.git.github.GitHubIntegration;
+import com.workflow.workflow.integration.git.github.GitHubIntegrationRepository;
+import com.workflow.workflow.integration.git.github.GitHubTask;
+import com.workflow.workflow.integration.git.github.GitHubTaskRepository;
+import com.workflow.workflow.task.Task;
 import com.workflow.workflow.user.User;
 
 import org.springframework.http.HttpStatus;
@@ -34,9 +39,14 @@ public class GitHubService {
     private static final String APPLICATION_JSON_GITHUB = "application/vnd.github.v3+json";
     private static final WebClient client = WebClient.create();
     private GitHubInstallationRepository installationRepository;
+    private GitHubIntegrationRepository integrationRepository;
+    private GitHubTaskRepository taskRepository;
 
-    public GitHubService(GitHubInstallationRepository installationRepository) {
+    public GitHubService(GitHubInstallationRepository installationRepository,
+            GitHubIntegrationRepository integrationRepository, GitHubTaskRepository taskRepository) {
         this.installationRepository = installationRepository;
+        this.integrationRepository = integrationRepository;
+        this.taskRepository = taskRepository;
     }
 
     /**
@@ -100,10 +110,35 @@ public class GitHubService {
     }
 
     /**
+     * This method is used to create issue associeted with task in the system.
+     * 
+     * @param task - task for which issue int GitHub will be created.
+     * @return - future which returns nothing
+     */
+    public Mono<Void> createIssue(Task task) {
+        Optional<GitHubIntegration> optional = integrationRepository.findByProject(task.getStatus().getProject());
+        if (optional.isEmpty()) {
+            return Mono.empty();
+        }
+        GitHubIntegration integration = optional.get();
+        return refreshToken(integration.getInstallation())
+                .flatMap(installation -> client.post()
+                        .uri(String.format("https://api.github.com/repos/%s/issues",
+                                integration.getRepositoryFullName()))
+                        .header(AUTHORIZATION, BEARER + installation.getToken())
+                        .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                        .bodyValue(new GitHubIssue(task))
+                        .retrieve()
+                        .bodyToMono(GitHubIssue.class))
+                .map(issue -> taskRepository.save(new GitHubTask(task, integration, issue.getId())))
+                .then();
+    }
+
+    /**
      * This method checks if repository with given id belongs to installation.
      * 
-     * @param installation - installation which will be check if contains
-     *                     repository.
+     * @param installation       - installation which will be check if contains
+     *                           repository.
      * @param repositoryFullName - full name of repository which is looked for.
      * @return Boolean value; True if repository belongs to installation.
      */

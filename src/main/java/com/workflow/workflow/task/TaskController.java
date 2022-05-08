@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import com.workflow.workflow.integration.git.github.service.GitHubService;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.status.Status;
@@ -28,6 +29,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/project/{projectId}/task")
@@ -46,6 +48,8 @@ public class TaskController {
     private UserRepository userRepository;
     @Autowired
     private ProjectRepository projectRepository;
+    @Autowired
+    private GitHubService service;
 
     @Operation(summary = "Get all tasks.", description = "This method returns array of all tasks for project with given ID.")
     @ApiResponses(value = {
@@ -75,7 +79,7 @@ public class TaskController {
             @ApiResponse(responseCode = "404", description = "Project or status not found.", content = @Content())
     })
     @PostMapping("/")
-    public Task add(@PathVariable long projectId, @RequestBody TaskRequest taskRequest) {
+    public Mono<Task> add(@PathVariable long projectId, @RequestBody TaskRequest taskRequest) {
         if (taskRequest.getName() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing name");
         }
@@ -100,7 +104,8 @@ public class TaskController {
         if (task.getStatus().getProject().getId() != projectId) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_AND_PROJECT_NOT_RELATION);
         }
-        return taskRepository.save(task);
+        task = taskRepository.save(task);
+        return service.createIssue(task).thenReturn(task);
     }
 
     @Operation(summary = "Alter the task.", description = "This method is used to modify existing task. On success returns task.")
