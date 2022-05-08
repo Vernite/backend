@@ -16,6 +16,11 @@ public class GitHubIssue {
     public GitHubIssue(Task task) {
         this.title = task.getName();
         this.body = task.getDescription();
+        if (Boolean.TRUE.equals(task.getStatus().isFinal())) {
+            this.state = "closed";
+        } else {
+            this.state = "open";
+        }
     }
 
     public long getId() {

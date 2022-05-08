@@ -116,7 +116,7 @@ public class TaskController {
             @ApiResponse(responseCode = "404", description = "Task or status with given ID not found.", content = @Content())
     })
     @PutMapping("/{id}")
-    public Task put(@PathVariable long projectId, @PathVariable long id, @RequestBody TaskRequest taskRequest) {
+    public Mono<Task> put(@PathVariable long projectId, @PathVariable long id, @RequestBody TaskRequest taskRequest) {
         Task task = taskRepository.findById(id).orElseThrow(
             () -> new ResponseStatusException(HttpStatus.NOT_FOUND, TASK_NOT_FOUND));
         if (task.getStatus().getProject().getId() != projectId) {
@@ -143,7 +143,7 @@ public class TaskController {
         task.setStatus(newStatus);
         
         taskRepository.save(task);
-        return task;
+        return service.patchIssue(task).thenReturn(task);
     }
 
     @Operation(summary = "Delete task.", description = "This method is used to delete task. On success does not return anything. Throws 404 when task or project does not exist.")

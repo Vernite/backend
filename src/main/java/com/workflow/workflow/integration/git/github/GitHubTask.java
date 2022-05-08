@@ -3,6 +3,7 @@ package com.workflow.workflow.integration.git.github;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.MapsId;
 import javax.persistence.OneToOne;
 
@@ -18,7 +19,7 @@ public class GitHubTask {
     @JoinColumn(name = "task_id")
     private Task task;
 
-    @OneToOne
+    @ManyToOne
     @MapsId("integrationId")
     @JoinColumn(name = "integration_id")
     private GitHubIntegration gitHubIntegration;

@@ -130,7 +130,25 @@ public class GitHubService {
                         .bodyValue(new GitHubIssue(task))
                         .retrieve()
                         .bodyToMono(GitHubIssue.class))
-                .map(issue -> taskRepository.save(new GitHubTask(task, integration, issue.getId())))
+                .map(issue -> taskRepository.save(new GitHubTask(task, integration, issue.getNumber())))
+                .then();
+    }
+
+    public Mono<Void> patchIssue(Task task) {
+        Optional<GitHubTask> optional = taskRepository.findByTask(task);
+        if (optional.isEmpty()) {
+            return Mono.empty();
+        }
+        GitHubTask gitHubTask = optional.get();
+        return refreshToken(gitHubTask.getGitHubIntegration().getInstallation())
+                .flatMap(installation -> client.patch()
+                        .uri(String.format("https://api.github.com/repos/%s/issues/%d",
+                                gitHubTask.getGitHubIntegration().getRepositoryFullName(), gitHubTask.getIssueId()))
+                        .header(AUTHORIZATION, BEARER + installation.getToken())
+                        .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                        .bodyValue(new GitHubIssue(task))
+                        .retrieve()
+                        .bodyToMono(GitHubIssue.class))
                 .then();
     }
 
