@@ -7,6 +7,7 @@ import com.workflow.workflow.integration.git.github.GitHubInstallationRepository
 import com.workflow.workflow.integration.git.github.GitHubIntegration;
 import com.workflow.workflow.integration.git.github.GitHubIntegrationInfo;
 import com.workflow.workflow.integration.git.github.GitHubIntegrationRepository;
+import com.workflow.workflow.integration.git.github.GitHubTaskRepository;
 import com.workflow.workflow.integration.git.github.service.GitHubService;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
@@ -45,6 +46,8 @@ public class GitIntegrationController {
     private GitHubInstallationRepository installationRepository;
     @Autowired
     private GitHubIntegrationRepository integrationRepository;
+    @Autowired
+    private GitHubTaskRepository taskRepository;
 
     @Operation(summary = "Get github application link and available repositories.", description = "This method returns link to github workflow application and list of repositories available to application for authenticated user. When list is empty authenticated user either dont have connected account or dont have any repository available for this application.")
     @ApiResponses(value = {
@@ -103,7 +106,11 @@ public class GitIntegrationController {
         User user = userRepository.findById(1L).orElseThrow();
         GitHubInstallation installation = installationRepository.findByIdAndUser(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "installation not found"));
-        integrationRepository.deleteAll(integrationRepository.findByInstallation(installation));
+        List<GitHubIntegration> gitHubIntegrations = integrationRepository.findByInstallation(installation);
+        for (GitHubIntegration gitHubIntegration : gitHubIntegrations) {
+            taskRepository.deleteAll(taskRepository.findByGitHubIntegration(gitHubIntegration));
+        }
+        integrationRepository.deleteAll(gitHubIntegrations);
         installationRepository.delete(installation);
     }
 
@@ -141,7 +148,9 @@ public class GitIntegrationController {
     void deleteRepositoryConnection(@PathVariable long projectId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "project not found"));
-        integrationRepository.delete(integrationRepository.findByProject(project)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "integration not found")));
+        GitHubIntegration integration = integrationRepository.findByProject(project)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "integration not found"));
+        taskRepository.deleteAll(taskRepository.findByGitHubIntegration(integration));
+        integrationRepository.delete(integration);
     }
 }
