@@ -10,6 +10,7 @@ public class TaskRequest {
     private Long status;
     private Integer type;
     private Date deadline;
+    private boolean createIssue = true;
 
     public String getName() {
         return name;
@@ -59,4 +60,11 @@ public class TaskRequest {
         this.deadline = deadline;
     }
 
+    public boolean getCreateIssue() {
+        return createIssue;
+    }
+
+    public void setCreateIssue(boolean createIssue) {
+        this.createIssue = createIssue;
+    }
 }

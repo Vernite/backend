@@ -105,7 +105,11 @@ public class TaskController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_AND_PROJECT_NOT_RELATION);
         }
         task = taskRepository.save(task);
-        return service.createIssue(task).thenReturn(task);
+        if (taskRequest.getCreateIssue()) {
+            return service.createIssue(task).thenReturn(task);
+        } else {
+            return Mono.just(task);
+        }
     }
 
     @Operation(summary = "Alter the task.", description = "This method is used to modify existing task. On success returns task.")
