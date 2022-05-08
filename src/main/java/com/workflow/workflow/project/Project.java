@@ -34,6 +34,7 @@ public class Project {
     @OneToMany(mappedBy = "project")
     private Set<ProjectWorkspace> projectWorkspace = new TreeSet<>();
 
+    @JsonIgnore
     @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
     private Set<Status> statuses = new HashSet<>();
 
@@ -97,6 +98,7 @@ public class Project {
         this.projectWorkspace = projectWorkspace;
     }
 
+    @JsonIgnore
     public List<ProjectMember> getProjectMembers() {
         return projectWorkspace.stream().map(ProjectWorkspace::getProjectMember).toList();
     }

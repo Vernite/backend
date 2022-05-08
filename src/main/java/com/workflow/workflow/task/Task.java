@@ -12,17 +12,18 @@ import javax.persistence.JoinColumn;
 import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.workflow.workflow.db.Sprint;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.user.User;
 
 @Entity
 public class Task {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @Column(nullable = false, length = 50)
     private String name;
 
@@ -37,10 +38,12 @@ public class Task {
     @Column(nullable = false)
     private Date createdAt;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "status_id", nullable = false, foreignKey = @ForeignKey(name = "fk_task_status"))
     private Status status;
-    
+
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "created_by", nullable = false, foreignKey = @ForeignKey(name = "fk_task_user"))
     private User user;
@@ -94,7 +97,7 @@ public class Task {
         return status;
     }
 
-    public void setColumn(Status status) {
+    public void setStatus(Status status) {
         this.status = status;
     }
 
@@ -122,5 +125,11 @@ public class Task {
         this.deadline = deadline;
     }
 
-    
+    public long getStatusId() {
+        return this.getStatus().getId();
+    }
+
+    public long getCreatedBy() {
+        return this.getUser().getId();
+    }
 }
