@@ -4,6 +4,8 @@ import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceKey;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
+import com.workflow.workflow.status.Status;
+import com.workflow.workflow.status.StatusRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.workspace.Workspace;
@@ -39,6 +41,8 @@ public class ProjectController {
     private WorkspaceRepository workspaceRepository;
     @Autowired
     private ProjectWorkspaceRepository projectWorkspaceRepository;
+    @Autowired
+    private StatusRepository statusRepository;
 
     static final String USER_NOT_FOUND = "USER_NOT_FOUND";
     static final String PROJECT_NOT_FOUND = "project not found";
@@ -62,6 +66,27 @@ public class ProjectController {
         Project project = projectRepository.save(new Project(request));
         ProjectWorkspace projectWorkspace = new ProjectWorkspace(project, workspace, 1L);
         projectWorkspaceRepository.save(projectWorkspace);
+        Status status = new Status();
+        status.setColor(0);
+        status.setFinal(false);
+        status.setName("TO DO");
+        status.setOrdinal(0);
+        status.setProject(project);
+        statusRepository.save(status);
+        status = new Status();
+        status.setColor(0);
+        status.setFinal(false);
+        status.setName("In Progress");
+        status.setOrdinal(1);
+        status.setProject(project);
+        statusRepository.save(status);
+        status = new Status();
+        status.setColor(0);
+        status.setFinal(true);
+        status.setName("Done");
+        status.setOrdinal(2);
+        status.setProject(project);
+        statusRepository.save(status);
         return project;
     }
 
