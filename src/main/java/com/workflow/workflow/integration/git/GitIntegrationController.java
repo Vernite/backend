@@ -100,8 +100,10 @@ public class GitIntegrationController {
     public void deleteInstallation(@PathVariable long id) {
         // TODO: get current user for now 1
         User user = userRepository.findById(1L).orElseThrow();
-        installationRepository.delete(installationRepository.findByIdAndUser(id, user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "installation not found")));
+        GitHubInstallation installation = installationRepository.findByIdAndUser(id, user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "installation not found"));
+        integrationRepository.deleteAll(integrationRepository.findByInstallation(installation));
+        installationRepository.delete(installation);
     }
 
     @Operation(summary = "Connect GitHub repository with project.", description = "This method is used to integrate GitHub repository with project. On success does not return anything.")
