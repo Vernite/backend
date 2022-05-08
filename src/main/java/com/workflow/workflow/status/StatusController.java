@@ -50,7 +50,7 @@ public class StatusController {
 
     @Operation(summary = "Create status.", description = "This method creates new status for project. On success returns newly created status. Throws status 404 when user with given ID does not exist. Throws status 400 when sent data are incorrect.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Newly created workspace.", content = {
+            @ApiResponse(responseCode = "200", description = "Newly created status.", content = {
                     @Content(mediaType = "application/json", schema = @Schema(implementation = Status.class))
             }),
             @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content()),
