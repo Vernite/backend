@@ -13,13 +13,18 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToOne;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.workflow.workflow.db.Sprint;
+import com.workflow.workflow.integration.git.github.GitHubTask;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.user.User;
 
 @Entity
+@JsonInclude(Include.NON_NULL)
 public class Task {
 
     @Id
@@ -52,6 +57,9 @@ public class Task {
 
     @Column(nullable = false)
     private int type;
+
+    @OneToOne(mappedBy = "task")
+    private GitHubTask gitHubTask;
 
     private Date deadline;
 
@@ -154,5 +162,13 @@ public class Task {
             });
             setStatus(statuses.get(0));
         }
+    }
+
+    public String getIssue() {
+        return gitHubTask != null ? gitHubTask.getLink() : null;
+    }
+
+    public void setGitHubTask(GitHubTask gitHubTask) {
+        this.gitHubTask = gitHubTask;
     }
 }

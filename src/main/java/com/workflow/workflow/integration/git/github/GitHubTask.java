@@ -67,4 +67,8 @@ public class GitHubTask {
     public void setIssueId(long issueId) {
         this.issueId = issueId;
     }
+
+    public String getLink() {
+        return String.format("https://www.github.com/%s/issues/%d", gitHubIntegration.getRepositoryFullName(), issueId);
+    }
 }
