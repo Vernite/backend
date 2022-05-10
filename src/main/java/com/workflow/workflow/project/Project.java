@@ -1,5 +1,6 @@
 package com.workflow.workflow.project;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -92,8 +93,10 @@ public class Project {
         return projectWorkspace.stream().map(ProjectWorkspace::getProjectMember).toList();
     }
 
-    public Set<Status> getStatuses() {
-        return statuses;
+    public List<Status> getStatuses() {
+        List<Status> statusList = new ArrayList<>(statuses);
+        statusList.sort((first, second) -> first.getOrdinal() < second.getOrdinal() ? -1 : 1);
+        return statusList;
     }
 
     public void setStatuses(Set<Status> statuses) {
