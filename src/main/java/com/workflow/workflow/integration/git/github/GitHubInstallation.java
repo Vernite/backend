@@ -25,6 +25,7 @@ public class GitHubInstallation {
     @Column(unique = true)
     private long installationId;
     private String gitHubUsername;
+    private boolean suspended = false;
 
     public GitHubInstallation() {
     }
@@ -95,5 +96,13 @@ public class GitHubInstallation {
     public void update(InstallationToken token) {
         this.token = token.getToken();
         this.expiresAt = new Timestamp(token.getExpiresInstant().toEpochMilli());
+    }
+
+    public boolean getSuspended() {
+        return suspended;
+    }
+
+    public void setSuspended(boolean suspended) {
+        this.suspended = suspended;
     }
 }

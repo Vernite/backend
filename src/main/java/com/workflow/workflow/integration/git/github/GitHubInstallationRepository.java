@@ -24,4 +24,12 @@ public interface GitHubInstallationRepository extends CrudRepository<GitHubInsta
      * @return Installation with given id and user.
      */
     Optional<GitHubInstallation> findByIdAndUser(long id, User user);
+
+    /**
+     * This method finds installation by installation id.
+     * 
+     * @param installationId - id of installation to find.
+     * @return Installation with given installation id.
+     */
+    Optional<GitHubInstallation> findByInstallationId(long installationId);
 }

@@ -74,6 +74,9 @@ public class GitHubService {
      *         installation.
      */
     public Mono<List<GitHubRepository>> getRepositories(GitHubInstallation installation) {
+        if (installation.getSuspended()) {
+            return Mono.just(List.of());
+        }
         return refreshToken(installation)
                 .flatMap(this::getRepositoryList);
     }
@@ -121,6 +124,9 @@ public class GitHubService {
             return Mono.empty();
         }
         GitHubIntegration integration = optional.get();
+        if (integration.getInstallation().getSuspended()) {
+            return Mono.empty();
+        }
         return refreshToken(integration.getInstallation())
                 .flatMap(installation -> client.post()
                         .uri(String.format("https://api.github.com/repos/%s/issues",
@@ -146,6 +152,9 @@ public class GitHubService {
             return Mono.empty();
         }
         GitHubTask gitHubTask = optional.get();
+        if (gitHubTask.getGitHubIntegration().getInstallation().getSuspended()) {
+            return Mono.empty();
+        }
         return refreshToken(gitHubTask.getGitHubIntegration().getInstallation())
                 .flatMap(installation -> client.patch()
                         .uri(String.format("https://api.github.com/repos/%s/issues/%d",
@@ -168,6 +177,9 @@ public class GitHubService {
      * @return Future returning issue.
      */
     public Mono<GitHubIssue> getIssue(GitHubIntegration integration, long issueNumber) {
+        if (integration.getInstallation().getSuspended()) {
+            return Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+        }
         return refreshToken(integration.getInstallation())
                 .flatMap(installation -> client.get()
                         .uri(String.format("https://api.github.com/repos/%s/issues/%d",
@@ -184,6 +196,9 @@ public class GitHubService {
      * @return Future containing list of GitHub issues.
      */
     public Flux<GitHubIssue> getIssues(GitHubIntegration integration) {
+        if (integration.getInstallation().getSuspended()) {
+            return Flux.empty();
+        }
         return refreshToken(integration.getInstallation())
                 .flatMapMany(installation -> client.get()
                         .uri(String.format("https://api.github.com/repos/%s/issues",
@@ -203,6 +218,9 @@ public class GitHubService {
      * @return Boolean value; True if repository belongs to installation.
      */
     private Mono<Boolean> hasRepository(GitHubInstallation installation, String repositoryFullName) {
+        if (installation.getSuspended()) {
+            return Mono.just(false);
+        }
         return this.getRepositoryList(installation)
                 .map(list -> {
                     for (GitHubRepository gitHubRepository : list) {

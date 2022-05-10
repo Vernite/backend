@@ -20,7 +20,16 @@ public interface GitHubIntegrationRepository extends CrudRepository<GitHubIntegr
      * This method finds all integrations for given GitHub account.
      * 
      * @param installation - installation for which integrations will be found.
-     * @return Integrations associeted with given installation.
+     * @return Integrations associated with given installation.
      */
     List<GitHubIntegration> findByInstallation(GitHubInstallation installation);
+
+    /**
+     * This method finds all integrations for repository full name.
+     * 
+     * @param respositoryFullName - full name of GitHub repostory to which
+     *                            integrations will be returned.
+     * @return Integrations associated with repository with given name.
+     */
+    List<GitHubIntegration> findByRepositoryFullName(String respositoryFullName);
 }
