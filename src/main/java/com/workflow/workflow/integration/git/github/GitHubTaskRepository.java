@@ -24,4 +24,13 @@ public interface GitHubTaskRepository extends CrudRepository<GitHubTask, GitHubT
      * @return List of all task associeted with integration.
      */
     List<GitHubTask> findByGitHubIntegration(GitHubIntegration integration);
+
+    /**
+     * This method finds GitHub issue connections for integration and issue id.
+     * 
+     * @param issueId     - id of github issue.
+     * @param integration - integration with github.
+     * @return List of connection between issue and task.
+     */
+    List<GitHubTask> findByIssueIdAndGitHubIntegration(long issueId, GitHubIntegration integration);
 }

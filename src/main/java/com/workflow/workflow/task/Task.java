@@ -1,6 +1,8 @@
 package com.workflow.workflow.task;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -131,5 +133,26 @@ public class Task {
 
     public long getCreatedBy() {
         return this.getUser().getId();
+    }
+
+    @JsonIgnore
+    public void setState(String state) {
+        if (state.equals("closed") && Boolean.FALSE.equals(getStatus().isFinal())) {
+            setStatus(getStatus().getProject().getStatuses().stream().filter(s -> Boolean.TRUE.equals(s.isFinal()))
+                    .findFirst().orElseThrow());
+        }
+        if (state.equals("open") && Boolean.TRUE.equals(getStatus().isFinal())) {
+            List<Status> statuses = new ArrayList<>(getStatus().getProject().getStatuses());
+            statuses.sort((first, second) -> {
+                if (Boolean.TRUE.equals(first.isFinal())) {
+                    return 1;
+                }
+                if (Boolean.TRUE.equals(second.isFinal())) {
+                    return -1;
+                }
+                return first.getOrdinal() > second.getOrdinal() ? 1 : -1;
+            });
+            setStatus(statuses.get(0));
+        }
     }
 }
