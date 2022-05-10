@@ -8,6 +8,7 @@ import com.workflow.workflow.integration.git.github.GitHubIntegration;
 import com.workflow.workflow.integration.git.github.GitHubIntegrationInfo;
 import com.workflow.workflow.integration.git.github.GitHubIntegrationRepository;
 import com.workflow.workflow.integration.git.github.GitHubTaskRepository;
+import com.workflow.workflow.integration.git.github.service.GitHubIssue;
 import com.workflow.workflow.integration.git.github.service.GitHubService;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,6 +38,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 @RestController
 public class GitIntegrationController {
     private static final String INTEGRATION_LINK = "https://github.com/apps/workflow-2022/installations/new";
+    private static final String PROJECT_NOT_FOUND = "project not found";
     @Autowired
     private UserRepository userRepository;
     @Autowired
@@ -126,7 +129,7 @@ public class GitIntegrationController {
         // TODO: get current user for now 1
         User user = userRepository.findById(1L).orElseThrow();
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "project not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
         if (integrationRepository.findByProject(project).isPresent()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "given project is already integrated with github");
@@ -147,10 +150,25 @@ public class GitIntegrationController {
     @DeleteMapping("/project/{projectId}/integration/github")
     void deleteRepositoryConnection(@PathVariable long projectId) {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "project not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
         GitHubIntegration integration = integrationRepository.findByProject(project)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "integration not found"));
         taskRepository.deleteAll(taskRepository.findByGitHubIntegration(integration));
         integrationRepository.delete(integration);
+    }
+
+    @Operation(summary = "Get GitHub issues for project.", description = "This method is used to get all issues from associated GitHub repository.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "List of github issues."),
+            @ApiResponse(responseCode = "404", description = "Project with given id not found. Integration not found."),
+            @ApiResponse(responseCode = "500", description = "Connection with github failed.")
+    })
+    @GetMapping("/project/{projectId}/integration/github/issue")
+    Flux<GitHubIssue> getIssues(@PathVariable long projectId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
+        GitHubIntegration integration = integrationRepository.findByProject(project)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "integration not found"));
+        return service.getIssues(integration);
     }
 }

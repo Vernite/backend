@@ -111,8 +111,8 @@ public class Project {
         this.statuses = statuses;
     }
 
-    public boolean getGitHubIntegration() {
-        return gitHubIntegration != null;
+    public String getGitHubIntegration() {
+        return gitHubIntegration != null ? gitHubIntegration.getRepositoryFullName() : null;
     }
 
     public void setGitHubIntegration(GitHubIntegration gitHubIntegration) {

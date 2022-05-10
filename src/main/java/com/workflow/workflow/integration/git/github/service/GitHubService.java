@@ -179,6 +179,22 @@ public class GitHubService {
     }
 
     /**
+     * This method is used to get all issues from GitHub repository
+     * @param integration - Integration for which issues will be returned.
+     * @return Future containing list of GitHub issues.
+     */
+    public Flux<GitHubIssue> getIssues(GitHubIntegration integration) {
+        return refreshToken(integration.getInstallation())
+                .flatMapMany(installation -> client.get()
+                        .uri(String.format("https://api.github.com/repos/%s/issues",
+                                integration.getRepositoryFullName()))
+                        .header(AUTHORIZATION, BEARER + installation.getToken())
+                        .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                        .retrieve()
+                        .bodyToFlux(GitHubIssue.class));
+    }
+
+    /**
      * This method checks if repository with given id belongs to installation.
      * 
      * @param installation       - installation which will be check if contains

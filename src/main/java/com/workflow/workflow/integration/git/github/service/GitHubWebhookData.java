@@ -2,6 +2,8 @@ package com.workflow.workflow.integration.git.github.service;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class GitHubWebhookData {
     private String action;
     private GitHubRepository repository;
@@ -25,10 +27,12 @@ public class GitHubWebhookData {
         this.issue = issue;
     }
 
+    @JsonProperty("repositories_removed")
     public List<GitHubRepository> getRepositoriesRemoved() {
         return repositoriesRemoved;
     }
 
+    @JsonProperty("repositories_removed")
     public void setRepositoriesRemoved(List<GitHubRepository> repositoriesRemoved) {
         this.repositoriesRemoved = repositoriesRemoved;
     }

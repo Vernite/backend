@@ -3,7 +3,6 @@ package com.workflow.workflow.integration.git.github.service;
 import com.workflow.workflow.task.Task;
 
 public class GitHubIssue {
-    private long id;
     private String url;
     private String state;
     private String title;
@@ -21,14 +20,6 @@ public class GitHubIssue {
         } else {
             this.state = "open";
         }
-    }
-
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
     }
 
     public long getNumber() {
