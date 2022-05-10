@@ -79,7 +79,8 @@ public class GitHubWebhookController {
         GitHubIssue issue = data.getIssue();
         for (GitHubIntegration gitHubIntegration : integrationRepository
                 .findByRepositoryFullName(repository.getFullName())) {
-            if (data.getAction().equals("opened")) {
+            if (data.getAction().equals("opened") && gitTaskRepository
+                    .findByIssueIdAndGitHubIntegration(issue.getNumber(), gitHubIntegration).isEmpty()) {
                 Task task = new Task();
                 task.setUser(userRepository.findById(1L).orElseThrow()); // TODO: change to auto user
                 task.setCreatedAt(new Date());
