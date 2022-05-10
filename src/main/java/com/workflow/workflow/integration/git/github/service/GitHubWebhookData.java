@@ -7,7 +7,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class GitHubWebhookData {
     private String action;
     private GitHubRepository repository;
-    private List<GitHubRepository> repositories;
     private GitHubInstallationApi installation;
     private List<GitHubRepository> repositoriesRemoved;
     private GitHubIssue issue;
@@ -52,13 +51,5 @@ public class GitHubWebhookData {
 
     public void setInstallation(GitHubInstallationApi installation) {
         this.installation = installation;
-    }
-
-    public List<GitHubRepository> getRepositories() {
-        return repositories;
-    }
-
-    public void setRepositories(List<GitHubRepository> repositories) {
-        this.repositories = repositories;
     }
 }

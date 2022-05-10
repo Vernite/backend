@@ -105,11 +105,6 @@ public class GitHubWebhookController {
 
     @PostMapping("/webhook/github")
     void webhook(@RequestBody GitHubWebhookData data) {
-        // Delete installation when suspended or deleted
-        if (data.getRepositories() != null) {
-            handleInstallation(data);
-            return;
-        }
         // Delete integrations when repositories access is removed
         if (data.getRepositoriesRemoved() != null && !data.getRepositoriesRemoved().isEmpty()) {
             handleInstallationRepositories(data);
@@ -118,6 +113,9 @@ public class GitHubWebhookController {
         // Handle issue changes
         if (data.getIssue() != null) {
             handleIssue(data);
+            return;
         }
+        // Delete installation when suspended or deleted
+        handleInstallation(data);
     }
 }
