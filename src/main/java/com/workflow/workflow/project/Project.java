@@ -12,8 +12,12 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.workflow.workflow.integration.git.github.GitHubIntegration;
 import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.status.Status;
@@ -22,6 +26,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 @Entity
+@JsonInclude(Include.NON_NULL)
 public class Project {
     private @Id @GeneratedValue(strategy = GenerationType.IDENTITY) Long id;
     private String name;
@@ -34,7 +39,11 @@ public class Project {
     @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
     private Set<Status> statuses = new HashSet<>();
 
-    public Project() {}
+    @OneToOne(mappedBy = "project")
+    private GitHubIntegration gitHubIntegration;
+
+    public Project() {
+    }
 
     public Project(String name) {
         this.name = name;
@@ -42,6 +51,7 @@ public class Project {
 
     /**
      * This constructor creates new project from post request data.
+     * 
      * @param request - post request data.
      * @throws ResponseStatusException - bad request when request.name is null.
      */
@@ -54,6 +64,7 @@ public class Project {
 
     /**
      * This method modifies project based on put request data.
+     * 
      * @param request - put request data.
      * @throws ResponseStatusException - bad request when request.name is null.
      */
@@ -67,7 +78,7 @@ public class Project {
     public Long getId() {
         return id;
     }
-    
+
     public String getName() {
         return name;
     }
@@ -79,7 +90,7 @@ public class Project {
     public void setId(Long id) {
         this.id = id;
     }
-    
+
     public void setName(String name) {
         this.name = name;
     }
@@ -101,5 +112,13 @@ public class Project {
 
     public void setStatuses(Set<Status> statuses) {
         this.statuses = statuses;
+    }
+
+    public String getGitHubIntegration() {
+        return gitHubIntegration != null ? gitHubIntegration.getRepositoryFullName() : null;
+    }
+
+    public void setGitHubIntegration(GitHubIntegration gitHubIntegration) {
+        this.gitHubIntegration = gitHubIntegration;
     }
 }

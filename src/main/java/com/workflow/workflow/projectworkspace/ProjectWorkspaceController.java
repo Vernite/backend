@@ -43,9 +43,12 @@ public class ProjectWorkspaceController {
     public void moveWorkspace(@PathVariable long projectId, @PathVariable long newWorkspaceId) {
         User user = userRepository.findById(1L) // TODO: user with id 1 again
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
-        Project project = projectRepository.findById(projectId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
-        Workspace workspace = workspaceRepository.findByIdAndUser(newWorkspaceId, user).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, WORKSPACE_NOT_FOUND));
-        ProjectWorkspace projectWorkspace = projectWorkspaceRepository.findByProjectAndWorkspaceUser(project, user).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "user not a member of project"));
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
+        Workspace workspace = workspaceRepository.findByIdAndUser(newWorkspaceId, user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, WORKSPACE_NOT_FOUND));
+        ProjectWorkspace projectWorkspace = projectWorkspaceRepository.findByProjectAndWorkspaceUser(project, user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "user not a member of project"));
         projectWorkspaceRepository.delete(projectWorkspace);
         projectWorkspace.setWorkspace(workspace);
         projectWorkspaceRepository.save(projectWorkspace);

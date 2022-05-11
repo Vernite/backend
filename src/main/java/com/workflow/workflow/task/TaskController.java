@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import com.workflow.workflow.integration.git.github.service.GitHubService;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.status.Status;
@@ -28,6 +29,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/project/{projectId}/task")
@@ -46,6 +48,8 @@ public class TaskController {
     private UserRepository userRepository;
     @Autowired
     private ProjectRepository projectRepository;
+    @Autowired
+    private GitHubService service;
 
     @Operation(summary = "Get all tasks.", description = "This method returns array of all tasks for project with given ID.")
     @ApiResponses(value = {
@@ -69,21 +73,21 @@ public class TaskController {
     @Operation(summary = "Create task.", description = "This method creates new task. On success returns newly created task.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Newly created task.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = TaskRequest.class))
+                    @Content(mediaType = "application/json", schema = @Schema(implementation = Task.class))
             }),
             @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content()),
             @ApiResponse(responseCode = "404", description = "Project or status not found.", content = @Content())
     })
     @PostMapping("/")
-    public Task add(@PathVariable long projectId, @RequestBody TaskRequest taskRequest) {
+    public Mono<Task> add(@PathVariable long projectId, @RequestBody TaskRequest taskRequest) {
         if (taskRequest.getName() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing name");
         }
         if (taskRequest.getDescription() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing description");
         }
-        if (taskRequest.getStatus() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing status");
+        if (taskRequest.getStatusId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing statusId");
         }
         if (taskRequest.getType() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing type");
@@ -94,24 +98,29 @@ public class TaskController {
         task.setDescription(taskRequest.getDescription());
         task.setName(taskRequest.getName());
         // TODO sprint update
-        task.setStatus(statusRepository.findById(taskRequest.getStatus()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND)));
+        task.setStatus(statusRepository.findById(taskRequest.getStatusId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND)));
         task.setType(taskRequest.getType());
         task.setUser(userRepository.findById(1L).orElseThrow());
         if (task.getStatus().getProject().getId() != projectId) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_AND_PROJECT_NOT_RELATION);
         }
-        return taskRepository.save(task);
+        task = taskRepository.save(task);
+        if (taskRequest.getCreateIssue()) {
+            return service.createIssue(task).thenReturn(task);
+        } else {
+            return Mono.just(task);
+        }
     }
 
     @Operation(summary = "Alter the task.", description = "This method is used to modify existing task. On success returns task.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Modified task.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = TaskRequest.class))
+                    @Content(mediaType = "application/json", schema = @Schema(implementation = Task.class))
             }),
             @ApiResponse(responseCode = "404", description = "Task or status with given ID not found.", content = @Content())
     })
     @PutMapping("/{id}")
-    public Task put(@PathVariable long projectId, @PathVariable long id, @RequestBody TaskRequest taskRequest) {
+    public Mono<Task> put(@PathVariable long projectId, @PathVariable long id, @RequestBody TaskRequest taskRequest) {
         Task task = taskRepository.findById(id).orElseThrow(
             () -> new ResponseStatusException(HttpStatus.NOT_FOUND, TASK_NOT_FOUND));
         if (task.getStatus().getProject().getId() != projectId) {
@@ -130,15 +139,17 @@ public class TaskController {
             task.setType(taskRequest.getType());
         }
         // TODO sprint update
-        
-        Status newStatus = statusRepository.findById(taskRequest.getStatus()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND));
-        if (projectId != newStatus.getProject().getId()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_AND_PROJECT_NOT_RELATION);
+        if (taskRequest.getStatusId() != null) {
+            Status newStatus = statusRepository
+                .findById(taskRequest.getStatusId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND));
+            if (projectId != newStatus.getProject().getId()) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_AND_PROJECT_NOT_RELATION);
+            }
+            task.setStatus(newStatus);
         }
-        task.setStatus(newStatus);
-        
         taskRepository.save(task);
-        return task;
+        return service.patchIssue(task).thenReturn(task);
     }
 
     @Operation(summary = "Delete task.", description = "This method is used to delete task. On success does not return anything. Throws 404 when task or project does not exist.")
