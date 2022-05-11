@@ -145,7 +145,7 @@ public class TaskControllerTests {
     void addSuccess() throws Exception {
         mvc.perform(post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
-                .content(String.format("{\"name\": \"string\",\"description\": \"string\",\"status\": %d,\"type\": 0,\"deadline\": \"2022-05-11T17:38:27.813Z\",\"createIssue\": false}", status.getId())))
+                .content(String.format("{\"name\": \"string\",\"description\": \"string\",\"statusId\": %d,\"type\": 0,\"deadline\": \"2022-05-11T17:38:27.813Z\",\"createIssue\": false}", status.getId())))
                 .andExpect(status().isOk());
         List<Task> tasks = new ArrayList<>();
         tasks.addAll((Collection<? extends Task>) taskRepository.findAll());
@@ -157,13 +157,13 @@ public class TaskControllerTests {
     void addNotFound() throws Exception {
         mvc.perform(post(String.format("/project/%d/task/", 776576)).contentType(MediaType.APPLICATION_JSON)
                 .content(String.format(
-                        "{\"name\": \"Patch test\",\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"status\": %d, \"createIssue\": false}",
+                        "{\"name\": \"Patch test\",\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
                         status.getId())))
                 .andExpect(status().isNotFound());
 
         mvc.perform(post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.APPLICATION_JSON)
                 .content(String.format(
-                        "{\"name\": \"Patch test\",\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"status\": %d, \"createIssue\": false}",
+                        "{\"name\": \"Patch test\",\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
                         453543)))
                 .andExpect(status().isNotFound());
     }
@@ -175,19 +175,19 @@ public class TaskControllerTests {
         mvc.perform(post(String.format("/project/%d/task/", project.getId()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(String.format(
-                        "{\"name\": \"Patch test\",\"description\": \"Patch description\",\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"status\": %d, \"createIssue\": false}",
+                        "{\"name\": \"Patch test\",\"description\": \"Patch description\",\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
                         453543)))
                 .andExpect(status().isBadRequest());
         mvc.perform(post(String.format("/project/%d/task/", project.getId()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(String.format(
-                        "{\"name\": \"Patch test\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"status\": %d, \"createIssue\": false}",
+                        "{\"name\": \"Patch test\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
                         453543)))
                 .andExpect(status().isBadRequest());
         mvc.perform(post(String.format("/project/%d/task/", project.getId()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(String.format(
-                        "{\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"status\": %d, \"createIssue\": false}",
+                        "{\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
                         453543)))
                 .andExpect(status().isBadRequest());
     }
@@ -235,21 +235,21 @@ public class TaskControllerTests {
         mvc.perform(put(String.format("/project/%d/task/%d", 231321, task.getId()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(String.format(
-                        "{\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"status\": %d, \"createIssue\": false}",
+                        "{\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
                         status.getId())))
                 .andExpect(status().isNotFound());
 
         mvc.perform(put(String.format("/project/%d/task/%d", project.getId(), 2341321))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(String.format(
-                        "{\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"status\": %d, \"createIssue\": false}",
+                        "{\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
                         status.getId())))
                 .andExpect(status().isNotFound());
 
         mvc.perform(put(String.format("/project/%d/task/%d", project.getId(), task.getId()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(String.format(
-                        "{\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"status\": %d, \"createIssue\": false}",
+                        "{\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
                         321321)))
                 .andExpect(status().isNotFound());
     }
