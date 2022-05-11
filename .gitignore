@@ -33,3 +33,5 @@ build/
 .vscode/
 
 .mvn
+
+workflow-2022.private-key.der

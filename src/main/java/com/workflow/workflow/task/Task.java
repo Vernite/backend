@@ -1,6 +1,8 @@
 package com.workflow.workflow.task;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -11,13 +13,18 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToOne;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.workflow.workflow.db.Sprint;
+import com.workflow.workflow.integration.git.github.GitHubTask;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.user.User;
 
 @Entity
+@JsonInclude(Include.NON_NULL)
 public class Task {
 
     @Id
@@ -50,6 +57,9 @@ public class Task {
 
     @Column(nullable = false)
     private int type;
+
+    @OneToOne(mappedBy = "task")
+    private GitHubTask gitHubTask;
 
     private Date deadline;
 
@@ -131,5 +141,34 @@ public class Task {
 
     public long getCreatedBy() {
         return this.getUser().getId();
+    }
+
+    @JsonIgnore
+    public void setState(String state) {
+        if (state.equals("closed") && Boolean.FALSE.equals(getStatus().isFinal())) {
+            setStatus(getStatus().getProject().getStatuses().stream().filter(s -> Boolean.TRUE.equals(s.isFinal()))
+                    .findFirst().orElseThrow());
+        }
+        if (state.equals("open") && Boolean.TRUE.equals(getStatus().isFinal())) {
+            List<Status> statuses = new ArrayList<>(getStatus().getProject().getStatuses());
+            statuses.sort((first, second) -> {
+                if (Boolean.TRUE.equals(first.isFinal())) {
+                    return 1;
+                }
+                if (Boolean.TRUE.equals(second.isFinal())) {
+                    return -1;
+                }
+                return first.getOrdinal() > second.getOrdinal() ? 1 : -1;
+            });
+            setStatus(statuses.get(0));
+        }
+    }
+
+    public String getIssue() {
+        return gitHubTask != null ? gitHubTask.getLink() : null;
+    }
+
+    public void setGitHubTask(GitHubTask gitHubTask) {
+        this.gitHubTask = gitHubTask;
     }
 }
