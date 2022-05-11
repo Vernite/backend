@@ -1,5 +1,7 @@
 package com.workflow.workflow.integration.git.github;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -116,7 +118,8 @@ public class GitHubWebhookController {
     @PostMapping("/webhook/github")
     void webhook(@RequestHeader("X-Hub-Signature-256") String token, @RequestHeader("X-GitHub-Event") String event,
             @RequestBody String dataRaw) {
-        if (!token.equals("sha256=" + utils.hmacHex(dataRaw))) {
+        if (!MessageDigest.isEqual(token.getBytes(StandardCharsets.UTF_8),
+                ("sha256=" + utils.hmacHex(dataRaw)).getBytes(StandardCharsets.UTF_8))) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }
         GitHubWebhookData data;
