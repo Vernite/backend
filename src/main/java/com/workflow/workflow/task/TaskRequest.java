@@ -7,7 +7,7 @@ public class TaskRequest {
     private String name;
     // private Integer sprint;
     private String description;
-    private Long status;
+    private Long statusId;
     private Integer type;
     private Date deadline;
 
@@ -35,12 +35,12 @@ public class TaskRequest {
         this.description = description;
     }
 
-    public Long getStatus() {
-        return status;
+    public Long getStatusId() {
+        return statusId;
     }
 
-    public void setStatus(Long status) {
-        this.status = status;
+    public void setStatusId(Long statusId) {
+        this.statusId = statusId;
     }
 
     public Integer getType() {

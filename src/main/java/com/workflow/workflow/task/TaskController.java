@@ -82,8 +82,8 @@ public class TaskController {
         if (taskRequest.getDescription() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing description");
         }
-        if (taskRequest.getStatus() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing status");
+        if (taskRequest.getStatusId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing statusId");
         }
         if (taskRequest.getType() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing type");
@@ -94,7 +94,7 @@ public class TaskController {
         task.setDescription(taskRequest.getDescription());
         task.setName(taskRequest.getName());
         // TODO sprint update
-        task.setStatus(statusRepository.findById(taskRequest.getStatus()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND)));
+        task.setStatus(statusRepository.findById(taskRequest.getStatusId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND)));
         task.setType(taskRequest.getType());
         task.setUser(userRepository.findById(1L).orElseThrow());
         if (task.getStatus().getProject().getId() != projectId) {
@@ -130,13 +130,15 @@ public class TaskController {
             task.setType(taskRequest.getType());
         }
         // TODO sprint update
-        
-        Status newStatus = statusRepository.findById(taskRequest.getStatus()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND));
-        if (projectId != newStatus.getProject().getId()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_AND_PROJECT_NOT_RELATION);
+        if (taskRequest.getStatusId() != null) {
+            Status newStatus = statusRepository
+                .findById(taskRequest.getStatusId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND));
+            if (projectId != newStatus.getProject().getId()) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_AND_PROJECT_NOT_RELATION);
+            }
+            task.setStatus(newStatus);
         }
-        task.setStatus(newStatus);
-        
         taskRepository.save(task);
         return task;
     }
