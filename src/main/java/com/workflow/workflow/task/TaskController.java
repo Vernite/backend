@@ -69,7 +69,7 @@ public class TaskController {
     @Operation(summary = "Create task.", description = "This method creates new task. On success returns newly created task.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Newly created task.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = TaskRequest.class))
+                    @Content(mediaType = "application/json", schema = @Schema(implementation = Task.class))
             }),
             @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content()),
             @ApiResponse(responseCode = "404", description = "Project or status not found.", content = @Content())
@@ -106,7 +106,7 @@ public class TaskController {
     @Operation(summary = "Alter the task.", description = "This method is used to modify existing task. On success returns task.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Modified task.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = TaskRequest.class))
+                    @Content(mediaType = "application/json", schema = @Schema(implementation = Task.class))
             }),
             @ApiResponse(responseCode = "404", description = "Task or status with given ID not found.", content = @Content())
     })

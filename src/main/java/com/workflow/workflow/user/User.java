@@ -22,7 +22,7 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String email;
 
     @JsonIgnore
@@ -42,7 +42,7 @@ public class User {
     @Column(nullable = false)
     private String surname;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String username;
 
     public User() {
@@ -130,7 +130,7 @@ public class User {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
-        return Arrays.equals(hash, this.getHash());
+        return MessageDigest.isEqual(hash, this.getHash());
     }
 
     public void setPassword(String password) {
