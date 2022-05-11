@@ -100,8 +100,8 @@ public class GitIntegrationController {
 
     @Operation(summary = "Delete GitHub account connection.", description = "This method is used to delete GitHub account connection. On success does not return anything. Throws 404 when connection does not exist.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Object with given id has been deleted."),
-            @ApiResponse(responseCode = "404", description = "Object with given id not found.")
+            @ApiResponse(responseCode = "200", description = "Object with given id has been deleted.", content = @Content()),
+            @ApiResponse(responseCode = "404", description = "Object with given id not found.", content = @Content())
     })
     @DeleteMapping("/user/integration/github/{id}")
     public void deleteInstallation(@PathVariable long id) {
@@ -119,10 +119,10 @@ public class GitIntegrationController {
 
     @Operation(summary = "Connect GitHub repository with project.", description = "This method is used to integrate GitHub repository with project. On success does not return anything.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Repository and project are connected."),
-            @ApiResponse(responseCode = "400", description = "Project with given id is already connected to GitHub repository."),
-            @ApiResponse(responseCode = "404", description = "Project with given id not found. Installation for repository not found."),
-            @ApiResponse(responseCode = "500", description = "Connection with GitHub api failed."),
+            @ApiResponse(responseCode = "200", description = "Repository and project are connected.", content = @Content()),
+            @ApiResponse(responseCode = "400", description = "Project with given id is already connected to GitHub repository.", content = @Content()),
+            @ApiResponse(responseCode = "404", description = "Project with given id not found. Installation for repository not found.", content = @Content()),
+            @ApiResponse(responseCode = "500", description = "Connection with GitHub api failed.", content = @Content()),
     })
     @PostMapping("/project/{projectId}/integration/github")
     Mono<Void> createRepositoryConnection(@PathVariable long projectId, @RequestBody String repositoryFullName) {
@@ -144,8 +144,8 @@ public class GitIntegrationController {
 
     @Operation(summary = "Delete integration in project.", description = "This method is used to delete integration between GitHub repository and project. On success does not return anything.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Connection deleted."),
-            @ApiResponse(responseCode = "404", description = "Project with given id not found. Integration not found.")
+            @ApiResponse(responseCode = "200", description = "Connection deleted.", content = @Content()),
+            @ApiResponse(responseCode = "404", description = "Project with given id not found. Integration not found.", content = @Content())
     })
     @DeleteMapping("/project/{projectId}/integration/github")
     void deleteRepositoryConnection(@PathVariable long projectId) {
@@ -159,9 +159,9 @@ public class GitIntegrationController {
 
     @Operation(summary = "Get GitHub issues for project.", description = "This method is used to get all issues from associated GitHub repository.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "List of github issues."),
-            @ApiResponse(responseCode = "404", description = "Project with given id not found. Integration not found."),
-            @ApiResponse(responseCode = "500", description = "Connection with github failed.")
+            @ApiResponse(responseCode = "200", description = "List of github issues.", content = @Content(array = @ArraySchema(schema = @Schema(implementation = GitHubIssue.class)))),
+            @ApiResponse(responseCode = "404", description = "Project with given id not found. Integration not found.", content = @Content()),
+            @ApiResponse(responseCode = "500", description = "Connection with github failed.", content = @Content())
     })
     @GetMapping("/project/{projectId}/integration/github/issue")
     Flux<GitHubIssue> getIssues(@PathVariable long projectId) {
