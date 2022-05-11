@@ -1,5 +1,7 @@
 package com.workflow.workflow.user;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -60,4 +62,9 @@ public class AuthController {
         u.setUsername(req.getUsername());
         return userRepository.save(u);
     }
+
+	@PostMapping("/logout")
+	public void destroySession(HttpServletRequest request) {
+		request.getSession().invalidate();
+	}
 }
