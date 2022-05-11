@@ -59,7 +59,7 @@ public class ProjectControllerTests {
     @BeforeAll
     void init() {
         user = userRepository.findById(1L)
-                .orElse(userRepository.save(new User("Name", "Surname", "Username", "Email", "Password")));
+                .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email", "Password")));
         workspace = workspaceRepository.save(new Workspace("name", user));
     }
 
