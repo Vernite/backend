@@ -206,6 +206,26 @@ public class TaskControllerTests {
     }
 
     @Test
+    void putSuccess() throws Exception {
+        Task task = new Task();
+        task.setName("name");
+        task.setCreatedAt(new Date());
+        task.setDeadline(new Date());
+        task.setDescription("description");
+        task.setType(0);
+        task.setUser(user);
+        task.setStatus(status);
+        task = taskRepository.save(task);
+
+        mvc.perform(put(String.format("/project/%d/task/%d", project.getId(), task.getId()))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\": \"new put\"}"))
+                .andExpect(status().isOk());
+
+        assertEquals("new put", taskRepository.findById(task.getId()).orElseThrow().getName());
+    }
+
+    @Test
     void putBadRequest() throws Exception {
         Task task = new Task();
         task.setName("name");
