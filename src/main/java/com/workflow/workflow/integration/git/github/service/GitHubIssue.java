@@ -55,7 +55,7 @@ public class GitHubIssue {
     }
 
     public String getBody() {
-        return body;
+        return body == null ? "" : body;
     }
 
     public void setBody(String body) {

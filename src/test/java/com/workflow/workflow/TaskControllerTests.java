@@ -70,7 +70,7 @@ public class TaskControllerTests {
     @BeforeAll
     void init() {
         user = userRepository.findById(1L)
-                .orElse(userRepository.save(new User("Name", "Surname", "Username", "Email", "Password")));
+                .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email", "Password")));
         workspace = workspaceRepository.save(new Workspace("name", user));
         project = projectRepository.save(new Project("test task"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
@@ -203,6 +203,26 @@ public class TaskControllerTests {
         mvc.perform(post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.MULTIPART_FORM_DATA)
                 .content("{\"name\": \"test\"}"))
                 .andExpect(status().isUnsupportedMediaType());
+    }
+
+    @Test
+    void putSuccess() throws Exception {
+        Task task = new Task();
+        task.setName("name");
+        task.setCreatedAt(new Date());
+        task.setDeadline(new Date());
+        task.setDescription("description");
+        task.setType(0);
+        task.setUser(user);
+        task.setStatus(status);
+        task = taskRepository.save(task);
+
+        mvc.perform(put(String.format("/project/%d/task/%d", project.getId(), task.getId()))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\": \"new put\"}"))
+                .andExpect(status().isOk());
+
+        assertEquals("new put", taskRepository.findById(task.getId()).orElseThrow().getName());
     }
 
     @Test
