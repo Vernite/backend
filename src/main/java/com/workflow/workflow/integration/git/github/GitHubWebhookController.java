@@ -5,9 +5,12 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.workflow.workflow.integration.git.github.service.GitHubCommit;
 import com.workflow.workflow.integration.git.github.service.GitHubInstallationApi;
 import com.workflow.workflow.integration.git.github.service.GitHubIssue;
 import com.workflow.workflow.integration.git.github.service.GitHubRepository;
@@ -18,8 +21,6 @@ import com.workflow.workflow.user.UserRepository;
 
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -44,7 +45,6 @@ public class GitHubWebhookController {
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private static final HmacUtils utils = new HmacUtils(HmacAlgorithms.HMAC_SHA_256,
             "5CxrXejuNwslaS2iIm0ELDry313vqwC3ZdmAId3CqFc5L6GH");
-    private Logger logger = LoggerFactory.getLogger(GitHubWebhookController.class);
 
     void handleInstallation(GitHubWebhookData data) {
         GitHubInstallationApi installationApi = data.getInstallation();
@@ -118,6 +118,28 @@ public class GitHubWebhookController {
         }
     }
 
+    void handlePush(GitHubWebhookData data) {
+        for (GitHubCommit gitHubCommit : data.getCommits()) {
+            if (gitHubCommit.getId().equals(data.getAfter())) {
+                Pattern pattern = Pattern.compile("@(\\d+)");
+                String message = gitHubCommit.getMessage();
+                Matcher matcher = pattern.matcher(message);
+                if  (matcher.find()) {
+                    long taskId = Long.parseLong(matcher.group(1));
+                    GitHubRepository repository = data.getRepository();
+                    Task task = taskRepository.findById(taskId).orElseThrow(() -> new ResponseStatusException(HttpStatus.OK));
+                    for (GitHubIntegration gitHubIntegration : integrationRepository.findByRepositoryFullName(repository.getFullName())) {
+                        if (task.getStatus().getProject().getId().equals(gitHubIntegration.getProject().getId())) {
+                            task.setState("closed");
+                            taskRepository.save(task);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     @PostMapping("/webhook/github")
     void webhook(@RequestHeader("X-Hub-Signature-256") String token, @RequestHeader("X-GitHub-Event") String event,
             @RequestBody String dataRaw) {
@@ -143,7 +165,7 @@ public class GitHubWebhookController {
         }
         // Handle commit comment
         if (event.equals("push")) {
-            logger.info(data.getCommits().get(0).getMessage());
+            handlePush(data);
             return;
         }
         // Delete installation when suspended or deleted
