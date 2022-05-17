@@ -1,5 +1,6 @@
 package com.workflow.workflow.workspace;
 
+import java.util.List;
 import java.util.Optional;
 
 import com.workflow.workflow.user.User;
@@ -11,9 +12,9 @@ public interface WorkspaceRepository extends CrudRepository<Workspace, Long> {
      * This method finds workspaces for given user.
      * 
      * @param user - user which workspaces wil be returned.
-     * @return Iterable object with all workspaces for given user.
+     * @return List object with all workspaces for given user.
      */
-    Iterable<Workspace> findByUser(User user);
+    List<Workspace> findByUser(User user);
 
     /**
      * This method looks for workspace with given id and belonging to given user.

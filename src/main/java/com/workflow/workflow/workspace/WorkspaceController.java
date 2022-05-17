@@ -1,5 +1,7 @@
 package com.workflow.workflow.workspace;
 
+import java.util.List;
+
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
@@ -44,10 +46,18 @@ public class WorkspaceController {
             @ApiResponse(responseCode = "404", description = "User with given ID not found.", content = @Content())
     })
     @GetMapping("/")
-    public Iterable<Workspace> all(@PathVariable long userId) {
+    public List<Workspace> all(@PathVariable long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
-        return workspaceRepository.findByUser(user);
+        List<Workspace> workspaces = workspaceRepository.findByUser(user);
+        workspaces.sort((first, second) -> {
+            int result = first.getName().compareTo(second.getName());
+            if (result != 0) {
+                return result;
+            }
+            return first.getId().compareTo(second.getId());
+        });
+        return workspaces;
     }
 
     @Operation(summary = "Create workspace.", description = "This method creates new workspace for user. On success returns newly created worksapce. Throws status 404 when user with given ID does not exist. Throws status 400 when sent data are incorrect.")
