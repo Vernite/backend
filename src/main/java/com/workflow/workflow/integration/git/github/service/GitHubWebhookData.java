@@ -10,6 +10,8 @@ public class GitHubWebhookData {
     private GitHubInstallationApi installation;
     private List<GitHubRepository> repositoriesRemoved;
     private GitHubIssue issue;
+    private List<GitHubCommit> commits;
+    private String after;
 
     public String getAction() {
         return action;
@@ -51,5 +53,21 @@ public class GitHubWebhookData {
 
     public void setInstallation(GitHubInstallationApi installation) {
         this.installation = installation;
+    }
+
+    public String getAfter() {
+        return after;
+    }
+
+    public void setAfter(String after) {
+        this.after = after;
+    }
+
+    public List<GitHubCommit> getCommits() {
+        return commits;
+    }
+
+    public void setCommits(List<GitHubCommit> commits) {
+        this.commits = commits;
     }
 }

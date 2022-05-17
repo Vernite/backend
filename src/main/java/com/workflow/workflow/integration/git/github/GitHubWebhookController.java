@@ -18,6 +18,8 @@ import com.workflow.workflow.user.UserRepository;
 
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -42,6 +44,7 @@ public class GitHubWebhookController {
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private static final HmacUtils utils = new HmacUtils(HmacAlgorithms.HMAC_SHA_256,
             "5CxrXejuNwslaS2iIm0ELDry313vqwC3ZdmAId3CqFc5L6GH");
+    private Logger logger = LoggerFactory.getLogger(GitHubWebhookController.class);
 
     void handleInstallation(GitHubWebhookData data) {
         GitHubInstallationApi installationApi = data.getInstallation();
@@ -136,6 +139,11 @@ public class GitHubWebhookController {
         // Handle issue changes
         if (event.equals("issues")) {
             handleIssue(data);
+            return;
+        }
+        // Handle commit comment
+        if (event.equals("push")) {
+            logger.info(data.getCommits().get(0).getMessage());
             return;
         }
         // Delete installation when suspended or deleted
