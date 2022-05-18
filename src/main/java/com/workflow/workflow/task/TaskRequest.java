@@ -11,7 +11,7 @@ public class TaskRequest {
     private Integer type;
     private Date deadline;
     private boolean createIssue = true;
-    private Long superTaskId;
+    private Long parentTaskId;
 
     public String getName() {
         return name;
@@ -69,11 +69,11 @@ public class TaskRequest {
         this.createIssue = createIssue;
     }
 
-    public Long getSuperTaskId() {
-        return superTaskId;
+    public Long getParentTaskId() {
+        return parentTaskId;
     }
 
-    public void setSuperTaskId(Long superTaskId) {
-        this.superTaskId = superTaskId;
+    public void setParentTaskId(Long superTaskId) {
+        this.parentTaskId = superTaskId;
     }
 }

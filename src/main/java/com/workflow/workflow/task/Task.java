@@ -66,12 +66,11 @@ public class Task {
     @OneToOne(mappedBy = "task", cascade = CascadeType.ALL)
     private GitHubTask gitHubTask;
 
-    @JsonBackReference
     @ManyToOne
     @JoinColumn(nullable = true)
-    private Task superTask;
+    private Task parentTask;
 
-    @OneToMany(mappedBy = "superTask")
+    @OneToMany(mappedBy = "parentTask")
     private Set<Task> subTasks = new HashSet<>();
 
     private Date deadline;
@@ -185,12 +184,14 @@ public class Task {
         this.gitHubTask = gitHubTask;
     }
 
-    public Task getSuperTask() {
-        return superTask;
+    @JsonIgnore
+    public Task getParentTask() {
+        return parentTask;
     }
 
-    public void setSuperTask(Task superTask) {
-        this.superTask = superTask;
+    @JsonIgnore
+    public void setParentTask(Task superTask) {
+        this.parentTask = superTask;
     }
 
     public Set<Task> getSubTasks() {
@@ -202,6 +203,6 @@ public class Task {
     }
 
     public Long getSuperTaskId() {
-        return this.superTask != null ? this.superTask.getId() : null;
+        return this.parentTask != null ? this.parentTask.getId() : null;
     }
 }
