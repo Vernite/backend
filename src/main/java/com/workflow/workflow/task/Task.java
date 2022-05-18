@@ -202,7 +202,7 @@ public class Task {
         this.subTasks = subTasks;
     }
 
-    public Long getSuperTaskId() {
+    public Long getParentTaskId() {
         return this.parentTask != null ? this.parentTask.getId() : null;
     }
 }
