@@ -120,20 +120,20 @@ public class GitHubWebhookController {
 
     void handlePush(GitHubWebhookData data) {
         for (GitHubCommit gitHubCommit : data.getCommits()) {
-            if (gitHubCommit.getId().equals(data.getAfter())) {
-                Pattern pattern = Pattern.compile("@(\\d+)");
-                String message = gitHubCommit.getMessage();
-                Matcher matcher = pattern.matcher(message);
-                if  (matcher.find()) {
-                    long taskId = Long.parseLong(matcher.group(1));
-                    GitHubRepository repository = data.getRepository();
-                    Task task = taskRepository.findById(taskId).orElseThrow(() -> new ResponseStatusException(HttpStatus.OK));
-                    for (GitHubIntegration gitHubIntegration : integrationRepository.findByRepositoryFullName(repository.getFullName())) {
-                        if (task.getStatus().getProject().getId().equals(gitHubIntegration.getProject().getId())) {
-                            task.setState("closed");
-                            taskRepository.save(task);
-                            return;
-                        }
+            Pattern pattern = Pattern.compile("!(\\d+)");
+            String message = gitHubCommit.getMessage();
+            Matcher matcher = pattern.matcher(message);
+            if (matcher.find()) {
+                long taskId = Long.parseLong(matcher.group(1));
+                GitHubRepository repository = data.getRepository();
+                Task task = taskRepository.findById(taskId)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.OK));
+                for (GitHubIntegration gitHubIntegration : integrationRepository
+                        .findByRepositoryFullName(repository.getFullName())) {
+                    if (task.getStatus().getProject().getId().equals(gitHubIntegration.getProject().getId())) {
+                        task.setState("closed");
+                        taskRepository.save(task);
+                        return;
                     }
                 }
             }
