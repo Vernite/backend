@@ -1,5 +1,8 @@
 package com.workflow.workflow.user;
 
+import java.security.SecureRandom;
+import java.util.Base64;
+import java.util.Date;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -7,10 +10,13 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
+import javax.servlet.http.HttpServletResponse;
+import javax.validation.constraints.NotNull;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -29,11 +36,21 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 @RequestMapping("/auth")
 public class AuthController {
 
+    static final String COOKIE_NAME = "session";
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final Random RANDOM = new Random();
     private static final ScheduledExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadScheduledExecutor();
 
+    private static String generateNextSession() {
+        byte[] b = new byte[128];
+        SECURE_RANDOM.nextBytes(b);
+        return Base64.getEncoder().encodeToString(b);
+    }
+
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private UserSessionRepository userSessionRepository;
 
     @Operation(summary = "Logged user.", description = "This method returns currently logged user.")
     @ApiResponses(value = {
@@ -43,16 +60,8 @@ public class AuthController {
             @ApiResponse(responseCode = "404", description = "User is not logged.", content = @Content())
     })
     @GetMapping("/me")
-    public User me(HttpServletRequest request) {
-        HttpSession sess = request.getSession(false);
-        if (sess != null) {
-            Object id = sess.getAttribute("userID");
-            if (id != null) {
-                return userRepository.findById((long) id)
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "user not logged"));
-            }
-        }
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "user not logged");
+    public User me(@NotNull @Parameter(hidden = true) User loggedUser) {
+        return loggedUser;
     }
 
     @Operation(summary = "Logging in.", description = "This method logs the user in.")
@@ -60,11 +69,15 @@ public class AuthController {
             @ApiResponse(responseCode = "200", description = "Logged user.", content = {
                     @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
             }),
+            @ApiResponse(responseCode = "403", description = "User is already logged.", content = @Content()),
             @ApiResponse(responseCode = "404", description = "Username or password is incorrect.", content = @Content()),
             @ApiResponse(responseCode = "422", description = "Username or email is already taken.", content = @Content())
     })
     @PostMapping("/login")
-    public Future<User> login(@RequestBody LoginRequest req, HttpServletRequest request) {
+    public Future<User> login(@Parameter(hidden = true) User loggedUser, @RequestBody LoginRequest req, HttpServletRequest request, HttpServletResponse response) {
+        if (loggedUser != null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "already logged");
+        }
         if (req.getPassword() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing password");
         }
@@ -76,9 +89,10 @@ public class AuthController {
         CompletableFuture<User> f = new CompletableFuture<>();
         EXECUTOR_SERVICE.schedule(() -> {
             if (u == null || !u.checkPassword(req.getPassword())) {
-                f.completeExceptionally(new ResponseStatusException(HttpStatus.NOT_FOUND, "username or password incorrect"));
+                f.completeExceptionally(
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "username or password incorrect"));
             } else {
-                request.getSession(true).setAttribute("userID", u.getId());
+                createSession(request, response, u, req.isRemember());
                 f.complete(u);
             }
         }, 500 + RANDOM.nextInt(500), TimeUnit.MILLISECONDS);
@@ -90,11 +104,14 @@ public class AuthController {
             @ApiResponse(responseCode = "200", description = "Newly created user.", content = {
                     @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
             }),
-            @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content()),
+            @ApiResponse(responseCode = "403", description = "User is already logged.", content = @Content()),
             @ApiResponse(responseCode = "422", description = "Username or email is already taken.", content = @Content())
     })
     @PostMapping("/register")
-    public User register(@RequestBody RegisterRequest req, HttpServletRequest request) {
+    public User register(@Parameter(hidden = true) User loggedUser, @RequestBody RegisterRequest req, HttpServletRequest request, HttpServletResponse response) {
+        if (loggedUser != null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "already logged");
+        }
         if (req.getEmail() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing email");
         }
@@ -128,16 +145,44 @@ public class AuthController {
         u.setPassword(req.getPassword());
         u.setSurname(req.getSurname());
         u.setUsername(req.getUsername());
-        u = userRepository.save(u);
-        request.getSession(true).setAttribute("userID", u.getId());
+        createSession(request, response, u, false);
         return u;
     }
 
     @PostMapping("/logout")
-    public void destroySession(HttpServletRequest request) {
-        HttpSession sess = request.getSession(false);
-        if (sess != null) {
-            sess.invalidate();
+    public void destroySession(HttpServletRequest req, HttpServletResponse resp) {
+        Cookie cookie = new Cookie(COOKIE_NAME, null);
+        cookie.setPath("/api");
+        cookie.setMaxAge(0);
+        resp.addCookie(cookie);
+    }
+
+    private void createSession(HttpServletRequest req, HttpServletResponse resp, User user, boolean remembered) {
+        UserSession us = new UserSession();
+        us.setSession(generateNextSession());
+        us.setIp(req.getHeader("X-Forwarded-For"));
+        if (us.getIp() == null) {
+            us.setIp(req.getRemoteAddr());
         }
+        us.setLastUsed(new Date());
+        us.setRemembered(remembered);
+        us.setUserAgent(req.getHeader("User-Agent"));
+        us.setUser(user);
+        while (true) {
+            try {
+                us = userSessionRepository.save(us);
+                break;
+            } catch (DataIntegrityViolationException ex) {
+                us.setSession(generateNextSession());
+            }
+        }
+        Cookie c = new Cookie(COOKIE_NAME, us.getSession());
+        c.setPath("/api");
+        if (req.getHeader("X-Forwarded-For") != null) {
+            c.setSecure(true);
+        } else {
+            c.setHttpOnly(true);
+        }
+        resp.addCookie(c);
     }
 }
