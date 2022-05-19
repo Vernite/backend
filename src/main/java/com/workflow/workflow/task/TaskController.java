@@ -98,11 +98,17 @@ public class TaskController {
         task.setDescription(taskRequest.getDescription());
         task.setName(taskRequest.getName());
         // TODO sprint update
-        task.setStatus(statusRepository.findById(taskRequest.getStatusId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND)));
+        task.setStatus(statusRepository.findById(taskRequest.getStatusId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND)));
         task.setType(taskRequest.getType());
         task.setUser(userRepository.findById(1L).orElseThrow());
         if (task.getStatus().getProject().getId() != projectId) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_AND_PROJECT_NOT_RELATION);
+        }
+        if (taskRequest.getParentTaskId() != null) {
+            Task superTask = taskRepository.findById(taskRequest.getParentTaskId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "super task not found"));
+            task.setParentTask(superTask);
         }
         task = taskRepository.save(task);
         if (taskRequest.getCreateIssue()) {
@@ -122,7 +128,7 @@ public class TaskController {
     @PutMapping("/{id}")
     public Mono<Task> put(@PathVariable long projectId, @PathVariable long id, @RequestBody TaskRequest taskRequest) {
         Task task = taskRepository.findById(id).orElseThrow(
-            () -> new ResponseStatusException(HttpStatus.NOT_FOUND, TASK_NOT_FOUND));
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, TASK_NOT_FOUND));
         if (task.getStatus().getProject().getId() != projectId) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, TASK_NOT_FOUND);
         }
@@ -141,12 +147,17 @@ public class TaskController {
         // TODO sprint update
         if (taskRequest.getStatusId() != null) {
             Status newStatus = statusRepository
-                .findById(taskRequest.getStatusId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND));
+                    .findById(taskRequest.getStatusId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND));
             if (projectId != newStatus.getProject().getId()) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_AND_PROJECT_NOT_RELATION);
             }
             task.setStatus(newStatus);
+        }
+        if (taskRequest.getParentTaskId() != null) {
+            Task superTask = taskRepository.findById(taskRequest.getParentTaskId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "super task not found"));
+            task.setParentTask(superTask);
         }
         taskRepository.save(task);
         return service.patchIssue(task).thenReturn(task);

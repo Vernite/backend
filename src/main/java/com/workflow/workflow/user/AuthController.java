@@ -81,11 +81,11 @@ public class AuthController {
         if (req.getPassword() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing password");
         }
-        if (req.getUsername() == null) {
+        if (req.getEmail() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing username");
         }
-        User u = req.getUsername().indexOf('@') != -1 ? userRepository.findByEmail(req.getUsername())
-                : userRepository.findByUsername(req.getUsername());
+        User u = req.getEmail().indexOf('@') != -1 ? userRepository.findByEmail(req.getEmail())
+                : userRepository.findByUsername(req.getEmail());
         CompletableFuture<User> f = new CompletableFuture<>();
         EXECUTOR_SERVICE.schedule(() -> {
             if (u == null || !u.checkPassword(req.getPassword())) {

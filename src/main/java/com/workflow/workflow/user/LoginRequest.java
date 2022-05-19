@@ -1,16 +1,16 @@
 package com.workflow.workflow.user;
 
 public class LoginRequest {
-    private String username;
+    private String email;
     private String password;
     private boolean remember;
 
-    public String getUsername() {
-        return username;
+    public String getEmail() {
+        return email;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setEmail(String username) {
+        this.email = username;
     }
 
     public String getPassword() {

@@ -105,6 +105,12 @@ public class Workspace {
 
     public List<ProjectWithPrivileges> getProjectsWithPrivileges() {
         return projectWorkspace.stream().map(ProjectWorkspace::getProjectWithPrivileges)
-                .sorted((first, second) -> first.project().getName().compareTo(second.project().getName())).toList();
+                .sorted((first, second) -> {
+                    int result = first.project().getName().compareTo(second.project().getName());
+                    if (result != 0) {
+                        return result;
+                    }
+                    return first.project().getId().compareTo(second.project().getId());
+                }).toList();
     }
 }

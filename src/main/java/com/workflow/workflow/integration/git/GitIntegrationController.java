@@ -1,6 +1,8 @@
 package com.workflow.workflow.integration.git;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.workflow.workflow.integration.git.github.GitHubInstallation;
 import com.workflow.workflow.integration.git.github.GitHubInstallationRepository;
@@ -31,6 +33,7 @@ import reactor.core.publisher.Mono;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -100,21 +103,18 @@ public class GitIntegrationController {
 
     @Operation(summary = "Delete GitHub account connection.", description = "This method is used to delete GitHub account connection. On success does not return anything. Throws 404 when connection does not exist.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Object with given id has been deleted.", content = @Content()),
+            @ApiResponse(responseCode = "200", description = "Object with given id has been deleted.", content = @Content(examples = @ExampleObject(value = "{\"link\": \"string\"}"))),
             @ApiResponse(responseCode = "404", description = "Object with given id not found.", content = @Content())
     })
     @DeleteMapping("/user/integration/github/{id}")
-    public void deleteInstallation(@PathVariable long id) {
+    public Map<String, String> deleteInstallation(@PathVariable long id) {
         // TODO: get current user for now 1
         User user = userRepository.findById(1L).orElseThrow();
         GitHubInstallation installation = installationRepository.findByIdAndUser(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "installation not found"));
-        List<GitHubIntegration> gitHubIntegrations = integrationRepository.findByInstallation(installation);
-        for (GitHubIntegration gitHubIntegration : gitHubIntegrations) {
-            taskRepository.deleteAll(taskRepository.findByGitHubIntegration(gitHubIntegration));
-        }
-        integrationRepository.deleteAll(gitHubIntegrations);
-        installationRepository.delete(installation);
+        HashMap<String, String> result = new HashMap<>();
+        result.put("link", "https://github.com/settings/installations/" + installation.getInstallationId());
+        return result;
     }
 
     @Operation(summary = "Connect GitHub repository with project.", description = "This method is used to integrate GitHub repository with project. On success does not return anything.")

@@ -2,8 +2,11 @@ package com.workflow.workflow.task;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.ForeignKey;
@@ -13,6 +16,7 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -58,8 +62,15 @@ public class Task {
     @Column(nullable = false)
     private int type;
 
-    @OneToOne(mappedBy = "task")
+    @OneToOne(mappedBy = "task", cascade = CascadeType.ALL)
     private GitHubTask gitHubTask;
+
+    @ManyToOne
+    @JoinColumn(nullable = true)
+    private Task parentTask;
+
+    @OneToMany(mappedBy = "parentTask")
+    private Set<Task> subTasks = new HashSet<>();
 
     private Date deadline;
 
@@ -170,5 +181,27 @@ public class Task {
 
     public void setGitHubTask(GitHubTask gitHubTask) {
         this.gitHubTask = gitHubTask;
+    }
+
+    @JsonIgnore
+    public Task getParentTask() {
+        return parentTask;
+    }
+
+    @JsonIgnore
+    public void setParentTask(Task superTask) {
+        this.parentTask = superTask;
+    }
+
+    public Set<Task> getSubTasks() {
+        return subTasks;
+    }
+
+    public void setSubTasks(Set<Task> subTasks) {
+        this.subTasks = subTasks;
+    }
+
+    public Long getParentTaskId() {
+        return this.parentTask != null ? this.parentTask.getId() : null;
     }
 }
