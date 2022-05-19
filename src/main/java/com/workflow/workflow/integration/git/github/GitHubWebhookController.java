@@ -14,6 +14,7 @@ import com.workflow.workflow.integration.git.github.service.GitHubCommit;
 import com.workflow.workflow.integration.git.github.service.GitHubInstallationApi;
 import com.workflow.workflow.integration.git.github.service.GitHubIssue;
 import com.workflow.workflow.integration.git.github.service.GitHubRepository;
+import com.workflow.workflow.integration.git.github.service.GitHubService;
 import com.workflow.workflow.integration.git.github.service.GitHubWebhookData;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.task.TaskRepository;
@@ -28,6 +29,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @RestController
 public class GitHubWebhookController {
@@ -45,6 +49,8 @@ public class GitHubWebhookController {
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private static final HmacUtils utils = new HmacUtils(HmacAlgorithms.HMAC_SHA_256,
             "5CxrXejuNwslaS2iIm0ELDry313vqwC3ZdmAId3CqFc5L6GH");
+    @Autowired
+    private GitHubService service;
 
     void handleInstallation(GitHubWebhookData data) {
         GitHubInstallationApi installationApi = data.getInstallation();
@@ -118,7 +124,8 @@ public class GitHubWebhookController {
         }
     }
 
-    void handlePush(GitHubWebhookData data) {
+    Mono<Void> handlePush(GitHubWebhookData data) {
+        List<Task> result = new ArrayList<>();
         for (GitHubCommit gitHubCommit : data.getCommits()) {
             Pattern pattern = Pattern.compile("!(\\d+)");
             String message = gitHubCommit.getMessage();
@@ -133,15 +140,16 @@ public class GitHubWebhookController {
                     if (task.getStatus().getProject().getId().equals(gitHubIntegration.getProject().getId())) {
                         task.setState("closed");
                         taskRepository.save(task);
-                        return;
+                        result.add(task);
                     }
                 }
             }
         }
+        return Flux.fromIterable(result).flatMap(task -> service.patchIssue(task)).then();
     }
 
     @PostMapping("/webhook/github")
-    void webhook(@RequestHeader("X-Hub-Signature-256") String token, @RequestHeader("X-GitHub-Event") String event,
+    Mono<Void> webhook(@RequestHeader("X-Hub-Signature-256") String token, @RequestHeader("X-GitHub-Event") String event,
             @RequestBody String dataRaw) {
         if (!MessageDigest.isEqual(token.getBytes(StandardCharsets.UTF_8),
                 ("sha256=" + utils.hmacHex(dataRaw)).getBytes(StandardCharsets.UTF_8))) {
@@ -156,21 +164,21 @@ public class GitHubWebhookController {
         // Delete integrations when repositories access is removed
         if (event.equals("installation_repositories") && !data.getRepositoriesRemoved().isEmpty()) {
             handleInstallationRepositories(data);
-            return;
+            return Mono.empty();
         }
         // Handle issue changes
         if (event.equals("issues")) {
             handleIssue(data);
-            return;
+            return Mono.empty();
         }
         // Handle commit comment
         if (event.equals("push")) {
-            handlePush(data);
-            return;
+            return handlePush(data);
         }
         // Delete installation when suspended or deleted
         if (event.equals("installation")) {
             handleInstallation(data);
         }
+        return Mono.empty();
     }
 }
