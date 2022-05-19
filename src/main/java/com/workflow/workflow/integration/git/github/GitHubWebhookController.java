@@ -51,6 +51,7 @@ public class GitHubWebhookController {
             "5CxrXejuNwslaS2iIm0ELDry313vqwC3ZdmAId3CqFc5L6GH");
     @Autowired
     private GitHubService service;
+    private final Pattern PATTERN = Pattern.compile("(reopen|close)?!(\\d+)");
 
     void handleInstallation(GitHubWebhookData data) {
         GitHubInstallationApi installationApi = data.getInstallation();
@@ -127,18 +128,18 @@ public class GitHubWebhookController {
     Mono<Void> handlePush(GitHubWebhookData data) {
         List<Task> result = new ArrayList<>();
         for (GitHubCommit gitHubCommit : data.getCommits()) {
-            Pattern pattern = Pattern.compile("!(\\d+)");
             String message = gitHubCommit.getMessage();
-            Matcher matcher = pattern.matcher(message);
+            Matcher matcher = PATTERN.matcher(message);
             if (matcher.find()) {
-                long taskId = Long.parseLong(matcher.group(1));
+                String controlKeyword = matcher.group(1);
+                long taskId = Long.parseLong(matcher.group(2));
                 GitHubRepository repository = data.getRepository();
                 Task task = taskRepository.findById(taskId)
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.OK));
                 for (GitHubIntegration gitHubIntegration : integrationRepository
                         .findByRepositoryFullName(repository.getFullName())) {
                     if (task.getStatus().getProject().getId().equals(gitHubIntegration.getProject().getId())) {
-                        task.setState("closed");
+                        task.setState("reopen".equals(controlKeyword) ? "open" : "closed");
                         taskRepository.save(task);
                         result.add(task);
                     }
