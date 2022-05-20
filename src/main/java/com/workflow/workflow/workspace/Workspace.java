@@ -105,7 +105,7 @@ public class Workspace extends SoftDeleteEntity {
     }
 
     public List<ProjectWithPrivileges> getProjectsWithPrivileges() {
-        return projectWorkspace.stream().map(ProjectWorkspace::getProjectWithPrivileges)
+        return projectWorkspace.stream().filter(pw -> pw.getProject().getActive() == null).map(ProjectWorkspace::getProjectWithPrivileges)
                 .sorted((first, second) -> {
                     int result = first.project().getName().compareTo(second.project().getName());
                     if (result != 0) {

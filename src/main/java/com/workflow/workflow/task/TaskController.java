@@ -69,7 +69,7 @@ public class TaskController {
             tasks.addAll(this.taskRepository.findByStatus(status));
         }
         tasks.sort((a, b) -> Long.compare(a.getId(), b.getId()));
-        return tasks;
+        return tasks.stream().filter(t -> t.getActive() == null).toList();
     }
 
     @Operation(summary = "Create task.", description = "This method creates new task. On success returns newly created task.")

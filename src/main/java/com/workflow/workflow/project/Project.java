@@ -116,7 +116,7 @@ public class Project extends SoftDeleteEntity {
     }
 
     public String getGitHubIntegration() {
-        return gitHubIntegration != null ? gitHubIntegration.getRepositoryFullName() : null;
+        return gitHubIntegration != null && gitHubIntegration.getActive() == null ? gitHubIntegration.getRepositoryFullName() : null;
     }
 
     public void setGitHubIntegration(GitHubIntegration gitHubIntegration) {

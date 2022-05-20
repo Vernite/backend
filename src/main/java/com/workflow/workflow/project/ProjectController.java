@@ -103,8 +103,12 @@ public class ProjectController {
     })
     @GetMapping("/{id}")
     public Project get(@PathVariable long id) {
-        return projectRepository.findById(id).orElseThrow(
+        Project project = projectRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
+        if (project.getActive() != null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND);
+        }
+        return project;
     }
 
     @Operation(summary = "Modify project.", description = "This method is used to modify existing project. If workspace id is null it is ignored. If workspace id is not null it also changes workspace to given. On success returns modified project. Throws 404 when project or workspace from request data does not exist or user is not a member in project. Throws status 400 when sent data are incorrect.")

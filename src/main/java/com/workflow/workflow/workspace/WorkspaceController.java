@@ -60,7 +60,7 @@ public class WorkspaceController {
             }
             return first.getId().compareTo(second.getId());
         });
-        return workspaces;
+        return workspaces.stream().filter(w -> w.getActive() == null).toList();
     }
 
     @Operation(summary = "Create workspace.", description = "This method creates new workspace for user. On success returns newly created worksapce. Throws status 404 when user with given ID does not exist. Throws status 400 when sent data are incorrect.")
@@ -89,9 +89,12 @@ public class WorkspaceController {
     public Workspace get(@PathVariable long userId, @PathVariable long id) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
-        return workspaceRepository.findByIdAndUser(id, user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        WORKSPACE_NOT_FOUND));
+        Workspace workspace = workspaceRepository.findByIdAndUser(id, user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, WORKSPACE_NOT_FOUND));
+        if (workspace.getActive() != null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, WORKSPACE_NOT_FOUND);
+        }
+        return workspace;
     }
 
     @Operation(summary = "Modify workspace.", description = "This method is used to modify existing workspace. On success returns modified workspace. Throws 404 when user or workspace does not exist. Throws 404 when workspace with given ID is not in relation with given user. Throws status 400 when sent data are incorrect.")

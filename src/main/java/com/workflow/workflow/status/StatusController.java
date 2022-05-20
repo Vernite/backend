@@ -49,7 +49,7 @@ public class StatusController {
     public Iterable<Status> all(@PathVariable long projectId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
-        return project.getStatuses();
+        return project.getStatuses().stream().filter(s -> s.getActive() == null).toList();
     }
 
     @Operation(summary = "Create status.", description = "This method creates new status for project. On success returns newly created status. Throws status 404 when user with given ID does not exist. Throws status 400 when sent data are incorrect.")
@@ -91,7 +91,7 @@ public class StatusController {
     public Status get(@PathVariable long projectId, @PathVariable long id) {
         Status col = statusRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND));
-        if (col.getProject().getId() != projectId) {
+        if (col.getProject().getId() != projectId || col.getActive() != null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND);
         }
         return col;
