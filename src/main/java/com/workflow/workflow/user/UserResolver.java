@@ -27,20 +27,22 @@ public class UserResolver implements HandlerMethodArgumentResolver {
     public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer, NativeWebRequest webRequest,
             WebDataBinderFactory binderFactory) throws Exception {
         HttpServletRequest req = webRequest.getNativeRequest(HttpServletRequest.class);
-        for (Cookie c : req.getCookies()) {
-            if (c.getName().equals(AuthController.COOKIE_NAME)) {
-                Optional<UserSession> session = userSessionRepository.findById(c.getValue());
-                if (!session.isPresent()) {
-                    break;
+        if (req != null && req.getCookies() != null) {
+            for (Cookie c : req.getCookies()) {
+                if (c.getName().equals(AuthController.COOKIE_NAME)) {
+                    Optional<UserSession> session = userSessionRepository.findById(c.getValue());
+                    if (!session.isPresent()) {
+                        break;
+                    }
+                    UserSession us = session.get();
+                    us.setIp(req.getHeader("X-Forwarded-For"));
+                    if (us.getIp() == null) {
+                        us.setIp(req.getRemoteAddr());
+                    }
+                    us.setLastUsed(new Date());
+                    userSessionRepository.save(us);
+                    return us.getUser();
                 }
-                UserSession us = session.get();
-                us.setIp(req.getHeader("X-Forwarded-For"));
-                if (us.getIp() == null) {
-                    us.setIp(req.getRemoteAddr());
-                }
-                us.setLastUsed(new Date());
-                userSessionRepository.save(us);
-                return us.getUser();
             }
         }
         if (parameter.hasParameterAnnotation(NotNull.class)) {
