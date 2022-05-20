@@ -26,10 +26,11 @@ import com.workflow.workflow.db.Sprint;
 import com.workflow.workflow.integration.git.github.GitHubTask;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.user.User;
+import com.workflow.workflow.utils.SoftDeleteEntity;
 
 @Entity
 @JsonInclude(Include.NON_NULL)
-public class Task {
+public class Task extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -16,12 +16,13 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.workflow.workflow.projectworkspace.ProjectWithPrivileges;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.user.User;
+import com.workflow.workflow.utils.SoftDeleteEntity;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 @Entity
-public class Workspace {
+public class Workspace extends SoftDeleteEntity {
 
     private @Id @GeneratedValue(strategy = GenerationType.IDENTITY) Long id;
     private String name;

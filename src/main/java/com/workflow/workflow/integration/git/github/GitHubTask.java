@@ -8,9 +8,10 @@ import javax.persistence.MapsId;
 import javax.persistence.OneToOne;
 
 import com.workflow.workflow.task.Task;
+import com.workflow.workflow.utils.SoftDeleteEntity;
 
 @Entity
-public class GitHubTask {
+public class GitHubTask extends SoftDeleteEntity {
     @EmbeddedId
     private GitHubTaskKey id;
 

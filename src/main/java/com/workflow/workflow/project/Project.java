@@ -21,13 +21,14 @@ import com.workflow.workflow.integration.git.github.GitHubIntegration;
 import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.status.Status;
+import com.workflow.workflow.utils.SoftDeleteEntity;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 @Entity
 @JsonInclude(Include.NON_NULL)
-public class Project {
+public class Project extends SoftDeleteEntity {
     private @Id @GeneratedValue(strategy = GenerationType.IDENTITY) Long id;
     private String name;
 

@@ -8,9 +8,10 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToOne;
 
 import com.workflow.workflow.project.Project;
+import com.workflow.workflow.utils.SoftDeleteEntity;
 
 @Entity
-public class GitHubIntegration {
+public class GitHubIntegration extends SoftDeleteEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     long id;

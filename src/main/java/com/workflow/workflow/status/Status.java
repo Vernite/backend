@@ -12,9 +12,10 @@ import javax.persistence.ManyToOne;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.workflow.workflow.project.Project;
+import com.workflow.workflow.utils.SoftDeleteEntity;
 
 @Entity
-public class Status {
+public class Status extends SoftDeleteEntity {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

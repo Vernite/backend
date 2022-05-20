@@ -13,9 +13,10 @@ import javax.persistence.Id;
 import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.workflow.workflow.utils.SoftDeleteEntity;
 
 @Entity
-public class User {
+public class User extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
