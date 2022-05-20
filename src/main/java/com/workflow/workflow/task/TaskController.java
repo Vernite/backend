@@ -1,5 +1,7 @@
 package com.workflow.workflow.task;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -175,6 +177,7 @@ public class TaskController {
         if (task.getStatus().getProject().getId() != projectId) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, TASK_NOT_FOUND);
         }
-        taskRepository.delete(task);
+        task.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
+        taskRepository.save(task);
     }
 }

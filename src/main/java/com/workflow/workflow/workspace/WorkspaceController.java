@@ -1,5 +1,8 @@
 package com.workflow.workflow.workspace;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.List;
 
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
@@ -127,6 +130,7 @@ public class WorkspaceController {
         if (!projectWorkspaceRepository.findByWorkspace(workspace).isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "workspace not empty");
         }
-        workspaceRepository.delete(workspace);
+        workspace.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
+        workspaceRepository.save(workspace);
     }
 }

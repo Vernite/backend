@@ -1,12 +1,15 @@
 package com.workflow.workflow.project;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
+
 import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceKey;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.status.StatusRepository;
-import com.workflow.workflow.task.TaskRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.workspace.Workspace;
@@ -44,8 +47,6 @@ public class ProjectController {
     private ProjectWorkspaceRepository projectWorkspaceRepository;
     @Autowired
     private StatusRepository statusRepository;
-    @Autowired
-    private TaskRepository taskRepository;
 
     static final String USER_NOT_FOUND = "USER_NOT_FOUND";
     static final String PROJECT_NOT_FOUND = "project not found";
@@ -143,12 +144,8 @@ public class ProjectController {
     public void delete(@PathVariable long id) {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
-        projectWorkspaceRepository.deleteAll(projectWorkspaceRepository.findByProject(project));
-        for (Status status : project.getStatuses()) {
-            taskRepository.deleteAll(taskRepository.findByStatus(status));
-        }
-        statusRepository.deleteAll(project.getStatuses());
-        projectRepository.delete(project);
+        project.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
+        projectRepository.save(project);
     }
 
     @Operation(summary = "Get project members.", description = "This method is used to retrive members of project with given id. On success returns list with members of project with given id. Throws 404 when project does not exist.")

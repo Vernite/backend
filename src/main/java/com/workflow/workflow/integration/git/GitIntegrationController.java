@@ -1,5 +1,8 @@
 package com.workflow.workflow.integration.git;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,7 +12,6 @@ import com.workflow.workflow.integration.git.github.GitHubInstallationRepository
 import com.workflow.workflow.integration.git.github.GitHubIntegration;
 import com.workflow.workflow.integration.git.github.GitHubIntegrationInfo;
 import com.workflow.workflow.integration.git.github.GitHubIntegrationRepository;
-import com.workflow.workflow.integration.git.github.GitHubTaskRepository;
 import com.workflow.workflow.integration.git.github.service.GitHubIssue;
 import com.workflow.workflow.integration.git.github.service.GitHubService;
 import com.workflow.workflow.project.Project;
@@ -52,8 +54,6 @@ public class GitIntegrationController {
     private GitHubInstallationRepository installationRepository;
     @Autowired
     private GitHubIntegrationRepository integrationRepository;
-    @Autowired
-    private GitHubTaskRepository taskRepository;
 
     @Operation(summary = "Get github application link and available repositories.", description = "This method returns link to github workflow application and list of repositories available to application for authenticated user. When list is empty authenticated user either dont have connected account or dont have any repository available for this application.")
     @ApiResponses(value = {
@@ -153,8 +153,8 @@ public class GitIntegrationController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
         GitHubIntegration integration = integrationRepository.findByProject(project)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "integration not found"));
-        taskRepository.deleteAll(taskRepository.findByGitHubIntegration(integration));
-        integrationRepository.delete(integration);
+        integration.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
+        integrationRepository.save(integration);
     }
 
     @Operation(summary = "Get GitHub issues for project.", description = "This method is used to get all issues from associated GitHub repository.")

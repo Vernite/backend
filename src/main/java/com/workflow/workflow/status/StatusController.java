@@ -1,5 +1,9 @@
 package com.workflow.workflow.status;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
+
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 
@@ -125,6 +129,7 @@ public class StatusController {
         if (col.getProject().getId() != projectId) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND);
         }
-        statusRepository.delete(col);
+        col.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
+        statusRepository.save(col);
     }
 }
