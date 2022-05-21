@@ -62,19 +62,27 @@ public class ProjectWorkspace {
         this.project = project;
     }
 
+    public Long getPrivileges() {
+        return privileges;
+    }
+
+    public void setPrivileges(Long privileges) {
+        this.privileges = privileges;
+    }
+
     public ProjectWithPrivileges getProjectWithPrivileges() {
-        return new ProjectWithPrivileges(project, privileges);
+        return new ProjectWithPrivileges(getProject(), getPrivileges());
     }
 
     public ProjectMember getProjectMember() {
-        return new ProjectMember(workspace.getUser(), privileges);
+        return new ProjectMember(getWorkspace().getUser(), getPrivileges());
     }
 
     @Override
     public int hashCode() {
         final int prime = 31;
-        int hash = prime + (id == null ? 0 : id.hashCode());
-        hash = prime * hash + Long.hashCode(privileges);
+        int hash = prime + (getId() == null ? 0 : getId().hashCode());
+        hash = prime * hash + Long.hashCode(getPrivileges());
         return hash;
     }
 
@@ -85,10 +93,10 @@ public class ProjectWorkspace {
         if (obj == null || getClass() != obj.getClass())
             return false;
         ProjectWorkspace other = (ProjectWorkspace) obj;
-        if (privileges != other.privileges)
+        if (getPrivileges() != other.getPrivileges())
             return false;
-        if (id == null)
-            return other.id == null;
-        return id.equals(other.id);
+        if (getId() == null)
+            return other.getId() == null;
+        return getId().equals(other.getId());
     }
 }

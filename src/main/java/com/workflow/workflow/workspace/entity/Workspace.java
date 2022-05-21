@@ -103,7 +103,7 @@ public class Workspace extends SoftDeleteEntity implements Comparable<Workspace>
     }
 
     public List<ProjectWithPrivileges> getProjectsWithPrivileges() {
-        return projectWorkspaces.stream().filter(pw -> pw.getProject().getActive() == null)
+        return getProjectWorkspaces().stream().filter(pw -> pw.getProject().getActive() == null)
                 .sorted((first, second) -> first.getProject().compareTo(second.getProject()))
                 .map(ProjectWorkspace::getProjectWithPrivileges).toList();
     }
@@ -111,8 +111,8 @@ public class Workspace extends SoftDeleteEntity implements Comparable<Workspace>
     @Override
     public int hashCode() {
         final int prime = 31;
-        int hash = prime + (id == null ? 0 : id.hashCode());
-        hash = prime * hash + (name == null ? 0 : name.hashCode());
+        int hash = prime + (getId() == null ? 0 : getId().hashCode());
+        hash = prime * hash + (getName() == null ? 0 : getName().hashCode());
         return hash;
     }
 
@@ -123,18 +123,18 @@ public class Workspace extends SoftDeleteEntity implements Comparable<Workspace>
         if (obj == null || getClass() != obj.getClass())
             return false;
         Workspace other = (Workspace) obj;
-        if (id == null) {
-            if (other.id != null)
+        if (getId() == null) {
+            if (other.getId() != null)
                 return false;
-        } else if (!id.equals(other.id))
+        } else if (!getId().equals(other.getId()))
             return false;
-        if (name == null)
-            return other.name != null;
-        return name.equals(other.name);
+        if (getName() == null)
+            return other.getName() != null;
+        return getName().equals(other.getName());
     }
 
     @Override
     public int compareTo(Workspace other) {
-        return name.equals(other.name) ? id.compareTo(other.id) : name.compareTo(other.name);
+        return getName().equals(other.getName()) ? getId().compareTo(other.getId()) : getName().compareTo(other.getName());
     }
 }

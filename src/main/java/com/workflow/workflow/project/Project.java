@@ -119,14 +119,14 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
 
     @JsonIgnore
     public List<ProjectMember> getProjectMembers() {
-        return projectWorkspaces.stream().map(ProjectWorkspace::getProjectMember).toList();
+        return getProjectWorkspaces().stream().map(ProjectWorkspace::getProjectMember).toList();
     }
 
     @Override
     public int hashCode() {
         final int prime = 31;
-        int hash = prime + Long.hashCode(id);
-        hash = prime * hash + (name == null ? 0 : name.hashCode());
+        int hash = prime + Long.hashCode(getId());
+        hash = prime * hash + (getName() == null ? 0 : getName().hashCode());
         return hash;
     }
 
@@ -137,15 +137,15 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
         if (obj == null || getClass() != obj.getClass())
             return false;
         Project other = (Project) obj;
-        if (id != other.id)
+        if (getId() != other.getId())
             return false;
-        if (name == null)
+        if (getName() == null)
             return other.name == null;
-        return name.equals(other.name);
+        return getName().equals(other.getName());
     }
 
     @Override
     public int compareTo(Project other) {
-        return name.equals(other.name) ? Long.compare(id, other.id) : name.compareTo(other.name);
+        return getName().equals(other.getName()) ? Long.compare(getId(), other.getId()) : getName().compareTo(other.getName());
     }
 }
