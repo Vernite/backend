@@ -5,10 +5,11 @@ import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 
+import javax.validation.constraints.NotNull;
+
 import com.workflow.workflow.counter.CounterSequenceRepository;
-import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
 import com.workflow.workflow.user.User;
-import com.workflow.workflow.user.UserRepository;
+import com.workflow.workflow.utils.ErrorType;
 import com.workflow.workflow.workspace.entity.Workspace;
 import com.workflow.workflow.workspace.entity.WorkspaceKey;
 
@@ -25,115 +26,70 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 @RestController
-@RequestMapping("/user/{userId}/workspace")
+@RequestMapping("/workspace")
 public class WorkspaceController {
-    static final String USER_NOT_FOUND = "user not found";
-    static final String WORKSPACE_NOT_FOUND = "workspace not found";
 
     @Autowired
-    private UserRepository userRepository;
+    private CounterSequenceRepository counterRepository;
     @Autowired
     private WorkspaceRepository workspaceRepository;
-    @Autowired
-    private ProjectWorkspaceRepository projectWorkspaceRepository;
-    @Autowired
-    private CounterSequenceRepository counterSequenceRepository;
 
-    @Operation(summary = "Get information on all workspaces.", description = "This method returns array of all workspaces for user with given ID. Result can be empty array. Throws status 404 when user with given ID does not exist.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "List of all user workspaces. Can be empty.", content = {
-                    @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = Workspace.class)))
-            }),
-            @ApiResponse(responseCode = "404", description = "User with given ID not found.", content = @Content())
-    })
-    @GetMapping("/")
-    public List<Workspace> all(@PathVariable long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
-        List<Workspace> workspaces = workspaceRepository.findByUser(user);
-        workspaces.sort((first, second) -> first.compareTo(second));
-        return workspaces.stream().filter(w -> w.getActive() == null).toList();
+    @Operation(summary = "Retrieve all workspaces.", description = "Retrieves all workspaces for authenticated user. Results are ordered by name and id.")
+    @ApiResponse(description = "List with workspaces. Can be empty.", responseCode = "200")
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @GetMapping
+    public List<Workspace> getAllWorkspaces(@NotNull @Parameter(hidden = true) User user) {
+        return user.getWorkspaces();
     }
 
-    @Operation(summary = "Create workspace.", description = "This method creates new workspace for user. On success returns newly created worksapce. Throws status 404 when user with given ID does not exist. Throws status 400 when sent data are incorrect.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Newly created workspace.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = Workspace.class))
-            }),
-            @ApiResponse(responseCode = "400", description = "Bad request data format.", content = @Content()),
-            @ApiResponse(responseCode = "404", description = "User with given ID not found.", content = @Content())
-    })
-    @PostMapping("/")
-    public Workspace add(@PathVariable long userId, @RequestBody WorkspaceRequest request) {
+    @Operation(summary = "Create workspace.", description = "Creates new workspace for authenticated user. All fields of request body are required.")
+    @ApiResponse(description = "Newly created workspace.", responseCode = "200")
+    @ApiResponse(description = "Some fields are missing.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @PostMapping
+    public Workspace newWorkspace(@NotNull @Parameter(hidden = true) User user, @RequestBody WorkspaceRequest request) {
         if (request.getName() == null) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "field name must exist");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing name field");
         }
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
-        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
+        long id = counterRepository.getIncrementCounter(user.getCounterSequence().getId());
         return workspaceRepository.save(new Workspace(id, user, request));
     }
 
-    @Operation(summary = "Get workspace information.", description = "This method is used to retrive workspace with given ID for user with given user_id. On success returns workspace with given ID. Throws 404 when user or workspace does not exist. Throws 404 when workspace with given ID is not in relation with given user.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Workspace with given ID and user.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = Workspace.class))
-            }),
-            @ApiResponse(responseCode = "404", description = "Workspace or user with given ID not found.", content = @Content())
-    })
+    @Operation(summary = "Retrieve workspace.", description = "Retrieves workspace with given id for authenticated user.")
+    @ApiResponse(description = "Workspace with given id.", responseCode = "200")
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Workspace with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/{id}")
-    public Workspace get(@PathVariable long userId, @PathVariable long id) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
-        Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(id, user), user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, WORKSPACE_NOT_FOUND));
-        if (workspace.getActive() != null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, WORKSPACE_NOT_FOUND);
-        }
-        return workspace;
+    public Workspace getWorkspace(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+        return workspaceRepository.findByIdOrThrow(new WorkspaceKey(id, user));
     }
 
-    @Operation(summary = "Modify workspace.", description = "This method is used to modify existing workspace. On success returns modified workspace. Throws 404 when user or workspace does not exist. Throws 404 when workspace with given ID is not in relation with given user. Throws status 400 when sent data are incorrect.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Modified workspace with given ID.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = Workspace.class))
-            }),
-            @ApiResponse(responseCode = "400", description = "Bad request data format.", content = @Content()),
-            @ApiResponse(responseCode = "404", description = "Workspace or user with given ID not found.", content = @Content())
-    })
+    @Operation(summary = "Modify workspace.", description = "Applies changes from request body to workspace with given id for authenticated user. If field from body is missing it wont be changed.")
+    @ApiResponse(description = "Workspace after changes.", responseCode = "200")
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Workspace with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PutMapping("/{id}")
-    public Workspace put(@PathVariable long userId, @PathVariable long id,
+    public Workspace putWorkspace(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @RequestBody WorkspaceRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
-        Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(id, user), user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        WORKSPACE_NOT_FOUND));
+        Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceKey(id, user));
         workspace.apply(request);
         return workspaceRepository.save(workspace);
     }
 
-    @Operation(summary = "Delete workspace.", description = "This method is used to delete workspace. On success does not return anything. Throws 404 when user or workspace does not exist. Throws 404 when workspace with given ID is not in relation with given user. Throws 400 when workspace is not empty.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Object with given ID has been deleted."),
-            @ApiResponse(responseCode = "400", description = "Workspace cannot be deleted; you can delete only empty workspaces."),
-            @ApiResponse(responseCode = "404", description = "Workspace or user with given ID not found.")
-    })
+    @Operation(summary = "Delete workspace.", description = "Deletes workspace with given id. Workspace to delete must be empty.")
+    @ApiResponse(description = "Workspace deleted.", responseCode = "200")
+    @ApiResponse(description = "Workspace with given id not empty.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Workspace with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable long userId, @PathVariable long id) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
-        Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(id, user), user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        WORKSPACE_NOT_FOUND));
-        if (!projectWorkspaceRepository.findByWorkspace(workspace).isEmpty()) {
+    public void deleteWorkspace(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+        Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceKey(id, user));
+        if (!workspace.getProjectWorkspaces().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "workspace not empty");
         }
         workspace.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));

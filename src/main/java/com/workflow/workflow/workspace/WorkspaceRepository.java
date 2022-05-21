@@ -4,12 +4,11 @@ import java.util.List;
 import java.util.Optional;
 
 import com.workflow.workflow.user.User;
+import com.workflow.workflow.utils.SoftDeleteRepository;
 import com.workflow.workflow.workspace.entity.Workspace;
 import com.workflow.workflow.workspace.entity.WorkspaceKey;
 
-import org.springframework.data.repository.CrudRepository;
-
-public interface WorkspaceRepository extends CrudRepository<Workspace, WorkspaceKey> {
+public interface WorkspaceRepository extends SoftDeleteRepository<Workspace, WorkspaceKey> {
     /**
      * This method finds workspaces for given user.
      * 

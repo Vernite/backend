@@ -4,20 +4,28 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
+import javax.persistence.OrderBy;
 import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.workflow.workflow.counter.CounterSequence;
 import com.workflow.workflow.utils.SoftDeleteEntity;
+import com.workflow.workflow.workspace.entity.Workspace;
+
+import org.hibernate.annotations.Where;
 
 @Entity
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
@@ -53,6 +61,12 @@ public class User extends SoftDeleteEntity {
     @JsonIgnore
     @OneToOne(cascade = CascadeType.REMOVE, optional = false)
     private CounterSequence counterSequence;
+
+    @JsonIgnore
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "user")
+    @Where(clause = "active is null")
+    @OrderBy("name, id")
+    private List<Workspace> workspaces = new ArrayList<>();
 
     public User() {
     }
@@ -128,6 +142,14 @@ public class User extends SoftDeleteEntity {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public List<Workspace> getWorkspaces() {
+        return workspaces;
+    }
+
+    public void setWorkspaces(List<Workspace> workspaces) {
+        this.workspaces = workspaces;
     }
 
     public boolean checkPassword(String password) {
