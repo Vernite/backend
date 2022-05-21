@@ -2,25 +2,28 @@ package com.workflow.workflow.projectworkspace;
 
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
-import javax.persistence.JoinColumn;
+import javax.persistence.FetchType;
 import javax.persistence.ManyToOne;
 import javax.persistence.MapsId;
 
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.workspace.entity.Workspace;
 
+/**
+ * Entity for representing relation between workspace (with user) and project.
+ * Constains privillages of user in project.
+ */
 @Entity
 public class ProjectWorkspace {
     @EmbeddedId
     private ProjectWorkspaceKey id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId("workspaceId")
     private Workspace workspace;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId("projectId")
-    @JoinColumn(name = "project_id")
     private Project project;
 
     Long privileges;
@@ -39,32 +42,24 @@ public class ProjectWorkspace {
         return id;
     }
 
-    public Workspace getWorkspace() {
-        return workspace;
-    }
-
-    public Project getProject() {
-        return project;
-    }
-
-    public Long getPrivileges() {
-        return privileges;
-    }
-
     public void setId(ProjectWorkspaceKey id) {
         this.id = id;
+    }
+
+    public Workspace getWorkspace() {
+        return workspace;
     }
 
     public void setWorkspace(Workspace workspace) {
         this.workspace = workspace;
     }
 
-    public void setProject(Project project) {
-        this.project = project;
+    public Project getProject() {
+        return project;
     }
 
-    public void setPrivileges(Long privileges) {
-        this.privileges = privileges;
+    public void setProject(Project project) {
+        this.project = project;
     }
 
     public ProjectWithPrivileges getProjectWithPrivileges() {
@@ -73,5 +68,27 @@ public class ProjectWorkspace {
 
     public ProjectMember getProjectMember() {
         return new ProjectMember(workspace.getUser(), privileges);
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int hash = prime + (id == null ? 0 : id.hashCode());
+        hash = prime * hash + Long.hashCode(privileges);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null || getClass() != obj.getClass())
+            return false;
+        ProjectWorkspace other = (ProjectWorkspace) obj;
+        if (privileges != other.privileges)
+            return false;
+        if (id == null)
+            return other.id == null;
+        return id.equals(other.id);
     }
 }

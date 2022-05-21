@@ -92,7 +92,7 @@ public class WorkspaceController {
     public Workspace get(@PathVariable long userId, @PathVariable long id) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
-        Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(id, user.getId()), user)
+        Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(id, user), user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, WORKSPACE_NOT_FOUND));
         if (workspace.getActive() != null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, WORKSPACE_NOT_FOUND);
@@ -113,7 +113,7 @@ public class WorkspaceController {
             @RequestBody WorkspaceRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
-        Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(id, user.getId()), user)
+        Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(id, user), user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         WORKSPACE_NOT_FOUND));
         workspace.apply(request);
@@ -130,7 +130,7 @@ public class WorkspaceController {
     public void delete(@PathVariable long userId, @PathVariable long id) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
-        Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(id, user.getId()), user)
+        Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(id, user), user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         WORKSPACE_NOT_FOUND));
         if (!projectWorkspaceRepository.findByWorkspace(workspace).isEmpty()) {

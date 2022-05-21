@@ -46,7 +46,7 @@ public class ProjectWorkspaceController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
-        Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(newWorkspaceId, user.getId()), user)
+        Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(newWorkspaceId, user), user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, WORKSPACE_NOT_FOUND));
         ProjectWorkspace projectWorkspace = projectWorkspaceRepository.findByProjectAndWorkspaceUser(project, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "user not a member of project"));

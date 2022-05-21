@@ -5,6 +5,7 @@ import java.io.Serializable;
 import javax.persistence.Embeddable;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.workflow.workflow.user.User;
 
 /**
  * Composite key for workspace. Composed of of id and user id.
@@ -23,9 +24,9 @@ public class WorkspaceKey implements Serializable, Comparable<WorkspaceKey> {
         this.id = id;
     }
 
-    public WorkspaceKey(long id, long userId) {
+    public WorkspaceKey(long id, User user) {
         this.id = id;
-        this.userId = userId;
+        this.userId = user.getId();
     }
 
     public long getId() {

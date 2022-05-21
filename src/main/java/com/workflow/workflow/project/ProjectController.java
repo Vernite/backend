@@ -68,7 +68,7 @@ public class ProjectController {
         if (request.getWorkspaceId() == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "workspace id cannot be null");
         }
-        Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(request.getWorkspaceId(), user.getId()), user)
+        Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(request.getWorkspaceId(), user), user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         WORKSPACE_NOT_FOUND));
         Project project = projectRepository.save(new Project(request));
@@ -130,7 +130,7 @@ public class ProjectController {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
         if (request.getWorkspaceId() != null) {
-            Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(request.getWorkspaceId(), user.getId()), user)
+            Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(request.getWorkspaceId(), user), user)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                             WORKSPACE_NOT_FOUND));
             ProjectWorkspace projectWorkspace = projectWorkspaceRepository

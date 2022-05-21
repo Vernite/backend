@@ -13,6 +13,7 @@ import javax.persistence.MapsId;
 import javax.persistence.OneToMany;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.workflow.workflow.projectworkspace.ProjectWithPrivileges;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
@@ -25,6 +26,7 @@ import com.workflow.workflow.workspace.WorkspaceRequest;
  * id. Workspace name cant be longer than 50 characters.
  */
 @Entity
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class Workspace extends SoftDeleteEntity implements Comparable<Workspace> {
     @JsonUnwrapped
     @EmbeddedId
@@ -55,6 +57,13 @@ public class Workspace extends SoftDeleteEntity implements Comparable<Workspace>
         this(id, user, request.getName());
     }
 
+    /**
+     * Applies changes contained in request object to workspace.
+     * 
+     * @param request must not be {@literal null}. Can contain {@literal null} in
+     *                fields. If field is {@literal null} it is assumed there is no
+     *                changes for that field.
+     */
     public void apply(WorkspaceRequest request) {
         if (request.getName() != null) {
             name = request.getName();

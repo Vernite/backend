@@ -2,71 +2,68 @@ package com.workflow.workflow.projectworkspace;
 
 import java.io.Serializable;
 
-import javax.persistence.Column;
 import javax.persistence.Embeddable;
 
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.workspace.entity.Workspace;
 import com.workflow.workflow.workspace.entity.WorkspaceKey;
 
+/**
+ * Composite key for pivot table. Composed of workspace id and project id.
+ */
 @Embeddable
-public class ProjectWorkspaceKey implements Serializable {
+public class ProjectWorkspaceKey implements Serializable, Comparable<ProjectWorkspaceKey> {
     WorkspaceKey workspaceId;
-    @Column(name = "project_id")
-    Long projectId;
+    long projectId;
 
     public ProjectWorkspaceKey() {
     }
 
     public ProjectWorkspaceKey(Workspace workspace, Project project) {
-        this.projectId = project.getId();
         this.workspaceId = workspace.getId();
-    }
-
-    public Long getProjectId() {
-        return projectId;
+        this.projectId = project.getId();
     }
 
     public WorkspaceKey getWorkspaceId() {
         return workspaceId;
     }
 
-    public void setProjectId(Long projectId) {
-        this.projectId = projectId;
-    }
-
     public void setWorkspaceId(WorkspaceKey workspaceId) {
         this.workspaceId = workspaceId;
+    }
+
+    public long getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(long projectId) {
+        this.projectId = projectId;
     }
 
     @Override
     public int hashCode() {
         final int prime = 31;
-        int result = 1;
-        result = prime * result + ((projectId == null) ? 0 : projectId.hashCode());
-        result = prime * result + ((workspaceId == null) ? 0 : workspaceId.hashCode());
-        return result;
+        int hash = prime + Long.hashCode(projectId);
+        hash = prime * hash + (workspaceId == null ? 0 : workspaceId.hashCode());
+        return hash;
     }
 
     @Override
     public boolean equals(Object obj) {
         if (this == obj)
             return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
+        if (obj == null || getClass() != obj.getClass())
             return false;
         ProjectWorkspaceKey other = (ProjectWorkspaceKey) obj;
-        if (projectId == null) {
-            if (other.projectId != null)
-                return false;
-        } else if (!projectId.equals(other.projectId))
+        if (projectId != other.projectId)
             return false;
-        if (workspaceId == null) {
-            if (other.workspaceId != null)
-                return false;
-        } else if (!workspaceId.equals(other.workspaceId))
-            return false;
-        return true;
+        if (workspaceId == null)
+            return other.workspaceId == null;
+        return workspaceId.equals(other.workspaceId);
+    }
+
+    @Override
+    public int compareTo(ProjectWorkspaceKey o) {
+        return projectId == o.projectId ? workspaceId.compareTo(o.workspaceId) : Long.compare(projectId, o.projectId);
     }
 }
