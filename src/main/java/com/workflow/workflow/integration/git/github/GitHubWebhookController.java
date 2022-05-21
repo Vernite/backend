@@ -138,7 +138,7 @@ public class GitHubWebhookController {
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.OK));
                 for (GitHubIntegration gitHubIntegration : integrationRepository
                         .findByRepositoryFullName(repository.getFullName())) {
-                    if (task.getStatus().getProject().getId().equals(gitHubIntegration.getProject().getId())) {
+                    if (task.getStatus().getProject().getId() == gitHubIntegration.getProject().getId()) {
                         task.setState("reopen".equals(controlKeyword) ? "open" : "closed");
                         taskRepository.save(task);
                         result.add(task);

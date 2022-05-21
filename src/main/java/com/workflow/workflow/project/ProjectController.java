@@ -139,7 +139,7 @@ public class ProjectController {
             projectWorkspace.setWorkspace(workspace);
             projectWorkspaceRepository.save(projectWorkspace);
         }
-        project.put(request);
+        project.apply(request);
         return projectRepository.save(project);
     }
 

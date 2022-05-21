@@ -157,9 +157,6 @@ public class ProjectControllerTests {
         mvc.perform(put(String.format("/project/%d", project.getId()))
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
-        mvc.perform(put(String.format("/project/%d", project.getId()))
-                .contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isBadRequest());
     }
 
     @Test

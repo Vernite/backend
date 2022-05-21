@@ -97,6 +97,6 @@ public class ProjectWorkspaceControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name", is(newWorkspace.getName())))
                 .andExpect(jsonPath("$.projectsWithPrivileges", hasSize(1)))
-                .andExpect(jsonPath("$.projectsWithPrivileges[0].project.id", is(project.getId().intValue())));
+                .andExpect(jsonPath("$.projectsWithPrivileges[0].project.id", is((int) project.getId())));
     }
 }
