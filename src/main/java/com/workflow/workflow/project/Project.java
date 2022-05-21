@@ -24,8 +24,11 @@ import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.utils.SoftDeleteEntity;
 
+import org.hibernate.annotations.Where;
+
 /**
- * Entity for representing project.
+ * Entity for representing project. Project name cant be longer than 50
+ * characters.
  */
 @Entity
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
@@ -46,6 +49,7 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     @JsonIgnore
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "project")
     @OrderBy("ordinal")
+    @Where(clause = "active is null")
     private List<Status> statuses = new ArrayList<>();
 
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "project")
@@ -146,6 +150,7 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
 
     @Override
     public int compareTo(Project other) {
-        return getName().equals(other.getName()) ? Long.compare(getId(), other.getId()) : getName().compareTo(other.getName());
+        return getName().equals(other.getName()) ? Long.compare(getId(), other.getId())
+                : getName().compareTo(other.getName());
     }
 }
