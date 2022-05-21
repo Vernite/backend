@@ -30,7 +30,7 @@ public class UserResolver implements HandlerMethodArgumentResolver {
         if (req != null && req.getCookies() != null) {
             for (Cookie c : req.getCookies()) {
                 if (c.getName().equals(AuthController.COOKIE_NAME)) {
-                    Optional<UserSession> session = userSessionRepository.findById(c.getValue());
+                    Optional<UserSession> session = userSessionRepository.findBySession(c.getValue());
                     if (!session.isPresent()) {
                         break;
                     }
