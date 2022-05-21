@@ -7,7 +7,7 @@ import javax.persistence.ManyToOne;
 import javax.persistence.MapsId;
 
 import com.workflow.workflow.project.Project;
-import com.workflow.workflow.workspace.Workspace;
+import com.workflow.workflow.workspace.entity.Workspace;
 
 @Entity
 public class ProjectWorkspace {
@@ -16,7 +16,6 @@ public class ProjectWorkspace {
 
     @ManyToOne
     @MapsId("workspaceId")
-    @JoinColumn(name = "workspace_id")
     private Workspace workspace;
 
     @ManyToOne

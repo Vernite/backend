@@ -1,6 +1,8 @@
 package com.workflow.workflow;
 
 import com.workflow.workflow.user.UserRepository;
+import com.workflow.workflow.counter.CounterSequence;
+import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
@@ -8,8 +10,8 @@ import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
 import com.workflow.workflow.status.StatusRepository;
 import com.workflow.workflow.task.TaskRepository;
 import com.workflow.workflow.user.User;
-import com.workflow.workflow.workspace.Workspace;
 import com.workflow.workflow.workspace.WorkspaceRepository;
+import com.workflow.workflow.workspace.entity.Workspace;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,6 +54,8 @@ public class ProjectControllerTests {
     private StatusRepository statusRepository;
     @Autowired
     private TaskRepository taskRepository;
+    @Autowired
+    private CounterSequenceRepository counterSequenceRepository;
 
     private Workspace workspace;
     private User user;
@@ -59,8 +63,13 @@ public class ProjectControllerTests {
     @BeforeAll
     void init() {
         user = userRepository.findById(1L)
-                .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email", "Password")));
-        workspace = workspaceRepository.save(new Workspace("name", user));
+                .orElseGet(() -> {
+                        CounterSequence cs = new CounterSequence();
+                        cs = counterSequenceRepository.save(cs);
+                        return userRepository.save(new User("Name", "Surname", "Username", "Email", "Password", cs));
+                });
+        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
+        workspace = workspaceRepository.save(new Workspace(id, user, "name"));
     }
 
     @BeforeEach
@@ -74,7 +83,7 @@ public class ProjectControllerTests {
     @Test
     void addSuccess() throws Exception {
         mvc.perform(post("/project/").contentType(MediaType.APPLICATION_JSON)
-                .content(String.format("{\"name\": \"test\", \"workspaceId\": %d}", workspace.getId())))
+                .content(String.format("{\"name\": \"test\", \"workspaceId\": %d}", workspace.getId().getId())))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.name", is("test")));
@@ -92,9 +101,9 @@ public class ProjectControllerTests {
         mvc.perform(post("/project/").contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
         mvc.perform(post("/project/").contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isBadRequest());
         mvc.perform(post("/project/").contentType(MediaType.APPLICATION_JSON).content("{\"name\": \"test\"}"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -104,7 +113,7 @@ public class ProjectControllerTests {
         mvc.perform(post("/project/").contentType(MediaType.MULTIPART_FORM_DATA).content("{}"))
                 .andExpect(status().isUnsupportedMediaType());
         mvc.perform(post("/project/").contentType(MediaType.MULTIPART_FORM_DATA)
-                .content(String.format("{\"name\": \"test\", \"workspaceId\": %d}", workspace.getId())))
+                .content(String.format("{\"name\": \"test\", \"workspaceId\": %d}", workspace.getId().getId())))
                 .andExpect(status().isUnsupportedMediaType());
     }
 
@@ -167,7 +176,7 @@ public class ProjectControllerTests {
 
         mvc.perform(put(String.format("/project/%d", project.getId()))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(String.format("{\"name\": \"new put\", \"workspaceId\": %d}", workspace.getId())))
+                .content(String.format("{\"name\": \"new put\", \"workspaceId\": %d}", workspace.getId().getId())))
                 .andExpect(status().isNotFound());
     }
 

@@ -1,13 +1,15 @@
 package com.workflow.workflow;
 
 import com.workflow.workflow.user.UserRepository;
+import com.workflow.workflow.counter.CounterSequence;
+import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
 import com.workflow.workflow.user.User;
-import com.workflow.workflow.workspace.Workspace;
 import com.workflow.workflow.workspace.WorkspaceRepository;
+import com.workflow.workflow.workspace.entity.Workspace;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,11 +48,15 @@ public class WorkspaceControllerTests {
     private ProjectWorkspaceRepository projectWorkspaceRepository;
     @Autowired
     private ProjectRepository projectRepository;
+    @Autowired
+    private CounterSequenceRepository counterSequenceRepository;
 
     @BeforeAll
     void init() {
         if (userRepository.findById(1L).isEmpty()) {
-            userRepository.save(new User("Name", "Surname", "Username", "Email", "Password"));
+                CounterSequence cs = new CounterSequence();
+                cs = counterSequenceRepository.save(cs);
+                userRepository.save(new User("Name", "Surname", "Username", "Email", "Password", cs));
         }
         projectWorkspaceRepository.deleteAll();
     }
@@ -70,9 +76,13 @@ public class WorkspaceControllerTests {
 
     @Test
     void allWithData() throws Exception {
-        workspaceRepository.save(new Workspace("test 1", userRepository.findById(1L).orElseThrow()));
-        workspaceRepository.save(new Workspace("test 2", userRepository.findById(1L).orElseThrow()));
-        workspaceRepository.save(new Workspace("test 3", userRepository.findById(1L).orElseThrow()));
+        User user = userRepository.findById(1L).orElseThrow();
+        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
+        workspaceRepository.save(new Workspace(id, user, "test 1"));
+        id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
+        workspaceRepository.save(new Workspace(id, user, "test 2"));
+        id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
+        workspaceRepository.save(new Workspace(id, user, "test 3"));
 
         mvc.perform(get("/user/1/workspace/").contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -126,10 +136,11 @@ public class WorkspaceControllerTests {
 
     @Test
     void getSuccess() throws Exception {
-        Workspace workspace = workspaceRepository
-                .save(new Workspace("test 176", userRepository.findById(1L).orElseThrow()));
+        User user = userRepository.findById(1L).orElseThrow();
+        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
+        Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
 
-        mvc.perform(get(String.format("/user/1/workspace/%d", workspace.getId())))
+        mvc.perform(get(String.format("/user/1/workspace/%d", workspace.getId().getId())))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.name", is(workspace.getName())));
@@ -137,29 +148,31 @@ public class WorkspaceControllerTests {
 
     @Test
     void getNotFound() throws Exception {
-        Workspace workspace = workspaceRepository
-                .save(new Workspace("q1", userRepository.findById(1L).orElseThrow()));
+        User user = userRepository.findById(1L).orElseThrow();
+        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
+        Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
 
         mvc.perform(get("/user/1/workspace/54"))
                 .andExpect(status().isNotFound());
 
-        mvc.perform(get(String.format("/user/2222/workspace/%d", workspace.getId())))
+        mvc.perform(get(String.format("/user/2222/workspace/%d", workspace.getId().getId())))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void putSuccess() throws Exception {
-        Workspace workspace = workspaceRepository
-                .save(new Workspace("put", userRepository.findById(1L).orElseThrow()));
+        User user = userRepository.findById(1L).orElseThrow();
+        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
+        Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
 
-        mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId()))
+        mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId().getId()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\": \"new put\"}"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.name", is("new put")));
 
-        mvc.perform(get(String.format("/user/1/workspace/%d", workspace.getId())))
+        mvc.perform(get(String.format("/user/1/workspace/%d", workspace.getId().getId())))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.name", is("new put")));
@@ -167,14 +180,12 @@ public class WorkspaceControllerTests {
 
     @Test
     void putBadRequest() throws Exception {
-        Workspace workspace = workspaceRepository
-                .save(new Workspace("put", userRepository.findById(1L).orElseThrow()));
+        User user = userRepository.findById(1L).orElseThrow();
+        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
+        Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
 
-        mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId()))
+        mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId().getId()))
                 .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest());
-        mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId()))
-                .contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -188,36 +199,39 @@ public class WorkspaceControllerTests {
                 .content("{\"name\": \"new put\"}"))
                 .andExpect(status().isNotFound());
 
-        Workspace workspace = workspaceRepository
-                .save(new Workspace("put", userRepository.findById(1L).orElseThrow()));
+                User user = userRepository.findById(1L).orElseThrow();
+                long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
+                Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
 
-        mvc.perform(put(String.format("/user/2222/workspace/%d", workspace.getId()))
+        mvc.perform(put(String.format("/user/2222/workspace/%d", workspace.getId().getId()))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"name\": \"new put\"}"))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void putUnsupportedMedia() throws Exception {
-        Workspace workspace = workspaceRepository
-                .save(new Workspace("put", userRepository.findById(1L).orElseThrow()));
+        User user = userRepository.findById(1L).orElseThrow();
+        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
+        Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
 
-        mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId()))
+        mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId().getId()))
                 .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpect(status().isUnsupportedMediaType());
-        mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId()))
+        mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId().getId()))
                 .contentType(MediaType.MULTIPART_FORM_DATA).content("{}"))
                 .andExpect(status().isUnsupportedMediaType());
-        mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId()))
+        mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId().getId()))
                 .contentType(MediaType.MULTIPART_FORM_DATA).content("{\"name\": \"test\"}"))
                 .andExpect(status().isUnsupportedMediaType());
     }
 
     @Test
     void deleteSuccess() throws Exception {
-        Workspace workspace = workspaceRepository
-                .save(new Workspace("put", userRepository.findById(1L).orElseThrow()));
+        User user = userRepository.findById(1L).orElseThrow();
+        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
+        Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
 
-        mvc.perform(delete(String.format("/user/1/workspace/%d", workspace.getId())))
+        mvc.perform(delete(String.format("/user/1/workspace/%d", workspace.getId().getId())))
                 .andExpect(status().isOk());
     }
 
@@ -226,26 +240,28 @@ public class WorkspaceControllerTests {
         mvc.perform(delete("/user/1/workspace/223"))
                 .andExpect(status().isNotFound());
 
-        Workspace workspace = workspaceRepository
-                .save(new Workspace("put", userRepository.findById(1L).orElseThrow()));
+                User user = userRepository.findById(1L).orElseThrow();
+                long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
+                Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
 
-        mvc.perform(delete(String.format("/user/222/workspace/%d", workspace.getId())))
+        mvc.perform(delete(String.format("/user/222/workspace/%d", workspace.getId().getId())))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void deleteBadRequest() throws Exception {
-        Workspace workspace = workspaceRepository
-        .save(new Workspace("delete", userRepository.findById(1L).orElseThrow()));
+        User user = userRepository.findById(1L).orElseThrow();
+        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
+        Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
         Project project = projectRepository.save(new Project("Test project"));
         ProjectWorkspace projectWorkspace = projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
-        mvc.perform(delete(String.format("/user/1/workspace/%d", workspace.getId())))
+        mvc.perform(delete(String.format("/user/1/workspace/%d", workspace.getId().getId())))
                 .andExpect(status().isBadRequest());
         
         projectWorkspaceRepository.delete(projectWorkspace);
 
-        mvc.perform(delete(String.format("/user/1/workspace/%d", workspace.getId())))
+        mvc.perform(delete(String.format("/user/1/workspace/%d", workspace.getId().getId())))
                 .andExpect(status().isOk());
         
         projectRepository.delete(project);

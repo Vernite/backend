@@ -1,13 +1,15 @@
 package com.workflow.workflow;
 
 import com.workflow.workflow.user.UserRepository;
+import com.workflow.workflow.counter.CounterSequence;
+import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
 import com.workflow.workflow.user.User;
-import com.workflow.workflow.workspace.Workspace;
 import com.workflow.workflow.workspace.WorkspaceRepository;
+import com.workflow.workflow.workspace.entity.Workspace;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -41,6 +43,8 @@ public class ProjectWorkspaceControllerTests {
     private ProjectWorkspaceRepository projectWorkspaceRepository;
     @Autowired
     private ProjectRepository projectRepository;
+    @Autowired
+    private CounterSequenceRepository counterSequenceRepository;
 
     private User user;
     private Workspace workspace;
@@ -48,8 +52,14 @@ public class ProjectWorkspaceControllerTests {
 
     @BeforeAll
     void init() {
-        user = userRepository.findById(1L).orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email", "Password")));
-        workspace = workspaceRepository.save(new Workspace("test", user));
+        user = userRepository.findById(1L)
+                .orElseGet(() -> {
+                        CounterSequence cs = new CounterSequence();
+                        cs = counterSequenceRepository.save(cs);
+                        return userRepository.save(new User("Name", "Surname", "Username", "Email", "Password", cs));
+                });
+        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
+        workspace = workspaceRepository.save(new Workspace(id, user, "name"));
         project = projectRepository.save(new Project("test project"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
     }
@@ -58,31 +68,32 @@ public class ProjectWorkspaceControllerTests {
     void moveWorkspaceNotFound() throws Exception {
         mvc.perform(put(String.format("/project/%d/workspace/%d", project.getId(), 7L)))
                 .andExpect(status().isNotFound());
-        mvc.perform(put(String.format("/project/%d/workspace/%d", 7L, workspace.getId())))
+        mvc.perform(put(String.format("/project/%d/workspace/%d", 7L, workspace.getId().getId())))
                 .andExpect(status().isNotFound());
         Project newProject = projectRepository.save(new Project("test project 2"));
-        mvc.perform(put(String.format("/project/%d/workspace/%d", newProject.getId(), workspace.getId())))
+        mvc.perform(put(String.format("/project/%d/workspace/%d", newProject.getId(), workspace.getId().getId())))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void moveWorkspaceSuccess() throws Exception {
-        Workspace newWorkspace = workspaceRepository.save(new Workspace("test 2", user));
+        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
+        Workspace newWorkspace = workspaceRepository.save(new Workspace(id, user, "test 2"));
 
-        mvc.perform(get(String.format("/user/%d/workspace/%d", user.getId(), workspace.getId())))
+        mvc.perform(get(String.format("/user/%d/workspace/%d", user.getId(), workspace.getId().getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name", is(workspace.getName())))
                 .andExpect(jsonPath("$.projectsWithPrivileges", hasSize(1)));
         
-        mvc.perform(put(String.format("/project/%d/workspace/%d", project.getId(), newWorkspace.getId())))
+        mvc.perform(put(String.format("/project/%d/workspace/%d", project.getId(), newWorkspace.getId().getId())))
                 .andExpect(status().isOk());
         
-        mvc.perform(get(String.format("/user/%d/workspace/%d", user.getId(), workspace.getId())))
+        mvc.perform(get(String.format("/user/%d/workspace/%d", user.getId(), workspace.getId().getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name", is(workspace.getName())))
                 .andExpect(jsonPath("$.projectsWithPrivileges", hasSize(0)));
 
-        mvc.perform(get(String.format("/user/%d/workspace/%d", user.getId(), newWorkspace.getId())))
+        mvc.perform(get(String.format("/user/%d/workspace/%d", user.getId(), newWorkspace.getId().getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name", is(newWorkspace.getName())))
                 .andExpect(jsonPath("$.projectsWithPrivileges", hasSize(1)))

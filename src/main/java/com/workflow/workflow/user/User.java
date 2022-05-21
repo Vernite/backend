@@ -5,17 +5,22 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.OneToOne;
 import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.workflow.workflow.counter.CounterSequence;
 import com.workflow.workflow.utils.SoftDeleteEntity;
 
 @Entity
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class User extends SoftDeleteEntity {
 
     @Id
@@ -45,15 +50,20 @@ public class User extends SoftDeleteEntity {
     @Column(nullable = false, unique = true)
     private String username;
 
+    @JsonIgnore
+    @OneToOne(cascade = CascadeType.REMOVE, optional = false)
+    private CounterSequence counterSequence;
+
     public User() {
     }
 
-    public User(String name, String surname, String username, String email, String password) {
+    public User(String name, String surname, String username, String email, String password, CounterSequence counterSequence) {
         this.setName(name);
         this.setSurname(surname);
         this.setUsername(username);
         this.setEmail(email);
         this.setPassword(password);
+        this.setCounterSequence(counterSequence);
     }
 
     public Long getId() {
@@ -149,4 +159,11 @@ public class User extends SoftDeleteEntity {
         this.setSalt(salt);
     }
 
+    public CounterSequence getCounterSequence() {
+        return counterSequence;
+    }
+
+    public void setCounterSequence(CounterSequence counterSequence) {
+        this.counterSequence = counterSequence;
+    }
 }

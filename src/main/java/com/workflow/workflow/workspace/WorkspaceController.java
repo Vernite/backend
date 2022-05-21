@@ -5,9 +5,12 @@ import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 
+import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
+import com.workflow.workflow.workspace.entity.Workspace;
+import com.workflow.workflow.workspace.entity.WorkspaceKey;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -40,6 +43,8 @@ public class WorkspaceController {
     private WorkspaceRepository workspaceRepository;
     @Autowired
     private ProjectWorkspaceRepository projectWorkspaceRepository;
+    @Autowired
+    private CounterSequenceRepository counterSequenceRepository;
 
     @Operation(summary = "Get information on all workspaces.", description = "This method returns array of all workspaces for user with given ID. Result can be empty array. Throws status 404 when user with given ID does not exist.")
     @ApiResponses(value = {
@@ -53,13 +58,7 @@ public class WorkspaceController {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
         List<Workspace> workspaces = workspaceRepository.findByUser(user);
-        workspaces.sort((first, second) -> {
-            int result = first.getName().compareTo(second.getName());
-            if (result != 0) {
-                return result;
-            }
-            return first.getId().compareTo(second.getId());
-        });
+        workspaces.sort((first, second) -> first.compareTo(second));
         return workspaces.stream().filter(w -> w.getActive() == null).toList();
     }
 
@@ -73,9 +72,13 @@ public class WorkspaceController {
     })
     @PostMapping("/")
     public Workspace add(@PathVariable long userId, @RequestBody WorkspaceRequest request) {
+        if (request.getName() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "field name must exist");
+        }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
-        return workspaceRepository.save(new Workspace(request, user));
+        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
+        return workspaceRepository.save(new Workspace(id, user, request));
     }
 
     @Operation(summary = "Get workspace information.", description = "This method is used to retrive workspace with given ID for user with given user_id. On success returns workspace with given ID. Throws 404 when user or workspace does not exist. Throws 404 when workspace with given ID is not in relation with given user.")
@@ -89,7 +92,7 @@ public class WorkspaceController {
     public Workspace get(@PathVariable long userId, @PathVariable long id) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
-        Workspace workspace = workspaceRepository.findByIdAndUser(id, user)
+        Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(id, user.getId()), user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, WORKSPACE_NOT_FOUND));
         if (workspace.getActive() != null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, WORKSPACE_NOT_FOUND);
@@ -110,10 +113,10 @@ public class WorkspaceController {
             @RequestBody WorkspaceRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
-        Workspace workspace = workspaceRepository.findByIdAndUser(id, user)
+        Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(id, user.getId()), user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         WORKSPACE_NOT_FOUND));
-        workspace.put(request);
+        workspace.apply(request);
         return workspaceRepository.save(workspace);
     }
 
@@ -127,7 +130,7 @@ public class WorkspaceController {
     public void delete(@PathVariable long userId, @PathVariable long id) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
-        Workspace workspace = workspaceRepository.findByIdAndUser(id, user)
+        Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(id, user.getId()), user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         WORKSPACE_NOT_FOUND));
         if (!projectWorkspaceRepository.findByWorkspace(workspace).isEmpty()) {

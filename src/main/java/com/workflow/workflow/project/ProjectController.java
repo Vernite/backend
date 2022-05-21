@@ -12,8 +12,9 @@ import com.workflow.workflow.status.Status;
 import com.workflow.workflow.status.StatusRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
-import com.workflow.workflow.workspace.Workspace;
 import com.workflow.workflow.workspace.WorkspaceRepository;
+import com.workflow.workflow.workspace.entity.Workspace;
+import com.workflow.workflow.workspace.entity.WorkspaceKey;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -64,7 +65,10 @@ public class ProjectController {
     public Project add(@RequestBody ProjectRequest request) {
         User user = userRepository.findById(1L) // TODO: for now all projects are created for user with id 1
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
-        Workspace workspace = workspaceRepository.findByIdAndUser(request.getWorkspaceId(), user)
+        if (request.getWorkspaceId() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "workspace id cannot be null");
+        }
+        Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(request.getWorkspaceId(), user.getId()), user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         WORKSPACE_NOT_FOUND));
         Project project = projectRepository.save(new Project(request));
@@ -126,7 +130,7 @@ public class ProjectController {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
         if (request.getWorkspaceId() != null) {
-            Workspace workspace = workspaceRepository.findByIdAndUser(request.getWorkspaceId(), user)
+            Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(request.getWorkspaceId(), user.getId()), user)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                             WORKSPACE_NOT_FOUND));
             ProjectWorkspace projectWorkspace = projectWorkspaceRepository

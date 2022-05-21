@@ -1,6 +1,8 @@
 package com.workflow.workflow;
 
 import com.workflow.workflow.user.UserRepository;
+import com.workflow.workflow.counter.CounterSequence;
+import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
@@ -10,8 +12,8 @@ import com.workflow.workflow.status.StatusRepository;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.task.TaskRepository;
 import com.workflow.workflow.user.User;
-import com.workflow.workflow.workspace.Workspace;
 import com.workflow.workflow.workspace.WorkspaceRepository;
+import com.workflow.workflow.workspace.entity.Workspace;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,6 +63,8 @@ public class TaskControllerTests {
     private TaskRepository taskRepository;
     @Autowired
     private StatusRepository statusRepository;
+    @Autowired
+    private CounterSequenceRepository counterSequenceRepository;
 
     private Workspace workspace;
     private Status status;
@@ -70,8 +74,13 @@ public class TaskControllerTests {
     @BeforeAll
     void init() {
         user = userRepository.findById(1L)
-                .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email", "Password")));
-        workspace = workspaceRepository.save(new Workspace("name", user));
+                .orElseGet(() -> {
+                        CounterSequence cs = new CounterSequence();
+                        cs = counterSequenceRepository.save(cs);
+                        return userRepository.save(new User("Name", "Surname", "Username", "Email", "Password", cs));
+                });
+        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
+        workspace = workspaceRepository.save(new Workspace(id, user, "name"));
         project = projectRepository.save(new Project("test task"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
         Status statusTemp = new Status();

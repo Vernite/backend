@@ -4,8 +4,9 @@ import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
-import com.workflow.workflow.workspace.Workspace;
 import com.workflow.workflow.workspace.WorkspaceRepository;
+import com.workflow.workflow.workspace.entity.Workspace;
+import com.workflow.workflow.workspace.entity.WorkspaceKey;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -45,7 +46,7 @@ public class ProjectWorkspaceController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_FOUND));
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
-        Workspace workspace = workspaceRepository.findByIdAndUser(newWorkspaceId, user)
+        Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(newWorkspaceId, user.getId()), user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, WORKSPACE_NOT_FOUND));
         ProjectWorkspace projectWorkspace = projectWorkspaceRepository.findByProjectAndWorkspaceUser(project, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "user not a member of project"));

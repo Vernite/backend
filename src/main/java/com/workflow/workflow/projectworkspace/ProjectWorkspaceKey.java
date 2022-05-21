@@ -6,12 +6,12 @@ import javax.persistence.Column;
 import javax.persistence.Embeddable;
 
 import com.workflow.workflow.project.Project;
-import com.workflow.workflow.workspace.Workspace;
+import com.workflow.workflow.workspace.entity.Workspace;
+import com.workflow.workflow.workspace.entity.WorkspaceKey;
 
 @Embeddable
 public class ProjectWorkspaceKey implements Serializable {
-    @Column(name = "workspace_id")
-    Long workspaceId;
+    WorkspaceKey workspaceId;
     @Column(name = "project_id")
     Long projectId;
 
@@ -27,7 +27,7 @@ public class ProjectWorkspaceKey implements Serializable {
         return projectId;
     }
 
-    public Long getWorkspaceId() {
+    public WorkspaceKey getWorkspaceId() {
         return workspaceId;
     }
 
@@ -35,7 +35,7 @@ public class ProjectWorkspaceKey implements Serializable {
         this.projectId = projectId;
     }
 
-    public void setWorkspaceId(Long workspaceId) {
+    public void setWorkspaceId(WorkspaceKey workspaceId) {
         this.workspaceId = workspaceId;
     }
 

@@ -15,6 +15,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotNull;
 
+import com.workflow.workflow.counter.CounterSequence;
+import com.workflow.workflow.counter.CounterSequenceRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -51,6 +54,8 @@ public class AuthController {
     private UserRepository userRepository;
     @Autowired
     private UserSessionRepository userSessionRepository;
+    @Autowired
+    private CounterSequenceRepository counterSequenceRepository;
 
     @Operation(summary = "Logged user.", description = "This method returns currently logged user.")
     @ApiResponses(value = {
@@ -139,12 +144,16 @@ public class AuthController {
         if (userRepository.findByEmail(req.getEmail()) != null) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "this email is already taken");
         }
+        CounterSequence cs = new CounterSequence();
+        cs = counterSequenceRepository.save(cs);
         User u = new User();
         u.setEmail(req.getEmail());
         u.setName(req.getName());
         u.setPassword(req.getPassword());
         u.setSurname(req.getSurname());
         u.setUsername(req.getUsername());
+        u.setCounterSequence(cs);
+        u = userRepository.save(u);
         createSession(request, response, u, false);
         return u;
     }
