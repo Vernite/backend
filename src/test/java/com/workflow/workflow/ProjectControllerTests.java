@@ -340,4 +340,75 @@ public class ProjectControllerTests {
                 .exchange()
                 .expectStatus().isNotFound();
     }
+
+    @Test
+    void moveProjectWorkspaceSuccess() {
+        CounterSequence cs1 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs2 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs3 = sequenceRepository.save(new CounterSequence());
+        Project project = projectRepository.save(new Project("PUT", cs1, cs2, cs3));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+
+        Workspace workspace2 = workspaceRepository.save(new Workspace(2, user, "Project Tests 2"));
+
+        client.put().uri(String.format("/project/%d/workspace/%d", project.getId(), workspace2.getId().getId()))
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isOk();
+
+        assertEquals(1, workspaceRepository.findByIdOrThrow(workspace2.getId()).getProjectsWithPrivileges().size());
+        assertEquals(0, workspaceRepository.findByIdOrThrow(workspace.getId()).getProjectsWithPrivileges().size());
+    }
+
+    @Test
+    void moveProjectWorkspaceUnauthorized() {
+        client.put().uri("/project/1/workspace/1")
+                .exchange()
+                .expectStatus().isUnauthorized();
+
+        CounterSequence cs1 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs2 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs3 = sequenceRepository.save(new CounterSequence());
+        Project project = projectRepository.save(new Project("PUT", cs1, cs2, cs3));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+
+        Workspace workspace2 = workspaceRepository.save(new Workspace(2, user, "Project Tests 2"));
+        client.put().uri(String.format("/project/%d/workspace/%d", project.getId(), workspace2.getId().getId()))
+                .exchange()
+                .expectStatus().isUnauthorized();
+
+        assertEquals(1, workspaceRepository.findByIdOrThrow(workspace.getId()).getProjectsWithPrivileges().size());
+        assertEquals(0, workspaceRepository.findByIdOrThrow(workspace2.getId()).getProjectsWithPrivileges().size());
+    }
+
+    @Test
+    void moveProjectWorkspaceForbidden() {
+        CounterSequence cs1 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs2 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs3 = sequenceRepository.save(new CounterSequence());
+        Project project = projectRepository.save(new Project("PUT", cs1, cs2, cs3));
+
+        Workspace workspace2 = workspaceRepository.save(new Workspace(2, user, "Project Tests 2"));
+
+        client.put().uri(String.format("/project/%d/workspace/%d", project.getId(), workspace2.getId().getId()))
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isForbidden();
+
+        assertEquals(0, workspaceRepository.findByIdOrThrow(workspace2.getId()).getProjectsWithPrivileges().size());
+    }
+
+    @Test
+    void moveProjectWorkspaceNotFound() {
+        CounterSequence cs1 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs2 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs3 = sequenceRepository.save(new CounterSequence());
+        Project project = projectRepository.save(new Project("PUT", cs1, cs2, cs3));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+
+        client.put().uri(String.format("/project/%d/workspace/%d", project.getId(), 1024))
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
+    }
 }

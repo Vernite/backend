@@ -2,6 +2,7 @@ package com.workflow.workflow.project;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -45,7 +46,7 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     private String name;
 
     @JsonIgnore
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "project")
+    @OneToMany(cascade = CascadeType.REMOVE, mappedBy = "project")
     private List<ProjectWorkspace> projectWorkspaces = new ArrayList<>();
 
     @JsonIgnore
@@ -99,19 +100,20 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     }
 
     /**
-     * Checks if given user is member of project.
+     * Find index of user in project workspace list.
      * 
-     * @param user must not be {@literal null}. Must be value returned by user
+     * @param user must not be {@literal null}. Must be value returned by
      *             repository.
-     * @return boolean value if user is member of project.
+     * @return index in project workspaces with given user or -1 when not found.
      */
-    public boolean isMember(User user) {
-        for (ProjectWorkspace projectWorkspace : projectWorkspaces) {
-            if (projectWorkspace.getId().getWorkspaceId().getUserId() == user.getId()) {
-                return true;
+    public int member(User user) {
+        ListIterator<ProjectWorkspace> iterator = projectWorkspaces.listIterator();
+        while (iterator.hasNext()) {
+            if (iterator.next().getId().getWorkspaceId().getUserId() == user.getId()) {
+                return iterator.nextIndex() - 1;
             }
         }
-        return false;
+        return -1;
     }
 
     public long getId() {

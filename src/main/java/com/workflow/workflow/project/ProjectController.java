@@ -106,7 +106,7 @@ public class ProjectController {
     @GetMapping("/{id}")
     public Project getProject(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdOrThrow(id);
-        if (!project.isMember(user)) {
+        if (project.member(user) == -1) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, NO_ACCESS);
         }
         return project;
@@ -125,7 +125,7 @@ public class ProjectController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name field length bigger than 50 characters");
         }
         Project project = projectRepository.findByIdOrThrow(id);
-        if (!project.isMember(user)) {
+        if (project.member(user) == -1) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, NO_ACCESS);
         }
         project.apply(request);
@@ -140,10 +140,30 @@ public class ProjectController {
     @DeleteMapping("/{id}")
     public void deleteProject(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdOrThrow(id);
-        if (!project.isMember(user)) {
+        if (project.member(user) == -1) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, NO_ACCESS);
         }
         project.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
         projectRepository.save(project);
+    }
+
+    @Operation(summary = "Change project workspace.", description = "Changes workspace for project with given id to workspace with given id for authenticated user.")
+    @ApiResponse(description = "Project workspace changed", responseCode = "200")
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Authenticated user is not memeber of project with given id.", responseCode = "403", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project or workspace with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @PutMapping("/{id}/workspace/{newWorkspaceId}")
+    public void moveProjectWorkspace(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+            @PathVariable long newWorkspaceId) {
+        Project project = projectRepository.findByIdOrThrow(id);
+        int index = project.member(user);
+        if (index == -1) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, NO_ACCESS);
+        }
+        Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceKey(newWorkspaceId, user));
+        ProjectWorkspace projectWorkspace = project.getProjectWorkspaces().get(index);
+        long privillages = projectWorkspace.getPrivileges();
+        projectWorkspaceRepository.delete(projectWorkspace);
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, privillages));
     }
 }
