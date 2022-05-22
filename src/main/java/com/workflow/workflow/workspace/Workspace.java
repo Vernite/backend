@@ -102,9 +102,10 @@ public class Workspace extends SoftDeleteEntity implements Comparable<Workspace>
     }
 
     public List<ProjectWithPrivileges> getProjectsWithPrivileges() {
-        return getProjectWorkspaces().stream().filter(pw -> pw.getProject().getActive() == null)
-                .sorted((first, second) -> first.getProject().compareTo(second.getProject()))
-                .map(ProjectWorkspace::getProjectWithPrivileges).toList();
+        return getProjectWorkspaces().stream()
+                .filter(pw -> pw.getProject().getActive() == null)
+                .map(ProjectWorkspace::getProjectWithPrivileges)
+                .sorted((f, s) -> f.compareTo(s)).toList();
     }
 
     @Override
@@ -133,7 +134,7 @@ public class Workspace extends SoftDeleteEntity implements Comparable<Workspace>
     }
 
     @Override
-    public int compareTo(Workspace other) {
-        return getName().equals(other.getName()) ? getId().compareTo(other.getId()) : getName().compareTo(other.getName());
+    public int compareTo(Workspace o) {
+        return getName().equals(o.getName()) ? getId().compareTo(o.getId()) : getName().compareTo(o.getName());
     }
 }

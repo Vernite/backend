@@ -8,6 +8,7 @@ import java.util.Date;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.project.ProjectRequest;
+import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
 import com.workflow.workflow.user.User;
@@ -358,6 +359,52 @@ public class ProjectControllerTests {
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
         client.put().uri(String.format("/project/%d/workspace/%d", project.getId(), 1024))
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void getProjectMembersSuccess() {
+        Project project = projectRepository.save(new Project("PUT"));
+        ProjectWorkspace ps = projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+
+        client.get().uri(String.format("/project/%d/member", project.getId()))
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBodyList(ProjectMember.class)
+                .hasSize(1)
+                .contains(ps.getProjectMember());
+    }
+
+    @Test
+    void getProjectMembersUnauthorized() {
+        client.get().uri(String.format("/project/1/member"))
+                .exchange()
+                .expectStatus().isUnauthorized();
+
+        Project project = projectRepository.save(new Project("PUT"));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+
+        client.get().uri(String.format("/project/%d/member", project.getId()))
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void getProjectMembersForbidden() {
+        Project project = projectRepository.save(new Project("PUT"));
+
+        client.get().uri(String.format("/project/%d/member", project.getId()))
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    void getProjectMembersNotFound() {
+        client.get().uri(String.format("/project/1/member"))
                 .cookie("session", session.getSession())
                 .exchange()
                 .expectStatus().isNotFound();

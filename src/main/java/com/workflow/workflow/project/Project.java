@@ -21,7 +21,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.workflow.workflow.counter.CounterSequence;
 import com.workflow.workflow.integration.git.github.GitHubIntegration;
-import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.user.User;
@@ -178,11 +177,6 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
 
     public void setGitHubIntegration(GitHubIntegration gitHubIntegration) {
         this.gitHubIntegration = gitHubIntegration;
-    }
-
-    @JsonIgnore
-    public List<ProjectMember> getProjectMembers() {
-        return getProjectWorkspaces().stream().map(ProjectWorkspace::getProjectMember).toList();
     }
 
     @Override

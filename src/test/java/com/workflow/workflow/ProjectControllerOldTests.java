@@ -2,9 +2,7 @@ package com.workflow.workflow;
 
 import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.counter.CounterSequenceRepository;
-import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
-import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
 import com.workflow.workflow.status.StatusRepository;
 import com.workflow.workflow.task.TaskRepository;
@@ -24,11 +22,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.CoreMatchers.is;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
@@ -108,30 +104,5 @@ public class ProjectControllerOldTests {
         mvc.perform(post("/project/").contentType(MediaType.MULTIPART_FORM_DATA)
                 .content(String.format("{\"name\": \"test\", \"workspaceId\": %d}", workspace.getId().getId())))
                 .andExpect(status().isUnsupportedMediaType());
-    }
-
-    @Test
-    void getMembersSuccess() throws Exception {
-        Project project = projectRepository.save(new Project("name 1"));
-
-        mvc.perform(get(String.format("/project/%d/member", project.getId())))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(0)));
-
-        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
-
-        mvc.perform(get(String.format("/project/%d/member", project.getId())))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].privileges", is(1)))
-                .andExpect(jsonPath("$[0].user.id", is(user.getId().intValue())));
-    }
-
-    @Test
-    void getMembersNotFound() throws Exception {
-        mvc.perform(get("/project/70000/member"))
-                .andExpect(status().isNotFound());
     }
 }

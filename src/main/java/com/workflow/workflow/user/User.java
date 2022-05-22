@@ -188,4 +188,24 @@ public class User extends SoftDeleteEntity {
     public void setCounterSequence(CounterSequence counterSequence) {
         this.counterSequence = counterSequence;
     }
+
+    @Override
+    public int hashCode() {
+        // TODO Auto-generated method stub
+        return super.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) // TODO: use more fields?
+            return true;
+        if (obj == null || getClass() != obj.getClass())
+            return false;
+        User other = (User) obj;
+        if (getId() != other.getId())
+            return false;
+        if (getUsername() == null)
+            return other.getUsername() == null;
+        return getUsername().equals(other.getUsername());
+    }
 }

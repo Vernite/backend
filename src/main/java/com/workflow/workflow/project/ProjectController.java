@@ -3,9 +3,11 @@ package com.workflow.workflow.project;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.List;
 
 import javax.validation.constraints.NotNull;
 
+import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
 import com.workflow.workflow.status.Status;
@@ -158,5 +160,20 @@ public class ProjectController {
         long privillages = projectWorkspace.getPrivileges();
         projectWorkspaceRepository.delete(projectWorkspace);
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, privillages));
+    }
+
+    @Operation(summary = "Retrieve project members.", description = "Retrieves members of project with given id. Authenticated user must be member of project.")
+    @ApiResponse(description = "List of project members.", responseCode = "200")
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Authenticated user is not memeber of project with given id.", responseCode = "403", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @GetMapping("/{id}/member")
+    public List<ProjectMember> getProjectMembers(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+        Project project = projectRepository.findByIdOrThrow(id);
+        if (project.member(user) == -1) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, NO_ACCESS);
+        }
+        return projectWorkspaceRepository.findByProjectOrderByWorkspaceUserUsernameAscWorkspaceUserIdAsc(project)
+                .stream().map(ProjectWorkspace::getProjectMember).toList();
     }
 }
