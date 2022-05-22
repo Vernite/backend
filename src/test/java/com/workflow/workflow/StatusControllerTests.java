@@ -72,7 +72,13 @@ public class StatusControllerTests {
                 });
         long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
         workspace = workspaceRepository.save(new Workspace(id, user, "name"));
-        project = projectRepository.save(new Project("test task"));
+        CounterSequence cs1 = new CounterSequence();
+        cs1 = counterSequenceRepository.save(cs1);
+        CounterSequence cs2 = new CounterSequence();
+        cs2 = counterSequenceRepository.save(cs2);
+        CounterSequence cs3 = new CounterSequence();
+        cs3 = counterSequenceRepository.save(cs3);
+        project = projectRepository.save(new Project("put", cs1, cs2, cs3));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
     }
 

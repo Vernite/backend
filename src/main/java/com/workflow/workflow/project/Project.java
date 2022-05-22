@@ -18,6 +18,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.workflow.workflow.counter.CounterSequence;
 import com.workflow.workflow.integration.git.github.GitHubIntegration;
 import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
@@ -52,18 +53,35 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     @Where(clause = "active is null")
     private List<Status> statuses = new ArrayList<>();
 
+    @JsonIgnore
+    @OneToOne(cascade = CascadeType.REMOVE, optional = false)
+    private CounterSequence statusCounter;
+
+    @JsonIgnore
+    @OneToOne(cascade = CascadeType.REMOVE, optional = false)
+    private CounterSequence taskCounter;
+
+    @JsonIgnore
+    @OneToOne(cascade = CascadeType.REMOVE, optional = false)
+    private CounterSequence sprintCounter;
+
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "project")
     private GitHubIntegration gitHubIntegration;
 
     public Project() {
     }
 
-    public Project(String name) {
+    public Project(String name, CounterSequence statusCounter, CounterSequence taskCounter,
+            CounterSequence sprintCounter) {
         this.name = name;
+        this.statusCounter = statusCounter;
+        this.taskCounter = taskCounter;
+        this.sprintCounter = sprintCounter;
     }
 
-    public Project(ProjectRequest request) {
-        this(request.getName());
+    public Project(ProjectRequest request, CounterSequence statusCounter, CounterSequence taskCounter,
+            CounterSequence sprintCounter) {
+        this(request.getName(), statusCounter, taskCounter, sprintCounter);
     }
 
     /**
@@ -109,6 +127,30 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
 
     public void setStatuses(List<Status> statuses) {
         this.statuses = statuses;
+    }
+
+    public CounterSequence getStatusCounter() {
+        return statusCounter;
+    }
+
+    public void setStatusCounter(CounterSequence statusCounter) {
+        this.statusCounter = statusCounter;
+    }
+
+    public CounterSequence getTaskCounter() {
+        return taskCounter;
+    }
+
+    public void setTaskCounter(CounterSequence taskCounter) {
+        this.taskCounter = taskCounter;
+    }
+
+    public CounterSequence getSprintCounter() {
+        return sprintCounter;
+    }
+
+    public void setSprintCounter(CounterSequence sprintCounter) {
+        this.sprintCounter = sprintCounter;
     }
 
     public String getGitHubIntegration() {

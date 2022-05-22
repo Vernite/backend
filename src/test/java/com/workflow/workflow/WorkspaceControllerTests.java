@@ -253,7 +253,13 @@ public class WorkspaceControllerTests {
         User user = userRepository.findById(1L).orElseThrow();
         long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
         Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
-        Project project = projectRepository.save(new Project("Test project"));
+        CounterSequence cs1 = new CounterSequence();
+        cs1 = counterSequenceRepository.save(cs1);
+        CounterSequence cs2 = new CounterSequence();
+        cs2 = counterSequenceRepository.save(cs2);
+        CounterSequence cs3 = new CounterSequence();
+        cs3 = counterSequenceRepository.save(cs3);
+        Project project = projectRepository.save(new Project("put", cs1, cs2, cs3));
         ProjectWorkspace projectWorkspace = projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
         mvc.perform(delete(String.format("/user/1/workspace/%d", workspace.getId().getId())))

@@ -119,7 +119,13 @@ public class ProjectControllerTests {
 
     @Test
     void getSuccess() throws Exception {
-        Project project = projectRepository.save(new Project("name 1"));
+        CounterSequence cs1 = new CounterSequence();
+        cs1 = counterSequenceRepository.save(cs1);
+        CounterSequence cs2 = new CounterSequence();
+        cs2 = counterSequenceRepository.save(cs2);
+        CounterSequence cs3 = new CounterSequence();
+        cs3 = counterSequenceRepository.save(cs3);
+        Project project = projectRepository.save(new Project("name 1", cs1, cs2, cs3));
 
         mvc.perform(get(String.format("/project/%d", project.getId())))
                 .andExpect(status().isOk())
@@ -135,7 +141,13 @@ public class ProjectControllerTests {
 
     @Test
     void putSuccess() throws Exception {
-        Project project = projectRepository.save(new Project("put"));
+        CounterSequence cs1 = new CounterSequence();
+        cs1 = counterSequenceRepository.save(cs1);
+        CounterSequence cs2 = new CounterSequence();
+        cs2 = counterSequenceRepository.save(cs2);
+        CounterSequence cs3 = new CounterSequence();
+        cs3 = counterSequenceRepository.save(cs3);
+        Project project = projectRepository.save(new Project("put", cs1, cs2, cs3));
 
         mvc.perform(put(String.format("/project/%d", project.getId()))
                 .contentType(MediaType.APPLICATION_JSON)
@@ -152,7 +164,13 @@ public class ProjectControllerTests {
 
     @Test
     void putBadRequest() throws Exception {
-        Project project = projectRepository.save(new Project("put"));
+        CounterSequence cs1 = new CounterSequence();
+        cs1 = counterSequenceRepository.save(cs1);
+        CounterSequence cs2 = new CounterSequence();
+        cs2 = counterSequenceRepository.save(cs2);
+        CounterSequence cs3 = new CounterSequence();
+        cs3 = counterSequenceRepository.save(cs3);
+        Project project = projectRepository.save(new Project("put", cs1, cs2, cs3));
 
         mvc.perform(put(String.format("/project/%d", project.getId()))
                 .contentType(MediaType.APPLICATION_JSON))
@@ -165,7 +183,13 @@ public class ProjectControllerTests {
                 .content("{\"name\": \"new put\"}"))
                 .andExpect(status().isNotFound());
 
-        Project project = projectRepository.save(new Project("put not found"));
+                CounterSequence cs1 = new CounterSequence();
+                cs1 = counterSequenceRepository.save(cs1);
+                CounterSequence cs2 = new CounterSequence();
+                cs2 = counterSequenceRepository.save(cs2);
+                CounterSequence cs3 = new CounterSequence();
+        cs3 = counterSequenceRepository.save(cs3);
+                Project project = projectRepository.save(new Project("put", cs1, cs2, cs3));
 
         mvc.perform(put(String.format("/project/%d", project.getId()))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"name\": \"new put\", \"workspaceId\": 70000}"))
@@ -179,7 +203,13 @@ public class ProjectControllerTests {
 
     @Test
     void putUnsupportedMedia() throws Exception {
-        Project project = projectRepository.save(new Project("put 415"));
+        CounterSequence cs1 = new CounterSequence();
+        cs1 = counterSequenceRepository.save(cs1);
+        CounterSequence cs2 = new CounterSequence();
+        cs2 = counterSequenceRepository.save(cs2);
+        CounterSequence cs3 = new CounterSequence();
+        cs3 = counterSequenceRepository.save(cs3);
+        Project project = projectRepository.save(new Project("put", cs1, cs2, cs3));
 
         mvc.perform(put(String.format("/project/%d", project.getId()))
                 .contentType(MediaType.MULTIPART_FORM_DATA))
@@ -194,12 +224,24 @@ public class ProjectControllerTests {
 
     @Test
     void deleteSuccess() throws Exception {
-        Project project = projectRepository.save(new Project("put"));
+        CounterSequence cs1 = new CounterSequence();
+        cs1 = counterSequenceRepository.save(cs1);
+        CounterSequence cs2 = new CounterSequence();
+        cs2 = counterSequenceRepository.save(cs2);
+        CounterSequence cs3 = new CounterSequence();
+        cs3 = counterSequenceRepository.save(cs3);
+        Project project = projectRepository.save(new Project("put", cs1, cs2, cs3));
 
         mvc.perform(delete(String.format("/project/%d", project.getId())))
                 .andExpect(status().isOk());
 
-        Project project1 = projectRepository.save(new Project("put"));
+                CounterSequence cs11 = new CounterSequence();
+                cs11 = counterSequenceRepository.save(cs11);
+                CounterSequence cs22 = new CounterSequence();
+                cs22 = counterSequenceRepository.save(cs22);
+                CounterSequence cs33 = new CounterSequence();
+        cs33 = counterSequenceRepository.save(cs33);
+                Project project1 = projectRepository.save(new Project("put", cs11, cs22, cs33));
         projectWorkspaceRepository.save(new ProjectWorkspace(project1, workspace, 1L));
 
         mvc.perform(delete(String.format("/project/%d", project1.getId())))
@@ -214,7 +256,13 @@ public class ProjectControllerTests {
 
     @Test
     void getMembersSuccess() throws Exception {
-        Project project = projectRepository.save(new Project("name 1"));
+        CounterSequence cs1 = new CounterSequence();
+        cs1 = counterSequenceRepository.save(cs1);
+        CounterSequence cs2 = new CounterSequence();
+        cs2 = counterSequenceRepository.save(cs2);
+        CounterSequence cs3 = new CounterSequence();
+        cs3 = counterSequenceRepository.save(cs3);
+        Project project = projectRepository.save(new Project("name 1", cs1, cs2, cs3));
 
         mvc.perform(get(String.format("/project/%d/member", project.getId())))
                 .andExpect(status().isOk())
