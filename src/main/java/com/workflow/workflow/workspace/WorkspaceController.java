@@ -72,12 +72,16 @@ public class WorkspaceController {
 
     @Operation(summary = "Modify workspace.", description = "Applies changes from request body to workspace with given id for authenticated user. If field from body is missing it wont be changed.")
     @ApiResponse(description = "Workspace after changes.", responseCode = "200")
+    @ApiResponse(description = "Some fields failed to satisfy requirements.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Workspace with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PutMapping("/{id}")
     public Workspace putWorkspace(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @RequestBody WorkspaceRequest request) {
         Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceKey(id, user));
+        if (request.getName() != null && request.getName().length() > 50) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name field length bigger than 50 characters");
+        }
         workspace.apply(request);
         return workspaceRepository.save(workspace);
     }
