@@ -2,9 +2,7 @@ package com.workflow.workflow.task;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 import com.workflow.workflow.integration.git.github.service.GitHubService;
 import com.workflow.workflow.project.Project;
@@ -64,12 +62,7 @@ public class TaskController {
     public Iterable<Task> all(@PathVariable long projectId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
-        List<Task> tasks = new ArrayList<>();
-        for (Status status : project.getStatuses()) {
-            tasks.addAll(this.taskRepository.findByStatus(status));
-        }
-        tasks.sort((a, b) -> Long.compare(a.getId(), b.getId()));
-        return tasks.stream().filter(t -> t.getActive() == null).toList();
+        return taskRepository.findByStatusProjectAndActiveNullOrderByNameAscIdAsc(project);
     }
 
     @Operation(summary = "Create task.", description = "This method creates new task. On success returns newly created task.")
