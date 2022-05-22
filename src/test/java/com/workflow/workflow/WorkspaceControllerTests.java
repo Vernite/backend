@@ -7,8 +7,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-import com.workflow.workflow.counter.CounterSequence;
-import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
@@ -43,8 +41,6 @@ public class WorkspaceControllerTests {
     @Autowired
     private WebTestClient client;
     @Autowired
-    private CounterSequenceRepository counterSequenceRepository;
-    @Autowired
     private UserRepository userRepository;
     @Autowired
     private UserSessionRepository sessionRepository;
@@ -56,11 +52,8 @@ public class WorkspaceControllerTests {
 
     @BeforeAll
     void init() {
-        user = userRepository.findById(1L).orElseGet(() -> {
-            CounterSequence counterSequence = new CounterSequence();
-            counterSequence = counterSequenceRepository.save(counterSequence);
-            return userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1", counterSequence));
-        });
+        user = userRepository.findById(1L)
+                .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1")));
         session = new UserSession();
         session.setIp("127.0.0.1");
         session.setSession("session_token_workspace_tests");
@@ -303,7 +296,7 @@ public class WorkspaceControllerTests {
     @Test
     void deleteWorkspaceBadRequest(@Autowired ProjectRepository projectRepository,
             @Autowired ProjectWorkspaceRepository projectWorkspaceRepository) {
-        Project project = projectRepository.save(new Project("DELETE", counterSequenceRepository));
+        Project project = projectRepository.save(new Project("DELETE"));
         Workspace workspace = workspaceRepository.save(new Workspace(1, user, "DELETE"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 

@@ -1,7 +1,6 @@
 package com.workflow.workflow;
 
 import com.workflow.workflow.user.UserRepository;
-import com.workflow.workflow.counter.CounterSequence;
 import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
@@ -61,11 +60,7 @@ public class ProjectControllerOldTests {
     @BeforeAll
     void init() {
         user = userRepository.findById(1L)
-                .orElseGet(() -> {
-                        CounterSequence cs = new CounterSequence();
-                        cs = counterSequenceRepository.save(cs);
-                        return userRepository.save(new User("Name", "Surname", "Username", "Email", "Password", cs));
-                });
+                .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email", "Password")));
         long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
         workspace = workspaceRepository.save(new Workspace(id, user, "name"));
     }
@@ -117,7 +112,7 @@ public class ProjectControllerOldTests {
 
     @Test
     void getMembersSuccess() throws Exception {
-        Project project = projectRepository.save(new Project("name 1", counterSequenceRepository));
+        Project project = projectRepository.save(new Project("name 1"));
 
         mvc.perform(get(String.format("/project/%d/member", project.getId())))
                 .andExpect(status().isOk())

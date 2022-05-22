@@ -1,7 +1,5 @@
 package com.workflow.workflow.project;
 
-import com.workflow.workflow.counter.CounterSequence;
-import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
@@ -44,8 +42,6 @@ public class ProjectControllerOld {
     private ProjectWorkspaceRepository projectWorkspaceRepository;
     @Autowired
     private StatusRepository statusRepository;
-    @Autowired
-    private CounterSequenceRepository sequenceRepository;
 
     static final String USER_NOT_FOUND = "USER_NOT_FOUND";
     static final String PROJECT_NOT_FOUND = "project not found";
@@ -69,7 +65,7 @@ public class ProjectControllerOld {
         Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(request.getWorkspaceId(), user), user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         WORKSPACE_NOT_FOUND));
-        Project project = projectRepository.save(new Project(request, sequenceRepository));
+        Project project = projectRepository.save(new Project(request));
         ProjectWorkspace projectWorkspace = new ProjectWorkspace(project, workspace, 1L);
         projectWorkspaceRepository.save(projectWorkspace);
         Status status = new Status();

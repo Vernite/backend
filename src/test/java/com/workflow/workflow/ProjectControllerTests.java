@@ -5,8 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.util.Date;
 
-import com.workflow.workflow.counter.CounterSequence;
-import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.project.ProjectRequest;
@@ -40,8 +38,6 @@ public class ProjectControllerTests {
     @Autowired
     private WebTestClient client;
     @Autowired
-    private CounterSequenceRepository sequenceRepository;
-    @Autowired
     private UserRepository userRepository;
     @Autowired
     private UserSessionRepository sessionRepository;
@@ -58,11 +54,8 @@ public class ProjectControllerTests {
 
     @BeforeAll
     void init() {
-        user = userRepository.findById(1L).orElseGet(() -> {
-            CounterSequence counterSequence = new CounterSequence();
-            counterSequence = sequenceRepository.save(counterSequence);
-            return userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1", counterSequence));
-        });
+        user = userRepository.findById(1L)
+                .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1")));
         session = new UserSession();
         session.setIp("127.0.0.1");
         session.setSession("session_token_projects_tests");
@@ -138,7 +131,7 @@ public class ProjectControllerTests {
 
     @Test
     void getProjectSuccess() {
-        Project project = projectRepository.save(new Project("GET", sequenceRepository));
+        Project project = projectRepository.save(new Project("GET"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
         client.get().uri("/project/" + project.getId())
@@ -156,7 +149,7 @@ public class ProjectControllerTests {
                 .exchange()
                 .expectStatus().isUnauthorized();
 
-        Project project = projectRepository.save(new Project("GET", sequenceRepository));
+        Project project = projectRepository.save(new Project("GET"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
         client.get().uri("/project/" + project.getId())
@@ -166,7 +159,7 @@ public class ProjectControllerTests {
 
     @Test
     void getProjectForbidden() {
-        Project project = projectRepository.save(new Project("GET", sequenceRepository));
+        Project project = projectRepository.save(new Project("GET"));
 
         client.get().uri("/project/" + project.getId())
                 .cookie("session", session.getSession())
@@ -184,7 +177,7 @@ public class ProjectControllerTests {
 
     @Test
     void putProjectSuccess() {
-        Project project = projectRepository.save(new Project("PUT", sequenceRepository));
+        Project project = projectRepository.save(new Project("PUT"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
         ProjectRequest request = new ProjectRequest(null, 1L);
 
@@ -213,7 +206,7 @@ public class ProjectControllerTests {
 
     @Test
     void putProjectBadRequest() {
-        Project project = projectRepository.save(new Project("PUT", sequenceRepository));
+        Project project = projectRepository.save(new Project("PUT"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
         ProjectRequest request = new ProjectRequest("0".repeat(51), 1L);
 
@@ -234,7 +227,7 @@ public class ProjectControllerTests {
                 .exchange()
                 .expectStatus().isUnauthorized();
 
-        Project project = projectRepository.save(new Project("PUT", sequenceRepository));
+        Project project = projectRepository.save(new Project("PUT"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
         client.put().uri("/project/" + project.getId())
@@ -246,7 +239,7 @@ public class ProjectControllerTests {
 
     @Test
     void putProjectForbidden() {
-        Project project = projectRepository.save(new Project("PUT", sequenceRepository));
+        Project project = projectRepository.save(new Project("PUT"));
         ProjectRequest request = new ProjectRequest("PUT", 1L);
 
         client.put().uri("/project/" + project.getId())
@@ -267,7 +260,7 @@ public class ProjectControllerTests {
 
     @Test
     void deleteProjectSuccess() {
-        Project project = projectRepository.save(new Project("PUT", sequenceRepository));
+        Project project = projectRepository.save(new Project("PUT"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
         client.delete().uri("/project/" + project.getId())
@@ -283,7 +276,7 @@ public class ProjectControllerTests {
                 .exchange()
                 .expectStatus().isUnauthorized();
 
-        Project project = projectRepository.save(new Project("PUT", sequenceRepository));
+        Project project = projectRepository.save(new Project("PUT"));
         client.delete().uri("/project/" + project.getId())
                 .exchange()
                 .expectStatus().isUnauthorized();
@@ -293,7 +286,7 @@ public class ProjectControllerTests {
 
     @Test
     void deleteProjectForbidden() {
-        Project project = projectRepository.save(new Project("PUT", sequenceRepository));
+        Project project = projectRepository.save(new Project("PUT"));
 
         client.delete().uri("/project/" + project.getId())
                 .cookie("session", session.getSession())
@@ -313,7 +306,7 @@ public class ProjectControllerTests {
 
     @Test
     void moveProjectWorkspaceSuccess() {
-        Project project = projectRepository.save(new Project("PUT", sequenceRepository));
+        Project project = projectRepository.save(new Project("PUT"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
         Workspace workspace2 = workspaceRepository.save(new Workspace(2, user, "Project Tests 2"));
@@ -333,7 +326,7 @@ public class ProjectControllerTests {
                 .exchange()
                 .expectStatus().isUnauthorized();
 
-        Project project = projectRepository.save(new Project("PUT", sequenceRepository));
+        Project project = projectRepository.save(new Project("PUT"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
         Workspace workspace2 = workspaceRepository.save(new Workspace(2, user, "Project Tests 2"));
@@ -347,7 +340,7 @@ public class ProjectControllerTests {
 
     @Test
     void moveProjectWorkspaceForbidden() {
-        Project project = projectRepository.save(new Project("PUT", sequenceRepository));
+        Project project = projectRepository.save(new Project("PUT"));
 
         Workspace workspace2 = workspaceRepository.save(new Workspace(2, user, "Project Tests 2"));
 
@@ -361,7 +354,7 @@ public class ProjectControllerTests {
 
     @Test
     void moveProjectWorkspaceNotFound() {
-        Project project = projectRepository.save(new Project("PUT", sequenceRepository));
+        Project project = projectRepository.save(new Project("PUT"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
         client.put().uri(String.format("/project/%d/workspace/%d", project.getId(), 1024))

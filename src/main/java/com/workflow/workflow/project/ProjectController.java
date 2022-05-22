@@ -6,8 +6,6 @@ import java.util.Date;
 
 import javax.validation.constraints.NotNull;
 
-import com.workflow.workflow.counter.CounterSequence;
-import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
 import com.workflow.workflow.status.Status;
@@ -39,13 +37,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 @RestController
 @RequestMapping("/project")
 public class ProjectController {
-    private final String NO_ACCESS = "no access to project";
+    private static final String NO_ACCESS = "no access to project";
     @Autowired
     private ProjectRepository projectRepository;
     @Autowired
     private WorkspaceRepository workspaceRepository;
-    @Autowired
-    private CounterSequenceRepository sequenceRepository;
     @Autowired
     private ProjectWorkspaceRepository projectWorkspaceRepository;
     @Autowired
@@ -68,7 +64,7 @@ public class ProjectController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name field length bigger than 50 characters");
         }
         Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceKey(request.getWorkspaceId(), user));
-        Project project = projectRepository.save(new Project(request, sequenceRepository));
+        Project project = projectRepository.save(new Project(request));
         ProjectWorkspace projectWorkspace = new ProjectWorkspace(project, workspace, 1L);
         projectWorkspaceRepository.save(projectWorkspace);
         Status status = new Status();

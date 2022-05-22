@@ -28,7 +28,7 @@ import com.workflow.workflow.workspace.Workspace;
 import org.hibernate.annotations.Where;
 
 @Entity
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class User extends SoftDeleteEntity {
 
     @Id
@@ -59,7 +59,7 @@ public class User extends SoftDeleteEntity {
     private String username;
 
     @JsonIgnore
-    @OneToOne(cascade = CascadeType.REMOVE, optional = false)
+    @OneToOne(cascade = { CascadeType.REMOVE, CascadeType.PERSIST }, optional = false)
     private CounterSequence counterSequence;
 
     @JsonIgnore
@@ -71,13 +71,13 @@ public class User extends SoftDeleteEntity {
     public User() {
     }
 
-    public User(String name, String surname, String username, String email, String password, CounterSequence counterSequence) {
+    public User(String name, String surname, String username, String email, String password) {
         this.setName(name);
         this.setSurname(surname);
         this.setUsername(username);
         this.setEmail(email);
         this.setPassword(password);
-        this.setCounterSequence(counterSequence);
+        this.setCounterSequence(new CounterSequence());
     }
 
     public Long getId() {

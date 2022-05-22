@@ -20,7 +20,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.workflow.workflow.counter.CounterSequence;
-import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.integration.git.github.GitHubIntegration;
 import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
@@ -51,38 +50,38 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     private List<ProjectWorkspace> projectWorkspaces = new ArrayList<>();
 
     @JsonIgnore
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "project")
+    @OneToMany(cascade = { CascadeType.REMOVE, CascadeType.PERSIST }, mappedBy = "project")
     @OrderBy("ordinal")
     @Where(clause = "active is null")
     private List<Status> statuses = new ArrayList<>();
 
     @JsonIgnore
-    @OneToOne(cascade = CascadeType.REMOVE, optional = false)
+    @OneToOne(cascade = { CascadeType.REMOVE, CascadeType.PERSIST }, fetch = FetchType.LAZY, optional = false)
     private CounterSequence statusCounter;
 
     @JsonIgnore
-    @OneToOne(cascade = CascadeType.REMOVE, optional = false)
+    @OneToOne(cascade = { CascadeType.REMOVE, CascadeType.PERSIST }, fetch = FetchType.LAZY, optional = false)
     private CounterSequence taskCounter;
 
     @JsonIgnore
-    @OneToOne(cascade = CascadeType.REMOVE, optional = false)
+    @OneToOne(cascade = { CascadeType.REMOVE, CascadeType.PERSIST }, fetch = FetchType.LAZY, optional = false)
     private CounterSequence sprintCounter;
 
-    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "project")
+    @OneToOne(cascade = CascadeType.REMOVE, fetch = FetchType.LAZY, mappedBy = "project")
     private GitHubIntegration gitHubIntegration;
 
     public Project() {
     }
 
-    public Project(String name, CounterSequenceRepository repository) {
+    public Project(String name) {
         this.name = name;
-        this.statusCounter = repository.save(new CounterSequence());
-        this.taskCounter = repository.save(new CounterSequence());
-        this.sprintCounter = repository.save(new CounterSequence());
+        this.statusCounter = new CounterSequence();
+        this.taskCounter = new CounterSequence();
+        this.sprintCounter = new CounterSequence();
     }
 
-    public Project(ProjectRequest request, CounterSequenceRepository repository) {
-        this(request.getName(), repository);
+    public Project(ProjectRequest request) {
+        this(request.getName());
     }
 
     /**

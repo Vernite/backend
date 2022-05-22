@@ -1,7 +1,6 @@
 package com.workflow.workflow;
 
 import com.workflow.workflow.user.UserRepository;
-import com.workflow.workflow.counter.CounterSequence;
 import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
@@ -74,14 +73,10 @@ public class TaskControllerTests {
     @BeforeAll
     void init() {
         user = userRepository.findById(1L)
-                .orElseGet(() -> {
-                        CounterSequence cs = new CounterSequence();
-                        cs = counterSequenceRepository.save(cs);
-                        return userRepository.save(new User("Name", "Surname", "Username", "Email", "Password", cs));
-                });
+                .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email", "Password")));
         long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
         workspace = workspaceRepository.save(new Workspace(id, user, "name"));
-        project = projectRepository.save(new Project("put", counterSequenceRepository));
+        project = projectRepository.save(new Project("put"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
         Status statusTemp = new Status();
         statusTemp.setColor(0);
@@ -154,7 +149,9 @@ public class TaskControllerTests {
     void addSuccess() throws Exception {
         mvc.perform(post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
-                .content(String.format("{\"name\": \"string\",\"description\": \"string\",\"statusId\": %d,\"type\": 0,\"deadline\": \"2022-05-11T17:38:27.813Z\",\"createIssue\": false}", status.getId())))
+                .content(String.format(
+                        "{\"name\": \"string\",\"description\": \"string\",\"statusId\": %d,\"type\": 0,\"deadline\": \"2022-05-11T17:38:27.813Z\",\"createIssue\": false}",
+                        status.getId())))
                 .andExpect(status().isOk());
         List<Task> tasks = new ArrayList<>();
         tasks.addAll((Collection<? extends Task>) taskRepository.findAll());

@@ -1,7 +1,6 @@
 package com.workflow.workflow;
 
 import com.workflow.workflow.user.UserRepository;
-import com.workflow.workflow.counter.CounterSequence;
 import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
@@ -54,9 +53,7 @@ public class WorkspaceControllerOldTests {
     @BeforeAll
     void init() {
         if (userRepository.findById(1L).isEmpty()) {
-                CounterSequence cs = new CounterSequence();
-                cs = counterSequenceRepository.save(cs);
-                userRepository.save(new User("Name", "Surname", "Username", "Email", "Password", cs));
+            userRepository.save(new User("Name", "Surname", "Username", "Email", "Password"));
         }
         projectWorkspaceRepository.deleteAll();
     }
@@ -199,9 +196,9 @@ public class WorkspaceControllerOldTests {
                 .content("{\"name\": \"new put\"}"))
                 .andExpect(status().isNotFound());
 
-                User user = userRepository.findById(1L).orElseThrow();
-                long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
-                Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
+        User user = userRepository.findById(1L).orElseThrow();
+        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
+        Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
 
         mvc.perform(put(String.format("/user/2222/workspace/%d", workspace.getId().getId()))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"name\": \"new put\"}"))
@@ -240,9 +237,9 @@ public class WorkspaceControllerOldTests {
         mvc.perform(delete("/user/1/workspace/223"))
                 .andExpect(status().isNotFound());
 
-                User user = userRepository.findById(1L).orElseThrow();
-                long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
-                Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
+        User user = userRepository.findById(1L).orElseThrow();
+        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
+        Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
 
         mvc.perform(delete(String.format("/user/222/workspace/%d", workspace.getId().getId())))
                 .andExpect(status().isNotFound());
@@ -253,17 +250,18 @@ public class WorkspaceControllerOldTests {
         User user = userRepository.findById(1L).orElseThrow();
         long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
         Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
-        Project project = projectRepository.save(new Project("put", counterSequenceRepository));
-        ProjectWorkspace projectWorkspace = projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+        Project project = projectRepository.save(new Project("put"));
+        ProjectWorkspace projectWorkspace = projectWorkspaceRepository
+                .save(new ProjectWorkspace(project, workspace, 1L));
 
         mvc.perform(delete(String.format("/user/1/workspace/%d", workspace.getId().getId())))
                 .andExpect(status().isBadRequest());
-        
+
         projectWorkspaceRepository.delete(projectWorkspace);
 
         mvc.perform(delete(String.format("/user/1/workspace/%d", workspace.getId().getId())))
                 .andExpect(status().isOk());
-        
+
         projectRepository.delete(project);
     }
 }

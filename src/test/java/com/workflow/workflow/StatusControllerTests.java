@@ -1,7 +1,6 @@
 package com.workflow.workflow;
 
 import com.workflow.workflow.user.UserRepository;
-import com.workflow.workflow.counter.CounterSequence;
 import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
@@ -65,14 +64,10 @@ public class StatusControllerTests {
     @BeforeAll
     void init() {
         user = userRepository.findById(1L)
-                .orElseGet(() -> {
-                        CounterSequence cs = new CounterSequence();
-                        cs = counterSequenceRepository.save(cs);
-                        return userRepository.save(new User("Name", "Surname", "Username", "Email", "Password", cs));
-                });
+                .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email", "Password")));
         long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
         workspace = workspaceRepository.save(new Workspace(id, user, "name"));
-        project = projectRepository.save(new Project("put", counterSequenceRepository));
+        project = projectRepository.save(new Project("put"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
     }
 
