@@ -1,15 +1,21 @@
 package com.workflow.workflow;
 
-import com.workflow.workflow.user.UserRepository;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+import java.util.Date;
+
 import com.workflow.workflow.counter.CounterSequence;
 import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
+import com.workflow.workflow.project.ProjectRequest;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
-import com.workflow.workflow.status.StatusRepository;
-import com.workflow.workflow.task.TaskRepository;
 import com.workflow.workflow.user.User;
+import com.workflow.workflow.user.UserRepository;
+import com.workflow.workflow.user.UserSession;
+import com.workflow.workflow.user.UserSessionRepository;
 import com.workflow.workflow.workspace.Workspace;
 import com.workflow.workflow.workspace.WorkspaceRepository;
 
@@ -21,267 +27,317 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.CoreMatchers.is;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import org.springframework.test.web.reactive.server.WebTestClient;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestInstance(Lifecycle.PER_CLASS)
-@TestPropertySource(locations = "classpath:application-test.properties")
+@TestPropertySource("classpath:application-test.properties")
 public class ProjectControllerTests {
     @Autowired
-    private MockMvc mvc;
+    private WebTestClient client;
     @Autowired
-    private WorkspaceRepository workspaceRepository;
+    private CounterSequenceRepository sequenceRepository;
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private ProjectWorkspaceRepository projectWorkspaceRepository;
+    private UserSessionRepository sessionRepository;
     @Autowired
     private ProjectRepository projectRepository;
     @Autowired
-    private StatusRepository statusRepository;
+    private WorkspaceRepository workspaceRepository;
     @Autowired
-    private TaskRepository taskRepository;
-    @Autowired
-    private CounterSequenceRepository counterSequenceRepository;
+    private ProjectWorkspaceRepository projectWorkspaceRepository;
 
-    private Workspace workspace;
     private User user;
+    private UserSession session;
+    private Workspace workspace;
 
     @BeforeAll
     void init() {
-        user = userRepository.findById(1L)
-                .orElseGet(() -> {
-                        CounterSequence cs = new CounterSequence();
-                        cs = counterSequenceRepository.save(cs);
-                        return userRepository.save(new User("Name", "Surname", "Username", "Email", "Password", cs));
-                });
-        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
-        workspace = workspaceRepository.save(new Workspace(id, user, "name"));
+        user = userRepository.findById(1L).orElseGet(() -> {
+            CounterSequence counterSequence = new CounterSequence();
+            counterSequence = sequenceRepository.save(counterSequence);
+            return userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1", counterSequence));
+        });
+        session = new UserSession();
+        session.setIp("127.0.0.1");
+        session.setSession("session_token_projects_tests");
+        session.setLastUsed(new Date());
+        session.setRemembered(true);
+        session.setUserAgent("userAgent");
+        session.setUser(user);
+        try {
+            session = sessionRepository.save(session);
+        } catch (DataIntegrityViolationException e) {
+            session = sessionRepository.findBySession("session_token_projects_tests").orElseThrow();
+        }
+        workspace = workspaceRepository.save(new Workspace(1, user, "Project Tests"));
     }
 
     @BeforeEach
     void reset() {
-        projectWorkspaceRepository.deleteAll();
-        taskRepository.deleteAll();
-        statusRepository.deleteAll();
         projectRepository.deleteAll();
     }
 
     @Test
-    void addSuccess() throws Exception {
-        mvc.perform(post("/project/").contentType(MediaType.APPLICATION_JSON)
-                .content(String.format("{\"name\": \"test\", \"workspaceId\": %d}", workspace.getId().getId())))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.name", is("test")));
-    }
-
-    @Test
-    void addNotFound() throws Exception {
-        mvc.perform(post("/project/").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\": \"test\", \"workspaceId\": 700000}"))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void addBadRequest() throws Exception {
-        mvc.perform(post("/project/").contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest());
-        mvc.perform(post("/project/").contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isBadRequest());
-        mvc.perform(post("/project/").contentType(MediaType.APPLICATION_JSON).content("{\"name\": \"test\"}"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void addUnsupportedMedia() throws Exception {
-        mvc.perform(post("/project/").contentType(MediaType.MULTIPART_FORM_DATA))
-                .andExpect(status().isUnsupportedMediaType());
-        mvc.perform(post("/project/").contentType(MediaType.MULTIPART_FORM_DATA).content("{}"))
-                .andExpect(status().isUnsupportedMediaType());
-        mvc.perform(post("/project/").contentType(MediaType.MULTIPART_FORM_DATA)
-                .content(String.format("{\"name\": \"test\", \"workspaceId\": %d}", workspace.getId().getId())))
-                .andExpect(status().isUnsupportedMediaType());
-    }
-
-    @Test
-    void getSuccess() throws Exception {
-        CounterSequence cs1 = new CounterSequence();
-        cs1 = counterSequenceRepository.save(cs1);
-        CounterSequence cs2 = new CounterSequence();
-        cs2 = counterSequenceRepository.save(cs2);
-        CounterSequence cs3 = new CounterSequence();
-        cs3 = counterSequenceRepository.save(cs3);
-        Project project = projectRepository.save(new Project("name 1", cs1, cs2, cs3));
-
-        mvc.perform(get(String.format("/project/%d", project.getId())))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.name", is(project.getName())));
-    }
-
-    @Test
-    void getNotFound() throws Exception {
-        mvc.perform(get("/project/70000"))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void putSuccess() throws Exception {
-        CounterSequence cs1 = new CounterSequence();
-        cs1 = counterSequenceRepository.save(cs1);
-        CounterSequence cs2 = new CounterSequence();
-        cs2 = counterSequenceRepository.save(cs2);
-        CounterSequence cs3 = new CounterSequence();
-        cs3 = counterSequenceRepository.save(cs3);
-        Project project = projectRepository.save(new Project("put", cs1, cs2, cs3));
-
-        mvc.perform(put(String.format("/project/%d", project.getId()))
+    void newProjectSuccess() {
+        ProjectRequest request = new ProjectRequest("POST", workspace.getId().getId());
+        Project project = client.post().uri("/project")
+                .cookie("session", session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\": \"new put\"}"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.name", is("new put")));
-
-        mvc.perform(get(String.format("/project/%d", project.getId())))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.name", is("new put")));
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Project.class)
+                .returnResult()
+                .getResponseBody();
+        assertEquals(project, projectRepository.findByIdOrThrow(project.getId()));
     }
 
     @Test
-    void putBadRequest() throws Exception {
-        CounterSequence cs1 = new CounterSequence();
-        cs1 = counterSequenceRepository.save(cs1);
-        CounterSequence cs2 = new CounterSequence();
-        cs2 = counterSequenceRepository.save(cs2);
-        CounterSequence cs3 = new CounterSequence();
-        cs3 = counterSequenceRepository.save(cs3);
-        Project project = projectRepository.save(new Project("put", cs1, cs2, cs3));
-
-        mvc.perform(put(String.format("/project/%d", project.getId()))
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void putNotFound() throws Exception {
-        mvc.perform(put("/project/1").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\": \"new put\"}"))
-                .andExpect(status().isNotFound());
-
-                CounterSequence cs1 = new CounterSequence();
-                cs1 = counterSequenceRepository.save(cs1);
-                CounterSequence cs2 = new CounterSequence();
-                cs2 = counterSequenceRepository.save(cs2);
-                CounterSequence cs3 = new CounterSequence();
-        cs3 = counterSequenceRepository.save(cs3);
-                Project project = projectRepository.save(new Project("put", cs1, cs2, cs3));
-
-        mvc.perform(put(String.format("/project/%d", project.getId()))
-                .contentType(MediaType.APPLICATION_JSON).content("{\"name\": \"new put\", \"workspaceId\": 70000}"))
-                .andExpect(status().isNotFound());
-
-        mvc.perform(put(String.format("/project/%d", project.getId()))
+    void newProjectBadRequest() {
+        ProjectRequest request = new ProjectRequest(null, workspace.getId().getId());
+        client.post().uri("/project")
+                .cookie("session", session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(String.format("{\"name\": \"new put\", \"workspaceId\": %d}", workspace.getId().getId())))
-                .andExpect(status().isNotFound());
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
+
+        request.setName("0".repeat(51));
+        client.post().uri("/project")
+                .cookie("session", session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
     }
 
     @Test
-    void putUnsupportedMedia() throws Exception {
-        CounterSequence cs1 = new CounterSequence();
-        cs1 = counterSequenceRepository.save(cs1);
-        CounterSequence cs2 = new CounterSequence();
-        cs2 = counterSequenceRepository.save(cs2);
-        CounterSequence cs3 = new CounterSequence();
-        cs3 = counterSequenceRepository.save(cs3);
-        Project project = projectRepository.save(new Project("put", cs1, cs2, cs3));
-
-        mvc.perform(put(String.format("/project/%d", project.getId()))
-                .contentType(MediaType.MULTIPART_FORM_DATA))
-                .andExpect(status().isUnsupportedMediaType());
-        mvc.perform(put(String.format("/project/%d", project.getId()))
-                .contentType(MediaType.MULTIPART_FORM_DATA).content("{}"))
-                .andExpect(status().isUnsupportedMediaType());
-        mvc.perform(put(String.format("/project/%d", project.getId()))
-                .contentType(MediaType.MULTIPART_FORM_DATA).content("{\"name\": \"test\"}"))
-                .andExpect(status().isUnsupportedMediaType());
+    void newProjectUnauthorized() {
+        client.post().uri("/project")
+                .contentType(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isUnauthorized();
     }
 
     @Test
-    void deleteSuccess() throws Exception {
-        CounterSequence cs1 = new CounterSequence();
-        cs1 = counterSequenceRepository.save(cs1);
-        CounterSequence cs2 = new CounterSequence();
-        cs2 = counterSequenceRepository.save(cs2);
-        CounterSequence cs3 = new CounterSequence();
-        cs3 = counterSequenceRepository.save(cs3);
-        Project project = projectRepository.save(new Project("put", cs1, cs2, cs3));
-
-        mvc.perform(delete(String.format("/project/%d", project.getId())))
-                .andExpect(status().isOk());
-
-                CounterSequence cs11 = new CounterSequence();
-                cs11 = counterSequenceRepository.save(cs11);
-                CounterSequence cs22 = new CounterSequence();
-                cs22 = counterSequenceRepository.save(cs22);
-                CounterSequence cs33 = new CounterSequence();
-        cs33 = counterSequenceRepository.save(cs33);
-                Project project1 = projectRepository.save(new Project("put", cs11, cs22, cs33));
-        projectWorkspaceRepository.save(new ProjectWorkspace(project1, workspace, 1L));
-
-        mvc.perform(delete(String.format("/project/%d", project1.getId())))
-                .andExpect(status().isOk());
+    void newProjectNotFound() {
+        ProjectRequest request = new ProjectRequest("POST", 1024L);
+        client.post().uri("/project")
+                .cookie("session", session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isNotFound();
     }
 
     @Test
-    void deleteNotFound() throws Exception {
-        mvc.perform(delete("/project/77777"))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void getMembersSuccess() throws Exception {
-        CounterSequence cs1 = new CounterSequence();
-        cs1 = counterSequenceRepository.save(cs1);
-        CounterSequence cs2 = new CounterSequence();
-        cs2 = counterSequenceRepository.save(cs2);
-        CounterSequence cs3 = new CounterSequence();
-        cs3 = counterSequenceRepository.save(cs3);
-        Project project = projectRepository.save(new Project("name 1", cs1, cs2, cs3));
-
-        mvc.perform(get(String.format("/project/%d/member", project.getId())))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(0)));
-
+    void getProjectSuccess() {
+        CounterSequence cs1 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs2 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs3 = sequenceRepository.save(new CounterSequence());
+        Project project = projectRepository.save(new Project("GET", cs1, cs2, cs3));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
-        mvc.perform(get(String.format("/project/%d/member", project.getId())))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].privileges", is(1)))
-                .andExpect(jsonPath("$[0].user.id", is(user.getId().intValue())));
+        client.get().uri("/project/" + project.getId())
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Project.class)
+                .isEqualTo(project);
+        assertEquals(project, projectRepository.findByIdOrThrow(project.getId()));
     }
 
     @Test
-    void getMembersNotFound() throws Exception {
-        mvc.perform(get("/project/70000/member"))
-                .andExpect(status().isNotFound());
+    void getProjectUnauthorized() {
+        client.get().uri("/project/1")
+                .exchange()
+                .expectStatus().isUnauthorized();
+
+        CounterSequence cs1 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs2 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs3 = sequenceRepository.save(new CounterSequence());
+        Project project = projectRepository.save(new Project("GET", cs1, cs2, cs3));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+
+        client.get().uri("/project/" + project.getId())
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void getProjectForbidden() {
+        CounterSequence cs1 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs2 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs3 = sequenceRepository.save(new CounterSequence());
+        Project project = projectRepository.save(new Project("GET", cs1, cs2, cs3));
+
+        client.get().uri("/project/" + project.getId())
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    void getProjectNotFound() {
+        client.get().uri("/project/1")
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void putProjectSuccess() {
+        CounterSequence cs1 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs2 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs3 = sequenceRepository.save(new CounterSequence());
+        Project project = projectRepository.save(new Project("PUT", cs1, cs2, cs3));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+        ProjectRequest request = new ProjectRequest(null, 1L);
+
+        client.put().uri("/project/" + project.getId())
+                .cookie("session", session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Project.class)
+                .isEqualTo(project);
+        assertEquals(project, projectRepository.findByIdOrThrow(project.getId()));
+
+        request.setName("NEW PUT");
+        project.setName(request.getName());
+        client.put().uri("/project/" + project.getId())
+                .cookie("session", session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Project.class)
+                .isEqualTo(project);
+        assertEquals(project, projectRepository.findByIdOrThrow(project.getId()));
+    }
+
+    @Test
+    void putProjectBadRequest() {
+        CounterSequence cs1 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs2 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs3 = sequenceRepository.save(new CounterSequence());
+        Project project = projectRepository.save(new Project("PUT", cs1, cs2, cs3));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+        ProjectRequest request = new ProjectRequest("0".repeat(51), 1L);
+
+        client.put().uri("/project/" + project.getId())
+                .cookie("session", session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void putProjectUnauthorized() {
+        ProjectRequest request = new ProjectRequest("PUT", 1L);
+        client.put().uri("/project/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isUnauthorized();
+
+        CounterSequence cs1 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs2 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs3 = sequenceRepository.save(new CounterSequence());
+        Project project = projectRepository.save(new Project("PUT", cs1, cs2, cs3));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+
+        client.put().uri("/project/" + project.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void putProjectForbidden() {
+        CounterSequence cs1 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs2 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs3 = sequenceRepository.save(new CounterSequence());
+        Project project = projectRepository.save(new Project("PUT", cs1, cs2, cs3));
+        ProjectRequest request = new ProjectRequest("PUT", 1L);
+
+        client.put().uri("/project/" + project.getId())
+                .cookie("session", session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    void putProjectNotFound() {
+        client.get().uri("/project/1")
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void deleteProjectSuccess() {
+        CounterSequence cs1 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs2 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs3 = sequenceRepository.save(new CounterSequence());
+        Project project = projectRepository.save(new Project("PUT", cs1, cs2, cs3));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+
+        client.delete().uri("/project/" + project.getId())
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isOk();
+        assertNotEquals(null, projectRepository.findById(project.getId()).get().getActive());
+    }
+
+    @Test
+    void deleteProjectUnauthorized() {
+        client.delete().uri("/project/1")
+                .exchange()
+                .expectStatus().isUnauthorized();
+
+        CounterSequence cs1 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs2 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs3 = sequenceRepository.save(new CounterSequence());
+        Project project = projectRepository.save(new Project("PUT", cs1, cs2, cs3));
+        client.delete().uri("/project/" + project.getId())
+                .exchange()
+                .expectStatus().isUnauthorized();
+
+        assertEquals(project.getActive(), projectRepository.findByIdOrThrow(project.getId()).getActive());
+    }
+
+    @Test
+    void deleteProjectForbidden() {
+        CounterSequence cs1 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs2 = sequenceRepository.save(new CounterSequence());
+        CounterSequence cs3 = sequenceRepository.save(new CounterSequence());
+        Project project = projectRepository.save(new Project("PUT", cs1, cs2, cs3));
+
+        client.delete().uri("/project/" + project.getId())
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isForbidden();
+
+        assertEquals(project.getActive(), projectRepository.findByIdOrThrow(project.getId()).getActive());
+    }
+
+    @Test
+    void deleteProjectNotFound() {
+        client.delete().uri("/project/1")
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
     }
 }

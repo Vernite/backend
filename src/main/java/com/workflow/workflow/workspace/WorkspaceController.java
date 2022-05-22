@@ -79,10 +79,10 @@ public class WorkspaceController {
     @PutMapping("/{id}")
     public Workspace putWorkspace(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @RequestBody WorkspaceRequest request) {
-        Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceKey(id, user));
         if (request.getName() != null && request.getName().length() > 50) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name field length bigger than 50 characters");
         }
+        Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceKey(id, user));
         workspace.apply(request);
         return workspaceRepository.save(workspace);
     }

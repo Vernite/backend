@@ -23,6 +23,7 @@ import com.workflow.workflow.integration.git.github.GitHubIntegration;
 import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.status.Status;
+import com.workflow.workflow.user.User;
 import com.workflow.workflow.utils.SoftDeleteEntity;
 
 import org.hibernate.annotations.Where;
@@ -95,6 +96,22 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
         if (request.getName() != null) {
             name = request.getName();
         }
+    }
+
+    /**
+     * Checks if given user is member of project.
+     * 
+     * @param user must not be {@literal null}. Must be value returned by user
+     *             repository.
+     * @return boolean value if user is member of project.
+     */
+    public boolean isMember(User user) {
+        for (ProjectWorkspace projectWorkspace : projectWorkspaces) {
+            if (projectWorkspace.getId().getWorkspaceId().getUserId() == user.getId()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public long getId() {

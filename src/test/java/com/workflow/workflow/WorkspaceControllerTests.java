@@ -328,6 +328,8 @@ public class WorkspaceControllerTests {
         client.delete().uri("/workspace/" + workspace.getId().getId())
                 .exchange()
                 .expectStatus().isUnauthorized();
+
+        assertEquals(workspace.getActive(), workspaceRepository.findByIdOrThrow(workspace.getId()).getActive());
     }
 
     @Test
