@@ -20,6 +20,8 @@ import com.workflow.workflow.counter.CounterSequence;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -53,6 +55,8 @@ public class AuthController {
     private UserRepository userRepository;
     @Autowired
     private UserSessionRepository userSessionRepository;
+    @Autowired
+    private JavaMailSender javaMailSender;
 
     @Operation(summary = "Logged user.", description = "This method returns currently logged user.")
     @ApiResponses(value = {
@@ -76,7 +80,8 @@ public class AuthController {
             @ApiResponse(responseCode = "422", description = "Username or email is already taken.", content = @Content())
     })
     @PostMapping("/login")
-    public Future<User> login(@Parameter(hidden = true) User loggedUser, @RequestBody LoginRequest req, HttpServletRequest request, HttpServletResponse response) {
+    public Future<User> login(@Parameter(hidden = true) User loggedUser, @RequestBody LoginRequest req,
+            HttpServletRequest request, HttpServletResponse response) {
         if (loggedUser != null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "already logged");
         }
@@ -110,7 +115,8 @@ public class AuthController {
             @ApiResponse(responseCode = "422", description = "Username or email is already taken.", content = @Content())
     })
     @PostMapping("/register")
-    public User register(@Parameter(hidden = true) User loggedUser, @RequestBody RegisterRequest req, HttpServletRequest request, HttpServletResponse response) {
+    public User register(@Parameter(hidden = true) User loggedUser, @RequestBody RegisterRequest req,
+            HttpServletRequest request, HttpServletResponse response) {
         if (loggedUser != null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "already logged");
         }
@@ -150,6 +156,11 @@ public class AuthController {
         u.setCounterSequence(new CounterSequence());
         u = userRepository.save(u);
         createSession(request, response, u, false);
+        SimpleMailMessage msg = new SimpleMailMessage();
+        msg.setTo(req.getEmail());
+        msg.setSubject("Dziękujemy za rejestrację");
+        msg.setText("Cześć, " + req.getName() + "!\nDziękujemy za zarejestrowanie się w naszym serwisie");
+        javaMailSender.send(msg);
         return u;
     }
 
