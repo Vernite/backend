@@ -68,10 +68,7 @@ public class ProjectController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name field length bigger than 50 characters");
         }
         Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceKey(request.getWorkspaceId(), user));
-        CounterSequence cs1 = sequenceRepository.save(new CounterSequence());
-        CounterSequence cs2 = sequenceRepository.save(new CounterSequence());
-        CounterSequence cs3 = sequenceRepository.save(new CounterSequence());
-        Project project = projectRepository.save(new Project(request, cs1, cs2, cs3));
+        Project project = projectRepository.save(new Project(request, sequenceRepository));
         ProjectWorkspace projectWorkspace = new ProjectWorkspace(project, workspace, 1L);
         projectWorkspaceRepository.save(projectWorkspace);
         Status status = new Status();

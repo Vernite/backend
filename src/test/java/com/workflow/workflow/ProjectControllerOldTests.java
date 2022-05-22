@@ -117,13 +117,7 @@ public class ProjectControllerOldTests {
 
     @Test
     void getMembersSuccess() throws Exception {
-        CounterSequence cs1 = new CounterSequence();
-        cs1 = counterSequenceRepository.save(cs1);
-        CounterSequence cs2 = new CounterSequence();
-        cs2 = counterSequenceRepository.save(cs2);
-        CounterSequence cs3 = new CounterSequence();
-        cs3 = counterSequenceRepository.save(cs3);
-        Project project = projectRepository.save(new Project("name 1", cs1, cs2, cs3));
+        Project project = projectRepository.save(new Project("name 1", counterSequenceRepository));
 
         mvc.perform(get(String.format("/project/%d/member", project.getId())))
                 .andExpect(status().isOk())

@@ -69,13 +69,7 @@ public class ProjectControllerOld {
         Workspace workspace = workspaceRepository.findByIdAndUser(new WorkspaceKey(request.getWorkspaceId(), user), user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         WORKSPACE_NOT_FOUND));
-        CounterSequence cs1 = new CounterSequence();
-        cs1 = sequenceRepository.save(cs1);
-        CounterSequence cs2 = new CounterSequence();
-        cs2 = sequenceRepository.save(cs2);
-        CounterSequence cs3 = new CounterSequence();
-        cs3 = sequenceRepository.save(cs3);
-        Project project = projectRepository.save(new Project(request, cs1, cs2, cs3));
+        Project project = projectRepository.save(new Project(request, sequenceRepository));
         ProjectWorkspace projectWorkspace = new ProjectWorkspace(project, workspace, 1L);
         projectWorkspaceRepository.save(projectWorkspace);
         Status status = new Status();

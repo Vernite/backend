@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.workflow.workflow.counter.CounterSequence;
+import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.integration.git.github.GitHubIntegration;
 import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
@@ -73,17 +74,15 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     public Project() {
     }
 
-    public Project(String name, CounterSequence statusCounter, CounterSequence taskCounter,
-            CounterSequence sprintCounter) {
+    public Project(String name, CounterSequenceRepository repository) {
         this.name = name;
-        this.statusCounter = statusCounter;
-        this.taskCounter = taskCounter;
-        this.sprintCounter = sprintCounter;
+        this.statusCounter = repository.save(new CounterSequence());
+        this.taskCounter = repository.save(new CounterSequence());
+        this.sprintCounter = repository.save(new CounterSequence());
     }
 
-    public Project(ProjectRequest request, CounterSequence statusCounter, CounterSequence taskCounter,
-            CounterSequence sprintCounter) {
-        this(request.getName(), statusCounter, taskCounter, sprintCounter);
+    public Project(ProjectRequest request, CounterSequenceRepository repository) {
+        this(request.getName(), repository);
     }
 
     /**

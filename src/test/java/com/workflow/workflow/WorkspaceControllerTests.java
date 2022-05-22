@@ -303,10 +303,7 @@ public class WorkspaceControllerTests {
     @Test
     void deleteWorkspaceBadRequest(@Autowired ProjectRepository projectRepository,
             @Autowired ProjectWorkspaceRepository projectWorkspaceRepository) {
-        CounterSequence cs1 = counterSequenceRepository.save(new CounterSequence());
-        CounterSequence cs2 = counterSequenceRepository.save(new CounterSequence());
-        CounterSequence cs3 = counterSequenceRepository.save(new CounterSequence());
-        Project project = projectRepository.save(new Project("DELETE", cs1, cs2, cs3));
+        Project project = projectRepository.save(new Project("DELETE", counterSequenceRepository));
         Workspace workspace = workspaceRepository.save(new Workspace(1, user, "DELETE"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 

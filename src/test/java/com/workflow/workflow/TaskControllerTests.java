@@ -81,13 +81,7 @@ public class TaskControllerTests {
                 });
         long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
         workspace = workspaceRepository.save(new Workspace(id, user, "name"));
-        CounterSequence cs1 = new CounterSequence();
-        cs1 = counterSequenceRepository.save(cs1);
-        CounterSequence cs2 = new CounterSequence();
-        cs2 = counterSequenceRepository.save(cs2);
-        CounterSequence cs3 = new CounterSequence();
-        cs3 = counterSequenceRepository.save(cs3);
-        project = projectRepository.save(new Project("put", cs1, cs2, cs3));
+        project = projectRepository.save(new Project("put", counterSequenceRepository));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
         Status statusTemp = new Status();
         statusTemp.setColor(0);
