@@ -5,8 +5,6 @@ import java.util.Optional;
 
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.utils.SoftDeleteRepository;
-import com.workflow.workflow.workspace.entity.Workspace;
-import com.workflow.workflow.workspace.entity.WorkspaceKey;
 
 public interface WorkspaceRepository extends SoftDeleteRepository<Workspace, WorkspaceKey> {
     /**

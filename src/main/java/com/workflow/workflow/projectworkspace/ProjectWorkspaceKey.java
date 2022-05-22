@@ -5,8 +5,8 @@ import java.io.Serializable;
 import javax.persistence.Embeddable;
 
 import com.workflow.workflow.project.Project;
-import com.workflow.workflow.workspace.entity.Workspace;
-import com.workflow.workflow.workspace.entity.WorkspaceKey;
+import com.workflow.workflow.workspace.Workspace;
+import com.workflow.workflow.workspace.WorkspaceKey;
 
 /**
  * Composite key for pivot table. Composed of workspace id and project id.

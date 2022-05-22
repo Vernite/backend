@@ -1,6 +1,12 @@
 package com.workflow.workflow;
 
-import com.workflow.workflow.user.UserRepository;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+
 import com.workflow.workflow.counter.CounterSequence;
 import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.project.Project;
@@ -8,8 +14,13 @@ import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
 import com.workflow.workflow.user.User;
+import com.workflow.workflow.user.UserRepository;
+import com.workflow.workflow.user.UserSession;
+import com.workflow.workflow.user.UserSessionRepository;
+import com.workflow.workflow.workspace.Workspace;
+import com.workflow.workflow.workspace.WorkspaceKey;
 import com.workflow.workflow.workspace.WorkspaceRepository;
-import com.workflow.workflow.workspace.entity.Workspace;
+import com.workflow.workflow.workspace.WorkspaceRequest;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,46 +30,49 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.CoreMatchers.is;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import org.springframework.test.web.reactive.server.WebTestClient;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestInstance(Lifecycle.PER_CLASS)
-@TestPropertySource(locations = "classpath:application-test.properties")
+@TestPropertySource("classpath:application-test.properties")
 public class WorkspaceControllerTests {
     @Autowired
-    private MockMvc mvc;
+    private WebTestClient client;
     @Autowired
-    private WorkspaceRepository workspaceRepository;
+    private CounterSequenceRepository counterSequenceRepository;
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private ProjectWorkspaceRepository projectWorkspaceRepository;
+    private UserSessionRepository sessionRepository;
     @Autowired
-    private ProjectRepository projectRepository;
-    @Autowired
-    private CounterSequenceRepository counterSequenceRepository;
+    private WorkspaceRepository workspaceRepository;
+
+    private User user;
+    private UserSession session;
 
     @BeforeAll
     void init() {
-        if (userRepository.findById(1L).isEmpty()) {
-                CounterSequence cs = new CounterSequence();
-                cs = counterSequenceRepository.save(cs);
-                userRepository.save(new User("Name", "Surname", "Username", "Email", "Password", cs));
+        user = userRepository.findById(1L).orElseGet(() -> {
+            CounterSequence counterSequence = new CounterSequence();
+            counterSequence = counterSequenceRepository.save(counterSequence);
+            return userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1", counterSequence));
+        });
+        session = new UserSession();
+        session.setIp("127.0.0.1");
+        session.setSession("session_token_workspace_tests");
+        session.setLastUsed(new Date());
+        session.setRemembered(true);
+        session.setUserAgent("userAgent");
+        session.setUser(user);
+        try {
+            session = sessionRepository.save(session);
+        } catch (DataIntegrityViolationException e) {
+            session = sessionRepository.findBySession("session_token_workspace_tests").orElseThrow();
         }
-        projectWorkspaceRepository.deleteAll();
     }
 
     @BeforeEach
@@ -67,209 +81,260 @@ public class WorkspaceControllerTests {
     }
 
     @Test
-    void allEmpty() throws Exception {
-        mvc.perform(get("/user/1/workspace/").contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(0)));
+    void getAllWorkspacesSuccess() {
+        // Test empty return list
+        client.get().uri("/workspace")
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBodyList(Workspace.class).hasSize(0);
+        // Prepare some workspaces for next test
+        List<Workspace> workspaces = List.of(
+                workspaceRepository.save(new Workspace(1, user, "Test 1")),
+                workspaceRepository.save(new Workspace(2, user, "Test 3")),
+                workspaceRepository.save(new Workspace(3, user, "Test 2")));
+        // Test non empty return list
+        List<Workspace> result = client.get().uri("/workspace")
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBodyList(Workspace.class)
+                .hasSize(3)
+                .returnResult()
+                .getResponseBody();
+        assertEquals(workspaces.get(0).getId().getId(), result.get(0).getId().getId());
+        assertEquals(workspaces.get(0).getName(), result.get(0).getName());
+        assertEquals(workspaces.get(1).getId().getId(), result.get(2).getId().getId());
+        assertEquals(workspaces.get(1).getName(), result.get(2).getName());
+        assertEquals(workspaces.get(2).getId().getId(), result.get(1).getId().getId());
+        assertEquals(workspaces.get(2).getName(), result.get(1).getName());
+
+        workspaces.get(0).setActive(new Date());
+        workspaceRepository.save(workspaces.get(0));
+
+        client.get().uri("/workspace")
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBodyList(Workspace.class)
+                .hasSize(2);
     }
 
     @Test
-    void allWithData() throws Exception {
-        User user = userRepository.findById(1L).orElseThrow();
-        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
-        workspaceRepository.save(new Workspace(id, user, "test 1"));
-        id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
-        workspaceRepository.save(new Workspace(id, user, "test 2"));
-        id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
-        workspaceRepository.save(new Workspace(id, user, "test 3"));
-
-        mvc.perform(get("/user/1/workspace/").contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(3)))
-                .andExpect(jsonPath("$[0].name", is("test 1")))
-                .andExpect(jsonPath("$[1].name", is("test 2")))
-                .andExpect(jsonPath("$[2].name", is("test 3")));
+    void getAllWorkspacesUnauthorized() {
+        client.get().uri("/workspace")
+                .exchange()
+                .expectStatus().isUnauthorized();
     }
 
     @Test
-    void allNotFound() throws Exception {
-        mvc.perform(get("/user/2222/workspace/").contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void addSuccess() throws Exception {
-        mvc.perform(post("/user/1/workspace/").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\": \"test\"}"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.name", is("test")));
-    }
-
-    @Test
-    void addNotFound() throws Exception {
-        mvc.perform(post("/user/2222/workspace/").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\": \"test\"}"))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void addBadRequest() throws Exception {
-        mvc.perform(post("/user/1/workspace/").contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest());
-        mvc.perform(post("/user/1/workspace/").contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void addUnsupportedMedia() throws Exception {
-        mvc.perform(post("/user/1/workspace/").contentType(MediaType.MULTIPART_FORM_DATA))
-                .andExpect(status().isUnsupportedMediaType());
-        mvc.perform(post("/user/1/workspace/").contentType(MediaType.MULTIPART_FORM_DATA).content("{}"))
-                .andExpect(status().isUnsupportedMediaType());
-        mvc.perform(post("/user/1/workspace/").contentType(MediaType.MULTIPART_FORM_DATA)
-                .content("{\"name\": \"test\"}"))
-                .andExpect(status().isUnsupportedMediaType());
-    }
-
-    @Test
-    void getSuccess() throws Exception {
-        User user = userRepository.findById(1L).orElseThrow();
-        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
-        Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
-
-        mvc.perform(get(String.format("/user/1/workspace/%d", workspace.getId().getId())))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.name", is(workspace.getName())));
-    }
-
-    @Test
-    void getNotFound() throws Exception {
-        User user = userRepository.findById(1L).orElseThrow();
-        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
-        Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
-
-        mvc.perform(get("/user/1/workspace/54"))
-                .andExpect(status().isNotFound());
-
-        mvc.perform(get(String.format("/user/2222/workspace/%d", workspace.getId().getId())))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void putSuccess() throws Exception {
-        User user = userRepository.findById(1L).orElseThrow();
-        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
-        Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
-
-        mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId().getId()))
+    void newWorkspaceSuccess() {
+        WorkspaceRequest request = new WorkspaceRequest("POST");
+        Workspace workspace = client.post().uri("/workspace")
+                .cookie("session", session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\": \"new put\"}"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.name", is("new put")));
-
-        mvc.perform(get(String.format("/user/1/workspace/%d", workspace.getId().getId())))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.name", is("new put")));
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Workspace.class)
+                .returnResult()
+                .getResponseBody();
+        Optional<Workspace> optional = workspaceRepository.findById(new WorkspaceKey(workspace.getId().getId(), user));
+        assertEquals(true, optional.isPresent());
+        Workspace result = optional.get();
+        assertEquals(workspace.getName(), result.getName());
+        assertEquals(workspace.getId().getId(), result.getId().getId());
     }
 
     @Test
-    void putBadRequest() throws Exception {
-        User user = userRepository.findById(1L).orElseThrow();
-        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
-        Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
+    void newWorkspaceBadRequest() {
+        WorkspaceRequest request = new WorkspaceRequest();
+        client.post().uri("/workspace")
+                .cookie("session", session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
 
-        mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId().getId()))
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest());
+        request.setName("0".repeat(51));
+        client.post().uri("/workspace")
+                .cookie("session", session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
     }
 
     @Test
-    void putNotFound() throws Exception {
-        mvc.perform(put("/user/1/workspace/1").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\": \"new put\"}"))
-                .andExpect(status().isNotFound());
-
-        mvc.perform(put("/user/2222/workspace/1").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\": \"new put\"}"))
-                .andExpect(status().isNotFound());
-
-                User user = userRepository.findById(1L).orElseThrow();
-                long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
-                Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
-
-        mvc.perform(put(String.format("/user/2222/workspace/%d", workspace.getId().getId()))
-                .contentType(MediaType.APPLICATION_JSON).content("{\"name\": \"new put\"}"))
-                .andExpect(status().isNotFound());
+    void newWorkspaceUnauthorized() {
+        client.post().uri("/workspace")
+                .contentType(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isUnauthorized();
     }
 
     @Test
-    void putUnsupportedMedia() throws Exception {
-        User user = userRepository.findById(1L).orElseThrow();
-        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
-        Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
+    void getWorkspaceSuccess() {
+        Workspace workspace = workspaceRepository.save(new Workspace(1, user, "GET"));
 
-        mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId().getId()))
-                .contentType(MediaType.MULTIPART_FORM_DATA))
-                .andExpect(status().isUnsupportedMediaType());
-        mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId().getId()))
-                .contentType(MediaType.MULTIPART_FORM_DATA).content("{}"))
-                .andExpect(status().isUnsupportedMediaType());
-        mvc.perform(put(String.format("/user/1/workspace/%d", workspace.getId().getId()))
-                .contentType(MediaType.MULTIPART_FORM_DATA).content("{\"name\": \"test\"}"))
-                .andExpect(status().isUnsupportedMediaType());
+        Workspace result = client.get().uri("/workspace/" + workspace.getId().getId())
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Workspace.class)
+                .returnResult()
+                .getResponseBody();
+
+        assertEquals(workspace.getId().getId(), result.getId().getId());
+        assertEquals(workspace.getName(), result.getName());
     }
 
     @Test
-    void deleteSuccess() throws Exception {
-        User user = userRepository.findById(1L).orElseThrow();
-        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
-        Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
+    void getWorkspaceUnathorized() {
+        client.get().uri("/workspace/1")
+                .exchange()
+                .expectStatus().isUnauthorized();
 
-        mvc.perform(delete(String.format("/user/1/workspace/%d", workspace.getId().getId())))
-                .andExpect(status().isOk());
+        Workspace workspace = workspaceRepository.save(new Workspace(1, user, "GET"));
+        client.get().uri("/workspace/" + workspace.getId().getId())
+                .exchange()
+                .expectStatus().isUnauthorized();
     }
 
     @Test
-    void deleteNotFound() throws Exception {
-        mvc.perform(delete("/user/1/workspace/223"))
-                .andExpect(status().isNotFound());
+    void getWorkspaceNotFound() {
+        client.get().uri("/workspace/1")
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
 
-                User user = userRepository.findById(1L).orElseThrow();
-                long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
-                Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
-
-        mvc.perform(delete(String.format("/user/222/workspace/%d", workspace.getId().getId())))
-                .andExpect(status().isNotFound());
+        Workspace workspace = new Workspace(1, user, "GET");
+        workspace.setActive(new Date());
+        workspace = workspaceRepository.save(workspace);
+        client.get().uri("/workspace/" + workspace.getId().getId())
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
     }
 
     @Test
-    void deleteBadRequest() throws Exception {
-        User user = userRepository.findById(1L).orElseThrow();
-        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
-        Workspace workspace = workspaceRepository.save(new Workspace(id, user, "test 176"));
-        CounterSequence cs1 = new CounterSequence();
-        cs1 = counterSequenceRepository.save(cs1);
-        CounterSequence cs2 = new CounterSequence();
-        cs2 = counterSequenceRepository.save(cs2);
-        CounterSequence cs3 = new CounterSequence();
-        cs3 = counterSequenceRepository.save(cs3);
-        Project project = projectRepository.save(new Project("put", cs1, cs2, cs3));
-        ProjectWorkspace projectWorkspace = projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+    void putWorkspaceSuccess() {
+        Workspace workspace = workspaceRepository.save(new Workspace(1, user, "PUT"));
+        WorkspaceRequest request = new WorkspaceRequest(null);
+        Workspace result = client.put().uri("/workspace/" + workspace.getId().getId())
+                .cookie("session", session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Workspace.class)
+                .returnResult()
+                .getResponseBody();
+        assertEquals(workspace.getId().getId(), result.getId().getId());
+        assertEquals(workspace.getName(), result.getName());
+        assertEquals(workspace, workspaceRepository.findByIdOrThrow(workspace.getId()));
 
-        mvc.perform(delete(String.format("/user/1/workspace/%d", workspace.getId().getId())))
-                .andExpect(status().isBadRequest());
-        
-        projectWorkspaceRepository.delete(projectWorkspace);
+        request.setName("NEW PUT");
+        result = client.put().uri("/workspace/" + workspace.getId().getId())
+                .cookie("session", session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Workspace.class)
+                .returnResult()
+                .getResponseBody();
+        assertEquals(workspace.getId().getId(), result.getId().getId());
+        assertEquals(request.getName(), result.getName());
+        assertNotEquals(workspace, workspaceRepository.findByIdOrThrow(workspace.getId()));
+    }
 
-        mvc.perform(delete(String.format("/user/1/workspace/%d", workspace.getId().getId())))
-                .andExpect(status().isOk());
-        
-        projectRepository.delete(project);
+    @Test
+    void putWorkspaceBadRequest() {
+        Workspace workspace = workspaceRepository.save(new Workspace(1, user, "PUT"));
+        WorkspaceRequest request = new WorkspaceRequest("0".repeat(51));
+        client.put().uri("/workspace/" + workspace.getId().getId())
+                .cookie("session", session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void putWorkspaceUnathorized() {
+        WorkspaceRequest request = new WorkspaceRequest("NEW PUT");
+        client.put().uri("/workspace/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isUnauthorized();
+
+        Workspace workspace = workspaceRepository.save(new Workspace(1, user, "PUT"));
+
+        client.put().uri("/workspace/" + workspace.getId().getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void putWorkspaceNotFound() {
+        WorkspaceRequest request = new WorkspaceRequest("NEW PUT");
+        client.put().uri("/workspace/1")
+                .cookie("session", session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void deleteWorkspaceSuccess() {
+        Workspace workspace = workspaceRepository.save(new Workspace(1, user, "DELETE"));
+        client.delete().uri("/workspace/" + workspace.getId().getId())
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isOk();
+        assertNotEquals(null, workspaceRepository.findById(workspace.getId()).get().getActive());
+    }
+
+    @Test
+    void deleteWorkspaceBadRequest(@Autowired ProjectRepository projectRepository,
+            @Autowired ProjectWorkspaceRepository projectWorkspaceRepository) {
+        CounterSequence cs1 = counterSequenceRepository.save(new CounterSequence());
+        CounterSequence cs2 = counterSequenceRepository.save(new CounterSequence());
+        CounterSequence cs3 = counterSequenceRepository.save(new CounterSequence());
+        Project project = projectRepository.save(new Project("DELETE", cs1, cs2, cs3));
+        Workspace workspace = workspaceRepository.save(new Workspace(1, user, "DELETE"));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+
+        client.delete().uri("/workspace/" + workspace.getId().getId())
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isBadRequest();
+
+        assertEquals(workspace.getActive(), workspaceRepository.findByIdOrThrow(workspace.getId()).getActive());
+    }
+
+    @Test
+    void deleteWorkspaceUnauthorized() {
+        client.delete().uri("/workspace/1")
+                .exchange()
+                .expectStatus().isUnauthorized();
+
+        Workspace workspace = workspaceRepository.save(new Workspace(1, user, "DELETE"));
+        client.delete().uri("/workspace/" + workspace.getId().getId())
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void deleteWorkspaceNotFound() {
+        client.delete().uri("/workspace/1")
+                .cookie("session", session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
     }
 }

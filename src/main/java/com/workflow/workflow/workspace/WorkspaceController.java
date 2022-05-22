@@ -10,8 +10,6 @@ import javax.validation.constraints.NotNull;
 import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.utils.ErrorType;
-import com.workflow.workflow.workspace.entity.Workspace;
-import com.workflow.workflow.workspace.entity.WorkspaceKey;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -50,12 +48,15 @@ public class WorkspaceController {
 
     @Operation(summary = "Create workspace.", description = "Creates new workspace for authenticated user. All fields of request body are required.")
     @ApiResponse(description = "Newly created workspace.", responseCode = "200")
-    @ApiResponse(description = "Some fields are missing.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Some fields are missing or failed to satisfy requirements.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PostMapping
     public Workspace newWorkspace(@NotNull @Parameter(hidden = true) User user, @RequestBody WorkspaceRequest request) {
         if (request.getName() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing name field");
+        }
+        if (request.getName().length() > 50) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name field length bigger than 50 characters");
         }
         long id = counterRepository.getIncrementCounter(user.getCounterSequence().getId());
         return workspaceRepository.save(new Workspace(id, user, request));
@@ -89,6 +90,7 @@ public class WorkspaceController {
     @Operation(summary = "Delete workspace.", description = "Deletes workspace with given id. Workspace to delete must be empty.")
     @ApiResponse(description = "Workspace deleted.", responseCode = "200")
     @ApiResponse(description = "Workspace with given id not empty.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Workspace with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @DeleteMapping("/{id}")
     public void deleteWorkspace(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {

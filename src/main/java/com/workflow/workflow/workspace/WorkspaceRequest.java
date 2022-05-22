@@ -4,10 +4,10 @@ public class WorkspaceRequest {
 
     private String name;
 
-    WorkspaceRequest() {
+    public WorkspaceRequest() {
     }
 
-    WorkspaceRequest(String name) {
+    public WorkspaceRequest(String name) {
         this.name = name;
     }
 

@@ -23,7 +23,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.workflow.workflow.counter.CounterSequence;
 import com.workflow.workflow.utils.SoftDeleteEntity;
-import com.workflow.workflow.workspace.entity.Workspace;
+import com.workflow.workflow.workspace.Workspace;
 
 import org.hibernate.annotations.Where;
 

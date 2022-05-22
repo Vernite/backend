@@ -5,7 +5,7 @@ import java.util.Optional;
 
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.user.User;
-import com.workflow.workflow.workspace.entity.Workspace;
+import com.workflow.workflow.workspace.Workspace;
 
 import org.springframework.data.repository.CrudRepository;
 

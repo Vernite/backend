@@ -11,8 +11,8 @@ import com.workflow.workflow.status.Status;
 import com.workflow.workflow.status.StatusRepository;
 import com.workflow.workflow.task.TaskRepository;
 import com.workflow.workflow.user.User;
+import com.workflow.workflow.workspace.Workspace;
 import com.workflow.workflow.workspace.WorkspaceRepository;
-import com.workflow.workflow.workspace.entity.Workspace;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;

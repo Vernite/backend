@@ -7,7 +7,7 @@ import javax.persistence.ManyToOne;
 import javax.persistence.MapsId;
 
 import com.workflow.workflow.project.Project;
-import com.workflow.workflow.workspace.entity.Workspace;
+import com.workflow.workflow.workspace.Workspace;
 
 /**
  * Entity for representing relation between workspace (with user) and project.

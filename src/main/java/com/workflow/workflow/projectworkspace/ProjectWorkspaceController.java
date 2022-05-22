@@ -4,9 +4,9 @@ import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
+import com.workflow.workflow.workspace.Workspace;
+import com.workflow.workflow.workspace.WorkspaceKey;
 import com.workflow.workflow.workspace.WorkspaceRepository;
-import com.workflow.workflow.workspace.entity.Workspace;
-import com.workflow.workflow.workspace.entity.WorkspaceKey;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

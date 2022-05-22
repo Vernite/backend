@@ -8,8 +8,8 @@ import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
 import com.workflow.workflow.user.User;
+import com.workflow.workflow.workspace.Workspace;
 import com.workflow.workflow.workspace.WorkspaceRepository;
-import com.workflow.workflow.workspace.entity.Workspace;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;

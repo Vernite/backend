@@ -1,4 +1,4 @@
-package com.workflow.workflow.workspace.entity;
+package com.workflow.workflow.workspace;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +19,6 @@ import com.workflow.workflow.projectworkspace.ProjectWithPrivileges;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.utils.SoftDeleteEntity;
-import com.workflow.workflow.workspace.WorkspaceRequest;
 
 /**
  * Entity for representing workspace. Its primary key is composed of id and user
@@ -48,7 +47,7 @@ public class Workspace extends SoftDeleteEntity implements Comparable<Workspace>
     }
 
     public Workspace(long id, User user, String name) {
-        this.id = new WorkspaceKey(id);
+        this.id = new WorkspaceKey(id, user);
         this.user = user;
         this.name = name;
     }

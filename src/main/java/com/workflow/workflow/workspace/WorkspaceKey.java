@@ -1,4 +1,4 @@
-package com.workflow.workflow.workspace.entity;
+package com.workflow.workflow.workspace;
 
 import java.io.Serializable;
 
@@ -18,10 +18,6 @@ public class WorkspaceKey implements Serializable, Comparable<WorkspaceKey> {
     private long userId;
 
     public WorkspaceKey() {
-    }
-
-    WorkspaceKey(long id) {
-        this.id = id;
     }
 
     public WorkspaceKey(long id, User user) {
