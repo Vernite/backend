@@ -159,16 +159,6 @@ public class ProjectControllerTests {
     }
 
     @Test
-    void getProjectForbidden() {
-        Project project = projectRepository.save(new Project("GET"));
-
-        client.get().uri("/project/" + project.getId())
-                .cookie("session", session.getSession())
-                .exchange()
-                .expectStatus().isForbidden();
-    }
-
-    @Test
     void getProjectNotFound() {
         client.get().uri("/project/1")
                 .cookie("session", session.getSession())
@@ -239,19 +229,6 @@ public class ProjectControllerTests {
     }
 
     @Test
-    void putProjectForbidden() {
-        Project project = projectRepository.save(new Project("PUT"));
-        ProjectRequest request = new ProjectRequest("PUT", 1L);
-
-        client.put().uri("/project/" + project.getId())
-                .cookie("session", session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isForbidden();
-    }
-
-    @Test
     void putProjectNotFound() {
         client.get().uri("/project/1")
                 .cookie("session", session.getSession())
@@ -281,18 +258,6 @@ public class ProjectControllerTests {
         client.delete().uri("/project/" + project.getId())
                 .exchange()
                 .expectStatus().isUnauthorized();
-
-        assertEquals(project.getActive(), projectRepository.findByIdOrThrow(project.getId()).getActive());
-    }
-
-    @Test
-    void deleteProjectForbidden() {
-        Project project = projectRepository.save(new Project("PUT"));
-
-        client.delete().uri("/project/" + project.getId())
-                .cookie("session", session.getSession())
-                .exchange()
-                .expectStatus().isForbidden();
 
         assertEquals(project.getActive(), projectRepository.findByIdOrThrow(project.getId()).getActive());
     }
@@ -340,20 +305,6 @@ public class ProjectControllerTests {
     }
 
     @Test
-    void moveProjectWorkspaceForbidden() {
-        Project project = projectRepository.save(new Project("PUT"));
-
-        Workspace workspace2 = workspaceRepository.save(new Workspace(2, user, "Project Tests 2"));
-
-        client.put().uri(String.format("/project/%d/workspace/%d", project.getId(), workspace2.getId().getId()))
-                .cookie("session", session.getSession())
-                .exchange()
-                .expectStatus().isForbidden();
-
-        assertEquals(0, workspaceRepository.findByIdOrThrow(workspace2.getId()).getProjectsWithPrivileges().size());
-    }
-
-    @Test
     void moveProjectWorkspaceNotFound() {
         Project project = projectRepository.save(new Project("PUT"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
@@ -390,16 +341,6 @@ public class ProjectControllerTests {
         client.get().uri(String.format("/project/%d/member", project.getId()))
                 .exchange()
                 .expectStatus().isUnauthorized();
-    }
-
-    @Test
-    void getProjectMembersForbidden() {
-        Project project = projectRepository.save(new Project("PUT"));
-
-        client.get().uri(String.format("/project/%d/member", project.getId()))
-                .cookie("session", session.getSession())
-                .exchange()
-                .expectStatus().isForbidden();
     }
 
     @Test

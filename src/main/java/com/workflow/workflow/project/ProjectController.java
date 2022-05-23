@@ -14,6 +14,7 @@ import com.workflow.workflow.status.Status;
 import com.workflow.workflow.status.StatusRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.utils.ErrorType;
+import com.workflow.workflow.utils.NotFoundRepository;
 import com.workflow.workflow.workspace.Workspace;
 import com.workflow.workflow.workspace.WorkspaceKey;
 import com.workflow.workflow.workspace.WorkspaceRepository;
@@ -39,7 +40,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 @RestController
 @RequestMapping("/project")
 public class ProjectController {
-    private static final String NO_ACCESS = "no access to project";
     @Autowired
     private ProjectRepository projectRepository;
     @Autowired
@@ -96,13 +96,12 @@ public class ProjectController {
     @Operation(summary = "Retrieve project.", description = "Retrieves project with given id if authenticated user is member of this project.")
     @ApiResponse(description = "Project with given id.", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Authenticated user is not memeber of project with given id.", responseCode = "403", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/{id}")
     public Project getProject(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, NO_ACCESS);
+            throw NotFoundRepository.getException();
         }
         return project;
     }
@@ -111,7 +110,6 @@ public class ProjectController {
     @ApiResponse(description = "Project after changes.", responseCode = "200")
     @ApiResponse(description = "Some fields failed to satisfy requirements.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Authenticated user is not memeber of project with given id.", responseCode = "403", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PutMapping("/{id}")
     public Project putProject(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
@@ -121,7 +119,7 @@ public class ProjectController {
         }
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, NO_ACCESS);
+            throw NotFoundRepository.getException();
         }
         project.apply(request);
         return projectRepository.save(project);
@@ -130,13 +128,12 @@ public class ProjectController {
     @Operation(summary = "Delete project.", description = "Deletes project with given id. Authenticated user must be member of project.")
     @ApiResponse(description = "Project deleted.", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Authenticated user is not memeber of project with given id.", responseCode = "403", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @DeleteMapping("/{id}")
     public void deleteProject(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, NO_ACCESS);
+            throw NotFoundRepository.getException();
         }
         project.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
         projectRepository.save(project);
@@ -145,7 +142,6 @@ public class ProjectController {
     @Operation(summary = "Change project workspace.", description = "Changes workspace for project with given id to workspace with given id for authenticated user.")
     @ApiResponse(description = "Project workspace changed", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Authenticated user is not memeber of project with given id.", responseCode = "403", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or workspace with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PutMapping("/{id}/workspace/{newWorkspaceId}")
     public void moveProjectWorkspace(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
@@ -153,7 +149,7 @@ public class ProjectController {
         Project project = projectRepository.findByIdOrThrow(id);
         int index = project.member(user);
         if (index == -1) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, NO_ACCESS);
+            throw NotFoundRepository.getException();
         }
         Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceKey(newWorkspaceId, user));
         ProjectWorkspace projectWorkspace = project.getProjectWorkspaces().get(index);
@@ -165,13 +161,12 @@ public class ProjectController {
     @Operation(summary = "Retrieve project members.", description = "Retrieves members of project with given id. Authenticated user must be member of project.")
     @ApiResponse(description = "List of project members.", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Authenticated user is not memeber of project with given id.", responseCode = "403", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/{id}/member")
     public List<ProjectMember> getProjectMembers(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, NO_ACCESS);
+            throw NotFoundRepository.getException();
         }
         return projectWorkspaceRepository.findByProjectOrderByWorkspaceUserUsernameAscWorkspaceUserIdAsc(project)
                 .stream().map(ProjectWorkspace::getProjectMember).toList();
