@@ -65,6 +65,23 @@ public class TaskController {
         return taskRepository.findByStatusProjectAndActiveNullOrderByNameAscIdAsc(project);
     }
 
+    @Operation(summary = "Get task information.", description = "This method is used to retrive status with given ID. On success returns task with given ID. Throws 404 when project or task does not exist.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Task with given ID.", content = {
+                    @Content(mediaType = "application/json", schema = @Schema(implementation = Task.class))
+            }),
+            @ApiResponse(responseCode = "404", description = "Project or/and task with given ID not found.", content = @Content())
+    })
+    @GetMapping("/{id}")
+    public Task get(@PathVariable long projectId, @PathVariable long id) {
+        Task task = taskRepository.findById(id).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, TASK_NOT_FOUND));
+        if (task.getStatus().getProject().getId() != projectId) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, TASK_NOT_FOUND);
+        }
+        return task;
+    }
+
     @Operation(summary = "Create task.", description = "This method creates new task. On success returns newly created task.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Newly created task.", content = {
