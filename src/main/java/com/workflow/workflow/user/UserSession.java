@@ -12,6 +12,8 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.validation.constraints.NotNull;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 public class UserSession {
     @Id
@@ -20,6 +22,7 @@ public class UserSession {
 
     @Column(unique = true)
     @NotNull
+    @JsonIgnore
     private String session;
 
     @NotNull
@@ -30,6 +33,7 @@ public class UserSession {
 
     @NotNull
     @ManyToOne
+    @JsonIgnore
     @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_user_session_user"))
     private User user;
 
