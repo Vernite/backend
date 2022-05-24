@@ -1,5 +1,6 @@
 package com.workflow.workflow.projectworkspace;
 
+import javax.persistence.CascadeType;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -8,6 +9,9 @@ import javax.persistence.MapsId;
 
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.workspace.Workspace;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 /**
  * Entity for representing relation between workspace (with user) and project.
@@ -18,11 +22,13 @@ public class ProjectWorkspace {
     @EmbeddedId
     private ProjectWorkspaceKey id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @ManyToOne(cascade = CascadeType.REMOVE, fetch = FetchType.LAZY, optional = false)
     @MapsId("workspaceId")
     private Workspace workspace;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @ManyToOne(cascade = CascadeType.REMOVE, fetch = FetchType.LAZY, optional = false)
     @MapsId("projectId")
     private Project project;
 
