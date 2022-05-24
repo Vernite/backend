@@ -54,7 +54,7 @@ public class SessionController {
     })
     @GetMapping
     public Future<List<UserSession>> all(@NotNull @Parameter(hidden = true) User loggedUser,
-            @CookieValue(AuthController.COOKIE_NAME) String session) {
+            @Parameter(hidden = true) @CookieValue(AuthController.COOKIE_NAME) String session) {
         List<UserSession> sessions = userSessionRepository.findByUser(loggedUser);
         HashSet<String> ips = new HashSet<>();
         long t = System.currentTimeMillis();
