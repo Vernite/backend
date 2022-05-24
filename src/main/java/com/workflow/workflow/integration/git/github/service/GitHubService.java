@@ -37,7 +37,7 @@ public class GitHubService {
     private static final String ACCEPT = "Accept";
     private static final String BEARER = "Bearer ";
     private static final String APPLICATION_JSON_GITHUB = "application/vnd.github.v3+json";
-    private static final WebClient client = WebClient.create();
+    private static final WebClient CLIENT = WebClient.create();
     private GitHubInstallationRepository installationRepository;
     private GitHubIntegrationRepository integrationRepository;
     private GitHubTaskRepository taskRepository;
@@ -89,7 +89,7 @@ public class GitHubService {
      * @return GitHub user information for given GitHub application istallation.
      */
     public Mono<GitHubUser> getInstallationUser(long installationId) {
-        return client.get()
+        return CLIENT.get()
                 .uri("https://api.github.com/app/installations/" + Long.toString(installationId))
                 .header(AUTHORIZATION, BEARER + createJWT())
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
@@ -128,7 +128,7 @@ public class GitHubService {
             return Mono.empty();
         }
         return refreshToken(integration.getInstallation())
-                .flatMap(installation -> client.post()
+                .flatMap(installation -> CLIENT.post()
                         .uri(String.format("https://api.github.com/repos/%s/issues",
                                 integration.getRepositoryFullName()))
                         .header(AUTHORIZATION, BEARER + installation.getToken())
@@ -156,7 +156,7 @@ public class GitHubService {
             return Mono.empty();
         }
         return refreshToken(gitHubTask.getGitHubIntegration().getInstallation())
-                .flatMap(installation -> client.patch()
+                .flatMap(installation -> CLIENT.patch()
                         .uri(String.format("https://api.github.com/repos/%s/issues/%d",
                                 gitHubTask.getGitHubIntegration().getRepositoryFullName(), gitHubTask.getIssueId()))
                         .header(AUTHORIZATION, BEARER + installation.getToken())
@@ -181,7 +181,7 @@ public class GitHubService {
             return Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED));
         }
         return refreshToken(integration.getInstallation())
-                .flatMap(installation -> client.get()
+                .flatMap(installation -> CLIENT.get()
                         .uri(String.format("https://api.github.com/repos/%s/issues/%d",
                                 integration.getRepositoryFullName(), issueNumber))
                         .header(AUTHORIZATION, BEARER + installation.getToken())
@@ -200,7 +200,7 @@ public class GitHubService {
             return Flux.empty();
         }
         return refreshToken(integration.getInstallation())
-                .flatMapMany(installation -> client.get()
+                .flatMapMany(installation -> CLIENT.get()
                         .uri(String.format("https://api.github.com/repos/%s/issues",
                                 integration.getRepositoryFullName()))
                         .header(AUTHORIZATION, BEARER + installation.getToken())
@@ -241,7 +241,7 @@ public class GitHubService {
      *         installation.
      */
     private Mono<List<GitHubRepository>> getRepositoryList(GitHubInstallation installation) {
-        return client.get()
+        return CLIENT.get()
                 .uri("https://api.github.com/installation/repositories")
                 .header(AUTHORIZATION, BEARER + installation.getToken())
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
@@ -260,7 +260,7 @@ public class GitHubService {
      *         refreshing is not needed future with installation.
      */
     private Mono<GitHubInstallation> refreshToken(GitHubInstallation installation) {
-        return Instant.now().isAfter(installation.getExpiresAt().toInstant()) ? client.post()
+        return Instant.now().isAfter(installation.getExpiresAt().toInstant()) ? CLIENT.post()
                 .uri(String.format("https://api.github.com/app/installations/%d/access_tokens",
                         installation.getInstallationId()))
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)

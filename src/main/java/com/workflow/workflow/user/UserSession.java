@@ -10,6 +10,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.Transient;
 import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -40,6 +41,11 @@ public class UserSession {
     private Date lastUsed;
 
     private boolean remembered;
+
+    @Transient
+    private GeoIP geoip;
+    @Transient
+    private boolean current;
 
     public int getId() {
         return id;
@@ -95,6 +101,22 @@ public class UserSession {
 
     public void setRemembered(boolean remembered) {
         this.remembered = remembered;
+    }
+
+    public GeoIP getGeoip() {
+        return geoip;
+    }
+
+    public void setGeoip(GeoIP geoip) {
+        this.geoip = geoip;
+    }
+
+    public boolean isCurrent() {
+        return current;
+    }
+
+    public void setCurrent(boolean current) {
+        this.current = current;
     }
 
 }
