@@ -14,6 +14,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.utils.SoftDeleteEntity;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 @Entity
 public class Status extends SoftDeleteEntity {
     
@@ -36,6 +39,7 @@ public class Status extends SoftDeleteEntity {
 
     @JsonIgnore
     @ManyToOne
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "project_id", nullable = false, foreignKey = @ForeignKey(name = "fk_column_project"))
     private Project project;
 

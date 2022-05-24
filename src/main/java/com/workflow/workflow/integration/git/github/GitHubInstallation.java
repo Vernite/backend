@@ -13,6 +13,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.workflow.workflow.integration.git.github.service.InstallationToken;
 import com.workflow.workflow.user.User;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 @Entity
 public class GitHubInstallation {
     @Id
@@ -21,6 +24,7 @@ public class GitHubInstallation {
     private String token;
     private Timestamp expiresAt;
     @ManyToOne
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
     @Column(unique = true)
     private long installationId;

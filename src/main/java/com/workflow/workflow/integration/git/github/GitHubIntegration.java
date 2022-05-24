@@ -10,14 +10,19 @@ import javax.persistence.OneToOne;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.utils.SoftDeleteEntity;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 @Entity
 public class GitHubIntegration extends SoftDeleteEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     long id;
     @OneToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Project project;
     @ManyToOne
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private GitHubInstallation installation;
     private String repositoryFullName;
 

@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.ForeignKey;
@@ -44,6 +43,7 @@ public class Task extends SoftDeleteEntity {
 
     @ManyToOne
     @JoinColumn(name = "sprint_id", foreignKey = @ForeignKey(name = "fk_task_sprint"))
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Sprint sprint;
 
     @Lob
@@ -55,11 +55,13 @@ public class Task extends SoftDeleteEntity {
 
     @JsonIgnore
     @ManyToOne
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "status_id", nullable = false, foreignKey = @ForeignKey(name = "fk_task_status"))
     private Status status;
 
     @JsonIgnore
     @ManyToOne
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "created_by", nullable = false, foreignKey = @ForeignKey(name = "fk_task_user"))
     private User user;
 
@@ -74,6 +76,7 @@ public class Task extends SoftDeleteEntity {
     @JoinColumn(nullable = true)
     private Task parentTask;
 
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToMany(mappedBy = "parentTask")
     private Set<Task> subTasks = new HashSet<>();
 

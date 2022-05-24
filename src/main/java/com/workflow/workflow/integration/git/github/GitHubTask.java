@@ -10,6 +10,9 @@ import javax.persistence.OneToOne;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.utils.SoftDeleteEntity;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 @Entity
 public class GitHubTask extends SoftDeleteEntity {
     @EmbeddedId
@@ -18,11 +21,13 @@ public class GitHubTask extends SoftDeleteEntity {
     @OneToOne
     @MapsId("taskId")
     @JoinColumn(name = "task_id")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Task task;
 
     @ManyToOne
     @MapsId("integrationId")
     @JoinColumn(name = "integration_id")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private GitHubIntegration gitHubIntegration;
 
     private long issueId;

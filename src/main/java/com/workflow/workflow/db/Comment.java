@@ -13,6 +13,9 @@ import javax.persistence.ManyToOne;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.user.User;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 @Entity
 public class Comment {
     
@@ -21,6 +24,7 @@ public class Comment {
     private Long id;
     
     @ManyToOne
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "task_id", nullable = false, foreignKey = @ForeignKey(name = "fk_comment_task"))
     private Task task;
 
@@ -29,6 +33,7 @@ public class Comment {
     private String content;
 
     @ManyToOne
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_comment_user"))
     private User user;
 

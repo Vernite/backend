@@ -13,6 +13,9 @@ import javax.persistence.ManyToOne;
 
 import com.workflow.workflow.project.Project;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 @Entity
 public class Sprint {
 
@@ -28,6 +31,7 @@ public class Sprint {
 
     @ManyToOne
     @JoinColumn(name = "project_id", foreignKey = @ForeignKey(name = "fk_sprint_project"))
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Project project;
 
     public Long getId() {
