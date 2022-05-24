@@ -74,6 +74,7 @@ public class Task extends SoftDeleteEntity {
     private Set<Task> subTasks = new HashSet<>();
 
     private Date deadline;
+    private Date estimatedDate;
 
     public Long getId() {
         return id;
@@ -145,6 +146,14 @@ public class Task extends SoftDeleteEntity {
 
     public void setDeadline(Date deadline) {
         this.deadline = deadline;
+    }
+
+    public Date getEstimatedDate() {
+        return estimatedDate;
+    }
+
+    public void setEstimatedDate(Date estimatedDate) {
+        this.estimatedDate = estimatedDate;
     }
 
     public long getStatusId() {

@@ -10,6 +10,7 @@ public class TaskRequest {
     private Long statusId;
     private Integer type;
     private Date deadline;
+    private Date estimatedDate;
     private boolean createIssue = true;
     private Long parentTaskId;
 
@@ -35,6 +36,14 @@ public class TaskRequest {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public Date getEstimatedDate() {
+        return estimatedDate;
+    }
+
+    public void setEstimatedDate(Date estimatedDate) {
+        this.estimatedDate = estimatedDate;
     }
 
     public Long getStatusId() {
