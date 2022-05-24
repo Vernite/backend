@@ -45,7 +45,7 @@ public class StatusController {
             }),
             @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
     })
-    @GetMapping("/")
+    @GetMapping
     public Iterable<Status> all(@PathVariable long projectId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
@@ -60,7 +60,7 @@ public class StatusController {
             @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content()),
             @ApiResponse(responseCode = "404", description = "User with given ID not found.", content = @Content())
     })
-    @PostMapping("/")
+    @PostMapping
     public Status add(@PathVariable long projectId, @RequestBody Status status) {
         if (status.getColor() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing color");

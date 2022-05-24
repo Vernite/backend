@@ -58,7 +58,7 @@ public class TaskController {
             }),
             @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
     })
-    @GetMapping("/")
+    @GetMapping
     public Iterable<Task> all(@PathVariable long projectId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
@@ -73,7 +73,7 @@ public class TaskController {
             @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content()),
             @ApiResponse(responseCode = "404", description = "Project or status not found.", content = @Content())
     })
-    @PostMapping("/")
+    @PostMapping
     public Mono<Task> add(@PathVariable long projectId, @RequestBody TaskRequest taskRequest) {
         if (taskRequest.getName() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing name");
