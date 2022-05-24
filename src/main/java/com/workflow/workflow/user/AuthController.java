@@ -24,6 +24,7 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -76,8 +77,7 @@ public class AuthController {
                     @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
             }),
             @ApiResponse(responseCode = "403", description = "User is already logged.", content = @Content()),
-            @ApiResponse(responseCode = "404", description = "Username or password is incorrect.", content = @Content()),
-            @ApiResponse(responseCode = "422", description = "Username or email is already taken.", content = @Content())
+            @ApiResponse(responseCode = "404", description = "Username or password is incorrect.", content = @Content())
     })
     @PostMapping("/login")
     public Future<User> login(@Parameter(hidden = true) User loggedUser, @RequestBody LoginRequest req,
@@ -104,6 +104,30 @@ public class AuthController {
             }
         }, 500 + RANDOM.nextInt(500), TimeUnit.MILLISECONDS);
         return f;
+    }
+
+    @Operation(summary = "Modify user account.", description = "This method edits the account.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User after changes.", content = {
+                    @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
+            })
+    })
+    @PutMapping("/edit")
+    public User edit(@NotNull @Parameter(hidden = true) User loggedUser, EditAccountRequest req) {
+        if (req.getPassword() != null) {
+            loggedUser.setPassword(req.getPassword());
+        }
+        if (req.getAvatar() != null) {
+            loggedUser.setAvatar(req.getAvatar());
+        }
+        if (req.getName() != null) {
+            loggedUser.setName(req.getName());
+        }
+        if (req.getSurname() != null) {
+            loggedUser.setSurname(req.getSurname());
+        }
+        userRepository.save(loggedUser);
+        return loggedUser;
     }
 
     @Operation(summary = "Register account.", description = "This method registers a new account. On success returns newly created user.")
