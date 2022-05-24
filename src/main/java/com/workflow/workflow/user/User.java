@@ -25,6 +25,8 @@ import com.workflow.workflow.counter.CounterSequence;
 import com.workflow.workflow.utils.SoftDeleteEntity;
 import com.workflow.workflow.workspace.Workspace;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.annotations.Where;
 
 @Entity
@@ -59,11 +61,13 @@ public class User extends SoftDeleteEntity {
     private String username;
 
     @JsonIgnore
-    @OneToOne(cascade = { CascadeType.REMOVE, CascadeType.PERSIST }, optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @OneToOne(cascade = { CascadeType.PERSIST }, optional = false)
     private CounterSequence counterSequence;
 
     @JsonIgnore
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "user")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
     @Where(clause = "active is null")
     @OrderBy("name, id")
     private List<Workspace> workspaces = new ArrayList<>();

@@ -26,6 +26,8 @@ import com.workflow.workflow.status.Status;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.utils.SoftDeleteEntity;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.annotations.Where;
 
 /**
@@ -45,28 +47,34 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     private String name;
 
     @JsonIgnore
-    @OneToMany(cascade = CascadeType.REMOVE, mappedBy = "project")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @OneToMany(mappedBy = "project")
     private List<ProjectWorkspace> projectWorkspaces = new ArrayList<>();
 
     @JsonIgnore
-    @OneToMany(cascade = { CascadeType.REMOVE, CascadeType.PERSIST }, mappedBy = "project")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @OneToMany(cascade = { CascadeType.PERSIST }, mappedBy = "project")
     @OrderBy("ordinal")
     @Where(clause = "active is null")
     private List<Status> statuses = new ArrayList<>();
 
     @JsonIgnore
-    @OneToOne(cascade = { CascadeType.REMOVE, CascadeType.PERSIST }, fetch = FetchType.LAZY, optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @OneToOne(cascade = { CascadeType.PERSIST }, fetch = FetchType.LAZY, optional = false)
     private CounterSequence statusCounter;
 
     @JsonIgnore
-    @OneToOne(cascade = { CascadeType.REMOVE, CascadeType.PERSIST }, fetch = FetchType.LAZY, optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @OneToOne(cascade = { CascadeType.PERSIST }, fetch = FetchType.LAZY, optional = false)
     private CounterSequence taskCounter;
 
     @JsonIgnore
-    @OneToOne(cascade = { CascadeType.REMOVE, CascadeType.PERSIST }, fetch = FetchType.LAZY, optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @OneToOne(cascade = { CascadeType.PERSIST }, fetch = FetchType.LAZY, optional = false)
     private CounterSequence sprintCounter;
 
-    @OneToOne(cascade = CascadeType.REMOVE, fetch = FetchType.LAZY, mappedBy = "project")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @OneToOne(fetch = FetchType.LAZY, mappedBy = "project")
     private GitHubIntegration gitHubIntegration;
 
     public Project() {

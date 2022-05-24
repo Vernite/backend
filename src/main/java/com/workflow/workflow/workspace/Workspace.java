@@ -20,6 +20,9 @@ import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.utils.SoftDeleteEntity;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 /**
  * Entity for representing workspace. Its primary key is composed of id and user
  * id. Workspace name cant be longer than 50 characters.
@@ -40,7 +43,8 @@ public class Workspace extends SoftDeleteEntity implements Comparable<Workspace>
     private User user;
 
     @JsonIgnore
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "workspace")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "workspace")
     private List<ProjectWorkspace> projectWorkspaces = new ArrayList<>();
 
     public Workspace() {

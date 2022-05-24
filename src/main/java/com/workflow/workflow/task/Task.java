@@ -28,6 +28,9 @@ import com.workflow.workflow.status.Status;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.utils.SoftDeleteEntity;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 @Entity
 @JsonInclude(Include.NON_NULL)
 public class Task extends SoftDeleteEntity {
@@ -63,7 +66,8 @@ public class Task extends SoftDeleteEntity {
     @Column(nullable = false)
     private int type;
 
-    @OneToOne(mappedBy = "task", cascade = CascadeType.ALL)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @OneToOne(mappedBy = "task")
     private GitHubTask gitHubTask;
 
     @ManyToOne

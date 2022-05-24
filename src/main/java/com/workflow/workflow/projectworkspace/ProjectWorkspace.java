@@ -23,12 +23,12 @@ public class ProjectWorkspace {
     private ProjectWorkspaceKey id;
 
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @ManyToOne(cascade = CascadeType.REMOVE, fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId("workspaceId")
     private Workspace workspace;
 
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @ManyToOne(cascade = CascadeType.REMOVE, fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId("projectId")
     private Project project;
 
