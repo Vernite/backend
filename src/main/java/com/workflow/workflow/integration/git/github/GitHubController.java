@@ -96,7 +96,7 @@ public class GitHubController {
     }
 
     @Operation(summary = "Create GitHub repository integration.", description = "Creates integration between project and GitHub repository.")
-    @ApiResponse(description = "Integration created.", responseCode = "200")
+    @ApiResponse(description = "Integration created.", responseCode = "200", content = @Content(schema = @Schema(implementation = Project.class)))
     @ApiResponse(description = "Project already has integration.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or installation not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
