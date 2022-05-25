@@ -59,7 +59,7 @@ public class GitHubController {
     }
 
     @Operation(summary = "Get repositories.", description = "Retrieves list of repositories available to application for authenticated user. Also returns link to change settings on GitHub.")
-    @ApiResponse(description = "List with repositories and link. Can be empty.", responseCode = "200")
+    @ApiResponse(description = "List with repositories and link. Can be empty.", responseCode = "200", content = @Content(schema = @Schema(implementation = GitHubIntegrationInfo.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/user/integration/github/repository")
     public Mono<GitHubIntegrationInfo> getRepositories(@NotNull @Parameter(hidden = true) User user) {
