@@ -1,6 +1,6 @@
 package com.workflow.workflow.integration.git.github;
 
-import com.workflow.workflow.integration.git.github.service.GitHubWebhookData;
+import com.workflow.workflow.integration.git.github.data.GitHubWebhookData;
 
 import org.springframework.stereotype.Service;
 

@@ -1,4 +1,4 @@
-package com.workflow.workflow.integration.git.github.service;
+package com.workflow.workflow.integration.git.github.data;
 
 import com.workflow.workflow.integration.git.Issue;
 import com.workflow.workflow.task.Task;
@@ -24,7 +24,7 @@ public class GitHubIssue {
     }
 
     public Issue toIssue() {
-        return new Issue(number, url.replace("api.", ""), title, body);
+        return new Issue(number, url.replace("api.", ""), title, body, "github");
     }
 
     public long getNumber() {

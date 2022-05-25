@@ -1,10 +1,10 @@
 package com.workflow.workflow.integration.git;
 
+import com.workflow.workflow.integration.git.github.GitHubService;
 import com.workflow.workflow.integration.git.github.entity.GitHubIntegration;
 import com.workflow.workflow.integration.git.github.entity.GitHubIntegrationRepository;
 import com.workflow.workflow.integration.git.github.entity.GitHubTask;
 import com.workflow.workflow.integration.git.github.entity.GitHubTaskRepository;
-import com.workflow.workflow.integration.git.github.service.GitHubService;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.task.TaskRepository;
@@ -57,7 +57,7 @@ public class GitTaskController {
         if (issueNumber == null) {
             return service.createIssue(task).then();
         } else {
-            GitHubIntegration integration = integrationRepository.findByProject(project)
+            GitHubIntegration integration = integrationRepository.findByProjectAndActiveNull(project)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                             "project not integrated with github"));
             return service.getIssue(integration, issueNumber)
@@ -82,7 +82,7 @@ public class GitTaskController {
         if (projectId != task.getStatus().getProject().getId()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "task and project not in relation");
         }
-        gitHubTaskRepository.delete(gitHubTaskRepository.findByTask(task).orElseThrow(
+        gitHubTaskRepository.delete(gitHubTaskRepository.findByTaskAndActiveNull(task).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "task not integrated with github")));
     }
 }

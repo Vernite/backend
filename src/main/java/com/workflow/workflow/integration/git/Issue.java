@@ -10,13 +10,15 @@ public class Issue {
     private String state;
     private String title;
     private String description;
+    private String service;
 
-    public Issue(long id, String url, String title, String description) {
+    public Issue(long id, String url, String title, String description, String service) {
         this.id = id;
         this.url = url;
         this.state = "open";
         this.title = title;
         this.description = description;
+        this.service = service;
     }
 
     public long getId() {
@@ -57,5 +59,13 @@ public class Issue {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getService() {
+        return service;
+    }
+
+    public void setService(String service) {
+        this.service = service;
     }
 }

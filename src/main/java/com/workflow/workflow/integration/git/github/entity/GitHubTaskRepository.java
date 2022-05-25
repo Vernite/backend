@@ -14,7 +14,7 @@ public interface GitHubTaskRepository extends SoftDeleteRepository<GitHubTask, G
      * @return Optional with connection to GitHub issue; empty when there is not
      *         any.
      */
-    Optional<GitHubTask> findByTask(Task task);
+    Optional<GitHubTask> findByTaskAndActiveNull(Task task);
 
     /**
      * This method finds GitHub issues connection for integration.

@@ -1,4 +1,4 @@
-package com.workflow.workflow.integration.git.github.service;
+package com.workflow.workflow.integration.git.github.data;
 
 public class GitHubCommit {
     private String id;

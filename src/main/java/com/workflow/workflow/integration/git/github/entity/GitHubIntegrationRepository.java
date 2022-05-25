@@ -13,7 +13,7 @@ public interface GitHubIntegrationRepository extends SoftDeleteRepository<GitHub
      * @param project - project for which integration will be found.
      * @return Integration for given project.
      */
-    Optional<GitHubIntegration> findByProject(Project project);
+    Optional<GitHubIntegration> findByProjectAndActiveNull(Project project);
 
     /**
      * This method finds all integrations for given GitHub account.

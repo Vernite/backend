@@ -3,7 +3,7 @@ package com.workflow.workflow.integration;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.workflow.workflow.integration.git.github.GitHubWebhookService;
-import com.workflow.workflow.integration.git.github.service.GitHubWebhookData;
+import com.workflow.workflow.integration.git.github.data.GitHubWebhookData;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

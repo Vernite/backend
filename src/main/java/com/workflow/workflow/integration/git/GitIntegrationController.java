@@ -7,13 +7,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.workflow.workflow.integration.git.github.GitHubIntegrationInfo;
+import com.workflow.workflow.integration.git.github.GitHubService;
+import com.workflow.workflow.integration.git.github.data.GitHubIntegrationInfo;
+import com.workflow.workflow.integration.git.github.data.GitHubIssue;
 import com.workflow.workflow.integration.git.github.entity.GitHubInstallation;
 import com.workflow.workflow.integration.git.github.entity.GitHubInstallationRepository;
 import com.workflow.workflow.integration.git.github.entity.GitHubIntegration;
 import com.workflow.workflow.integration.git.github.entity.GitHubIntegrationRepository;
-import com.workflow.workflow.integration.git.github.service.GitHubIssue;
-import com.workflow.workflow.integration.git.github.service.GitHubService;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.user.User;
@@ -130,7 +130,7 @@ public class GitIntegrationController {
         User user = userRepository.findById(1L).orElseThrow();
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
-        if (integrationRepository.findByProject(project).isPresent()) {
+        if (integrationRepository.findByProjectAndActiveNull(project).isPresent()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "given project is already integrated with github");
         }
@@ -151,7 +151,7 @@ public class GitIntegrationController {
     void deleteRepositoryConnection(@PathVariable long projectId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
-        GitHubIntegration integration = integrationRepository.findByProject(project)
+        GitHubIntegration integration = integrationRepository.findByProjectAndActiveNull(project)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "integration not found"));
         integration.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
         integrationRepository.save(integration);
@@ -167,7 +167,7 @@ public class GitIntegrationController {
     Flux<GitHubIssue> getIssues(@PathVariable long projectId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
-        GitHubIntegration integration = integrationRepository.findByProject(project)
+        GitHubIntegration integration = integrationRepository.findByProjectAndActiveNull(project)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "integration not found"));
         return service.getIssues(integration);
     }

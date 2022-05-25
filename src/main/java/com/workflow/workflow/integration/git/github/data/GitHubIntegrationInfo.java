@@ -1,8 +1,6 @@
-package com.workflow.workflow.integration.git.github;
+package com.workflow.workflow.integration.git.github.data;
 
 import java.util.List;
-
-import com.workflow.workflow.integration.git.github.service.GitHubRepository;
 
 public class GitHubIntegrationInfo {
     private String link;

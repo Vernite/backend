@@ -13,7 +13,7 @@ import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.workflow.workflow.integration.git.github.service.InstallationToken;
+import com.workflow.workflow.integration.git.github.data.InstallationToken;
 import com.workflow.workflow.user.User;
 
 import org.hibernate.annotations.OnDelete;
