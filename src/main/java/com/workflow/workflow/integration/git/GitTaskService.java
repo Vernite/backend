@@ -65,4 +65,30 @@ public class GitTaskService {
         }
         return Flux.concat(futures);
     }
+
+    /**
+     * Connects given task with issue from git service.
+     * 
+     * @param task  must not be {@literal null}; must be entity from database.
+     * @param issue must not be {@literal null}; must be returned by getIssues.
+     * @return future containing connected issue.
+     */
+    public Mono<Issue> connectIssue(Task task, Issue issue) {
+        if ("github".equals(issue.getService()) && gitHubService.isIntegrated(task)) {
+            return gitHubService.connectIssue(task, issue);
+        }
+        return Mono.empty();
+    }
+
+    /**
+     * Deletes github connections for given task.
+     * 
+     * @param task must not be {@literal null}; must be entity from database.
+     * @return future containing nothing.
+     */
+    public void deleteIssue(Task task) {
+        if (gitHubService.isIntegrated(task)) {
+            gitHubService.deleteIssue(task);
+        }
+    }
 }

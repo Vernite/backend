@@ -80,6 +80,7 @@ public class GitIntegrationController {
                 .map(repos -> new GitHubIntegrationInfo(INTEGRATION_LINK, repos));
     }
 
+    @Deprecated
     @Operation(summary = "Get GitHub issues for project.", description = "This method is used to get all issues from associated GitHub repository.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "List of github issues.", content = @Content(array = @ArraySchema(schema = @Schema(implementation = GitHubIssue.class)))),

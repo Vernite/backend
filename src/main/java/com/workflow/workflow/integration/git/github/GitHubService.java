@@ -19,6 +19,7 @@ import com.workflow.workflow.integration.git.github.entity.GitHubTaskRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.user.User;
+import com.workflow.workflow.utils.NotFoundRepository;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,7 @@ import java.security.Key;
 import java.security.KeyFactory;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 
@@ -322,5 +324,29 @@ public class GitHubService {
             return Flux.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
         }
         return getIssues(integration.get()).map(GitHubIssue::toIssue);
+    }
+
+    public Mono<Issue> connectIssue(Task task, Issue issue) {
+        Optional<GitHubIntegration> integration = integrationRepository
+                .findByProjectAndActiveNull(task.getStatus().getProject());
+        if (integration.isEmpty()) {
+            return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
+        }
+        return getIssue(integration.get(), issue.getId())
+                .onErrorMap(Exception.class, e -> NotFoundRepository.getException())
+                .map(gitHubIssue -> {
+                    taskRepository.save(new GitHubTask(task, integration.get(), gitHubIssue.getNumber()));
+                    return gitHubIssue.toIssue();
+                });
+    }
+
+    public void deleteIssue(Task task) {
+        Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNull(task);
+        if (optional.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        }
+        GitHubTask gitHubTask = optional.get();
+        gitHubTask.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
+        taskRepository.save(gitHubTask);
     }
 }
