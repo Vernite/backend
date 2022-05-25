@@ -22,7 +22,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.workflow.workflow.db.Sprint;
-import com.workflow.workflow.integration.git.github.GitHubTask;
+import com.workflow.workflow.integration.git.github.entity.GitHubTask;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.utils.SoftDeleteEntity;

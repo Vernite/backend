@@ -10,6 +10,12 @@ import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.workflow.workflow.integration.git.github.entity.GitHubInstallation;
+import com.workflow.workflow.integration.git.github.entity.GitHubInstallationRepository;
+import com.workflow.workflow.integration.git.github.entity.GitHubIntegration;
+import com.workflow.workflow.integration.git.github.entity.GitHubIntegrationRepository;
+import com.workflow.workflow.integration.git.github.entity.GitHubTask;
+import com.workflow.workflow.integration.git.github.entity.GitHubTaskRepository;
 import com.workflow.workflow.integration.git.github.service.GitHubCommit;
 import com.workflow.workflow.integration.git.github.service.GitHubInstallationApi;
 import com.workflow.workflow.integration.git.github.service.GitHubIssue;

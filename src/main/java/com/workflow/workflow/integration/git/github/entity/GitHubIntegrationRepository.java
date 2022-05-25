@@ -1,13 +1,12 @@
-package com.workflow.workflow.integration.git.github;
+package com.workflow.workflow.integration.git.github.entity;
 
 import java.util.List;
 import java.util.Optional;
 
 import com.workflow.workflow.project.Project;
+import com.workflow.workflow.utils.SoftDeleteRepository;
 
-import org.springframework.data.repository.CrudRepository;
-
-public interface GitHubIntegrationRepository extends CrudRepository<GitHubIntegration, Long> {
+public interface GitHubIntegrationRepository extends SoftDeleteRepository<GitHubIntegration, Long> {
     /**
      * This method finds integration with GitHub for given project.
      * 

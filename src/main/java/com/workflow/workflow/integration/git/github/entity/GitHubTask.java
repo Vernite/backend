@@ -1,8 +1,8 @@
-package com.workflow.workflow.integration.git.github;
+package com.workflow.workflow.integration.git.github.entity;
 
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
-import javax.persistence.JoinColumn;
+import javax.persistence.FetchType;
 import javax.persistence.ManyToOne;
 import javax.persistence.MapsId;
 import javax.persistence.OneToOne;
@@ -18,15 +18,13 @@ public class GitHubTask extends SoftDeleteEntity {
     @EmbeddedId
     private GitHubTaskKey id;
 
-    @OneToOne
     @MapsId("taskId")
-    @JoinColumn(name = "task_id")
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Task task;
 
-    @ManyToOne
     @MapsId("integrationId")
-    @JoinColumn(name = "integration_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private GitHubIntegration gitHubIntegration;
 
@@ -75,6 +73,6 @@ public class GitHubTask extends SoftDeleteEntity {
     }
 
     public String getLink() {
-        return String.format("https://www.github.com/%s/issues/%d", gitHubIntegration.getRepositoryFullName(), issueId);
+        return String.format("https://github.com/%s/issues/%d", getGitHubIntegration().getRepositoryFullName(), getIssueId());
     }
 }

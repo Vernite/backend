@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
-import com.workflow.workflow.integration.git.github.service.GitHubService;
+import com.workflow.workflow.integration.git.GitTaskService;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.status.Status;
@@ -49,7 +49,7 @@ public class TaskController {
     @Autowired
     private ProjectRepository projectRepository;
     @Autowired
-    private GitHubService service;
+    private GitTaskService service;
 
     @Operation(summary = "Get all tasks.", description = "This method returns array of all tasks for project with given ID.")
     @ApiResponses(value = {
@@ -125,7 +125,7 @@ public class TaskController {
         }
         task = taskRepository.save(task);
         if (taskRequest.getCreateIssue()) {
-            return service.createIssue(task).thenReturn(task);
+            return service.createIssue(task).then().thenReturn(task);
         } else {
             return Mono.just(task);
         }
@@ -176,7 +176,7 @@ public class TaskController {
             task.setParentTask(superTask);
         }
         taskRepository.save(task);
-        return service.patchIssue(task).thenReturn(task);
+        return service.patchIssue(task).then().thenReturn(task);
     }
 
     @Operation(summary = "Delete task.", description = "This method is used to delete task. On success does not return anything. Throws 404 when task or project does not exist.")

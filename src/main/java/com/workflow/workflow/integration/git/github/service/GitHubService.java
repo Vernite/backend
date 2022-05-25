@@ -3,12 +3,14 @@ package com.workflow.workflow.integration.git.github.service;
 import java.util.List;
 import java.util.Optional;
 
-import com.workflow.workflow.integration.git.github.GitHubInstallation;
-import com.workflow.workflow.integration.git.github.GitHubInstallationRepository;
-import com.workflow.workflow.integration.git.github.GitHubIntegration;
-import com.workflow.workflow.integration.git.github.GitHubIntegrationRepository;
-import com.workflow.workflow.integration.git.github.GitHubTask;
-import com.workflow.workflow.integration.git.github.GitHubTaskRepository;
+import com.workflow.workflow.integration.git.Issue;
+import com.workflow.workflow.integration.git.github.entity.GitHubInstallation;
+import com.workflow.workflow.integration.git.github.entity.GitHubInstallationRepository;
+import com.workflow.workflow.integration.git.github.entity.GitHubIntegration;
+import com.workflow.workflow.integration.git.github.entity.GitHubIntegrationRepository;
+import com.workflow.workflow.integration.git.github.entity.GitHubTask;
+import com.workflow.workflow.integration.git.github.entity.GitHubTaskRepository;
+import com.workflow.workflow.project.Project;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.user.User;
 
@@ -118,7 +120,7 @@ public class GitHubService {
      * @param task - task for which issue int GitHub will be created.
      * @return - future which returns nothing
      */
-    public Mono<Void> createIssue(Task task) {
+    public Mono<Issue> createIssue(Task task) {
         Optional<GitHubIntegration> optional = integrationRepository.findByProject(task.getStatus().getProject());
         if (optional.isEmpty()) {
             return Mono.empty();
@@ -136,8 +138,10 @@ public class GitHubService {
                         .bodyValue(new GitHubIssue(task))
                         .retrieve()
                         .bodyToMono(GitHubIssue.class))
-                .map(issue -> taskRepository.save(new GitHubTask(task, integration, issue.getNumber())))
-                .then();
+                .map(issue -> {
+                    taskRepository.save(new GitHubTask(task, integration, issue.getNumber()));
+                    return issue.toIssue();
+                });
     }
 
     /**
@@ -146,7 +150,7 @@ public class GitHubService {
      * @param task - Task for which connected issue will be modified.
      * @return Future which returns nothing.
      */
-    public Mono<Void> patchIssue(Task task) {
+    public Mono<Issue> patchIssue(Task task) {
         Optional<GitHubTask> optional = taskRepository.findByTask(task);
         if (optional.isEmpty()) {
             return Mono.empty();
@@ -164,7 +168,7 @@ public class GitHubService {
                         .bodyValue(new GitHubIssue(task))
                         .retrieve()
                         .bodyToMono(GitHubIssue.class))
-                .then();
+                .map(GitHubIssue::toIssue);
     }
 
     /**
@@ -268,7 +272,7 @@ public class GitHubService {
                 .retrieve()
                 .bodyToMono(InstallationToken.class)
                 .map(token -> {
-                    installation.update(token);
+                    installation.updateToken(token);
                     return installationRepository.save(installation);
                 }) : Mono.just(installation);
     }
@@ -294,5 +298,13 @@ public class GitHubService {
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to create JWT");
         }
+    }
+
+    public boolean isIntegrated(Project project) {
+        return true; // TODO:
+    }
+
+    public boolean isIntegrated(Task task) {
+        return true; // TODO:
     }
 }

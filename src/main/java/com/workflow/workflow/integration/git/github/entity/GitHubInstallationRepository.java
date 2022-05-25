@@ -1,4 +1,4 @@
-package com.workflow.workflow.integration.git.github;
+package com.workflow.workflow.integration.git.github.entity;
 
 import java.util.List;
 import java.util.Optional;

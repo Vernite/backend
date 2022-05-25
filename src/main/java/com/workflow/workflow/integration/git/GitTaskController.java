@@ -1,9 +1,9 @@
 package com.workflow.workflow.integration.git;
 
-import com.workflow.workflow.integration.git.github.GitHubIntegration;
-import com.workflow.workflow.integration.git.github.GitHubIntegrationRepository;
-import com.workflow.workflow.integration.git.github.GitHubTask;
-import com.workflow.workflow.integration.git.github.GitHubTaskRepository;
+import com.workflow.workflow.integration.git.github.entity.GitHubIntegration;
+import com.workflow.workflow.integration.git.github.entity.GitHubIntegrationRepository;
+import com.workflow.workflow.integration.git.github.entity.GitHubTask;
+import com.workflow.workflow.integration.git.github.entity.GitHubTaskRepository;
 import com.workflow.workflow.integration.git.github.service.GitHubService;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.task.Task;
@@ -55,7 +55,7 @@ public class GitTaskController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "task and project not in relation");
         }
         if (issueNumber == null) {
-            return service.createIssue(task);
+            return service.createIssue(task).then();
         } else {
             GitHubIntegration integration = integrationRepository.findByProject(project)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,

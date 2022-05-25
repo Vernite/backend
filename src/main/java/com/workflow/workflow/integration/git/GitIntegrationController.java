@@ -7,11 +7,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.workflow.workflow.integration.git.github.GitHubInstallation;
-import com.workflow.workflow.integration.git.github.GitHubInstallationRepository;
-import com.workflow.workflow.integration.git.github.GitHubIntegration;
 import com.workflow.workflow.integration.git.github.GitHubIntegrationInfo;
-import com.workflow.workflow.integration.git.github.GitHubIntegrationRepository;
+import com.workflow.workflow.integration.git.github.entity.GitHubInstallation;
+import com.workflow.workflow.integration.git.github.entity.GitHubInstallationRepository;
+import com.workflow.workflow.integration.git.github.entity.GitHubIntegration;
+import com.workflow.workflow.integration.git.github.entity.GitHubIntegrationRepository;
 import com.workflow.workflow.integration.git.github.service.GitHubIssue;
 import com.workflow.workflow.integration.git.github.service.GitHubService;
 import com.workflow.workflow.project.Project;
