@@ -3,6 +3,7 @@ package com.workflow.workflow.integration.git.github.entity;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
+import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.MapsId;
 import javax.persistence.OneToOne;
@@ -24,6 +25,7 @@ public class GitHubTask extends SoftDeleteEntity {
     private Task task;
 
     @MapsId("integrationId")
+    @JoinColumn(name = "integration_id")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private GitHubIntegration gitHubIntegration;
