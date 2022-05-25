@@ -16,12 +16,16 @@ import java.util.logging.Logger;
 import javax.validation.constraints.NotNull;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -109,4 +113,24 @@ public class SessionController {
         return f;
     }
 
+    @Operation(summary = "Revoke session.", description = "This method is used to revoke session. On success does not return anything.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Session revoked"),
+            @ApiResponse(responseCode = "403", description = "Cannot revoke current (active) session or another user")
+    })
+    @DeleteMapping("/{id}")
+    public void delete(@NotNull @Parameter(hidden = true) User loggedUser,
+            @Parameter(hidden = true) @CookieValue(AuthController.COOKIE_NAME) String session, @PathVariable int id) {
+        UserSession sess = this.userSessionRepository.findById(id).orElse(null);
+        if (sess == null) {
+            return;
+        }
+        if (sess.getSession().equals(session)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "cannot revoke current session, click logout");
+        }
+        if (sess.getUser().getId() != loggedUser.getId()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "cannot revoke session with given ID");
+        }
+        this.userSessionRepository.delete(sess);
+    }
 }
