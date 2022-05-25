@@ -1,4 +1,4 @@
-package com.workflow.workflow.integration.git;
+package com.workflow.workflow.integration.git.github;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -9,7 +9,6 @@ import java.util.Map;
 
 import javax.validation.constraints.NotNull;
 
-import com.workflow.workflow.integration.git.github.GitHubService;
 import com.workflow.workflow.integration.git.github.data.GitHubIntegrationInfo;
 import com.workflow.workflow.integration.git.github.entity.GitHubInstallation;
 import com.workflow.workflow.integration.git.github.entity.GitHubInstallationRepository;
