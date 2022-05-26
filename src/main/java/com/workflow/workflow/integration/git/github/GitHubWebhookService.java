@@ -51,7 +51,7 @@ public class GitHubWebhookService {
         this.taskRepository = taskRepository;
         this.gitTaskRepository = gitHubTaskRepository;
         this.service = service;
-        this.systemUser = userRepository.findById(1L).orElseThrow(); // TODO: change to system user.
+        this.systemUser = userRepository.findById(1L).orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1"))); // TODO: change to system user.
     }
 
     public boolean isAuthorized(String token, String dataRaw) {
