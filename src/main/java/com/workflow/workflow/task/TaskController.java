@@ -5,12 +5,15 @@ import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 
+import javax.validation.constraints.NotNull;
+
 import com.workflow.workflow.integration.git.GitTaskService;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.status.StatusRepository;
-import com.workflow.workflow.user.UserRepository;
+import com.workflow.workflow.user.User;
+import com.workflow.workflow.utils.NotFoundRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -25,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -34,19 +38,15 @@ import reactor.core.publisher.Mono;
 @RequestMapping("/project/{projectId}/task")
 public class TaskController {
 
-    private static final String TASK_NOT_FOUND = "task not found";
-    private static final String STATUS_NOT_FOUND = "status not found";
-    private static final String PROJECT_NOT_FOUND = "project not found";
-    private static final String STATUS_AND_PROJECT_NOT_RELATION = "status is not in relation with given project";
-
     @Autowired
     private TaskRepository taskRepository;
+
     @Autowired
     private StatusRepository statusRepository;
-    @Autowired
-    private UserRepository userRepository;
+
     @Autowired
     private ProjectRepository projectRepository;
+
     @Autowired
     private GitTaskService service;
 
@@ -54,9 +54,11 @@ public class TaskController {
     @ApiResponse(responseCode = "200", description = "List of all tasks. Can be empty.")
     @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
     @GetMapping
-    public List<Task> all(@PathVariable long projectId) {
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
+    public List<Task> all(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId) {
+        Project project = projectRepository.findByIdOrThrow(projectId);
+        if (project.member(user) == -1) {
+            throw NotFoundRepository.getException();
+        }
         return taskRepository.findByStatusProjectAndActiveNullOrderByNameAscIdAsc(project);
     }
 
@@ -64,11 +66,10 @@ public class TaskController {
     @ApiResponse(responseCode = "200", description = "Task with given ID.")
     @ApiResponse(responseCode = "404", description = "Project or/and task with given ID not found.", content = @Content())
     @GetMapping("/{id}")
-    public Task get(@PathVariable long projectId, @PathVariable long id) {
-        Task task = taskRepository.findById(id).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, TASK_NOT_FOUND));
-        if (task.getStatus().getProject().getId() != projectId) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, TASK_NOT_FOUND);
+    public Task get(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long id) {
+        Task task = taskRepository.findByIdOrThrow(id);
+        if (task.getStatus().getProject().member(user) == -1 || task.getStatus().getProject().getId() != projectId) {
+            throw NotFoundRepository.getException();
         }
         return task;
     }
@@ -80,7 +81,7 @@ public class TaskController {
     @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content())
     @ApiResponse(responseCode = "404", description = "Project or status not found.", content = @Content())
     @PostMapping
-    public Mono<Task> add(@PathVariable long projectId, @RequestBody TaskRequest taskRequest) {
+    public Mono<Task> add(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @RequestBody TaskRequest taskRequest) {
         if (taskRequest.getName() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing name");
         }
@@ -93,6 +94,10 @@ public class TaskController {
         if (taskRequest.getType() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing type");
         }
+        Status status = statusRepository.findByIdOrThrow(taskRequest.getStatusId());
+        if (status.getProject().getId() != projectId || status.getProject().member(user) == -1) {
+            throw NotFoundRepository.getException();
+        }
         Task task = new Task();
         task.setCreatedAt(new Date());
         task.setDeadline(taskRequest.getDeadline());
@@ -100,17 +105,13 @@ public class TaskController {
         task.setDescription(taskRequest.getDescription());
         task.setName(taskRequest.getName());
         // TODO sprint update
-        task.setStatus(statusRepository.findById(taskRequest.getStatusId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND)));
+        task.setStatus(status);
         task.setType(taskRequest.getType());
-        task.setUser(userRepository.findById(1L).orElseThrow());
-        if (task.getStatus().getProject().getId() != projectId) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_AND_PROJECT_NOT_RELATION);
-        }
+        task.setUser(user);
         if (taskRequest.getParentTaskId() != null) {
-            Task superTask = taskRepository.findById(taskRequest.getParentTaskId())
+            Task parentTask = taskRepository.findById(taskRequest.getParentTaskId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "super task not found"));
-            task.setParentTask(superTask);
+            task.setParentTask(parentTask);
         }
         task = taskRepository.save(task);
         if (taskRequest.getCreateIssue()) {
@@ -126,11 +127,10 @@ public class TaskController {
     })
     @ApiResponse(responseCode = "404", description = "Task or status with given ID not found.", content = @Content())
     @PutMapping("/{id}")
-    public Mono<Task> put(@PathVariable long projectId, @PathVariable long id, @RequestBody TaskRequest taskRequest) {
-        Task task = taskRepository.findById(id).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, TASK_NOT_FOUND));
-        if (task.getStatus().getProject().getId() != projectId) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, TASK_NOT_FOUND);
+    public Mono<Task> put(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long id, @RequestBody TaskRequest taskRequest) {
+        Task task = taskRepository.findByIdOrThrow(id);
+        if (task.getStatus().getProject().member(user) == -1 || task.getStatus().getProject().getId() != projectId) {
+            throw NotFoundRepository.getException();
         }
         if (taskRequest.getDeadline() != null) {
             task.setDeadline(taskRequest.getDeadline());
@@ -149,11 +149,9 @@ public class TaskController {
         }
         // TODO sprint update
         if (taskRequest.getStatusId() != null) {
-            Status newStatus = statusRepository
-                    .findById(taskRequest.getStatusId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND));
+            Status newStatus = statusRepository.findByIdOrThrow(taskRequest.getStatusId());
             if (projectId != newStatus.getProject().getId()) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_AND_PROJECT_NOT_RELATION);
+                throw NotFoundRepository.getException();
             }
             task.setStatus(newStatus);
         }
@@ -170,11 +168,10 @@ public class TaskController {
     @ApiResponse(responseCode = "200", description = "Task with given ID has been deleted.")
     @ApiResponse(responseCode = "404", description = "Project or task with given ID not found.")
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable long projectId, @PathVariable long id) {
-        Task task = taskRepository.findById(id).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, TASK_NOT_FOUND));
-        if (task.getStatus().getProject().getId() != projectId) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, TASK_NOT_FOUND);
+    public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long id) {
+        Task task = taskRepository.findByIdOrThrow(id);
+        if (task.getStatus().getProject().member(user) == -1 || task.getStatus().getProject().getId() != projectId) {
+            throw NotFoundRepository.getException();
         }
         task.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
         taskRepository.save(task);

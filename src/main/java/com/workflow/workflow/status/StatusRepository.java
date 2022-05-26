@@ -1,5 +1,5 @@
 package com.workflow.workflow.status;
 
-import org.springframework.data.repository.CrudRepository;
+import com.workflow.workflow.utils.SoftDeleteRepository;
 
-public interface StatusRepository extends CrudRepository<Status, Long> {}
+public interface StatusRepository extends SoftDeleteRepository<Status, Long> {}

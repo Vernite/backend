@@ -54,7 +54,6 @@ public class WorkspaceControllerTests {
     void init() {
         user = userRepository.findById(1L)
                 .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1")));
-        System.out.println(user.getEmail());
         session = new UserSession();
         session.setIp("127.0.0.1");
         session.setSession("session_token_workspace_tests");

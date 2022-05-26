@@ -5,8 +5,12 @@ import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 
+import javax.validation.constraints.NotNull;
+
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
+import com.workflow.workflow.user.User;
+import com.workflow.workflow.utils.NotFoundRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -21,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
@@ -28,11 +33,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 @RequestMapping("/project/{projectId}/status")
 public class StatusController {
 
-    private static final String PROJECT_NOT_FOUND = "project not found";
-    private static final String STATUS_NOT_FOUND = "status not found";
-
     @Autowired
     private ProjectRepository projectRepository;
+    
     @Autowired
     private StatusRepository statusRepository;
 
@@ -40,9 +43,11 @@ public class StatusController {
     @ApiResponse(responseCode = "200", description = "List of all project statuses. Can be empty.")
     @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
     @GetMapping
-    public List<Status> all(@PathVariable long projectId) {
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
+    public List<Status> all(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId) {
+        Project project = projectRepository.findByIdOrThrow(projectId);
+        if (project.member(user) == -1) {
+            throw NotFoundRepository.getException();
+        }
         return project.getStatuses();
     }
 
@@ -51,7 +56,7 @@ public class StatusController {
     @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content())
     @ApiResponse(responseCode = "404", description = "User with given ID not found.", content = @Content())
     @PostMapping
-    public Status add(@PathVariable long projectId, @RequestBody Status status) {
+    public Status add(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @RequestBody Status status) {
         if (status.getColor() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing color");
         }
@@ -64,8 +69,10 @@ public class StatusController {
         if (status.isFinal() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing final");
         }
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
+        Project project = projectRepository.findByIdOrThrow(projectId);
+        if (project.member(user) == -1) {
+            throw NotFoundRepository.getException();
+        }
         status.setProject(project);
         return statusRepository.save(status);
     }
@@ -74,25 +81,23 @@ public class StatusController {
     @ApiResponse(responseCode = "200", description = "Project with given ID.")
     @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
     @GetMapping("/{id}")
-    public Status get(@PathVariable long projectId, @PathVariable long id) {
-        Status col = statusRepository.findById(id).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND));
-        if (col.getProject().getId() != projectId || col.getActive() != null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND);
+    public Status get(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long id) {
+        Status status = statusRepository.findByIdOrThrow(id);
+        if (status.getProject().getId() != projectId || status.getProject().member(user) == -1) {
+            throw NotFoundRepository.getException();
         }
-        return col;
+        return status;
     }
 
     @Operation(summary = "Alter the status", description = "This method is used to modify existing status information. On success returns modified status. Throws 404 when project or status does not exist or when workspace with given ID is not in relation with given project.")
     @ApiResponse(responseCode = "200", description = "Modified status information with given ID.")
     @ApiResponse(responseCode = "404", description = "Status or project with given ID not found.", content = @Content())
     @PutMapping("/{id}")
-    public Status put(@PathVariable long projectId, @PathVariable long id,
+    public Status put(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long id,
             @RequestBody Status request) {
-        Status status = statusRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND));
-        if (status.getProject().getId() != projectId) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND);
+        Status status = statusRepository.findByIdOrThrow(id);
+        if (status.getProject().getId() != projectId || status.getProject().member(user) == -1) {
+            throw NotFoundRepository.getException();
         }
         status.apply(request);
         statusRepository.save(status);
@@ -103,13 +108,12 @@ public class StatusController {
     @ApiResponse(responseCode = "200", description = "Status with given ID has been deleted.")
     @ApiResponse(responseCode = "404", description = "Project or status with given ID not found.")
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable long projectId, @PathVariable long id) {
-        Status col = statusRepository.findById(id).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND));
-        if (col.getProject().getId() != projectId) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, STATUS_NOT_FOUND);
+    public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long id) {
+        Status status = statusRepository.findByIdOrThrow(id);
+        if (status.getProject().getId() != projectId || status.getProject().member(user) == -1) {
+            throw NotFoundRepository.getException();
         }
-        col.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
-        statusRepository.save(col);
+        status.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
+        statusRepository.save(status);
     }
 }

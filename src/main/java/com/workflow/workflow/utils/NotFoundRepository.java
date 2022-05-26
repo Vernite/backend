@@ -29,7 +29,7 @@ public interface NotFoundRepository<T, I> extends CrudRepository<T, I> {
      * 
      * @return the exception with message "Object not found".
      */
-    static ResponseStatusException getException() {
+    public static ResponseStatusException getException() {
         return new ResponseStatusException(HttpStatus.NOT_FOUND, "Object not found");
     }
 }
