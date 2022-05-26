@@ -29,7 +29,7 @@ public class WebhookController {
     @Autowired
     private GitHubWebhookService gitHubService;
 
-    @PostMapping("/github1")
+    @PostMapping("/github")
     Mono<Void> github(@RequestHeader("X-Hub-Signature-256") String token, @RequestHeader("X-GitHub-Event") String event,
             @RequestBody String dataRaw) {
         if (!gitHubService.isAuthorized(token, dataRaw)) {

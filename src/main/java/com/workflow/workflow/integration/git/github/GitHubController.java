@@ -73,6 +73,9 @@ public class GitHubController {
     @PostMapping("/user/integration/github")
     public Mono<GitHubIntegrationInfo> newInstallation(@NotNull @Parameter(hidden = true) User user,
             long installationId) {
+        if (installationRepository.findByInstallationId(installationId).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "installation with this id exists");
+        }
         return service.getInstallationUser(installationId)
                 .map(gitHubUser -> installationRepository
                         .save(new GitHubInstallation(installationId, user, gitHubUser.getLogin())))
