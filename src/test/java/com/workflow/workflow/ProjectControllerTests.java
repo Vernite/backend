@@ -11,6 +11,7 @@ import com.workflow.workflow.project.ProjectRequest;
 import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
+import com.workflow.workflow.user.AuthController;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.user.UserSession;
@@ -81,7 +82,7 @@ public class ProjectControllerTests {
     void newProjectSuccess() {
         ProjectRequest request = new ProjectRequest("POST", workspace.getId().getId());
         Project project = client.post().uri("/project")
-                .cookie("session", session.getSession())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
@@ -96,7 +97,7 @@ public class ProjectControllerTests {
     void newProjectBadRequest() {
         ProjectRequest request = new ProjectRequest(null, workspace.getId().getId());
         client.post().uri("/project")
-                .cookie("session", session.getSession())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
@@ -104,7 +105,7 @@ public class ProjectControllerTests {
 
         request.setName("0".repeat(51));
         client.post().uri("/project")
-                .cookie("session", session.getSession())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
@@ -123,7 +124,7 @@ public class ProjectControllerTests {
     void newProjectNotFound() {
         ProjectRequest request = new ProjectRequest("POST", 1024L);
         client.post().uri("/project")
-                .cookie("session", session.getSession())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
@@ -136,7 +137,7 @@ public class ProjectControllerTests {
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
         client.get().uri("/project/" + project.getId())
-                .cookie("session", session.getSession())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(Project.class)
@@ -161,7 +162,7 @@ public class ProjectControllerTests {
     @Test
     void getProjectNotFound() {
         client.get().uri("/project/1")
-                .cookie("session", session.getSession())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isNotFound();
     }
@@ -173,7 +174,7 @@ public class ProjectControllerTests {
         ProjectRequest request = new ProjectRequest(null, 1L);
 
         client.put().uri("/project/" + project.getId())
-                .cookie("session", session.getSession())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
@@ -185,7 +186,7 @@ public class ProjectControllerTests {
         request.setName("NEW PUT");
         project.setName(request.getName());
         client.put().uri("/project/" + project.getId())
-                .cookie("session", session.getSession())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
@@ -202,7 +203,7 @@ public class ProjectControllerTests {
         ProjectRequest request = new ProjectRequest("0".repeat(51), 1L);
 
         client.put().uri("/project/" + project.getId())
-                .cookie("session", session.getSession())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
@@ -231,7 +232,7 @@ public class ProjectControllerTests {
     @Test
     void putProjectNotFound() {
         client.get().uri("/project/1")
-                .cookie("session", session.getSession())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isNotFound();
     }
@@ -242,7 +243,7 @@ public class ProjectControllerTests {
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
         client.delete().uri("/project/" + project.getId())
-                .cookie("session", session.getSession())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isOk();
         assertNotEquals(null, projectRepository.findById(project.getId()).get().getActive());
@@ -265,7 +266,7 @@ public class ProjectControllerTests {
     @Test
     void deleteProjectNotFound() {
         client.delete().uri("/project/1")
-                .cookie("session", session.getSession())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isNotFound();
     }
@@ -278,7 +279,7 @@ public class ProjectControllerTests {
         Workspace workspace2 = workspaceRepository.save(new Workspace(2, user, "Project Tests 2"));
 
         client.put().uri(String.format("/project/%d/workspace/%d", project.getId(), workspace2.getId().getId()))
-                .cookie("session", session.getSession())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isOk();
 
@@ -310,7 +311,7 @@ public class ProjectControllerTests {
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
         client.put().uri(String.format("/project/%d/workspace/%d", project.getId(), 1024))
-                .cookie("session", session.getSession())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isNotFound();
     }
@@ -321,7 +322,7 @@ public class ProjectControllerTests {
         ProjectWorkspace ps = projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
         client.get().uri(String.format("/project/%d/member", project.getId()))
-                .cookie("session", session.getSession())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isOk()
                 .expectBodyList(ProjectMember.class)
@@ -346,7 +347,7 @@ public class ProjectControllerTests {
     @Test
     void getProjectMembersNotFound() {
         client.get().uri(String.format("/project/1/member"))
-                .cookie("session", session.getSession())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isNotFound();
     }

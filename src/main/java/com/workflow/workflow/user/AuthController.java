@@ -40,7 +40,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 @RequestMapping("/auth")
 public class AuthController {
 
-    static final String COOKIE_NAME = "session";
+    public static final String COOKIE_NAME = "session";
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final Random RANDOM = new Random();
     private static final ScheduledExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadScheduledExecutor();

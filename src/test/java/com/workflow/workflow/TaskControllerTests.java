@@ -16,6 +16,8 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
+import javax.servlet.http.Cookie;
+
 import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
@@ -25,8 +27,11 @@ import com.workflow.workflow.status.Status;
 import com.workflow.workflow.status.StatusRepository;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.task.TaskRepository;
+import com.workflow.workflow.user.AuthController;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
+import com.workflow.workflow.user.UserSession;
+import com.workflow.workflow.user.UserSessionRepository;
 import com.workflow.workflow.workspace.Workspace;
 import com.workflow.workflow.workspace.WorkspaceRepository;
 
@@ -38,6 +43,7 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -63,7 +69,10 @@ public class TaskControllerTests {
     private StatusRepository statusRepository;
     @Autowired
     private CounterSequenceRepository counterSequenceRepository;
+    @Autowired
+    private UserSessionRepository sessionRepository;
 
+    private UserSession session;
     private Workspace workspace;
     private Status status;
     private User user;
@@ -73,6 +82,18 @@ public class TaskControllerTests {
     void init() {
         user = userRepository.findById(1L)
                 .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email", "Password")));
+                session = new UserSession();
+        session.setIp("127.0.0.1");
+        session.setSession("session_token_projects_tests");
+        session.setLastUsed(new Date());
+        session.setRemembered(true);
+        session.setUserAgent("userAgent");
+        session.setUser(user);
+        try {
+                session = sessionRepository.save(session);
+        } catch (DataIntegrityViolationException e) {
+                session = sessionRepository.findBySession("session_token_projects_tests").orElseThrow();
+        }
         long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
         workspace = workspaceRepository.save(new Workspace(id, user, "name"));
         project = projectRepository.save(new Project("put"));
@@ -93,7 +114,7 @@ public class TaskControllerTests {
 
     @Test
     void allEmpty() throws Exception {
-        mvc.perform(get(String.format("/project/%d/task/", project.getId())).contentType(MediaType.APPLICATION_JSON))
+        mvc.perform(get(String.format("/project/%d/task/", project.getId())).contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", hasSize(0)));
@@ -129,7 +150,7 @@ public class TaskControllerTests {
         task.setName("name 3");
         taskRepository.save(task);
 
-        mvc.perform(get(String.format("/project/%d/task/", project.getId())).contentType(MediaType.APPLICATION_JSON))
+        mvc.perform(get(String.format("/project/%d/task/", project.getId())).contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", hasSize(3)))
@@ -140,13 +161,13 @@ public class TaskControllerTests {
 
     @Test
     void allNotFound() throws Exception {
-        mvc.perform(get(String.format("/project/%d/task/", 77878)).contentType(MediaType.APPLICATION_JSON))
+        mvc.perform(get(String.format("/project/%d/task/", 77878)).contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void addSuccess() throws Exception {
-        mvc.perform(post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
                 .accept(MediaType.APPLICATION_JSON)
                 .content(String.format(
                         "{\"name\": \"string\",\"description\": \"string\",\"statusId\": %d,\"type\": 0,\"deadline\": \"2022-05-11T17:38:27.813Z\",\"createIssue\": false}",
@@ -160,13 +181,13 @@ public class TaskControllerTests {
 
     @Test
     void addNotFound() throws Exception {
-        mvc.perform(post(String.format("/project/%d/task/", 776576)).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post(String.format("/project/%d/task/", 776576)).contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
                 .content(String.format(
                         "{\"name\": \"Patch test\",\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
                         status.getId())))
                 .andExpect(status().isNotFound());
 
-        mvc.perform(post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
                 .content(String.format(
                         "{\"name\": \"Patch test\",\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
                         453543)))
@@ -175,22 +196,22 @@ public class TaskControllerTests {
 
     @Test
     void addBadRequest() throws Exception {
-        mvc.perform(post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.APPLICATION_JSON))
+        mvc.perform(post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())))
                 .andExpect(status().isBadRequest());
         mvc.perform(post(String.format("/project/%d/task/", project.getId()))
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
                 .content(String.format(
                         "{\"name\": \"Patch test\",\"description\": \"Patch description\",\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
                         453543)))
                 .andExpect(status().isBadRequest());
         mvc.perform(post(String.format("/project/%d/task/", project.getId()))
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
                 .content(String.format(
                         "{\"name\": \"Patch test\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
                         453543)))
                 .andExpect(status().isBadRequest());
         mvc.perform(post(String.format("/project/%d/task/", project.getId()))
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
                 .content(String.format(
                         "{\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
                         453543)))
@@ -200,12 +221,12 @@ public class TaskControllerTests {
     @Test
     void addUnsupportedMedia() throws Exception {
         mvc.perform(
-                post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.MULTIPART_FORM_DATA))
+                post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.MULTIPART_FORM_DATA).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())))
                 .andExpect(status().isUnsupportedMediaType());
-        mvc.perform(post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.MULTIPART_FORM_DATA)
+        mvc.perform(post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.MULTIPART_FORM_DATA).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
                 .content("{}"))
                 .andExpect(status().isUnsupportedMediaType());
-        mvc.perform(post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.MULTIPART_FORM_DATA)
+        mvc.perform(post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.MULTIPART_FORM_DATA).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
                 .content("{\"name\": \"test\"}"))
                 .andExpect(status().isUnsupportedMediaType());
     }
@@ -223,7 +244,7 @@ public class TaskControllerTests {
         task = taskRepository.save(task);
 
         mvc.perform(put(String.format("/project/%d/task/%d", project.getId(), task.getId()))
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
                 .content("{\"name\": \"new put\"}"))
                 .andExpect(status().isOk());
 
@@ -242,7 +263,7 @@ public class TaskControllerTests {
         task.setStatus(status);
         task = taskRepository.save(task);
         mvc.perform(put(String.format("/project/%d/task/%d", project.getId(), task.getId()))
-                .contentType(MediaType.APPLICATION_JSON))
+                .contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())))
                 .andExpect(status().isBadRequest());
     }
 
@@ -258,21 +279,21 @@ public class TaskControllerTests {
         task.setStatus(status);
         task = taskRepository.save(task);
         mvc.perform(put(String.format("/project/%d/task/%d", 231321, task.getId()))
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
                 .content(String.format(
                         "{\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
                         status.getId())))
                 .andExpect(status().isNotFound());
 
         mvc.perform(put(String.format("/project/%d/task/%d", project.getId(), 2341321))
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
                 .content(String.format(
                         "{\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
                         status.getId())))
                 .andExpect(status().isNotFound());
 
         mvc.perform(put(String.format("/project/%d/task/%d", project.getId(), task.getId()))
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
                 .content(String.format(
                         "{\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
                         321321)))
@@ -292,13 +313,13 @@ public class TaskControllerTests {
         task = taskRepository.save(task);
 
         mvc.perform(put(String.format("/project/%d/task/%d", project.getId(), task.getId()))
-                .contentType(MediaType.MULTIPART_FORM_DATA))
+                .contentType(MediaType.MULTIPART_FORM_DATA).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())))
                 .andExpect(status().isUnsupportedMediaType());
         mvc.perform(put(String.format("/project/%d/task/%d", project.getId(), task.getId()))
-                .contentType(MediaType.MULTIPART_FORM_DATA).content("{}"))
+                .contentType(MediaType.MULTIPART_FORM_DATA).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())).content("{}"))
                 .andExpect(status().isUnsupportedMediaType());
         mvc.perform(put(String.format("/project/%d/task/%d", project.getId(), task.getId()))
-                .contentType(MediaType.MULTIPART_FORM_DATA).content("{\"name\": \"test\"}"))
+                .contentType(MediaType.MULTIPART_FORM_DATA).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())).content("{\"name\": \"test\"}"))
                 .andExpect(status().isUnsupportedMediaType());
     }
 
@@ -314,13 +335,13 @@ public class TaskControllerTests {
         task.setStatus(status);
         task = taskRepository.save(task);
 
-        mvc.perform(delete(String.format("/project/%d/task/%d", project.getId(), task.getId())))
+        mvc.perform(delete(String.format("/project/%d/task/%d", project.getId(), task.getId())).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())))
                 .andExpect(status().isOk());
     }
 
     @Test
     void deleteNotFound() throws Exception {
-        mvc.perform(delete(String.format("/project/%d/task/%d", project.getId(), 32123)))
+        mvc.perform(delete(String.format("/project/%d/task/%d", project.getId(), 32123)).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())))
                 .andExpect(status().isNotFound());
 
         Task task = new Task();
@@ -333,7 +354,7 @@ public class TaskControllerTests {
         task.setStatus(status);
         task = taskRepository.save(task);
 
-        mvc.perform(delete(String.format("/project/%d/task/%d", 2313, task.getId())))
+        mvc.perform(delete(String.format("/project/%d/task/%d", 2313, task.getId())).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())))
                 .andExpect(status().isNotFound());
     }
 }
