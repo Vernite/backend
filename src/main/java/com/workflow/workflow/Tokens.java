@@ -18,6 +18,8 @@ public class Tokens {
 
     public String githubKey;
     public String maxmindKey;
+    public String mysqlPassword;
+    public String mailPassword;
 
     private Tokens() {
     }
