@@ -28,7 +28,6 @@ import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -52,12 +51,10 @@ public class TaskController {
     private GitTaskService service;
 
     @Operation(summary = "Get all tasks.", description = "This method returns array of all tasks for project with given ID.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "List of all tasks. Can be empty.", content = {
-                    @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = Task.class)))
-            }),
-            @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
+    @ApiResponse(responseCode = "200", description = "List of all tasks. Can be empty.", content = {
+            @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = Task.class)))
     })
+    @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
     @GetMapping
     public Iterable<Task> all(@PathVariable long projectId) {
         Project project = projectRepository.findById(projectId)
@@ -66,12 +63,10 @@ public class TaskController {
     }
 
     @Operation(summary = "Get task information.", description = "This method is used to retrive status with given ID. On success returns task with given ID. Throws 404 when project or task does not exist.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Task with given ID.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = Task.class))
-            }),
-            @ApiResponse(responseCode = "404", description = "Project or/and task with given ID not found.", content = @Content())
+    @ApiResponse(responseCode = "200", description = "Task with given ID.", content = {
+            @Content(mediaType = "application/json", schema = @Schema(implementation = Task.class))
     })
+    @ApiResponse(responseCode = "404", description = "Project or/and task with given ID not found.", content = @Content())
     @GetMapping("/{id}")
     public Task get(@PathVariable long projectId, @PathVariable long id) {
         Task task = taskRepository.findById(id).orElseThrow(
@@ -83,13 +78,11 @@ public class TaskController {
     }
 
     @Operation(summary = "Create task.", description = "This method creates new task. On success returns newly created task.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Newly created task.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = Task.class))
-            }),
-            @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content()),
-            @ApiResponse(responseCode = "404", description = "Project or status not found.", content = @Content())
+    @ApiResponse(responseCode = "200", description = "Newly created task.", content = {
+            @Content(mediaType = "application/json", schema = @Schema(implementation = Task.class))
     })
+    @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content())
+    @ApiResponse(responseCode = "404", description = "Project or status not found.", content = @Content())
     @PostMapping
     public Mono<Task> add(@PathVariable long projectId, @RequestBody TaskRequest taskRequest) {
         if (taskRequest.getName() == null) {
@@ -132,12 +125,10 @@ public class TaskController {
     }
 
     @Operation(summary = "Alter the task.", description = "This method is used to modify existing task. On success returns task.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Modified task.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = Task.class))
-            }),
-            @ApiResponse(responseCode = "404", description = "Task or status with given ID not found.", content = @Content())
+    @ApiResponse(responseCode = "200", description = "Modified task.", content = {
+            @Content(mediaType = "application/json", schema = @Schema(implementation = Task.class))
     })
+    @ApiResponse(responseCode = "404", description = "Task or status with given ID not found.", content = @Content())
     @PutMapping("/{id}")
     public Mono<Task> put(@PathVariable long projectId, @PathVariable long id, @RequestBody TaskRequest taskRequest) {
         Task task = taskRepository.findById(id).orElseThrow(
@@ -180,10 +171,8 @@ public class TaskController {
     }
 
     @Operation(summary = "Delete task.", description = "This method is used to delete task. On success does not return anything. Throws 404 when task or project does not exist.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Task with given ID has been deleted."),
-            @ApiResponse(responseCode = "404", description = "Project or task with given ID not found.")
-    })
+    @ApiResponse(responseCode = "200", description = "Task with given ID has been deleted.")
+    @ApiResponse(responseCode = "404", description = "Project or task with given ID not found.")
     @DeleteMapping("/{id}")
     public void delete(@PathVariable long projectId, @PathVariable long id) {
         Task task = taskRepository.findById(id).orElseThrow(

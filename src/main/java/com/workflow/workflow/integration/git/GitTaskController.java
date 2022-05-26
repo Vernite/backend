@@ -22,7 +22,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -39,14 +38,12 @@ public class GitTaskController {
 
     @Deprecated
     @Operation(summary = "Create new issue connection to task.", description = "Deprecaded in favor of: /task/{taskId}/integration/git in git controller. New endpoint requires authentication.\nThis method creates new GitHub issue connection with task; when issue number is given uses existing issue; when issue number is not given creates new issue.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Issue connection with task created.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema())
-            }),
-            @ApiResponse(responseCode = "404", description = "Project, task, or github issue not found.", content = @Content()),
-            @ApiResponse(responseCode = "500", description = "Cannot make connection to GitHub api.", content = @Content()),
-            @ApiResponse(responseCode = "503", description = "Cannot create JWT.", content = @Content())
+    @ApiResponse(responseCode = "200", description = "Issue connection with task created.", content = {
+            @Content(mediaType = "application/json", schema = @Schema())
     })
+    @ApiResponse(responseCode = "404", description = "Project, task, or github issue not found.", content = @Content())
+    @ApiResponse(responseCode = "500", description = "Cannot make connection to GitHub api.", content = @Content())
+    @ApiResponse(responseCode = "503", description = "Cannot create JWT.", content = @Content())
     @PostMapping(value = { "/github/{issueNumber}", "/github" })
     Mono<Void> createGitHubIssue(long projectId, long taskId, @PathVariable(required = false) Long issueNumber) {
         Task task = taskRepository.findById(taskId)
@@ -71,12 +68,10 @@ public class GitTaskController {
 
     @Deprecated
     @Operation(summary = "Delete issue connection to task.", description = "Deprecaded in favor of: /task/{taskId}/integration/git in git controller. New endpoint requires authentication.\nThis method deletes GitHub issue connection with task; it does not delete issue on github nor it deletes task.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Issue connection with task deleted.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema())
-            }),
-            @ApiResponse(responseCode = "404", description = "Project, task, or github issue connection not found.", content = @Content())
+    @ApiResponse(responseCode = "200", description = "Issue connection with task deleted.", content = {
+            @Content(mediaType = "application/json", schema = @Schema())
     })
+    @ApiResponse(responseCode = "404", description = "Project, task, or github issue connection not found.", content = @Content())
     @DeleteMapping("/github")
     void deleteGitHubIssue(long projectId, long taskId) {
         Task task = taskRepository.findById(taskId)

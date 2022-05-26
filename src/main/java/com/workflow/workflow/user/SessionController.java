@@ -33,7 +33,6 @@ import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import reactor.netty.http.client.HttpClient;
 
 @RestController
@@ -51,11 +50,9 @@ public class SessionController {
     private UserSessionRepository userSessionRepository;
 
     @Operation(summary = "List all active sessions", description = "This method returns array of all sessions. Result can be empty array.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "List of all active sessions. Can be empty.", content = {
+    @ApiResponse(responseCode = "200", description = "List of all active sessions. Can be empty.", content = {
                     @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = UserSession.class)))
             })
-    })
     @GetMapping
     public Future<List<UserSession>> all(@NotNull @Parameter(hidden = true) User loggedUser,
             @Parameter(hidden = true) @CookieValue(AuthController.COOKIE_NAME) String session) {
@@ -114,10 +111,8 @@ public class SessionController {
     }
 
     @Operation(summary = "Revoke session.", description = "This method is used to revoke session. On success does not return anything.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Session revoked"),
-            @ApiResponse(responseCode = "403", description = "Cannot revoke current (active) session or another user")
-    })
+    @ApiResponse(responseCode = "200", description = "Session revoked")
+    @ApiResponse(responseCode = "403", description = "Cannot revoke current (active) session or another user")
     @DeleteMapping("/{id}")
     public void delete(@NotNull @Parameter(hidden = true) User loggedUser,
             @Parameter(hidden = true) @CookieValue(AuthController.COOKIE_NAME) String session, @PathVariable int id) {

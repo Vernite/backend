@@ -24,7 +24,6 @@ import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 @RestController
 @RequestMapping("/project/{projectId}/status")
@@ -39,12 +38,10 @@ public class StatusController {
     private StatusRepository statusRepository;
 
     @Operation(summary = "Get information on all statuses.", description = "This method returns array of all statuses for project with given ID. Result can be empty array. Throws status 404 when project with given ID does not exist.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "List of all project statuses. Can be empty.", content = {
-                    @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = Status.class)))
-            }),
-            @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
+    @ApiResponse(responseCode = "200", description = "List of all project statuses. Can be empty.", content = {
+            @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = Status.class)))
     })
+    @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
     @GetMapping
     public Iterable<Status> all(@PathVariable long projectId) {
         Project project = projectRepository.findById(projectId)
@@ -53,13 +50,11 @@ public class StatusController {
     }
 
     @Operation(summary = "Create status.", description = "This method creates new status for project. On success returns newly created status. Throws status 404 when user with given ID does not exist. Throws status 400 when sent data are incorrect.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Newly created status.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = Status.class))
-            }),
-            @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content()),
-            @ApiResponse(responseCode = "404", description = "User with given ID not found.", content = @Content())
+    @ApiResponse(responseCode = "200", description = "Newly created status.", content = {
+            @Content(mediaType = "application/json", schema = @Schema(implementation = Status.class))
     })
+    @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content())
+    @ApiResponse(responseCode = "404", description = "User with given ID not found.", content = @Content())
     @PostMapping
     public Status add(@PathVariable long projectId, @RequestBody Status status) {
         if (status.getColor() == null) {
@@ -81,12 +76,10 @@ public class StatusController {
     }
 
     @Operation(summary = "Get status information.", description = "This method is used to retrive status with given ID. On success returns status with given ID. Throws 404 when project or status does not exist.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Project with given ID.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = Status.class))
-            }),
-            @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
+    @ApiResponse(responseCode = "200", description = "Project with given ID.", content = {
+            @Content(mediaType = "application/json", schema = @Schema(implementation = Status.class))
     })
+    @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
     @GetMapping("/{id}")
     public Status get(@PathVariable long projectId, @PathVariable long id) {
         Status col = statusRepository.findById(id).orElseThrow(
@@ -98,12 +91,10 @@ public class StatusController {
     }
 
     @Operation(summary = "Alter the status.", description = "This method is used to modify existing status information. On success returns modified status. Throws 404 when project or status does not exist or when workspace with given ID is not in relation with given project.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Modified status information with given ID.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = Status.class))
-            }),
-            @ApiResponse(responseCode = "404", description = "Status or project with given ID not found.", content = @Content())
+    @ApiResponse(responseCode = "200", description = "Modified status information with given ID.", content = {
+            @Content(mediaType = "application/json", schema = @Schema(implementation = Status.class))
     })
+    @ApiResponse(responseCode = "404", description = "Status or project with given ID not found.", content = @Content())
     @PutMapping("/{id}")
     public Status put(@PathVariable long projectId, @PathVariable long id,
             @RequestBody Status request) {
@@ -118,10 +109,8 @@ public class StatusController {
     }
 
     @Operation(summary = "Delete status.", description = "This method is used to delete status. On success does not return anything. Throws 404 when status or project does not exist.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Status with given ID has been deleted."),
-            @ApiResponse(responseCode = "404", description = "Project or status with given ID not found.")
-    })
+    @ApiResponse(responseCode = "200", description = "Status with given ID has been deleted.")
+    @ApiResponse(responseCode = "404", description = "Project or status with given ID not found.")
     @DeleteMapping("/{id}")
     public void delete(@PathVariable long projectId, @PathVariable long id) {
         Status col = statusRepository.findById(id).orElseThrow(
