@@ -110,7 +110,7 @@ public class SessionController {
         return f;
     }
 
-    @Operation(summary = "Revoke session.", description = "This method is used to revoke session. On success does not return anything.")
+    @Operation(summary = "Revoke session", description = "This method is used to revoke session. On success does not return anything.")
     @ApiResponse(responseCode = "200", description = "Session revoked")
     @ApiResponse(responseCode = "403", description = "Cannot revoke current (active) session or another user")
     @DeleteMapping("/{id}")

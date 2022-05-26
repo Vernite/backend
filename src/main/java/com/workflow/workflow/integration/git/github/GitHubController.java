@@ -50,7 +50,7 @@ public class GitHubController {
     @Autowired
     private GitHubService service;
 
-    @Operation(summary = "Retrieve connected GitHub accounts.", description = "Retrieves all GitHub accounts connected to authenticated user account.")
+    @Operation(summary = "Retrieve connected GitHub accounts", description = "Retrieves all GitHub accounts connected to authenticated user account.")
     @ApiResponse(description = "List with GitHub installations. Can be empty.", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/user/integration/github")
@@ -58,7 +58,7 @@ public class GitHubController {
         return installationRepository.findByUser(user);
     }
 
-    @Operation(summary = "Get repositories.", description = "Retrieves list of repositories available to application for authenticated user. Also returns link to change settings on GitHub.")
+    @Operation(summary = "Get repositories", description = "Retrieves list of repositories available to application for authenticated user. Also returns link to change settings on GitHub.")
     @ApiResponse(description = "List with repositories and link. Can be empty.", responseCode = "200", content = @Content(schema = @Schema(implementation = GitHubIntegrationInfo.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/user/integration/github/repository")
@@ -67,8 +67,8 @@ public class GitHubController {
                 .map(repositories -> new GitHubIntegrationInfo(INTEGRATION_LINK, repositories));
     }
 
-    @Operation(summary = "Create GitHub account connection.", description = "Creates new GitHub appplication installation. Installation id must be retrieved from GitHub.")
-    @ApiResponse(description = "GitHub installation created. List with repositories and link. Can be empty.", responseCode = "200")
+    @Operation(summary = "Create GitHub account connection", description = "Creates new GitHub appplication installation. Installation id must be retrieved from GitHub.")
+    @ApiResponse(description = "GitHub installation created. List with repositories and link. Can be empty.", responseCode = "200", content = @Content(schema = @Schema(implementation = GitHubIntegrationInfo.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PostMapping("/user/integration/github")
     public Mono<GitHubIntegrationInfo> newInstallation(@NotNull @Parameter(hidden = true) User user,
@@ -83,7 +83,7 @@ public class GitHubController {
                 .map(repositories -> new GitHubIntegrationInfo(INTEGRATION_LINK, repositories));
     }
 
-    @Operation(summary = "Delete GitHub account connection.", description = "Retrieves link to delete GitHub account installation.")
+    @Operation(summary = "Delete GitHub account connection", description = "Retrieves link to delete GitHub account installation.")
     @ApiResponse(description = "Link to delete GitHub installation.", responseCode = "200", content = @Content(examples = @ExampleObject(value = "{\"link\": \"string\"}")))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Installation with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
@@ -98,7 +98,7 @@ public class GitHubController {
         return result;
     }
 
-    @Operation(summary = "Create GitHub repository integration.", description = "Creates integration between project and GitHub repository.")
+    @Operation(summary = "Create GitHub repository integration", description = "Creates integration between project and GitHub repository.")
     @ApiResponse(description = "Integration created.", responseCode = "200", content = @Content(schema = @Schema(implementation = Project.class)))
     @ApiResponse(description = "Project already has integration.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
@@ -121,7 +121,7 @@ public class GitHubController {
                 .thenReturn(projectRepository.findByIdOrThrow(id));
     }
 
-    @Operation(summary = "Delete GitHub integration.", description = "Deletes integration between project and GitHub repository.")
+    @Operation(summary = "Delete GitHub integration", description = "Deletes integration between project and GitHub repository.")
     @ApiResponse(description = "Integration deleted.", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or integration not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))

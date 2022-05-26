@@ -36,7 +36,7 @@ public class StatusController {
     @Autowired
     private StatusRepository statusRepository;
 
-    @Operation(summary = "Get information on all statuses.", description = "This method returns array of all statuses for project with given ID. Result can be empty array. Throws status 404 when project with given ID does not exist.")
+    @Operation(summary = "Get information on all statuses", description = "This method returns array of all statuses for project with given ID. Result can be empty array. Throws status 404 when project with given ID does not exist.")
     @ApiResponse(responseCode = "200", description = "List of all project statuses. Can be empty.")
     @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
     @GetMapping
@@ -46,7 +46,7 @@ public class StatusController {
         return project.getStatuses();
     }
 
-    @Operation(summary = "Create status.", description = "This method creates new status for project. On success returns newly created status. Throws status 404 when user with given ID does not exist. Throws status 400 when sent data are incorrect.")
+    @Operation(summary = "Create status", description = "This method creates new status for project. On success returns newly created status. Throws status 404 when user with given ID does not exist. Throws status 400 when sent data are incorrect.")
     @ApiResponse(responseCode = "200", description = "Newly created status.")
     @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content())
     @ApiResponse(responseCode = "404", description = "User with given ID not found.", content = @Content())
@@ -70,7 +70,7 @@ public class StatusController {
         return statusRepository.save(status);
     }
 
-    @Operation(summary = "Get status information.", description = "This method is used to retrive status with given ID. On success returns status with given ID. Throws 404 when project or status does not exist.")
+    @Operation(summary = "Get status information", description = "This method is used to retrive status with given ID. On success returns status with given ID. Throws 404 when project or status does not exist.")
     @ApiResponse(responseCode = "200", description = "Project with given ID.")
     @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
     @GetMapping("/{id}")
@@ -83,7 +83,7 @@ public class StatusController {
         return col;
     }
 
-    @Operation(summary = "Alter the status.", description = "This method is used to modify existing status information. On success returns modified status. Throws 404 when project or status does not exist or when workspace with given ID is not in relation with given project.")
+    @Operation(summary = "Alter the status", description = "This method is used to modify existing status information. On success returns modified status. Throws 404 when project or status does not exist or when workspace with given ID is not in relation with given project.")
     @ApiResponse(responseCode = "200", description = "Modified status information with given ID.")
     @ApiResponse(responseCode = "404", description = "Status or project with given ID not found.", content = @Content())
     @PutMapping("/{id}")
@@ -99,7 +99,7 @@ public class StatusController {
         return status;
     }
 
-    @Operation(summary = "Delete status.", description = "This method is used to delete status. On success does not return anything. Throws 404 when status or project does not exist.")
+    @Operation(summary = "Delete status", description = "This method is used to delete status. On success does not return anything. Throws 404 when status or project does not exist.")
     @ApiResponse(responseCode = "200", description = "Status with given ID has been deleted.")
     @ApiResponse(responseCode = "404", description = "Project or status with given ID not found.")
     @DeleteMapping("/{id}")

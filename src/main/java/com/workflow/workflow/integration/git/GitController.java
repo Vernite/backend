@@ -50,7 +50,7 @@ public class GitController {
         return service.getIssues(project);
     }
 
-    @Operation(summary = "Create git issue connection to task.", description = "Creates new git issue connection with task. If request body is empty creates new issue. Otherwise uses existing git issue.")
+    @Operation(summary = "Create git issue connection to task", description = "Creates new git issue connection with task. If request body is empty creates new issue. Otherwise uses existing git issue.")
     @ApiResponse(description = "Connection created.", responseCode = "200", content = @Content(schema = @Schema(implementation = Issue.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or task or git issue not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
@@ -73,7 +73,7 @@ public class GitController {
         return service.connectIssue(task, issue);
     }
 
-    @Operation(summary = "Delete git issue connection to task.", description = "Deletes git issue connection with task. It does not delete issue on git service nor it deletes task.")
+    @Operation(summary = "Delete git issue connection to task", description = "Deletes git issue connection with task. It does not delete issue on git service nor it deletes task.")
     @ApiResponse(description = "Connection deleted.", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or task or git issue connection not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))

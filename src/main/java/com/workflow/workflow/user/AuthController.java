@@ -58,7 +58,7 @@ public class AuthController {
     @Autowired
     private JavaMailSender javaMailSender;
 
-    @Operation(summary = "Logged user.", description = "This method returns currently logged user.")
+    @Operation(summary = "Logged user", description = "This method returns currently logged user.")
     @ApiResponse(responseCode = "200", description = "Logged user.")
     @ApiResponse(responseCode = "404", description = "User is not logged.", content = @Content())
     @GetMapping("/me")
@@ -66,7 +66,7 @@ public class AuthController {
         return loggedUser;
     }
 
-    @Operation(summary = "Logging in.", description = "This method logs the user in.")
+    @Operation(summary = "Logging in", description = "This method logs the user in.")
     @ApiResponse(responseCode = "200", description = "Logged user.", content = {
             @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
     })
@@ -99,7 +99,7 @@ public class AuthController {
         return f;
     }
 
-    @Operation(summary = "Modify user account.", description = "This method edits the account.")
+    @Operation(summary = "Modify user account", description = "This method edits the account.")
     @ApiResponse(responseCode = "200", description = "User after changes.")
     @PutMapping("/edit")
     public User edit(@NotNull @Parameter(hidden = true) User loggedUser, EditAccountRequest req) {
@@ -119,7 +119,7 @@ public class AuthController {
         return loggedUser;
     }
 
-    @Operation(summary = "Register account.", description = "This method registers a new account. On success returns newly created user.")
+    @Operation(summary = "Register account", description = "This method registers a new account. On success returns newly created user.")
     @ApiResponse(responseCode = "200", description = "Newly created user.")
     @ApiResponse(responseCode = "403", description = "User is already logged.", content = @Content())
     @ApiResponse(responseCode = "422", description = "Username or email is already taken.", content = @Content())

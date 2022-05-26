@@ -50,7 +50,7 @@ public class TaskController {
     @Autowired
     private GitTaskService service;
 
-    @Operation(summary = "Get all tasks.", description = "This method returns array of all tasks for project with given ID.")
+    @Operation(summary = "Get all tasks", description = "This method returns array of all tasks for project with given ID.")
     @ApiResponse(responseCode = "200", description = "List of all tasks. Can be empty.")
     @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
     @GetMapping
@@ -60,7 +60,7 @@ public class TaskController {
         return taskRepository.findByStatusProjectAndActiveNullOrderByNameAscIdAsc(project);
     }
 
-    @Operation(summary = "Get task information.", description = "This method is used to retrive status with given ID. On success returns task with given ID. Throws 404 when project or task does not exist.")
+    @Operation(summary = "Get task information", description = "This method is used to retrive status with given ID. On success returns task with given ID. Throws 404 when project or task does not exist.")
     @ApiResponse(responseCode = "200", description = "Task with given ID.")
     @ApiResponse(responseCode = "404", description = "Project or/and task with given ID not found.", content = @Content())
     @GetMapping("/{id}")
@@ -73,7 +73,7 @@ public class TaskController {
         return task;
     }
 
-    @Operation(summary = "Create task.", description = "This method creates new task. On success returns newly created task.")
+    @Operation(summary = "Create task", description = "This method creates new task. On success returns newly created task.")
     @ApiResponse(responseCode = "200", description = "Newly created task.", content = {
             @Content(mediaType = "application/json", schema = @Schema(implementation = Task.class))
     })
@@ -120,7 +120,7 @@ public class TaskController {
         }
     }
 
-    @Operation(summary = "Alter the task.", description = "This method is used to modify existing task. On success returns task.")
+    @Operation(summary = "Alter the task", description = "This method is used to modify existing task. On success returns task.")
     @ApiResponse(responseCode = "200", description = "Modified task.", content = {
             @Content(mediaType = "application/json", schema = @Schema(implementation = Task.class))
     })
@@ -166,7 +166,7 @@ public class TaskController {
         return service.patchIssue(task).then().thenReturn(task);
     }
 
-    @Operation(summary = "Delete task.", description = "This method is used to delete task. On success does not return anything. Throws 404 when task or project does not exist.")
+    @Operation(summary = "Delete task", description = "This method is used to delete task. On success does not return anything. Throws 404 when task or project does not exist.")
     @ApiResponse(responseCode = "200", description = "Task with given ID has been deleted.")
     @ApiResponse(responseCode = "404", description = "Project or task with given ID not found.")
     @DeleteMapping("/{id}")

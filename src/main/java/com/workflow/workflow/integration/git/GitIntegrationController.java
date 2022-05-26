@@ -44,7 +44,7 @@ public class GitIntegrationController {
     private GitHubIntegrationRepository integrationRepository;
 
     @Deprecated
-    @Operation(summary = "Get github application link and available repositories.", description = "Deprecaded in favor of: /user/integration/github/repository in github controller. New endpoint requires authentication.\n This method returns link to github workflow application and list of repositories available to application for authenticated user. When list is empty authenticated user either dont have connected account or dont have any repository available for this application.")
+    @Operation(summary = "Get github application link and available repositories", description = "Deprecaded in favor of: /user/integration/github/repository in github controller. New endpoint requires authentication.\n This method returns link to github workflow application and list of repositories available to application for authenticated user. When list is empty authenticated user either dont have connected account or dont have any repository available for this application.")
     @ApiResponse(responseCode = "200", description = "Repositories list with link.", content = {
             @Content(mediaType = "application/json", schema = @Schema(implementation = GitHubIntegrationInfo.class))
     })
@@ -57,7 +57,7 @@ public class GitIntegrationController {
     }
 
     @Deprecated
-    @Operation(summary = "Register new github connection.", description = "Deprecaded in favor of: /user/integration/github in github controller. New endpoint requires authentication.\nThis method creates new GitHub appplication installation; returns link to github workflow application and list of repositories available to application for authenticated user. When list is empty authenticated user either dont have connected account or dont have any repository available for this application.")
+    @Operation(summary = "Register new github connection", description = "Deprecaded in favor of: /user/integration/github in github controller. New endpoint requires authentication.\nThis method creates new GitHub appplication installation; returns link to github workflow application and list of repositories available to application for authenticated user. When list is empty authenticated user either dont have connected account or dont have any repository available for this application.")
     @ApiResponse(responseCode = "200", description = "Installation created. Returns repositories list with link.", content = {
             @Content(mediaType = "application/json", schema = @Schema(implementation = GitHubIntegrationInfo.class))
     })
@@ -75,7 +75,7 @@ public class GitIntegrationController {
     }
 
     @Deprecated
-    @Operation(summary = "Get GitHub issues for project.", description = "Deprecaded in favor of: /project/{id}/integration/git/issue in git controller. New endpoint requires authentication.\nThis method is used to get all issues from associated GitHub repository.")
+    @Operation(summary = "Get GitHub issues for project", description = "Deprecaded in favor of: /project/{id}/integration/git/issue in git controller. New endpoint requires authentication.\nThis method is used to get all issues from associated GitHub repository.")
     @ApiResponse(responseCode = "200", description = "List of github issues.", content = @Content(array = @ArraySchema(schema = @Schema(implementation = GitHubIssue.class))))
     @ApiResponse(responseCode = "404", description = "Project with given id not found. Integration not found.", content = @Content())
     @ApiResponse(responseCode = "500", description = "Connection with github failed.", content = @Content())

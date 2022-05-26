@@ -37,7 +37,7 @@ public class GitTaskController {
     private GitHubIntegrationRepository integrationRepository;
 
     @Deprecated
-    @Operation(summary = "Create new issue connection to task.", description = "Deprecaded in favor of: /task/{taskId}/integration/git in git controller. New endpoint requires authentication.\nThis method creates new GitHub issue connection with task; when issue number is given uses existing issue; when issue number is not given creates new issue.")
+    @Operation(summary = "Create new issue connection to task", description = "Deprecaded in favor of: /task/{taskId}/integration/git in git controller. New endpoint requires authentication.\nThis method creates new GitHub issue connection with task; when issue number is given uses existing issue; when issue number is not given creates new issue.")
     @ApiResponse(responseCode = "200", description = "Issue connection with task created.", content = {
             @Content(mediaType = "application/json", schema = @Schema())
     })
@@ -67,7 +67,7 @@ public class GitTaskController {
     }
 
     @Deprecated
-    @Operation(summary = "Delete issue connection to task.", description = "Deprecaded in favor of: /task/{taskId}/integration/git in git controller. New endpoint requires authentication.\nThis method deletes GitHub issue connection with task; it does not delete issue on github nor it deletes task.")
+    @Operation(summary = "Delete issue connection to task", description = "Deprecaded in favor of: /task/{taskId}/integration/git in git controller. New endpoint requires authentication.\nThis method deletes GitHub issue connection with task; it does not delete issue on github nor it deletes task.")
     @ApiResponse(responseCode = "200", description = "Issue connection with task deleted.", content = {
             @Content(mediaType = "application/json", schema = @Schema())
     })
