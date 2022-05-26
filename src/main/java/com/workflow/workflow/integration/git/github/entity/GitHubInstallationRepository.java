@@ -1,13 +1,12 @@
-package com.workflow.workflow.integration.git.github;
+package com.workflow.workflow.integration.git.github.entity;
 
 import java.util.List;
 import java.util.Optional;
 
 import com.workflow.workflow.user.User;
+import com.workflow.workflow.utils.NotFoundRepository;
 
-import org.springframework.data.repository.CrudRepository;
-
-public interface GitHubInstallationRepository extends CrudRepository<GitHubInstallation, Long> {
+public interface GitHubInstallationRepository extends NotFoundRepository<GitHubInstallation, Long> {
     /**
      * This method finds all associeted GitHub istallations for given user.
      * 

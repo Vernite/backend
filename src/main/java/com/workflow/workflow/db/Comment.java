@@ -21,7 +21,7 @@ public class Comment {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private long id;
     
     @ManyToOne
     @OnDelete(action = OnDeleteAction.CASCADE)
@@ -37,11 +37,11 @@ public class Comment {
     @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_comment_user"))
     private User user;
 
-    public Long getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(long id) {
         this.id = id;
     }
 

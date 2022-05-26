@@ -1,6 +1,5 @@
 package com.workflow.workflow.projectworkspace;
 
-import javax.persistence.CascadeType;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;

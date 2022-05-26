@@ -1,13 +1,12 @@
-package com.workflow.workflow.integration.git.github;
+package com.workflow.workflow.integration.git.github.entity;
 
 import java.util.List;
 import java.util.Optional;
 
 import com.workflow.workflow.task.Task;
+import com.workflow.workflow.utils.SoftDeleteRepository;
 
-import org.springframework.data.repository.CrudRepository;
-
-public interface GitHubTaskRepository extends CrudRepository<GitHubTask, GitHubTaskKey> {
+public interface GitHubTaskRepository extends SoftDeleteRepository<GitHubTask, GitHubTaskKey> {
     /**
      * This method finds GitHub issue connection for task.
      * 
@@ -15,7 +14,7 @@ public interface GitHubTaskRepository extends CrudRepository<GitHubTask, GitHubT
      * @return Optional with connection to GitHub issue; empty when there is not
      *         any.
      */
-    Optional<GitHubTask> findByTask(Task task);
+    Optional<GitHubTask> findByTaskAndActiveNull(Task task);
 
     /**
      * This method finds GitHub issues connection for integration.

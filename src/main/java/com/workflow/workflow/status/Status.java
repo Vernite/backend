@@ -23,7 +23,7 @@ public class Status extends SoftDeleteEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    private Long id;
+    private long id;
     
     @Column(nullable = false, length = 50)
     private String name;
@@ -43,11 +43,11 @@ public class Status extends SoftDeleteEntity {
     @JoinColumn(name = "project_id", nullable = false, foreignKey = @ForeignKey(name = "fk_column_project"))
     private Project project;
 
-    public Long getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(long id) {
         this.id = id;
     }
 

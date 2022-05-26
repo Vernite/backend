@@ -20,7 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.workflow.workflow.counter.CounterSequence;
-import com.workflow.workflow.integration.git.github.GitHubIntegration;
+import com.workflow.workflow.integration.git.github.entity.GitHubIntegration;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.user.User;

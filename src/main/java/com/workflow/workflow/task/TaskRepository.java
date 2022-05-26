@@ -5,10 +5,9 @@ import java.util.List;
 
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.status.Status;
+import com.workflow.workflow.utils.SoftDeleteRepository;
 
-import org.springframework.data.repository.CrudRepository;
-
-public interface TaskRepository extends CrudRepository<Task, Long> {
+public interface TaskRepository extends SoftDeleteRepository<Task, Long> {
     
     Collection<Task> findByStatus(Status status);
 

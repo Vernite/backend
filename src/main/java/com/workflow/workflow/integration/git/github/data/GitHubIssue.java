@@ -1,13 +1,14 @@
-package com.workflow.workflow.integration.git.github.service;
+package com.workflow.workflow.integration.git.github.data;
 
+import com.workflow.workflow.integration.git.Issue;
 import com.workflow.workflow.task.Task;
 
 public class GitHubIssue {
+    private long number;
     private String url;
     private String state;
     private String title;
     private String body;
-    private long number;
 
     public GitHubIssue() {
     }
@@ -20,6 +21,10 @@ public class GitHubIssue {
         } else {
             this.state = "open";
         }
+    }
+
+    public Issue toIssue() {
+        return new Issue(number, url.replace("api.", ""), title, body, "github");
     }
 
     public long getNumber() {

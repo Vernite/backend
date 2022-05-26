@@ -35,7 +35,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 @RestController
 @RequestMapping("/auth")
@@ -59,26 +58,20 @@ public class AuthController {
     @Autowired
     private JavaMailSender javaMailSender;
 
-    @Operation(summary = "Logged user.", description = "This method returns currently logged user.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Logged user.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
-            }),
-            @ApiResponse(responseCode = "404", description = "User is not logged.", content = @Content())
-    })
+    @Operation(summary = "Logged user", description = "This method returns currently logged user.")
+    @ApiResponse(responseCode = "200", description = "Logged user.")
+    @ApiResponse(responseCode = "404", description = "User is not logged.", content = @Content())
     @GetMapping("/me")
     public User me(@NotNull @Parameter(hidden = true) User loggedUser) {
         return loggedUser;
     }
 
-    @Operation(summary = "Logging in.", description = "This method logs the user in.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Logged user.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
-            }),
-            @ApiResponse(responseCode = "403", description = "User is already logged.", content = @Content()),
-            @ApiResponse(responseCode = "404", description = "Username or password is incorrect.", content = @Content())
+    @Operation(summary = "Logging in", description = "This method logs the user in.")
+    @ApiResponse(responseCode = "200", description = "Logged user.", content = {
+            @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
     })
+    @ApiResponse(responseCode = "403", description = "User is already logged.", content = @Content())
+    @ApiResponse(responseCode = "404", description = "Username or password is incorrect.", content = @Content())
     @PostMapping("/login")
     public Future<User> login(@Parameter(hidden = true) User loggedUser, @RequestBody LoginRequest req,
             HttpServletRequest request, HttpServletResponse response) {
@@ -106,12 +99,8 @@ public class AuthController {
         return f;
     }
 
-    @Operation(summary = "Modify user account.", description = "This method edits the account.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "User after changes.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
-            })
-    })
+    @Operation(summary = "Modify user account", description = "This method edits the account.")
+    @ApiResponse(responseCode = "200", description = "User after changes.")
     @PutMapping("/edit")
     public User edit(@NotNull @Parameter(hidden = true) User loggedUser, EditAccountRequest req) {
         if (req.getPassword() != null) {
@@ -130,14 +119,10 @@ public class AuthController {
         return loggedUser;
     }
 
-    @Operation(summary = "Register account.", description = "This method registers a new account. On success returns newly created user.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Newly created user.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
-            }),
-            @ApiResponse(responseCode = "403", description = "User is already logged.", content = @Content()),
-            @ApiResponse(responseCode = "422", description = "Username or email is already taken.", content = @Content())
-    })
+    @Operation(summary = "Register account", description = "This method registers a new account. On success returns newly created user.")
+    @ApiResponse(responseCode = "200", description = "Newly created user.")
+    @ApiResponse(responseCode = "403", description = "User is already logged.", content = @Content())
+    @ApiResponse(responseCode = "422", description = "Username or email is already taken.", content = @Content())
     @PostMapping("/register")
     public User register(@Parameter(hidden = true) User loggedUser, @RequestBody RegisterRequest req,
             HttpServletRequest request, HttpServletResponse response) {

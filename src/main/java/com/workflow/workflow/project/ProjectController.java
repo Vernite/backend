@@ -49,7 +49,7 @@ public class ProjectController {
     @Autowired
     private StatusRepository statusRepository;
 
-    @Operation(summary = "Create project.", description = "Creates new project. Authenticated user is added to project with owner privillages. Project is added to workspace with given id.")
+    @Operation(summary = "Create project", description = "Creates new project. Authenticated user is added to project with owner privillages. Project is added to workspace with given id.")
     @ApiResponse(description = "Newly created project.", responseCode = "200")
     @ApiResponse(description = "Some fields are missing or failed to satisfy requirements.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
@@ -93,7 +93,7 @@ public class ProjectController {
         return projectRepository.findById(project.getId()).orElse(project);
     }
 
-    @Operation(summary = "Retrieve project.", description = "Retrieves project with given id if authenticated user is member of this project.")
+    @Operation(summary = "Retrieve project", description = "Retrieves project with given id if authenticated user is member of this project.")
     @ApiResponse(description = "Project with given id.", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
@@ -106,7 +106,7 @@ public class ProjectController {
         return project;
     }
 
-    @Operation(summary = "Modify project.", description = "Applies changes from request body to project with given id if authenticated user is member of project. If field from body is missing it wont be changed. Workspace id field is ignored.")
+    @Operation(summary = "Modify project", description = "Applies changes from request body to project with given id if authenticated user is member of project. If field from body is missing it wont be changed. Workspace id field is ignored.")
     @ApiResponse(description = "Project after changes.", responseCode = "200")
     @ApiResponse(description = "Some fields failed to satisfy requirements.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
@@ -125,7 +125,7 @@ public class ProjectController {
         return projectRepository.save(project);
     }
 
-    @Operation(summary = "Delete project.", description = "Deletes project with given id. Authenticated user must be member of project.")
+    @Operation(summary = "Delete project", description = "Deletes project with given id. Authenticated user must be member of project.")
     @ApiResponse(description = "Project deleted.", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
@@ -139,7 +139,7 @@ public class ProjectController {
         projectRepository.save(project);
     }
 
-    @Operation(summary = "Change project workspace.", description = "Changes workspace for project with given id to workspace with given id for authenticated user.")
+    @Operation(summary = "Change project workspace", description = "Changes workspace for project with given id to workspace with given id for authenticated user.")
     @ApiResponse(description = "Project workspace changed", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or workspace with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
@@ -158,7 +158,7 @@ public class ProjectController {
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, privillages));
     }
 
-    @Operation(summary = "Retrieve project members.", description = "Retrieves members of project with given id. Authenticated user must be member of project.")
+    @Operation(summary = "Retrieve project members", description = "Retrieves members of project with given id. Authenticated user must be member of project.")
     @ApiResponse(description = "List of project members.", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))

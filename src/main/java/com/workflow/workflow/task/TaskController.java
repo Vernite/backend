@@ -3,8 +3,9 @@ package com.workflow.workflow.task;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.List;
 
-import com.workflow.workflow.integration.git.github.service.GitHubService;
+import com.workflow.workflow.integration.git.GitTaskService;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.status.Status;
@@ -24,11 +25,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -49,29 +48,21 @@ public class TaskController {
     @Autowired
     private ProjectRepository projectRepository;
     @Autowired
-    private GitHubService service;
+    private GitTaskService service;
 
-    @Operation(summary = "Get all tasks.", description = "This method returns array of all tasks for project with given ID.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "List of all tasks. Can be empty.", content = {
-                    @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = Task.class)))
-            }),
-            @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
-    })
+    @Operation(summary = "Get all tasks", description = "This method returns array of all tasks for project with given ID.")
+    @ApiResponse(responseCode = "200", description = "List of all tasks. Can be empty.")
+    @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
     @GetMapping
-    public Iterable<Task> all(@PathVariable long projectId) {
+    public List<Task> all(@PathVariable long projectId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
         return taskRepository.findByStatusProjectAndActiveNullOrderByNameAscIdAsc(project);
     }
 
-    @Operation(summary = "Get task information.", description = "This method is used to retrive status with given ID. On success returns task with given ID. Throws 404 when project or task does not exist.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Task with given ID.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = Task.class))
-            }),
-            @ApiResponse(responseCode = "404", description = "Project or/and task with given ID not found.", content = @Content())
-    })
+    @Operation(summary = "Get task information", description = "This method is used to retrive status with given ID. On success returns task with given ID. Throws 404 when project or task does not exist.")
+    @ApiResponse(responseCode = "200", description = "Task with given ID.")
+    @ApiResponse(responseCode = "404", description = "Project or/and task with given ID not found.", content = @Content())
     @GetMapping("/{id}")
     public Task get(@PathVariable long projectId, @PathVariable long id) {
         Task task = taskRepository.findById(id).orElseThrow(
@@ -82,14 +73,12 @@ public class TaskController {
         return task;
     }
 
-    @Operation(summary = "Create task.", description = "This method creates new task. On success returns newly created task.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Newly created task.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = Task.class))
-            }),
-            @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content()),
-            @ApiResponse(responseCode = "404", description = "Project or status not found.", content = @Content())
+    @Operation(summary = "Create task", description = "This method creates new task. On success returns newly created task.")
+    @ApiResponse(responseCode = "200", description = "Newly created task.", content = {
+            @Content(mediaType = "application/json", schema = @Schema(implementation = Task.class))
     })
+    @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content())
+    @ApiResponse(responseCode = "404", description = "Project or status not found.", content = @Content())
     @PostMapping
     public Mono<Task> add(@PathVariable long projectId, @RequestBody TaskRequest taskRequest) {
         if (taskRequest.getName() == null) {
@@ -125,19 +114,17 @@ public class TaskController {
         }
         task = taskRepository.save(task);
         if (taskRequest.getCreateIssue()) {
-            return service.createIssue(task).thenReturn(task);
+            return service.createIssue(task).then().thenReturn(task);
         } else {
             return Mono.just(task);
         }
     }
 
-    @Operation(summary = "Alter the task.", description = "This method is used to modify existing task. On success returns task.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Modified task.", content = {
-                    @Content(mediaType = "application/json", schema = @Schema(implementation = Task.class))
-            }),
-            @ApiResponse(responseCode = "404", description = "Task or status with given ID not found.", content = @Content())
+    @Operation(summary = "Alter the task", description = "This method is used to modify existing task. On success returns task.")
+    @ApiResponse(responseCode = "200", description = "Modified task.", content = {
+            @Content(mediaType = "application/json", schema = @Schema(implementation = Task.class))
     })
+    @ApiResponse(responseCode = "404", description = "Task or status with given ID not found.", content = @Content())
     @PutMapping("/{id}")
     public Mono<Task> put(@PathVariable long projectId, @PathVariable long id, @RequestBody TaskRequest taskRequest) {
         Task task = taskRepository.findById(id).orElseThrow(
@@ -176,14 +163,12 @@ public class TaskController {
             task.setParentTask(superTask);
         }
         taskRepository.save(task);
-        return service.patchIssue(task).thenReturn(task);
+        return service.patchIssue(task).then().thenReturn(task);
     }
 
-    @Operation(summary = "Delete task.", description = "This method is used to delete task. On success does not return anything. Throws 404 when task or project does not exist.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Task with given ID has been deleted."),
-            @ApiResponse(responseCode = "404", description = "Project or task with given ID not found.")
-    })
+    @Operation(summary = "Delete task", description = "This method is used to delete task. On success does not return anything. Throws 404 when task or project does not exist.")
+    @ApiResponse(responseCode = "200", description = "Task with given ID has been deleted.")
+    @ApiResponse(responseCode = "404", description = "Project or task with given ID not found.")
     @DeleteMapping("/{id}")
     public void delete(@PathVariable long projectId, @PathVariable long id) {
         Task task = taskRepository.findById(id).orElseThrow(
