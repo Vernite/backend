@@ -59,9 +59,7 @@ public class AuthController {
     private JavaMailSender javaMailSender;
 
     @Operation(summary = "Logged user.", description = "This method returns currently logged user.")
-    @ApiResponse(responseCode = "200", description = "Logged user.", content = {
-            @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
-    })
+    @ApiResponse(responseCode = "200", description = "Logged user.")
     @ApiResponse(responseCode = "404", description = "User is not logged.", content = @Content())
     @GetMapping("/me")
     public User me(@NotNull @Parameter(hidden = true) User loggedUser) {
@@ -102,9 +100,7 @@ public class AuthController {
     }
 
     @Operation(summary = "Modify user account.", description = "This method edits the account.")
-    @ApiResponse(responseCode = "200", description = "User after changes.", content = {
-            @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
-    })
+    @ApiResponse(responseCode = "200", description = "User after changes.")
     @PutMapping("/edit")
     public User edit(@NotNull @Parameter(hidden = true) User loggedUser, EditAccountRequest req) {
         if (req.getPassword() != null) {
@@ -124,9 +120,7 @@ public class AuthController {
     }
 
     @Operation(summary = "Register account.", description = "This method registers a new account. On success returns newly created user.")
-    @ApiResponse(responseCode = "200", description = "Newly created user.", content = {
-            @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
-    })
+    @ApiResponse(responseCode = "200", description = "Newly created user.")
     @ApiResponse(responseCode = "403", description = "User is already logged.", content = @Content())
     @ApiResponse(responseCode = "422", description = "Username or email is already taken.", content = @Content())
     @PostMapping("/register")

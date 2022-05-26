@@ -3,6 +3,7 @@ package com.workflow.workflow.task;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.List;
 
 import com.workflow.workflow.integration.git.GitTaskService;
 import com.workflow.workflow.project.Project;
@@ -24,7 +25,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -51,21 +51,17 @@ public class TaskController {
     private GitTaskService service;
 
     @Operation(summary = "Get all tasks.", description = "This method returns array of all tasks for project with given ID.")
-    @ApiResponse(responseCode = "200", description = "List of all tasks. Can be empty.", content = {
-            @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = Task.class)))
-    })
+    @ApiResponse(responseCode = "200", description = "List of all tasks. Can be empty.")
     @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
     @GetMapping
-    public Iterable<Task> all(@PathVariable long projectId) {
+    public List<Task> all(@PathVariable long projectId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
         return taskRepository.findByStatusProjectAndActiveNullOrderByNameAscIdAsc(project);
     }
 
     @Operation(summary = "Get task information.", description = "This method is used to retrive status with given ID. On success returns task with given ID. Throws 404 when project or task does not exist.")
-    @ApiResponse(responseCode = "200", description = "Task with given ID.", content = {
-            @Content(mediaType = "application/json", schema = @Schema(implementation = Task.class))
-    })
+    @ApiResponse(responseCode = "200", description = "Task with given ID.")
     @ApiResponse(responseCode = "404", description = "Project or/and task with given ID not found.", content = @Content())
     @GetMapping("/{id}")
     public Task get(@PathVariable long projectId, @PathVariable long id) {

@@ -3,6 +3,7 @@ package com.workflow.workflow.status;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.List;
 
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
@@ -20,9 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
@@ -38,21 +37,17 @@ public class StatusController {
     private StatusRepository statusRepository;
 
     @Operation(summary = "Get information on all statuses.", description = "This method returns array of all statuses for project with given ID. Result can be empty array. Throws status 404 when project with given ID does not exist.")
-    @ApiResponse(responseCode = "200", description = "List of all project statuses. Can be empty.", content = {
-            @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = Status.class)))
-    })
+    @ApiResponse(responseCode = "200", description = "List of all project statuses. Can be empty.")
     @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
     @GetMapping
-    public Iterable<Status> all(@PathVariable long projectId) {
+    public List<Status> all(@PathVariable long projectId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, PROJECT_NOT_FOUND));
         return project.getStatuses();
     }
 
     @Operation(summary = "Create status.", description = "This method creates new status for project. On success returns newly created status. Throws status 404 when user with given ID does not exist. Throws status 400 when sent data are incorrect.")
-    @ApiResponse(responseCode = "200", description = "Newly created status.", content = {
-            @Content(mediaType = "application/json", schema = @Schema(implementation = Status.class))
-    })
+    @ApiResponse(responseCode = "200", description = "Newly created status.")
     @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content())
     @ApiResponse(responseCode = "404", description = "User with given ID not found.", content = @Content())
     @PostMapping
@@ -76,9 +71,7 @@ public class StatusController {
     }
 
     @Operation(summary = "Get status information.", description = "This method is used to retrive status with given ID. On success returns status with given ID. Throws 404 when project or status does not exist.")
-    @ApiResponse(responseCode = "200", description = "Project with given ID.", content = {
-            @Content(mediaType = "application/json", schema = @Schema(implementation = Status.class))
-    })
+    @ApiResponse(responseCode = "200", description = "Project with given ID.")
     @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
     @GetMapping("/{id}")
     public Status get(@PathVariable long projectId, @PathVariable long id) {
@@ -91,9 +84,7 @@ public class StatusController {
     }
 
     @Operation(summary = "Alter the status.", description = "This method is used to modify existing status information. On success returns modified status. Throws 404 when project or status does not exist or when workspace with given ID is not in relation with given project.")
-    @ApiResponse(responseCode = "200", description = "Modified status information with given ID.", content = {
-            @Content(mediaType = "application/json", schema = @Schema(implementation = Status.class))
-    })
+    @ApiResponse(responseCode = "200", description = "Modified status information with given ID.")
     @ApiResponse(responseCode = "404", description = "Status or project with given ID not found.", content = @Content())
     @PutMapping("/{id}")
     public Status put(@PathVariable long projectId, @PathVariable long id,
