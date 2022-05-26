@@ -45,7 +45,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestInstance(Lifecycle.PER_CLASS)
-@TestPropertySource({"classpath:application-test.properties", "classpath:application.properties"})
+@TestPropertySource({"classpath:application.properties", "classpath:application-test.properties"})
 public class TaskControllerTests {
     @Autowired
     private MockMvc mvc;

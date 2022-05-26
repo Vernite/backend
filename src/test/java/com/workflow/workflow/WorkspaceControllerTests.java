@@ -36,7 +36,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestInstance(Lifecycle.PER_CLASS)
-@TestPropertySource({"classpath:application-test.properties", "classpath:application.properties"})
+@TestPropertySource({"classpath:application.properties", "classpath:application-test.properties"})
 public class WorkspaceControllerTests {
     @Autowired
     private WebTestClient client;
@@ -54,6 +54,7 @@ public class WorkspaceControllerTests {
     void init() {
         user = userRepository.findById(1L)
                 .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1")));
+        System.out.println(user.getEmail());
         session = new UserSession();
         session.setIp("127.0.0.1");
         session.setSession("session_token_workspace_tests");
