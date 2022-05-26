@@ -36,7 +36,7 @@ public class Task extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private long id;
 
     @Column(nullable = false, length = 50)
     private String name;
@@ -83,11 +83,11 @@ public class Task extends SoftDeleteEntity {
     private Date deadline;
     private Date estimatedDate;
 
-    public Long getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(long id) {
         this.id = id;
     }
 

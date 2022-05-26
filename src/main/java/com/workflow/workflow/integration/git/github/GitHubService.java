@@ -94,7 +94,7 @@ public class GitHubService {
      */
     public Mono<GitHubUser> getInstallationUser(long installationId) {
         return CLIENT.get()
-                .uri("https://api.github.com/app/installations/" + Long.toString(installationId))
+                .uri("https://api.github.com/app/installations/" + installationId)
                 .header(AUTHORIZATION, BEARER + createJWT())
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
                 .retrieve()
