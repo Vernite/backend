@@ -32,14 +32,19 @@ import reactor.core.publisher.Mono;
 public class GitIntegrationController {
     private static final String INTEGRATION_LINK = "https://github.com/apps/workflow-2022/installations/new";
     private static final String PROJECT_NOT_FOUND = "project not found";
+
     @Autowired
     private UserRepository userRepository;
+
     @Autowired
     private ProjectRepository projectRepository;
+
     @Autowired
     private GitHubService service;
+
     @Autowired
     private GitHubInstallationRepository installationRepository;
+
     @Autowired
     private GitHubIntegrationRepository integrationRepository;
 

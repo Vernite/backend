@@ -43,6 +43,17 @@ public class Status extends SoftDeleteEntity {
     @JoinColumn(name = "project_id", nullable = false, foreignKey = @ForeignKey(name = "fk_column_project"))
     private Project project;
 
+    public Status() {
+    }
+
+    public Status(String name, Integer color, Boolean isFinal, Integer ordinal, Project project) {
+        this.name = name;
+        this.color = color;
+        this.isFinal = isFinal;
+        this.ordinal = ordinal;
+        this.project = project;
+    }
+
     public long getId() {
         return id;
     }

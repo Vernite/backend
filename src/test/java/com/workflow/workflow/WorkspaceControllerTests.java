@@ -36,7 +36,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestInstance(Lifecycle.PER_CLASS)
-@TestPropertySource("classpath:application-test.properties")
+@TestPropertySource({"classpath:application-test.properties", "classpath:application.properties"})
 public class WorkspaceControllerTests {
     @Autowired
     private WebTestClient client;

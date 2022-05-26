@@ -16,6 +16,7 @@ import java.util.logging.Logger;
 import javax.validation.constraints.NotNull;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -40,7 +41,6 @@ import reactor.netty.http.client.HttpClient;
 public class SessionController {
     private static final Logger L = Logger.getLogger("GeoIP");
     private static final ScheduledExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadScheduledExecutor();
-    private static final String USER_AND_PASSWD = "NzIyOTM1OlFyQjlROGZ4UDd4NHl6aUg=";
     private static final WebClient CLIENT = WebClient.builder()
             .clientConnector(new ReactorClientHttpConnector(HttpClient.create().responseTimeout(Duration.ofSeconds(1))))
             .build();
@@ -48,6 +48,9 @@ public class SessionController {
 
     @Autowired
     private UserSessionRepository userSessionRepository;
+
+    @Value("${maxmindPassword}")
+    private String maxmindPassword;
 
     @Operation(summary = "List all active sessions", description = "This method returns array of all sessions. Result can be empty array.")
     @ApiResponse(responseCode = "200", description = "List of all active sessions. Can be empty.", content = {
@@ -76,7 +79,7 @@ public class SessionController {
         for (String ip : ips) {
             CLIENT.get()
                     .uri("https://geolite.info/geoip/v2.1/city/" + ip)
-                    .header("Authorization", "Basic " + USER_AND_PASSWD)
+                    .header("Authorization", "Basic " + maxmindPassword)
                     .retrieve().bodyToMono(MaxmindResponse.class)
                     .subscribe(n -> {
                         GeoIP geoIP = new GeoIP();

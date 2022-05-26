@@ -26,6 +26,7 @@ import com.workflow.workflow.user.UserRepository;
 
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import reactor.core.publisher.Flux;
@@ -33,8 +34,7 @@ import reactor.core.publisher.Mono;
 
 @Service
 public class GitHubWebhookService {
-    private static final HmacUtils UTILS = new HmacUtils(HmacAlgorithms.HMAC_SHA_256,
-            "5CxrXejuNwslaS2iIm0ELDry313vqwC3ZdmAId3CqFc5L6GH");
+    private static HmacUtils UTILS;
     private static final Pattern PATTERN = Pattern.compile("(reopen|close)?!(\\d+)");
     private final GitHubInstallationRepository installationRepository;
     private final GitHubIntegrationRepository integrationRepository;
@@ -52,6 +52,11 @@ public class GitHubWebhookService {
         this.gitTaskRepository = gitHubTaskRepository;
         this.service = service;
         this.systemUser = userRepository.findById(1L).orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1"))); // TODO: change to system user.
+    }
+
+    @Value("${githubKey}")
+    private void loadHmacUtils(String githubKey) {
+        UTILS = new HmacUtils(HmacAlgorithms.HMAC_SHA_256, githubKey);
     }
 
     public boolean isAuthorized(String token, String dataRaw) {

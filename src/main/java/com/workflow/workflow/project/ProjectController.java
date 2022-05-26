@@ -42,10 +42,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 public class ProjectController {
     @Autowired
     private ProjectRepository projectRepository;
+
     @Autowired
     private WorkspaceRepository workspaceRepository;
+
     @Autowired
     private ProjectWorkspaceRepository projectWorkspaceRepository;
+
     @Autowired
     private StatusRepository statusRepository;
 
@@ -69,27 +72,9 @@ public class ProjectController {
         Project project = projectRepository.save(new Project(request));
         ProjectWorkspace projectWorkspace = new ProjectWorkspace(project, workspace, 1L);
         projectWorkspaceRepository.save(projectWorkspace);
-        Status status = new Status();
-        status.setColor(0);
-        status.setFinal(false);
-        status.setName("TO DO");
-        status.setOrdinal(0);
-        status.setProject(project);
-        statusRepository.save(status);
-        status = new Status();
-        status.setColor(0);
-        status.setFinal(false);
-        status.setName("In Progress");
-        status.setOrdinal(1);
-        status.setProject(project);
-        statusRepository.save(status);
-        status = new Status();
-        status.setColor(0);
-        status.setFinal(true);
-        status.setName("Done");
-        status.setOrdinal(2);
-        status.setProject(project);
-        statusRepository.save(status);
+        statusRepository.save(new Status("TO DO", 0, false, 0, project));
+        statusRepository.save(new Status("In Progress", 0, false, 1, project));
+        statusRepository.save(new Status("Done", 0, false, 2, project));
         return projectRepository.findById(project.getId()).orElse(project);
     }
 

@@ -1,6 +1,15 @@
 package com.workflow.workflow;
 
-import com.workflow.workflow.user.UserRepository;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
@@ -10,6 +19,7 @@ import com.workflow.workflow.status.Status;
 import com.workflow.workflow.status.StatusRepository;
 import com.workflow.workflow.task.TaskRepository;
 import com.workflow.workflow.user.User;
+import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.workspace.Workspace;
 import com.workflow.workflow.workspace.WorkspaceRepository;
 
@@ -25,20 +35,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.CoreMatchers.is;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestInstance(Lifecycle.PER_CLASS)
-@TestPropertySource(locations = "classpath:application-test.properties")
+@TestPropertySource({"classpath:application-test.properties", "classpath:application.properties"})
 public class StatusControllerTests {
     @Autowired
     private MockMvc mvc;
