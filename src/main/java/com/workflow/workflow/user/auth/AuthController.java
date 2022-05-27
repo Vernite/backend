@@ -23,6 +23,7 @@ import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.user.UserSession;
 import com.workflow.workflow.user.UserSessionRepository;
+import com.workflow.workflow.utils.NotFoundRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -225,9 +226,29 @@ public class AuthController {
             SimpleMailMessage msg = new SimpleMailMessage();
             msg.setTo(req.getEmail());
             msg.setSubject("Zapomniałeś hasła?");
-            msg.setText("Cześć, " + u.getName() + "!\nJeśli zapomniałeś hasła to wejdź w link: https://workflow.adiantek.ovh/pl-PL/auth/set-new-password?token=" + p.getToken());
+            msg.setText("Cześć, " + u.getName()
+                    + "!\nJeśli zapomniałeś hasła to wejdź w link: https://workflow.adiantek.ovh/pl-PL/auth/set-new-password?token="
+                    + p.getToken() + "\nLink wygaśnie po 30 minutach");
             javaMailSender.send(msg);
         });
+    }
+
+    @PostMapping("/resetPassword")
+    public void resetPassword(@Parameter(hidden = true) User loggedUser, @RequestBody ResetPasswordRequest req) {
+        if (loggedUser != null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "already logged");
+        }
+        PasswordRecovery p = passwordRecoveryRepository.findByToken(req.getToken());
+        if (p == null) {
+            throw NotFoundRepository.getException();
+        }
+        if (req.getPassword() == null) {
+            return;
+        }
+        User u = p.getUser();
+        passwordRecoveryRepository.delete(p);
+        u.setPassword(req.getPassword());
+        userRepository.save(u);
     }
 
     private void createSession(HttpServletRequest req, HttpServletResponse resp, User user, boolean remembered) {
