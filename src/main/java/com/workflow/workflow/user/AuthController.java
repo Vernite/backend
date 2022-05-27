@@ -102,7 +102,7 @@ public class AuthController {
     @Operation(summary = "Modify user account", description = "This method edits the account.")
     @ApiResponse(responseCode = "200", description = "User after changes.")
     @PutMapping("/edit")
-    public User edit(@NotNull @Parameter(hidden = true) User loggedUser, EditAccountRequest req) {
+    public User edit(@NotNull @Parameter(hidden = true) User loggedUser, @RequestBody EditAccountRequest req) {
         if (req.getPassword() != null) {
             loggedUser.setPassword(req.getPassword());
         }
