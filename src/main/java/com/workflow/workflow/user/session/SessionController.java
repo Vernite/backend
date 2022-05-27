@@ -1,4 +1,4 @@
-package com.workflow.workflow.user;
+package com.workflow.workflow.user.session;
 
 import java.time.Duration;
 import java.util.HashSet;
@@ -14,6 +14,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import javax.validation.constraints.NotNull;
+
+import com.workflow.workflow.user.User;
+import com.workflow.workflow.user.UserSession;
+import com.workflow.workflow.user.UserSessionRepository;
+import com.workflow.workflow.user.auth.AuthController;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;

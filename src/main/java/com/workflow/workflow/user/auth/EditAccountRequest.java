@@ -1,4 +1,4 @@
-package com.workflow.workflow.user;
+package com.workflow.workflow.user.auth;
 
 public class EditAccountRequest {
     private String password;

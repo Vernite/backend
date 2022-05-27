@@ -1,4 +1,4 @@
-package com.workflow.workflow.user;
+package com.workflow.workflow.user.auth;
 
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -16,6 +16,10 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotNull;
 
 import com.workflow.workflow.counter.CounterSequence;
+import com.workflow.workflow.user.User;
+import com.workflow.workflow.user.UserRepository;
+import com.workflow.workflow.user.UserSession;
+import com.workflow.workflow.user.UserSessionRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
