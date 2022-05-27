@@ -109,8 +109,10 @@ public class TaskController {
         task.setType(taskRequest.getType());
         task.setUser(user);
         if (taskRequest.getParentTaskId() != null) {
-            Task parentTask = taskRepository.findById(taskRequest.getParentTaskId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "super task not found"));
+            Task parentTask = taskRepository.findByIdOrThrow(taskRequest.getParentTaskId());
+            if (parentTask.getParentTask() != null) {
+                throw new ResponseStatusException(HttpStatus.I_AM_A_TEAPOT, "parent task cant be subtask of another task or there will be possibility of cycle");
+            }
             task.setParentTask(parentTask);
         }
         task = taskRepository.save(task);
@@ -156,9 +158,11 @@ public class TaskController {
             task.setStatus(newStatus);
         }
         if (taskRequest.getParentTaskId() != null) {
-            Task superTask = taskRepository.findById(taskRequest.getParentTaskId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "super task not found"));
-            task.setParentTask(superTask);
+            Task parentTask = taskRepository.findByIdOrThrow(taskRequest.getParentTaskId());
+            if (parentTask.getParentTask() != null) {
+                throw new ResponseStatusException(HttpStatus.I_AM_A_TEAPOT, "parent task cant be subtask of another task or there will be possibility of cycle");
+            }
+            task.setParentTask(parentTask);
         }
         taskRepository.save(task);
         return service.patchIssue(task).then().thenReturn(task);
