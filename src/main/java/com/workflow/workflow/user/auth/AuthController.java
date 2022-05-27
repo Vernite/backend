@@ -1,7 +1,8 @@
 package com.workflow.workflow.user.auth;
 
 import java.security.SecureRandom;
-import java.util.Base64;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
@@ -16,6 +17,8 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotNull;
 
 import com.workflow.workflow.counter.CounterSequence;
+import com.workflow.workflow.user.PasswordRecovery;
+import com.workflow.workflow.user.PasswordRecoveryRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.user.UserSession;
@@ -44,23 +47,31 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 @RequestMapping("/auth")
 public class AuthController {
 
+    private static final char[] CHARS = "0123456789qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM".toCharArray();
     public static final String COOKIE_NAME = "session";
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final Random RANDOM = new Random();
     private static final ScheduledExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadScheduledExecutor();
 
-    private static String generateNextSession() {
-        byte[] b = new byte[128];
-        SECURE_RANDOM.nextBytes(b);
-        return Base64.getEncoder().encodeToString(b);
+    private static String generateRandomString() {
+        char[] b = new char[128];
+        for (int i = 0; i < b.length; i++) {
+            b[i] = CHARS[SECURE_RANDOM.nextInt(CHARS.length)];
+        }
+        return new String(b);
     }
 
     @Autowired
     private UserRepository userRepository;
+
     @Autowired
     private UserSessionRepository userSessionRepository;
+
     @Autowired
     private JavaMailSender javaMailSender;
+
+    @Autowired
+    private PasswordRecoveryRepository passwordRecoveryRepository;
 
     @Operation(summary = "Logged user", description = "This method returns currently logged user.")
     @ApiResponse(responseCode = "200", description = "Logged user.")
@@ -171,12 +182,14 @@ public class AuthController {
         createSession(request, response, u, false);
         SimpleMailMessage msg = new SimpleMailMessage();
         msg.setTo(req.getEmail());
+        // TODO activation link
         msg.setSubject("Dziękujemy za rejestrację");
         msg.setText("Cześć, " + req.getName() + "!\nDziękujemy za zarejestrowanie się w naszym serwisie");
         javaMailSender.send(msg);
         return u;
     }
 
+    // TODO make description (logout)
     @PostMapping("/logout")
     public void destroySession(HttpServletRequest req, HttpServletResponse resp) {
         Cookie cookie = new Cookie(COOKIE_NAME, null);
@@ -185,9 +198,41 @@ public class AuthController {
         resp.addCookie(cookie);
     }
 
+    // TODO make description (recover passwd)
+    @PostMapping("/recoverPassword")
+    public void recoverPassword(@Parameter(hidden = true) User loggedUser, @RequestBody PasswordRecoveryRequest req) {
+        if (loggedUser != null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "already logged");
+        }
+        // ha tfu na timing atacki XD
+        EXECUTOR_SERVICE.execute(() -> {
+            User u = userRepository.findByEmail(req.getEmail());
+            if (u == null) {
+                return;
+            }
+            PasswordRecovery p = new PasswordRecovery();
+            p.setUser(u);
+            p.setActive(Date.from(Instant.now().plus(30, ChronoUnit.MINUTES)));
+            p.setToken(generateRandomString());
+            while (true) {
+                try {
+                    p = passwordRecoveryRepository.save(p);
+                    break;
+                } catch (DataIntegrityViolationException ex) {
+                    p.setToken(generateRandomString());
+                }
+            }
+            SimpleMailMessage msg = new SimpleMailMessage();
+            msg.setTo(req.getEmail());
+            msg.setSubject("Zapomniałeś hasła?");
+            msg.setText("Cześć, " + u.getName() + "!\nJeśli zapomniałeś hasła to wejdź w link: https://workflow.adiantek.ovh/pl-PL/auth/set-new-password?token=" + p.getToken());
+            javaMailSender.send(msg);
+        });
+    }
+
     private void createSession(HttpServletRequest req, HttpServletResponse resp, User user, boolean remembered) {
         UserSession us = new UserSession();
-        us.setSession(generateNextSession());
+        us.setSession(generateRandomString());
         us.setIp(req.getHeader("X-Forwarded-For"));
         if (us.getIp() == null) {
             us.setIp(req.getRemoteAddr());
@@ -201,7 +246,7 @@ public class AuthController {
                 us = userSessionRepository.save(us);
                 break;
             } catch (DataIntegrityViolationException ex) {
-                us.setSession(generateNextSession());
+                us.setSession(generateRandomString());
             }
         }
         Cookie c = new Cookie(COOKIE_NAME, us.getSession());

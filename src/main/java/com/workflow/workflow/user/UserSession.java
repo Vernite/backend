@@ -24,7 +24,7 @@ import org.hibernate.annotations.OnDeleteAction;
 public class UserSession {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private long id;
 
     @Column(unique = true)
     @NotNull
@@ -53,11 +53,11 @@ public class UserSession {
     @Transient
     private boolean current;
 
-    public int getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(long id) {
         this.id = id;
     }
 

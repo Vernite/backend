@@ -123,7 +123,7 @@ public class SessionController {
     @ApiResponse(responseCode = "403", description = "Cannot revoke current (active) session or another user")
     @DeleteMapping("/{id}")
     public void delete(@NotNull @Parameter(hidden = true) User loggedUser,
-            @Parameter(hidden = true) @CookieValue(AuthController.COOKIE_NAME) String session, @PathVariable int id) {
+            @Parameter(hidden = true) @CookieValue(AuthController.COOKIE_NAME) String session, @PathVariable long id) {
         UserSession sess = this.userSessionRepository.findById(id).orElse(null);
         if (sess == null) {
             return;
