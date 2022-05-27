@@ -23,6 +23,8 @@ jobs:
         mysql -h 127.0.0.1 -uroot -proot -e 'create database workflow_test charset utf8mb4'
         mysql -h 127.0.0.1 -uroot -proot -e 'create user "workflow"@"localhost" identified by "IBvmFN4LvHHVfzKRyGYRCQBKadMRyuIu7B5XL0AZ"'
         mysql -h 127.0.0.1 -uroot -proot -e 'grant all on *.* to "workflow"@"localhost" with grant option'
+    - name: Install properties
+      run: "echo ${{ secrets.SPRING_APPLICATION_PROPERTIES }} > application.properties"
     - name: Build with Maven
       run: mvn -B package --file pom.xml
     - name: Prepare SSH
