@@ -190,7 +190,8 @@ public class AuthController {
         return u;
     }
 
-    // TODO make description (logout)
+    @Operation(summary = "Log out", description = "This method log outs the user.")
+    @ApiResponse(responseCode = "200", description = "User logged out")
     @PostMapping("/logout")
     public void destroySession(HttpServletRequest req, HttpServletResponse resp) {
         Cookie cookie = new Cookie(COOKIE_NAME, null);
@@ -199,40 +200,44 @@ public class AuthController {
         resp.addCookie(cookie);
     }
 
-    // TODO make description (recover passwd)
+    @Operation(summary = "Send email with link to reset password", description = "This method sends an e-mail to the user with a link that allows the user to reset the password.")
+    @ApiResponse(responseCode = "200", description = "E-mail address has been sent")
+    @ApiResponse(responseCode = "403", description = "User already logged")
+    @ApiResponse(responseCode = "404", description = "E-mail not found")
     @PostMapping("/recoverPassword")
     public void recoverPassword(@Parameter(hidden = true) User loggedUser, @RequestBody PasswordRecoveryRequest req) {
         if (loggedUser != null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "already logged");
         }
-        // ha tfu na timing atacki XD
-        EXECUTOR_SERVICE.execute(() -> {
-            User u = userRepository.findByEmail(req.getEmail());
-            if (u == null) {
-                return;
+        User u = userRepository.findByEmail(req.getEmail());
+        if (u == null) {
+            throw NotFoundRepository.getException();
+        }
+        PasswordRecovery p = new PasswordRecovery();
+        p.setUser(u);
+        p.setActive(Date.from(Instant.now().plus(30, ChronoUnit.MINUTES)));
+        p.setToken(generateRandomString());
+        while (true) {
+            try {
+                p = passwordRecoveryRepository.save(p);
+                break;
+            } catch (DataIntegrityViolationException ex) {
+                p.setToken(generateRandomString());
             }
-            PasswordRecovery p = new PasswordRecovery();
-            p.setUser(u);
-            p.setActive(Date.from(Instant.now().plus(30, ChronoUnit.MINUTES)));
-            p.setToken(generateRandomString());
-            while (true) {
-                try {
-                    p = passwordRecoveryRepository.save(p);
-                    break;
-                } catch (DataIntegrityViolationException ex) {
-                    p.setToken(generateRandomString());
-                }
-            }
-            SimpleMailMessage msg = new SimpleMailMessage();
-            msg.setTo(req.getEmail());
-            msg.setSubject("Zapomniałeś hasła?");
-            msg.setText("Cześć, " + u.getName()
-                    + "!\nJeśli zapomniałeś hasła to wejdź w link: https://workflow.adiantek.ovh/pl-PL/auth/set-new-password?token="
-                    + p.getToken() + "\nLink wygaśnie po 30 minutach");
-            javaMailSender.send(msg);
-        });
+        }
+        SimpleMailMessage msg = new SimpleMailMessage();
+        msg.setTo(req.getEmail());
+        msg.setSubject("Zapomniałeś hasła?");
+        msg.setText("Cześć, " + u.getName()
+                + "!\nJeśli zapomniałeś hasła to wejdź w link: https://workflow.adiantek.ovh/pl-PL/auth/set-new-password?token="
+                + p.getToken() + "\nLink wygaśnie po 30 minutach");
+        javaMailSender.send(msg);
     }
 
+    @Operation(summary = "Check token and reset password", description = "This method allows to check if the token is valid and reset the password.")
+    @ApiResponse(responseCode = "200", description = "The token is valid and the password (if provided) has been changed.")
+    @ApiResponse(responseCode = "403", description = "User is already logged.")
+    @ApiResponse(responseCode = "404", description = "The token is not valid or has expired.")
     @PostMapping("/resetPassword")
     public void resetPassword(@Parameter(hidden = true) User loggedUser, @RequestBody ResetPasswordRequest req) {
         if (loggedUser != null) {
@@ -240,6 +245,10 @@ public class AuthController {
         }
         PasswordRecovery p = passwordRecoveryRepository.findByToken(req.getToken());
         if (p == null) {
+            throw NotFoundRepository.getException();
+        }
+        if (p.getActive().before(new Date())) {
+            passwordRecoveryRepository.delete(p);
             throw NotFoundRepository.getException();
         }
         if (req.getPassword() == null) {
