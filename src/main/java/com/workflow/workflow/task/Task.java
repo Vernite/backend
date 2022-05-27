@@ -72,6 +72,7 @@ public class Task extends SoftDeleteEntity {
     @JsonIgnore
     private GitHubTask gitHubTask;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(nullable = true)
     private Task parentTask;
@@ -82,6 +83,18 @@ public class Task extends SoftDeleteEntity {
 
     private Date deadline;
     private Date estimatedDate;
+
+    public Task() {
+    }
+
+    public Task(String name, String description, Status status, User user, int type) {
+        this.name = name;
+        this.description = description;
+        this.status = status;
+        this.user = user;
+        this.type = type;
+        this.createdAt = new Date();
+    }
 
     public long getId() {
         return id;
@@ -203,12 +216,10 @@ public class Task extends SoftDeleteEntity {
         this.gitHubTask = gitHubTask;
     }
 
-    @JsonIgnore
     public Task getParentTask() {
         return parentTask;
     }
 
-    @JsonIgnore
     public void setParentTask(Task superTask) {
         this.parentTask = superTask;
     }
@@ -227,8 +238,8 @@ public class Task extends SoftDeleteEntity {
 
     @Override
     public int hashCode() {
-        return Objects.hash(getCreatedAt(), getDeadline(), getDescription(), getEstimatedDate(), getGitHubTask(), getId(), this.getName(), this.getParentTask(), this.getSprint(),
-                this.getStatus(), this.getSubTasks(), this.getType(), this.getUser());
+        return Objects.hash(getCreatedAt(), getDeadline(), getDescription(), getEstimatedDate(), getGitHubTask(),
+                getId(), this.getName(), this.getSprint(), this.getStatus(), this.getType(), this.getUser());
     }
 
     @Override
@@ -238,11 +249,14 @@ public class Task extends SoftDeleteEntity {
         if (!(obj instanceof Task))
             return false;
         Task other = (Task) obj;
-        return Objects.equals(getCreatedAt(), other.getCreatedAt()) && Objects.equals(getDeadline(), other.getDeadline())
-                && Objects.equals(getDescription(), other.getDescription()) && Objects.equals(getEstimatedDate(), other.getEstimatedDate())
-                && Objects.equals(getGitHubTask(), other.getGitHubTask()) && getId() == other.getId() && Objects.equals(getName(), other.getName())
-                && Objects.equals(getParentTask(), other.getParentTask()) && Objects.equals(getSprint(), other.getSprint())
-                && Objects.equals(getStatus(), other.getStatus()) && Objects.equals(getSubTasks(), other.getSubTasks())
+        return Objects.equals(getCreatedAt(), other.getCreatedAt())
+                && Objects.equals(getDeadline(), other.getDeadline())
+                && Objects.equals(getDescription(), other.getDescription())
+                && Objects.equals(getEstimatedDate(), other.getEstimatedDate())
+                && Objects.equals(getGitHubTask(), other.getGitHubTask()) && getId() == other.getId()
+                && Objects.equals(getName(), other.getName())
+                && Objects.equals(getSprint(), other.getSprint())
+                && Objects.equals(getStatus(), other.getStatus())
                 && getType() == other.getType() && Objects.equals(getUser(), other.getUser());
     }
 }

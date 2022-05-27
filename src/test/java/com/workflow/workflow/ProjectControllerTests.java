@@ -231,8 +231,12 @@ public class ProjectControllerTests {
 
     @Test
     void putProjectNotFound() {
-        client.get().uri("/project/1")
+        ProjectRequest request = new ProjectRequest("PUT", 1L);
+
+        client.put().uri("/project/1")
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
                 .exchange()
                 .expectStatus().isNotFound();
     }

@@ -1,24 +1,12 @@
 package com.workflow.workflow;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-import java.util.ArrayList;
-import java.util.Collection;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 
-import javax.servlet.http.Cookie;
-
-import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
@@ -27,6 +15,7 @@ import com.workflow.workflow.status.Status;
 import com.workflow.workflow.status.StatusRepository;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.task.TaskRepository;
+import com.workflow.workflow.task.TaskRequest;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.user.UserSession;
@@ -46,65 +35,72 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.reactive.server.WebTestClient;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestInstance(Lifecycle.PER_CLASS)
-@TestPropertySource({"classpath:application.properties", "classpath:application-test.properties"})
+@TestPropertySource({ "classpath:application.properties", "classpath:application-test.properties" })
 public class TaskControllerTests {
     @Autowired
-    private MockMvc mvc;
-    @Autowired
-    private WorkspaceRepository workspaceRepository;
+    private WebTestClient client;
     @Autowired
     private UserRepository userRepository;
     @Autowired
+    private UserSessionRepository sessionRepository;
+    @Autowired
     private ProjectRepository projectRepository;
+    @Autowired
+    private WorkspaceRepository workspaceRepository;
     @Autowired
     private ProjectWorkspaceRepository projectWorkspaceRepository;
     @Autowired
     private TaskRepository taskRepository;
     @Autowired
     private StatusRepository statusRepository;
-    @Autowired
-    private CounterSequenceRepository counterSequenceRepository;
-    @Autowired
-    private UserSessionRepository sessionRepository;
 
-    private UserSession session;
-    private Workspace workspace;
-    private Status status;
     private User user;
+    private UserSession session;
     private Project project;
+    private Project forbiddenProject;
+    private Status[] statuses = new Status[2];
+    private Status[] forbiddenStatuses = new Status[2];
+
+    void taskEquals(Task expected, Task actual) {
+        assertEquals(expected.getName(), actual.getName());
+        assertEquals(expected.getActive(), actual.getActive());
+        assertEquals(expected.getCreatedAt(), actual.getCreatedAt());
+        assertEquals(expected.getDeadline(), actual.getDeadline());
+        assertEquals(expected.getDescription(), actual.getDescription());
+        assertEquals(expected.getEstimatedDate(), actual.getEstimatedDate());
+        assertEquals(expected.getId(), actual.getId());
+        assertEquals(expected.getIssue(), actual.getIssue());
+    }
 
     @BeforeAll
     void init() {
         user = userRepository.findById(1L)
-                .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email", "Password")));
-                session = new UserSession();
+                .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1")));
+        session = new UserSession();
         session.setIp("127.0.0.1");
-        session.setSession("session_token_projects_tests");
+        session.setSession("session_token_tasks_tests");
         session.setLastUsed(new Date());
         session.setRemembered(true);
         session.setUserAgent("userAgent");
         session.setUser(user);
         try {
-                session = sessionRepository.save(session);
+            session = sessionRepository.save(session);
         } catch (DataIntegrityViolationException e) {
-                session = sessionRepository.findBySession("session_token_projects_tests").orElseThrow();
+            session = sessionRepository.findBySession("session_token_projects_tests").orElseThrow();
         }
-        long id = counterSequenceRepository.getIncrementCounter(user.getCounterSequence().getId());
-        workspace = workspaceRepository.save(new Workspace(id, user, "name"));
-        project = projectRepository.save(new Project("put"));
+        project = projectRepository.save(new Project("Tasks project"));
+        forbiddenProject = projectRepository.save(new Project("Tasks project forbidden"));
+        Workspace workspace = workspaceRepository.save(new Workspace(1, user, "tasks test workspace"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
-        Status statusTemp = new Status();
-        statusTemp.setColor(0);
-        statusTemp.setFinal(false);
-        statusTemp.setName("status");
-        statusTemp.setOrdinal(0);
-        statusTemp.setProject(project);
-        status = statusRepository.save(statusTemp);
+        statuses[0] = statusRepository.save(new Status("TO DO", 0, false, true, 0, project));
+        statuses[1] = statusRepository.save(new Status("In Progress", 0, false, false, 1, project));
+        forbiddenStatuses[0] = statusRepository.save(new Status("TO DO", 0, false, true, 0, forbiddenProject));
+        forbiddenStatuses[1] = statusRepository.save(new Status("In Progress", 0, false, false, 1, forbiddenProject));
     }
 
     @BeforeEach
@@ -113,248 +109,345 @@ public class TaskControllerTests {
     }
 
     @Test
-    void allEmpty() throws Exception {
-        mvc.perform(get(String.format("/project/%d/task/", project.getId())).contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(0)));
+    void getAllTasksSuccess() {
+        // Test empty return list
+        client.get().uri(String.format("/project/%d/task", project.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBodyList(Task.class).hasSize(0);
+        // Prepare some workspaces for next test
+        List<Task> tasks = List.of(
+                taskRepository.save(new Task("NAME 1", "DESC", statuses[0], user, 0)),
+                taskRepository.save(new Task("NAME 3", "DESC", statuses[0], user, 0)),
+                taskRepository.save(new Task("NAME 2", "DESC", statuses[0], user, 0)));
+        // Test non empty return list
+        List<Task> result = client.get().uri(String.format("/project/%d/task", project.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBodyList(Task.class)
+                .hasSize(3)
+                .returnResult()
+                .getResponseBody();
+        taskEquals(tasks.get(0), result.get(0));
+        taskEquals(tasks.get(1), result.get(2));
+        taskEquals(tasks.get(2), result.get(1));
+
+        tasks.get(0).setActive(new Date());
+        taskRepository.save(tasks.get(0));
+
+        client.get().uri(String.format("/project/%d/task", project.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBodyList(Task.class)
+                .hasSize(2);
     }
 
     @Test
-    void allWithData() throws Exception {
-        Task task = new Task();
-        task.setName("name");
-        task.setCreatedAt(new Date());
-        task.setDeadline(new Date());
-        task.setDescription("description");
-        task.setType(0);
-        task.setUser(user);
-        task.setStatus(status);
-        taskRepository.save(task);
-        task = new Task();
-        task.setCreatedAt(new Date());
-        task.setDeadline(new Date());
-        task.setDescription("description");
-        task.setType(0);
-        task.setUser(user);
-        task.setStatus(status);
-        task.setName("name 2");
-        taskRepository.save(task);
-        task = new Task();
-        task.setCreatedAt(new Date());
-        task.setDeadline(new Date());
-        task.setDescription("description");
-        task.setType(0);
-        task.setUser(user);
-        task.setStatus(status);
-        task.setName("name 3");
-        taskRepository.save(task);
-
-        mvc.perform(get(String.format("/project/%d/task/", project.getId())).contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(3)))
-                .andExpect(jsonPath("$[0].name", is("name")))
-                .andExpect(jsonPath("$[1].name", is("name 2")))
-                .andExpect(jsonPath("$[2].name", is("name 3")));
+    void getAllTasksUnauthorized() {
+        client.get().uri(String.format("/project/%d/task", project.getId()))
+                .exchange()
+                .expectStatus().isUnauthorized();
     }
 
     @Test
-    void allNotFound() throws Exception {
-        mvc.perform(get(String.format("/project/%d/task/", 77878)).contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())))
-                .andExpect(status().isNotFound());
+    void getAllTasksNotFound() {
+        client.get().uri("/project/666/task")
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
+
+        client.get().uri(String.format("/project/%d/task", forbiddenProject.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
     }
 
     @Test
-    void addSuccess() throws Exception {
-        mvc.perform(post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
-                .accept(MediaType.APPLICATION_JSON)
-                .content(String.format(
-                        "{\"name\": \"string\",\"description\": \"string\",\"statusId\": %d,\"type\": 0,\"deadline\": \"2022-05-11T17:38:27.813Z\",\"createIssue\": false}",
-                        status.getId())))
-                .andExpect(status().isOk());
-        List<Task> tasks = new ArrayList<>();
-        tasks.addAll((Collection<? extends Task>) taskRepository.findAll());
-        assertEquals(1, tasks.size());
-        assertEquals("string", tasks.get(0).getName());
+    void newTaskSuccess() {
+        TaskRequest request = new TaskRequest("NAME", "DESC", statuses[0], 0, new Date(), new Date());
+        Task parentTask = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
+        request.setParentTaskId(parentTask.getId());
+        Task task = client.post().uri(String.format("/project/%d/task", project.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Task.class)
+                .returnResult()
+                .getResponseBody();
+        taskEquals(task, taskRepository.findByIdOrThrow(task.getId()));
     }
 
     @Test
-    void addNotFound() throws Exception {
-        mvc.perform(post(String.format("/project/%d/task/", 776576)).contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
-                .content(String.format(
-                        "{\"name\": \"Patch test\",\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
-                        status.getId())))
-                .andExpect(status().isNotFound());
+    void newTaskBadRequest() {
+        TaskRequest request = new TaskRequest();
+        client.post().uri(String.format("/project/%d/task", project.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
 
-        mvc.perform(post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
-                .content(String.format(
-                        "{\"name\": \"Patch test\",\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
-                        453543)))
-                .andExpect(status().isNotFound());
+        request.setName("NAME");
+        client.post().uri(String.format("/project/%d/task", project.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
+
+        request.setStatusId(statuses[0].getId());
+        client.post().uri(String.format("/project/%d/task", project.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
     }
 
     @Test
-    void addBadRequest() throws Exception {
-        mvc.perform(post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())))
-                .andExpect(status().isBadRequest());
-        mvc.perform(post(String.format("/project/%d/task/", project.getId()))
-                .contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
-                .content(String.format(
-                        "{\"name\": \"Patch test\",\"description\": \"Patch description\",\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
-                        453543)))
-                .andExpect(status().isBadRequest());
-        mvc.perform(post(String.format("/project/%d/task/", project.getId()))
-                .contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
-                .content(String.format(
-                        "{\"name\": \"Patch test\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
-                        453543)))
-                .andExpect(status().isBadRequest());
-        mvc.perform(post(String.format("/project/%d/task/", project.getId()))
-                .contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
-                .content(String.format(
-                        "{\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
-                        453543)))
-                .andExpect(status().isBadRequest());
+    void newTaskUnauthorized() {
+        TaskRequest request = new TaskRequest("NAME", "DESC", statuses[0], 0, new Date(), new Date());
+        client.post().uri(String.format("/project/%d/task", project.getId()))
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isUnauthorized();
     }
 
     @Test
-    void addUnsupportedMedia() throws Exception {
-        mvc.perform(
-                post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.MULTIPART_FORM_DATA).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())))
-                .andExpect(status().isUnsupportedMediaType());
-        mvc.perform(post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.MULTIPART_FORM_DATA).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
-                .content("{}"))
-                .andExpect(status().isUnsupportedMediaType());
-        mvc.perform(post(String.format("/project/%d/task/", project.getId())).contentType(MediaType.MULTIPART_FORM_DATA).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
-                .content("{\"name\": \"test\"}"))
-                .andExpect(status().isUnsupportedMediaType());
+    void newTaskNotFound() {
+        TaskRequest request = new TaskRequest("NAME", "DESC", forbiddenStatuses[0], 0, new Date(), new Date());
+        client.post().uri(String.format("/project/%d/task", forbiddenProject.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isNotFound();
+
+        request.setStatusId(666L);
+        client.post().uri(String.format("/project/%d/task", project.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isNotFound();
+
+        request.setStatusId(statuses[0].getId());
+        request.setParentTaskId(666L);
+        client.post().uri(String.format("/project/%d/task", project.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isNotFound();
+
+        client.post().uri("/project/666/task")
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isNotFound();
     }
 
     @Test
-    void putSuccess() throws Exception {
-        Task task = new Task();
-        task.setName("name");
-        task.setCreatedAt(new Date());
-        task.setDeadline(new Date());
-        task.setDescription("description");
-        task.setType(0);
-        task.setUser(user);
-        task.setStatus(status);
-        task = taskRepository.save(task);
+    void getTaskSuccess() {
+        Task task = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
 
-        mvc.perform(put(String.format("/project/%d/task/%d", project.getId(), task.getId()))
-                .contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
-                .content("{\"name\": \"new put\"}"))
-                .andExpect(status().isOk());
-
-        assertEquals("new put", taskRepository.findById(task.getId()).orElseThrow().getName());
+        Task result = client.get().uri(String.format("/project/%d/task/%d", project.getId(), task.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Task.class)
+                .returnResult()
+                .getResponseBody();
+        taskEquals(task, result);
     }
 
     @Test
-    void putBadRequest() throws Exception {
-        Task task = new Task();
-        task.setName("name");
-        task.setCreatedAt(new Date());
-        task.setDeadline(new Date());
-        task.setDescription("description");
-        task.setType(0);
-        task.setUser(user);
-        task.setStatus(status);
-        task = taskRepository.save(task);
-        mvc.perform(put(String.format("/project/%d/task/%d", project.getId(), task.getId()))
-                .contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())))
-                .andExpect(status().isBadRequest());
+    void getTaskUnauthorized() {
+        client.get().uri(String.format("/project/%d/task/1", project.getId()))
+                .exchange()
+                .expectStatus().isUnauthorized();
+
+        Task task = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
+
+        client.get().uri(String.format("/project/%d/task/%d", project.getId(), task.getId()))
+                .exchange()
+                .expectStatus().isUnauthorized();
     }
 
     @Test
-    void putNotFound() throws Exception {
-        Task task = new Task();
-        task.setName("name");
-        task.setCreatedAt(new Date());
-        task.setDeadline(new Date());
-        task.setDescription("description");
-        task.setType(0);
-        task.setUser(user);
-        task.setStatus(status);
-        task = taskRepository.save(task);
-        mvc.perform(put(String.format("/project/%d/task/%d", 231321, task.getId()))
-                .contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
-                .content(String.format(
-                        "{\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
-                        status.getId())))
-                .andExpect(status().isNotFound());
+    void getTaskNotFound() {
+        client.get().uri(String.format("/project/%d/task/1", project.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
 
-        mvc.perform(put(String.format("/project/%d/task/%d", project.getId(), 2341321))
-                .contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
-                .content(String.format(
-                        "{\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
-                        status.getId())))
-                .andExpect(status().isNotFound());
+        client.get().uri(String.format("/project/%d/task/1", forbiddenProject.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
 
-        mvc.perform(put(String.format("/project/%d/task/%d", project.getId(), task.getId()))
-                .contentType(MediaType.APPLICATION_JSON).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession()))
-                .content(String.format(
-                        "{\"description\": \"Patch description\",\"type\": 0,\"deadline\": \"2022-05-08T11:56:14.384+00:00\",\"statusId\": %d, \"createIssue\": false}",
-                        321321)))
-                .andExpect(status().isNotFound());
+        Task task = taskRepository.save(new Task("NAME", "DESC", forbiddenStatuses[0], user, 0));
+        client.get().uri(String.format("/project/%d/task/%d", forbiddenProject.getId(), task.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
     }
 
     @Test
-    void putUnsupportedMedia() throws Exception {
-        Task task = new Task();
-        task.setName("name");
-        task.setCreatedAt(new Date());
-        task.setDeadline(new Date());
-        task.setDescription("description");
-        task.setType(0);
-        task.setUser(user);
-        task.setStatus(status);
-        task = taskRepository.save(task);
+    void putTaskSuccess() {
+        Task task = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
+        Task parentTask = taskRepository.save(new Task("NAME 2", "DESC", statuses[0], user, 0));
+        TaskRequest request = new TaskRequest();
 
-        mvc.perform(put(String.format("/project/%d/task/%d", project.getId(), task.getId()))
-                .contentType(MediaType.MULTIPART_FORM_DATA).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())))
-                .andExpect(status().isUnsupportedMediaType());
-        mvc.perform(put(String.format("/project/%d/task/%d", project.getId(), task.getId()))
-                .contentType(MediaType.MULTIPART_FORM_DATA).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())).content("{}"))
-                .andExpect(status().isUnsupportedMediaType());
-        mvc.perform(put(String.format("/project/%d/task/%d", project.getId(), task.getId()))
-                .contentType(MediaType.MULTIPART_FORM_DATA).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())).content("{\"name\": \"test\"}"))
-                .andExpect(status().isUnsupportedMediaType());
+        Task result = client.put().uri(String.format("/project/%d/task/%d", project.getId(), task.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Task.class)
+                .returnResult()
+                .getResponseBody();
+        taskEquals(task, result);
+
+        request.setName("NEW PUT");
+        task.setName(request.getName());
+
+        request.setDescription("NEW PUT");
+        task.setDescription(request.getDescription());
+
+        request.setDeadline(Date.from(Instant.now().minusSeconds(4000)));
+        task.setDeadline(request.getDeadline());
+
+        request.setEstimatedDate(Date.from(Instant.now().minusSeconds(4000)));
+        task.setEstimatedDate(request.getEstimatedDate());
+
+        request.setType(1);
+        task.setType(request.getType());
+
+        request.setStatusId(statuses[1].getId());
+        task.setStatus(statuses[1]);
+
+        request.setParentTaskId(parentTask.getId());
+        task.setParentTask(parentTask);
+
+        result = client.put().uri(String.format("/project/%d/task/%d", project.getId(), task.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Task.class)
+                .returnResult()
+                .getResponseBody();
+        taskEquals(task, result);
     }
 
     @Test
-    void deleteSuccess() throws Exception {
-        Task task = new Task();
-        task.setName("name");
-        task.setCreatedAt(new Date());
-        task.setDeadline(new Date());
-        task.setDescription("description");
-        task.setType(0);
-        task.setUser(user);
-        task.setStatus(status);
-        task = taskRepository.save(task);
+    void putTaskUnauthorized() {
+        TaskRequest request = new TaskRequest();
+        client.put().uri(String.format("/project/%d/task/1", project.getId()))
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isUnauthorized();
 
-        mvc.perform(delete(String.format("/project/%d/task/%d", project.getId(), task.getId())).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())))
-                .andExpect(status().isOk());
+        Task task = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
+
+        client.put().uri(String.format("/project/%d/task/%d", project.getId(), task.getId()))
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isUnauthorized();
     }
 
     @Test
-    void deleteNotFound() throws Exception {
-        mvc.perform(delete(String.format("/project/%d/task/%d", project.getId(), 32123)).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())))
-                .andExpect(status().isNotFound());
+    void putTaskNotFound() {
+        TaskRequest request = new TaskRequest();
 
-        Task task = new Task();
-        task.setName("name");
-        task.setCreatedAt(new Date());
-        task.setDeadline(new Date());
-        task.setDescription("description");
-        task.setType(0);
-        task.setUser(user);
-        task.setStatus(status);
-        task = taskRepository.save(task);
+        client.put().uri(String.format("/project/%d/task/1", project.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isNotFound();
 
-        mvc.perform(delete(String.format("/project/%d/task/%d", 2313, task.getId())).cookie(new Cookie(AuthController.COOKIE_NAME, session.getSession())))
-                .andExpect(status().isNotFound());
+        Task forbiddenTask = taskRepository.save(new Task("NAME", "DESC", forbiddenStatuses[0], user, 0));
+        Task task = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
+
+        client.put().uri(String.format("/project/%d/task/%d", forbiddenProject.getId(), forbiddenTask.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isNotFound();
+
+        request.setStatusId(666L);
+        client.put().uri(String.format("/project/%d/task/%d", project.getId(), task.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isNotFound();
+
+        request.setStatusId(null);
+        request.setParentTaskId(666L);
+        client.put().uri(String.format("/project/%d/task/%d", project.getId(), task.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void deleteTaskSuccess() {
+        Task task = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
+
+        client.delete().uri(String.format("/project/%d/task/%d", project.getId(), task.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isOk();
+        assertNotEquals(null, taskRepository.findById(task.getId()).get().getActive());
+    }
+
+    @Test
+    void deleteTaskUnauthorized() {
+        client.delete().uri(String.format("/project/%d/task/1", project.getId()))
+                .exchange()
+                .expectStatus().isUnauthorized();
+
+        Task task = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
+        client.delete().uri(String.format("/project/%d/task/%d", project.getId(), task.getId()))
+                .exchange()
+                .expectStatus().isUnauthorized();
+
+        assertEquals(task.getActive(), taskRepository.findByIdOrThrow(task.getId()).getActive());
+    }
+
+    @Test
+    void deleteTaskNotFound() {
+        client.delete().uri(String.format("/project/%d/task/1", project.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
+
+        client.delete().uri(String.format("/project/%d/task/1", forbiddenProject.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
+
+        Task task = taskRepository.save(new Task("NAME", "DESC", forbiddenStatuses[0], user, 0));
+        client.delete().uri(String.format("/project/%d/task/%d", forbiddenProject.getId(), task.getId()))
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
     }
 }
