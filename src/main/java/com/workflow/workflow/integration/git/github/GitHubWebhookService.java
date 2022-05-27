@@ -5,6 +5,7 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -81,7 +82,11 @@ public class GitHubWebhookService {
 
     private Mono<Void> handleInstallation(GitHubWebhookData data) {
         GitHubInstallationApi installationApi = data.getInstallation();
-        GitHubInstallation installation = installationRepository.findByIdOrThrow(installationApi.getId());
+        Optional<GitHubInstallation> optional = installationRepository.findByInstallationId(installationApi.getId());
+        if (optional.isEmpty()) {
+            return Mono.empty();
+        }
+        GitHubInstallation installation = optional.get();
         switch (data.getAction()) {
             case "suspend":
                 installation.setSuspended(true);
