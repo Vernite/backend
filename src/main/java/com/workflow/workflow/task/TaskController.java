@@ -59,7 +59,7 @@ public class TaskController {
         if (project.member(user) == -1) {
             throw NotFoundRepository.getException();
         }
-        return taskRepository.findByStatusProjectAndActiveNullOrderByNameAscIdAsc(project);
+        return taskRepository.findByStatusProjectAndActiveNullAndParentTaskNullOrderByNameAscIdAsc(project);
     }
 
     @Operation(summary = "Get task information", description = "This method is used to retrive status with given ID. On success returns task with given ID. Throws 404 when project or task does not exist.")

@@ -11,5 +11,5 @@ public interface TaskRepository extends SoftDeleteRepository<Task, Long> {
     
     Collection<Task> findByStatus(Status status);
 
-    List<Task> findByStatusProjectAndActiveNullOrderByNameAscIdAsc(Project project);
+    List<Task> findByStatusProjectAndActiveNullAndParentTaskNullOrderByNameAscIdAsc(Project project);
 }
