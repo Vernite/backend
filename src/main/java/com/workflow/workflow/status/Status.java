@@ -49,10 +49,11 @@ public class Status extends SoftDeleteEntity {
     public Status() {
     }
 
-    public Status(String name, Integer color, Boolean isFinal, Integer ordinal, Project project) {
+    public Status(String name, Integer color, Boolean isFinal, boolean isBegin, Integer ordinal, Project project) {
         this.name = name;
         this.color = color;
         this.isFinal = isFinal;
+        this.isBegin = isBegin;
         this.ordinal = ordinal;
         this.project = project;
     }
