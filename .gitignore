@@ -35,3 +35,4 @@ build/
 .mvn
 
 workflow-2022.private-key.der
+application.properties
