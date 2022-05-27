@@ -33,6 +33,9 @@ public class Status extends SoftDeleteEntity {
 
     @Column(nullable = false)
     private Boolean isFinal;
+
+    @Column(nullable = false)
+    private boolean isBegin;
     
     @Column(nullable = false)
     private Integer ordinal;
@@ -84,6 +87,14 @@ public class Status extends SoftDeleteEntity {
 
     public void setFinal(Boolean isFinal) {
         this.isFinal = isFinal;
+    }
+
+    public boolean isBegin() {
+        return isBegin;
+    }
+
+    public void setBegin(boolean isBegin) {
+        this.isBegin = isBegin;
     }
 
     public Integer getOrdinal() {

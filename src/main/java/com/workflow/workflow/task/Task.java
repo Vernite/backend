@@ -1,9 +1,7 @@
 package com.workflow.workflow.task;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import javax.persistence.Column;
@@ -174,21 +172,20 @@ public class Task extends SoftDeleteEntity {
     @JsonIgnore
     public void setState(String state) {
         if (state.equals("closed") && Boolean.FALSE.equals(getStatus().isFinal())) {
-            setStatus(getStatus().getProject().getStatuses().stream().filter(s -> Boolean.TRUE.equals(s.isFinal()))
-                    .findFirst().orElseThrow());
+            for (Status newStatus : getStatus().getProject().getStatuses()) {
+                if (Boolean.TRUE.equals(newStatus.isFinal())) {
+                    setStatus(newStatus);
+                    break;
+                }
+            }
         }
         if (state.equals("open") && Boolean.TRUE.equals(getStatus().isFinal())) {
-            List<Status> statuses = new ArrayList<>(getStatus().getProject().getStatuses());
-            statuses.sort((first, second) -> {
-                if (Boolean.TRUE.equals(first.isFinal())) {
-                    return 1;
+            for (Status newStatus : getStatus().getProject().getStatuses()) {
+                if (newStatus.isBegin()) {
+                    setStatus(newStatus);
+                    break;
                 }
-                if (Boolean.TRUE.equals(second.isFinal())) {
-                    return -1;
-                }
-                return first.getOrdinal() > second.getOrdinal() ? 1 : -1;
-            });
-            setStatus(statuses.get(0));
+            }
         }
     }
 
