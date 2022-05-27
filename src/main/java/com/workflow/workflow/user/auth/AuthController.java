@@ -1,4 +1,4 @@
-package com.workflow.workflow.user;
+package com.workflow.workflow.user.auth;
 
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -16,6 +16,10 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotNull;
 
 import com.workflow.workflow.counter.CounterSequence;
+import com.workflow.workflow.user.User;
+import com.workflow.workflow.user.UserRepository;
+import com.workflow.workflow.user.UserSession;
+import com.workflow.workflow.user.UserSessionRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -102,7 +106,7 @@ public class AuthController {
     @Operation(summary = "Modify user account", description = "This method edits the account.")
     @ApiResponse(responseCode = "200", description = "User after changes.")
     @PutMapping("/edit")
-    public User edit(@NotNull @Parameter(hidden = true) User loggedUser, EditAccountRequest req) {
+    public User edit(@NotNull @Parameter(hidden = true) User loggedUser, @RequestBody EditAccountRequest req) {
         if (req.getPassword() != null) {
             loggedUser.setPassword(req.getPassword());
         }

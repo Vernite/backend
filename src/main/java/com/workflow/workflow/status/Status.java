@@ -1,5 +1,7 @@
 package com.workflow.workflow.status;
 
+import java.util.Objects;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.ForeignKey;
@@ -125,5 +127,22 @@ public class Status extends SoftDeleteEntity {
             this.setOrdinal(o.getOrdinal());
         }
         return this;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getColor(), getId(), isBegin(), isFinal(), getName(), getOrdinal(), getProject());
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (!(obj instanceof Status))
+            return false;
+        Status other = (Status) obj;
+        return Objects.equals(getColor(), other.getColor()) && getId() == other.getId() && isBegin() == other.isBegin()
+                && Objects.equals(isFinal(), other.isFinal()) && Objects.equals(getName(), other.getName())
+                && Objects.equals(getOrdinal(), other.getOrdinal()) && Objects.equals(getProject(), other.getProject());
     }
 }

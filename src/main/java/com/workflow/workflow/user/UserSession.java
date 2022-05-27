@@ -1,6 +1,7 @@
 package com.workflow.workflow.user;
 
 import java.util.Date;
+import java.util.Objects;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -14,6 +15,7 @@ import javax.persistence.Transient;
 import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.workflow.workflow.user.session.GeoIP;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
@@ -123,4 +125,22 @@ public class UserSession {
         this.current = current;
     }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(isCurrent(), getGeoip(), getId(), getIp(), getLastUsed(), isRemembered(), getSession(), getUser(), getUserAgent());
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (!(obj instanceof UserSession))
+            return false;
+        UserSession other = (UserSession) obj;
+        return isCurrent() == other.isCurrent() && Objects.equals(getGeoip(), other.getGeoip()) && getId() == other.getId()
+                && Objects.equals(getIp(), other.getIp()) && Objects.equals(getLastUsed(), other.getLastUsed())
+                && isRemembered() == other.isRemembered() && Objects.equals(getSession(), other.getSession())
+                && Objects.equals(getUser(), other.getUser()) && Objects.equals(getUserAgent(), other.getUserAgent());
+    }
+    
 }

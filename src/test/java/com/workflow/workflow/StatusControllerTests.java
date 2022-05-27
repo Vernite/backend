@@ -22,11 +22,11 @@ import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.status.StatusRepository;
 import com.workflow.workflow.task.TaskRepository;
-import com.workflow.workflow.user.AuthController;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.user.UserSession;
 import com.workflow.workflow.user.UserSessionRepository;
+import com.workflow.workflow.user.auth.AuthController;
 import com.workflow.workflow.workspace.Workspace;
 import com.workflow.workflow.workspace.WorkspaceRepository;
 
