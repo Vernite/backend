@@ -5,7 +5,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -195,21 +197,25 @@ public class User extends SoftDeleteEntity {
 
     @Override
     public int hashCode() {
-        // TODO Auto-generated method stub
-        return super.hashCode();
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + Arrays.hashCode(getHash());
+        result = prime * result + Arrays.hashCode(getSalt());
+        result = prime * result + Objects.hash(getAvatar(), getCounterSequence(), getEmail(), getId(), getName(), getSurname(), getUsername(), getWorkspaces());
+        return result;
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) // TODO: use more fields?
+        if (this == obj)
             return true;
-        if (obj == null || getClass() != obj.getClass())
+        if (!(obj instanceof User))
             return false;
         User other = (User) obj;
-        if (getId() != other.getId())
-            return false;
-        if (getUsername() == null)
-            return other.getUsername() == null;
-        return getUsername().equals(other.getUsername());
+        return Objects.equals(getAvatar(), other.getAvatar()) && Objects.equals(getCounterSequence(), other.getCounterSequence())
+                && Objects.equals(getEmail(), other.getEmail()) && Arrays.equals(getHash(), other.getHash()) && getId() == other.getId()
+                && Objects.equals(getName(), other.getName()) && Arrays.equals(getSalt(), other.getSalt())
+                && Objects.equals(getSurname(), other.getSurname()) && Objects.equals(getUsername(), other.getUsername())
+                && Objects.equals(getWorkspaces(), other.getWorkspaces());
     }
 }

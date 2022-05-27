@@ -2,6 +2,7 @@ package com.workflow.workflow.task;
 
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.persistence.Column;
@@ -68,6 +69,7 @@ public class Task extends SoftDeleteEntity {
 
     @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToOne(mappedBy = "task")
+    @JsonIgnore
     private GitHubTask gitHubTask;
 
     @ManyToOne
@@ -193,6 +195,10 @@ public class Task extends SoftDeleteEntity {
         return gitHubTask != null ? gitHubTask.getLink() : null;
     }
 
+    public GitHubTask getGitHubTask() {
+        return gitHubTask;
+    }
+
     public void setGitHubTask(GitHubTask gitHubTask) {
         this.gitHubTask = gitHubTask;
     }
@@ -217,5 +223,26 @@ public class Task extends SoftDeleteEntity {
 
     public Long getParentTaskId() {
         return this.parentTask != null ? this.parentTask.getId() : null;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getCreatedAt(), getDeadline(), getDescription(), getEstimatedDate(), getGitHubTask(), getId(), this.getName(), this.getParentTask(), this.getSprint(),
+                this.getStatus(), this.getSubTasks(), this.getType(), this.getUser());
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (!(obj instanceof Task))
+            return false;
+        Task other = (Task) obj;
+        return Objects.equals(getCreatedAt(), other.getCreatedAt()) && Objects.equals(getDeadline(), other.getDeadline())
+                && Objects.equals(getDescription(), other.getDescription()) && Objects.equals(getEstimatedDate(), other.getEstimatedDate())
+                && Objects.equals(getGitHubTask(), other.getGitHubTask()) && getId() == other.getId() && Objects.equals(getName(), other.getName())
+                && Objects.equals(getParentTask(), other.getParentTask()) && Objects.equals(getSprint(), other.getSprint())
+                && Objects.equals(getStatus(), other.getStatus()) && Objects.equals(getSubTasks(), other.getSubTasks())
+                && getType() == other.getType() && Objects.equals(getUser(), other.getUser());
     }
 }
