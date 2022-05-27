@@ -34,7 +34,7 @@ import reactor.core.publisher.Mono;
 
 @Service
 public class GitHubWebhookService {
-    private static HmacUtils UTILS;
+    private static HmacUtils utils;
     private static final Pattern PATTERN = Pattern.compile("(reopen|close)?!(\\d+)");
     private final GitHubInstallationRepository installationRepository;
     private final GitHubIntegrationRepository integrationRepository;
@@ -56,12 +56,12 @@ public class GitHubWebhookService {
 
     @Value("${githubKey}")
     private void loadHmacUtils(String githubKey) {
-        UTILS = new HmacUtils(HmacAlgorithms.HMAC_SHA_256, githubKey);
+        utils = new HmacUtils(HmacAlgorithms.HMAC_SHA_256, githubKey);
     }
 
     public boolean isAuthorized(String token, String dataRaw) {
         return MessageDigest.isEqual(token.getBytes(StandardCharsets.UTF_8),
-                ("sha256=" + UTILS.hmacHex(dataRaw)).getBytes(StandardCharsets.UTF_8));
+                ("sha256=" + utils.hmacHex(dataRaw)).getBytes(StandardCharsets.UTF_8));
     }
 
     public Mono<Void> handleWebhook(String event, GitHubWebhookData data) {

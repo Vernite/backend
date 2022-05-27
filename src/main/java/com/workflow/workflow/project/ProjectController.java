@@ -73,9 +73,9 @@ public class ProjectController {
         Project project = projectRepository.save(new Project(request));
         ProjectWorkspace projectWorkspace = new ProjectWorkspace(project, workspace, 1L);
         projectWorkspaceRepository.save(projectWorkspace);
-        statusRepository.save(new Status("TO DO", 0, false, 0, project));
-        statusRepository.save(new Status("In Progress", 0, false, 1, project));
-        statusRepository.save(new Status("Done", 0, false, 2, project));
+        statusRepository.save(new Status("TO DO", 0, false, true, 0, project));
+        statusRepository.save(new Status("In Progress", 0, false, false, 1, project));
+        statusRepository.save(new Status("Done", 0, false, false, 2, project));
         return projectRepository.findById(project.getId()).orElse(project);
     }
 
