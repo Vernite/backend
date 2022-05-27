@@ -2,6 +2,8 @@ package com.workflow.workflow.task;
 
 import java.util.Date;
 
+import com.workflow.workflow.status.Status;
+
 public class TaskRequest {
 
     private String name;
@@ -13,6 +15,18 @@ public class TaskRequest {
     private Date estimatedDate;
     private boolean createIssue = true;
     private Long parentTaskId;
+
+    public TaskRequest() {
+    }
+
+    public TaskRequest(String name, String description, Status status, Integer type, Date deadline, Date estimatedDate) {
+        this.name = name;
+        this.description = description;
+        this.statusId = status.getId();
+        this.type = type;
+        this.deadline = deadline;
+        this.estimatedDate = estimatedDate;
+    }
 
     public String getName() {
         return name;

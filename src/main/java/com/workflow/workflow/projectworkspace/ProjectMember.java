@@ -17,6 +17,6 @@ public record ProjectMember(User user, Long privileges) {
             return false;
         if (user == null)
             return other.user == null;
-        return user.equals(other.user);
+        return user.getId() == other.user.getId();
     }
 }
