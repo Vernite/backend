@@ -24,7 +24,7 @@ jobs:
         mysql -h 127.0.0.1 -uroot -proot -e 'create user "workflow"@"localhost" identified by "IBvmFN4LvHHVfzKRyGYRCQBKadMRyuIu7B5XL0AZ"'
         mysql -h 127.0.0.1 -uroot -proot -e 'grant all on *.* to "workflow"@"localhost" with grant option'
     - name: Install properties
-      run: "echo $SPRING_APPLICATION_PROPERTIES > application.properties"
+      run: 'echo "$SPRING_APPLICATION_PROPERTIES" > application.properties'
       env:
         SPRING_APPLICATION_PROPERTIES: ${{ secrets.SPRING_APPLICATION_PROPERTIES }}
     - name: Build with Maven
