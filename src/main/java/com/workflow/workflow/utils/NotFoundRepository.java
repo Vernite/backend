@@ -2,7 +2,6 @@ package com.workflow.workflow.utils;
 
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.NoRepositoryBean;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
@@ -21,15 +20,6 @@ public interface NotFoundRepository<T, I> extends CrudRepository<T, I> {
      * @throws ResponseStatusException  if entity with given id is not found.
      */
     default T findByIdOrThrow(I id) {
-        return findById(id).orElseThrow(NotFoundRepository::getException);
-    }
-
-    /**
-     * Creates ResponseStatusException with not found status.
-     * 
-     * @return the exception with message "Object not found".
-     */
-    public static ResponseStatusException getException() {
-        return new ResponseStatusException(HttpStatus.NOT_FOUND, "Object not found");
+        return findById(id).orElseThrow(ObjectNotFoundException::new);
     }
 }

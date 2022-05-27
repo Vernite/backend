@@ -1,5 +1,14 @@
 package com.workflow.workflow.integration.git.github;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.Key;
+import java.security.KeyFactory;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,7 +28,7 @@ import com.workflow.workflow.integration.git.github.entity.GitHubTaskRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.user.User;
-import com.workflow.workflow.utils.NotFoundRepository;
+import com.workflow.workflow.utils.ObjectNotFoundException;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -29,16 +38,6 @@ import org.springframework.web.server.ResponseStatusException;
 import io.jsonwebtoken.Jwts;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.security.Key;
-import java.security.KeyFactory;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Date;
 
 @Service
 public class GitHubService {
@@ -333,7 +332,7 @@ public class GitHubService {
             return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
         }
         return getIssue(integration.get(), issue.getId())
-                .onErrorMap(Exception.class, e -> NotFoundRepository.getException())
+                .onErrorMap(Exception.class, e -> new ObjectNotFoundException())
                 .map(gitHubIssue -> {
                     taskRepository.save(new GitHubTask(task, integration.get(), gitHubIssue.getNumber()));
                     return gitHubIssue.toIssue();

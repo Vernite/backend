@@ -10,7 +10,7 @@ import javax.validation.constraints.NotNull;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.user.User;
-import com.workflow.workflow.utils.NotFoundRepository;
+import com.workflow.workflow.utils.ObjectNotFoundException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -46,7 +46,7 @@ public class StatusController {
     public List<Status> all(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId) {
         Project project = projectRepository.findByIdOrThrow(projectId);
         if (project.member(user) == -1) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         return project.getStatuses();
     }
@@ -71,7 +71,7 @@ public class StatusController {
         }
         Project project = projectRepository.findByIdOrThrow(projectId);
         if (project.member(user) == -1) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         status.setProject(project);
         return statusRepository.save(status);
@@ -84,7 +84,7 @@ public class StatusController {
     public Status get(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long id) {
         Status status = statusRepository.findByIdOrThrow(id);
         if (status.getProject().getId() != projectId || status.getProject().member(user) == -1) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         return status;
     }
@@ -97,7 +97,7 @@ public class StatusController {
             @RequestBody Status request) {
         Status status = statusRepository.findByIdOrThrow(id);
         if (status.getProject().getId() != projectId || status.getProject().member(user) == -1) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         status.apply(request);
         statusRepository.save(status);
@@ -111,7 +111,7 @@ public class StatusController {
     public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long id) {
         Status status = statusRepository.findByIdOrThrow(id);
         if (status.getProject().getId() != projectId || status.getProject().member(user) == -1) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         status.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
         statusRepository.save(status);

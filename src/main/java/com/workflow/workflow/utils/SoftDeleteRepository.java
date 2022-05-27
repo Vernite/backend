@@ -31,6 +31,6 @@ public interface SoftDeleteRepository<T extends SoftDeleteEntity, I> extends Not
      */
     @Override
     default T findByIdOrThrow(I id) {
-        return findByIdAndActiveNull(id).orElseThrow(NotFoundRepository::getException);
+        return findByIdAndActiveNull(id).orElseThrow(ObjectNotFoundException::new);
     }
 }

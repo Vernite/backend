@@ -13,7 +13,7 @@ import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.status.StatusRepository;
 import com.workflow.workflow.user.User;
-import com.workflow.workflow.utils.NotFoundRepository;
+import com.workflow.workflow.utils.ObjectNotFoundException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -57,7 +57,7 @@ public class TaskController {
     public List<Task> all(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId) {
         Project project = projectRepository.findByIdOrThrow(projectId);
         if (project.member(user) == -1) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         return taskRepository.findByStatusProjectAndActiveNullAndParentTaskNullOrderByNameAscIdAsc(project);
     }
@@ -69,7 +69,7 @@ public class TaskController {
     public Task get(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long id) {
         Task task = taskRepository.findByIdOrThrow(id);
         if (task.getStatus().getProject().member(user) == -1 || task.getStatus().getProject().getId() != projectId) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         return task;
     }
@@ -96,7 +96,7 @@ public class TaskController {
         }
         Status status = statusRepository.findByIdOrThrow(taskRequest.getStatusId());
         if (status.getProject().getId() != projectId || status.getProject().member(user) == -1) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         Task task = new Task();
         task.setCreatedAt(new Date());
@@ -130,7 +130,7 @@ public class TaskController {
     public Mono<Task> put(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long id, @RequestBody TaskRequest taskRequest) {
         Task task = taskRepository.findByIdOrThrow(id);
         if (task.getStatus().getProject().member(user) == -1 || task.getStatus().getProject().getId() != projectId) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         if (taskRequest.getDeadline() != null) {
             task.setDeadline(taskRequest.getDeadline());
@@ -151,7 +151,7 @@ public class TaskController {
         if (taskRequest.getStatusId() != null) {
             Status newStatus = statusRepository.findByIdOrThrow(taskRequest.getStatusId());
             if (projectId != newStatus.getProject().getId()) {
-                throw NotFoundRepository.getException();
+                throw new ObjectNotFoundException();
             }
             task.setStatus(newStatus);
         }
@@ -171,7 +171,7 @@ public class TaskController {
     public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long id) {
         Task task = taskRepository.findByIdOrThrow(id);
         if (task.getStatus().getProject().member(user) == -1 || task.getStatus().getProject().getId() != projectId) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         task.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
         taskRepository.save(task);

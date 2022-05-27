@@ -23,7 +23,7 @@ import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.user.UserSession;
 import com.workflow.workflow.user.UserSessionRepository;
-import com.workflow.workflow.utils.NotFoundRepository;
+import com.workflow.workflow.utils.ObjectNotFoundException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -211,7 +211,7 @@ public class AuthController {
         }
         User u = userRepository.findByEmail(req.getEmail());
         if (u == null) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         PasswordRecovery p = new PasswordRecovery();
         p.setUser(u);
@@ -245,11 +245,11 @@ public class AuthController {
         }
         PasswordRecovery p = passwordRecoveryRepository.findByToken(req.getToken());
         if (p == null) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         if (p.getActive().before(new Date())) {
             passwordRecoveryRepository.delete(p);
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         if (req.getPassword() == null) {
             return;

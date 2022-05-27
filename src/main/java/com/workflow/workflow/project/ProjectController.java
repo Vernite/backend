@@ -14,7 +14,7 @@ import com.workflow.workflow.status.Status;
 import com.workflow.workflow.status.StatusRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.utils.ErrorType;
-import com.workflow.workflow.utils.NotFoundRepository;
+import com.workflow.workflow.utils.ObjectNotFoundException;
 import com.workflow.workflow.workspace.Workspace;
 import com.workflow.workflow.workspace.WorkspaceKey;
 import com.workflow.workflow.workspace.WorkspaceRepository;
@@ -87,7 +87,7 @@ public class ProjectController {
     public Project getProject(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         return project;
     }
@@ -105,7 +105,7 @@ public class ProjectController {
         }
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         project.apply(request);
         return projectRepository.save(project);
@@ -119,7 +119,7 @@ public class ProjectController {
     public void deleteProject(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         project.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
         projectRepository.save(project);
@@ -135,7 +135,7 @@ public class ProjectController {
         Project project = projectRepository.findByIdOrThrow(id);
         int index = project.member(user);
         if (index == -1) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceKey(newWorkspaceId, user));
         ProjectWorkspace projectWorkspace = project.getProjectWorkspaces().get(index);
@@ -152,7 +152,7 @@ public class ProjectController {
     public List<ProjectMember> getProjectMembers(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         return projectWorkspaceRepository.findByProjectOrderByWorkspaceUserUsernameAscWorkspaceUserIdAsc(project)
                 .stream().map(ProjectWorkspace::getProjectMember).toList();

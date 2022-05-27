@@ -18,7 +18,7 @@ import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.utils.ErrorType;
-import com.workflow.workflow.utils.NotFoundRepository;
+import com.workflow.workflow.utils.ObjectNotFoundException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -91,7 +91,7 @@ public class GitHubController {
     public Map<String, String> deleteInstallation(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         GitHubInstallation installation = installationRepository.findByIdOrThrow(id);
         if (!installation.getUser().equals(user)) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         HashMap<String, String> result = new HashMap<>();
         result.put("link", "https://github.com/settings/installations/" + installation.getInstallationId());
@@ -108,7 +108,7 @@ public class GitHubController {
             @RequestBody String repositoryFullName) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         if (project.getGitHubIntegration() != null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Project already has connected repository.");
@@ -129,10 +129,10 @@ public class GitHubController {
     public void deleteIntegration(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         if (project.getGitHubIntegration() == null) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         GitHubIntegration integration = integrationRepository.findByProjectAndActiveNull(project).orElseThrow();
         integration.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));

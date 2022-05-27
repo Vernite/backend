@@ -8,7 +8,7 @@ import com.workflow.workflow.task.Task;
 import com.workflow.workflow.task.TaskRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.utils.ErrorType;
-import com.workflow.workflow.utils.NotFoundRepository;
+import com.workflow.workflow.utils.ObjectNotFoundException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -45,7 +45,7 @@ public class GitController {
     Flux<Issue> getIssues(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         return service.getIssues(project);
     }
@@ -60,12 +60,12 @@ public class GitController {
             @RequestBody @io.swagger.v3.oas.annotations.parameters.RequestBody(required = false) Issue issue) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) != -1) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         Task task = taskRepository.findByIdOrThrow(taskId);
         // TODO: remove when task id will be related to project id
         if (task.getStatus().getProject().getId() != project.getId()) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         if (issue == null) {
             return service.createIssue(task).last();
@@ -82,12 +82,12 @@ public class GitController {
             @PathVariable long taskId) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) != -1) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         Task task = taskRepository.findByIdOrThrow(taskId);
         // TODO: remove when task id will be related to project id
         if (task.getStatus().getProject().getId() != project.getId()) {
-            throw NotFoundRepository.getException();
+            throw new ObjectNotFoundException();
         }
         service.deleteIssue(task);
     }
