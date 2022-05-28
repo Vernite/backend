@@ -9,7 +9,7 @@ BEGIN
 END ^;
 
 DROP EVENT IF EXISTS `remove_old_content` ^;
-CREATE EVENT `remove_old_content` ON SCHEDULE EVERY 1 HOUR ON COMPLETION NOT PRESERVE ENABLE DO
+CREATE EVENT `remove_old_content` ON SCHEDULE EVERY 1 MINUTE ON COMPLETION NOT PRESERVE ENABLE DO
 BEGIN
     DELETE FROM `git_hub_integration` WHERE `active` IS NOT NULL AND `active` < NOW();
     DELETE FROM `git_hub_task` WHERE `active` IS NOT NULL AND `active` < NOW();
@@ -17,6 +17,7 @@ BEGIN
     DELETE FROM `status` WHERE `active` IS NOT NULL AND `active` < NOW();
     DELETE FROM `status` WHERE `active` IS NOT NULL AND `active` < NOW();
     DELETE FROM `task` WHERE `active` IS NOT NULL AND `active` < NOW();
+    DELETE FROM `user_session` WHERE `last_used` < DATE_SUB(NOW(), INTERVAL 30 MINUTE) AND `remembered` = 0;
     -- userów trzeba inaczej
     DELETE FROM `workspace` WHERE `active` IS NOT NULL AND `active` < NOW();
 END ^;
