@@ -30,6 +30,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -193,11 +194,14 @@ public class AuthController {
     @Operation(summary = "Log out", description = "This method log outs the user.")
     @ApiResponse(responseCode = "200", description = "User logged out")
     @PostMapping("/logout")
-    public void destroySession(HttpServletRequest req, HttpServletResponse resp) {
-        Cookie cookie = new Cookie(COOKIE_NAME, null);
-        cookie.setPath("/api");
-        cookie.setMaxAge(0);
-        resp.addCookie(cookie);
+    public void destroySession(HttpServletRequest req, HttpServletResponse resp, @Parameter(hidden = true) @CookieValue(AuthController.COOKIE_NAME) String session) {
+        if (session != null) {
+            this.userSessionRepository.deleteBySession(session);
+            Cookie cookie = new Cookie(COOKIE_NAME, null);
+            cookie.setPath("/api");
+            cookie.setMaxAge(0);
+            resp.addCookie(cookie);
+        }
     }
 
     @Operation(summary = "Send email with link to reset password", description = "This method sends an e-mail to the user with a link that allows the user to reset the password.")
