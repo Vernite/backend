@@ -415,7 +415,7 @@ public class GitHubService {
         taskRepository.save(gitHubTask);
     }
 
-    public Mono<PullRequest> patchPullRequest(Task task) {
+    public Mono<Issue> patchPullRequest(Task task) {
         Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequestTrue(task);
         if (optional.isEmpty()) {
             return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));

@@ -49,6 +49,9 @@ public class GitTaskService {
         if (gitHubService.isIntegrated(task)) {
             futures.add(gitHubService.patchIssue(task));
         }
+        if (gitHubService.isIntegratedPull(task)) {
+            futures.add(gitHubService.patchPullRequest(task));
+        }
         return Flux.concat(futures);
     }
 
@@ -81,14 +84,52 @@ public class GitTaskService {
     }
 
     /**
-     * Deletes github connections for given task.
+     * Deletes git issue connections for given task.
      * 
      * @param task must not be {@literal null}; must be entity from database.
-     * @return future containing nothing.
      */
     public void deleteIssue(Task task) {
         if (gitHubService.isIntegrated(task)) {
             gitHubService.deleteIssue(task);
+        }
+    }
+
+    /**
+     * Gets pull requests from git integrations for given project.
+     * 
+     * @param project must not be {@literal null}; must be entity from database.
+     * @return future containing list of pull requests.
+     */
+    public Flux<PullRequest> getPullRequests(Project project) {
+        List<Flux<PullRequest>> futures = new ArrayList<>();
+        if (gitHubService.isIntegrated(project)) {
+            futures.add(gitHubService.getPullRequests(project));
+        }
+        return Flux.concat(futures);
+    }
+
+    /**
+     * Connects given task with pull request from git service.
+     * 
+     * @param task  must not be {@literal null}; must be entity from database.
+     * @param issue must not be {@literal null}; must be returned by getPullRequests.
+     * @return future containing connected pull request.
+     */
+    public Mono<PullRequest> connectPullRequest(Task task, PullRequest pullRequest) {
+        if ("github".equals(pullRequest.getService()) && gitHubService.isIntegratedPull(task)) {
+            return gitHubService.connectPullRequest(task, pullRequest);
+        }
+        return Mono.empty();
+    }
+
+    /**
+     * Deletes git pull request connections for given task.
+     * 
+     * @param task must not be {@literal null}; must be entity from database.
+     */
+    public void deletePullRequest(Task task) {
+        if (gitHubService.isIntegratedPull(task)) {
+            gitHubService.deletePullRequest(task);
         }
     }
 }
