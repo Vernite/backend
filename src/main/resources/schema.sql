@@ -11,6 +11,8 @@ END ^;
 DROP EVENT IF EXISTS `remove_old_content` ^;
 CREATE EVENT `remove_old_content` ON SCHEDULE EVERY 1 MINUTE ON COMPLETION NOT PRESERVE ENABLE DO
 BEGIN
+    DELETE FROM `delete_account` WHERE `active` IS NOT NULL AND `active` < NOW();
+    DELETE FROM `password_recovery` WHERE `active` IS NOT NULL AND `active` < NOW();
     DELETE FROM `git_hub_integration` WHERE `active` IS NOT NULL AND `active` < NOW();
     DELETE FROM `git_hub_task` WHERE `active` IS NOT NULL AND `active` < NOW();
     DELETE FROM `project` WHERE `active` IS NOT NULL AND `active` < NOW();

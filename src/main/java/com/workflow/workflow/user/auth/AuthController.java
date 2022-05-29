@@ -17,6 +17,8 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotNull;
 
 import com.workflow.workflow.counter.CounterSequence;
+import com.workflow.workflow.user.DeleteAccount;
+import com.workflow.workflow.user.DeleteAccountRepository;
 import com.workflow.workflow.user.PasswordRecovery;
 import com.workflow.workflow.user.PasswordRecoveryRepository;
 import com.workflow.workflow.user.User;
@@ -31,6 +33,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -55,7 +58,7 @@ public class AuthController {
     private static final Random RANDOM = new Random();
     private static final ScheduledExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadScheduledExecutor();
 
-    private static String generateRandomString() {
+    private static String generateRandomSecureString() {
         char[] b = new char[128];
         for (int i = 0; i < b.length; i++) {
             b[i] = CHARS[SECURE_RANDOM.nextInt(CHARS.length)];
@@ -73,14 +76,43 @@ public class AuthController {
     private JavaMailSender javaMailSender;
 
     @Autowired
+    private DeleteAccountRepository deleteAccountRepository;
+
+    @Autowired
     private PasswordRecoveryRepository passwordRecoveryRepository;
 
     @Operation(summary = "Logged user", description = "This method returns currently logged user.")
     @ApiResponse(responseCode = "200", description = "Logged user.")
-    @ApiResponse(responseCode = "404", description = "User is not logged.", content = @Content())
+    @ApiResponse(responseCode = "401", description = "User is not logged.", content = @Content())
     @GetMapping("/me")
     public User me(@NotNull @Parameter(hidden = true) User loggedUser) {
         return loggedUser;
+    }
+
+    @Operation(summary = "Delete account", description = "This method deletes currently logged user by sending an e-mail with a confirmation link.")
+    @ApiResponse(responseCode = "200")
+    @DeleteMapping("/me")
+    public void deleteMe(@NotNull @Parameter(hidden = true) User loggedUser) {
+        DeleteAccount d = new DeleteAccount();
+        d.setUser(loggedUser);
+        d.setActive(Date.from(Instant.now().plus(30, ChronoUnit.MINUTES)));
+        d.setToken(generateRandomSecureString());
+        while (true) {
+            try {
+                d = deleteAccountRepository.save(d);
+                break;
+            } catch (DataIntegrityViolationException ex) {
+                d.setToken(generateRandomSecureString());
+            }
+        }
+        
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(loggedUser.getEmail());
+        message.setSubject("Potwierdzenie usunięcia Twojego konta");
+        message.setText("Aby potwierdzić usuwanie Twojego konta, kliknij w poniższy link:\n" +
+            "https://workflow.adiantek.ovh/pl-PL/auth/delete-account?token=" + d.getToken() + "\n" +
+            "Link wygaśnie po 30 minutach");
+        javaMailSender.send(message);
     }
 
     @Operation(summary = "Logging in", description = "This method logs the user in.")
@@ -220,13 +252,13 @@ public class AuthController {
         PasswordRecovery p = new PasswordRecovery();
         p.setUser(u);
         p.setActive(Date.from(Instant.now().plus(30, ChronoUnit.MINUTES)));
-        p.setToken(generateRandomString());
+        p.setToken(generateRandomSecureString());
         while (true) {
             try {
                 p = passwordRecoveryRepository.save(p);
                 break;
             } catch (DataIntegrityViolationException ex) {
-                p.setToken(generateRandomString());
+                p.setToken(generateRandomSecureString());
             }
         }
         SimpleMailMessage msg = new SimpleMailMessage();
@@ -266,7 +298,7 @@ public class AuthController {
 
     private void createSession(HttpServletRequest req, HttpServletResponse resp, User user, boolean remembered) {
         UserSession us = new UserSession();
-        us.setSession(generateRandomString());
+        us.setSession(generateRandomSecureString());
         us.setIp(req.getHeader("X-Forwarded-For"));
         if (us.getIp() == null) {
             us.setIp(req.getRemoteAddr());
@@ -280,7 +312,7 @@ public class AuthController {
                 us = userSessionRepository.save(us);
                 break;
             } catch (DataIntegrityViolationException ex) {
-                us.setSession(generateRandomString());
+                us.setSession(generateRandomSecureString());
             }
         }
         Cookie c = new Cookie(COOKIE_NAME, us.getSession());

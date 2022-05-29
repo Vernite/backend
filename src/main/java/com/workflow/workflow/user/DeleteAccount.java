@@ -10,15 +10,13 @@ import javax.persistence.ManyToOne;
 import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.workflow.workflow.utils.SoftDeleteEntity;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
-@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
-public class PasswordRecovery extends SoftDeleteEntity {
+public class DeleteAccount extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
