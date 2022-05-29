@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 import com.workflow.workflow.integration.git.github.data.GitHubCommit;
 import com.workflow.workflow.integration.git.github.data.GitHubInstallationApi;
 import com.workflow.workflow.integration.git.github.data.GitHubIssue;
+import com.workflow.workflow.integration.git.github.data.GitHubPullRequest;
 import com.workflow.workflow.integration.git.github.data.GitHubRepository;
 import com.workflow.workflow.integration.git.github.data.GitHubWebhookData;
 import com.workflow.workflow.integration.git.github.entity.GitHubInstallation;
@@ -37,6 +38,8 @@ import reactor.core.publisher.Mono;
 public class GitHubWebhookService {
     private HmacUtils utils;
     private static final Pattern PATTERN = Pattern.compile("(reopen|close)?!(\\d+)");
+    private static final String CLOSED = "closed";
+    private static final String EDITED = "edited";
     private final GitHubInstallationRepository installationRepository;
     private final GitHubIntegrationRepository integrationRepository;
     private final TaskRepository taskRepository;
@@ -75,6 +78,8 @@ public class GitHubWebhookService {
                 return handlePush(data);
             case "installation":
                 return handleInstallation(data);
+            case "pull_request":
+                return handlePullRequest(data);
             default:
                 return Mono.empty();
         }
@@ -115,7 +120,7 @@ public class GitHubWebhookService {
                 for (GitHubIntegration integration : integrationRepository
                         .findByRepositoryFullName(data.getRepository().getFullName())) {
                     if (task.getStatus().getProject().getId() == integration.getProject().getId()) {
-                        task.setState("reopen".equals(controlKeyword) ? "open" : "closed");
+                        task.setState("reopen".equals(controlKeyword) ? "open" : CLOSED);
                         tasks.add(taskRepository.save(task));
                     }
                 }
@@ -146,11 +151,11 @@ public class GitHubWebhookService {
                 for (GitHubTask gitHubTask : gitTaskRepository.findByIssueIdAndGitHubIntegration(issue.getNumber(),
                         gitHubIntegration)) {
                     Task task = gitHubTask.getTask();
-                    if (data.getAction().equals("edited")) {
+                    if (data.getAction().equals(EDITED)) {
                         task.setDescription(issue.getBody());
                         task.setName(issue.getTitle());
                         taskRepository.save(task);
-                    } else if (data.getAction().equals("closed") || data.getAction().equals("reopened")) {
+                    } else if (data.getAction().equals(CLOSED) || data.getAction().equals("reopened")) {
                         task.setState(issue.getState());
                         taskRepository.save(task);
                     } else if (data.getAction().equals("deleted")) {
@@ -176,4 +181,26 @@ public class GitHubWebhookService {
         return Mono.empty();
     }
 
+    private Mono<Void> handlePullRequest(GitHubWebhookData data) {
+        GitHubPullRequest pullRequest = data.getPullRequest();
+        GitHubRepository repository = data.getRepository();
+        if (data.getAction().equals(CLOSED) || data.getAction().equals("reopened") || data.getAction().equals(EDITED)) {
+            for (GitHubIntegration gitHubIntegration : integrationRepository
+                    .findByRepositoryFullName(repository.getFullName())) {
+                for (GitHubTask gitHubTask : gitTaskRepository.findByIssueIdAndGitHubIntegration(pullRequest.getNumber(),
+                        gitHubIntegration)) {
+                    Task task = gitHubTask.getTask();
+                    if (data.getAction().equals(EDITED)) {
+                        task.setDescription(pullRequest.getBody());
+                        task.setName(pullRequest.getTitle());
+                        taskRepository.save(task);
+                    } else {
+                        task.setState(pullRequest.getState());
+                        taskRepository.save(task);
+                    }
+                }
+            }
+        }
+        return Mono.empty();
+    }
 }

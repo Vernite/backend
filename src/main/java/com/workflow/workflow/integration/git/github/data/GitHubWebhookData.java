@@ -8,10 +8,15 @@ public class GitHubWebhookData {
     private String action;
     private GitHubRepository repository;
     private GitHubInstallationApi installation;
+
+    @JsonProperty("repositories_removed")
     private List<GitHubRepository> repositoriesRemoved;
     private GitHubIssue issue;
     private List<GitHubCommit> commits;
     private String after;
+
+    @JsonProperty("pull_request")
+    private GitHubPullRequest pullRequest;
 
     public String getAction() {
         return action;
@@ -29,12 +34,10 @@ public class GitHubWebhookData {
         this.issue = issue;
     }
 
-    @JsonProperty("repositories_removed")
     public List<GitHubRepository> getRepositoriesRemoved() {
         return repositoriesRemoved;
     }
 
-    @JsonProperty("repositories_removed")
     public void setRepositoriesRemoved(List<GitHubRepository> repositoriesRemoved) {
         this.repositoriesRemoved = repositoriesRemoved;
     }
@@ -69,5 +72,13 @@ public class GitHubWebhookData {
 
     public void setCommits(List<GitHubCommit> commits) {
         this.commits = commits;
+    }
+
+    public GitHubPullRequest getPullRequest() {
+        return pullRequest;
+    }
+
+    public void setPullRequest(GitHubPullRequest pullRequest) {
+        this.pullRequest = pullRequest;
     }
 }
