@@ -12,6 +12,9 @@ public class Issue {
     private String description;
     private String service;
 
+    public Issue() {
+    }
+
     public Issue(long id, String url, String title, String description, String service) {
         this.id = id;
         this.url = url;

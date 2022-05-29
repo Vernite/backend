@@ -77,7 +77,7 @@ public class GitTaskService {
      * @return future containing connected issue.
      */
     public Mono<Issue> connectIssue(Task task, Issue issue) {
-        if ("github".equals(issue.getService()) && gitHubService.isIntegrated(task)) {
+        if ("github".equals(issue.getService()) && !gitHubService.isIntegrated(task)) {
             return gitHubService.connectIssue(task, issue);
         }
         return Mono.empty();
@@ -116,7 +116,7 @@ public class GitTaskService {
      * @return future containing connected pull request.
      */
     public Mono<PullRequest> connectPullRequest(Task task, PullRequest pullRequest) {
-        if ("github".equals(pullRequest.getService()) && gitHubService.isIntegratedPull(task)) {
+        if ("github".equals(pullRequest.getService()) && !gitHubService.isIntegratedPull(task)) {
             return gitHubService.connectPullRequest(task, pullRequest);
         }
         return Mono.empty();
