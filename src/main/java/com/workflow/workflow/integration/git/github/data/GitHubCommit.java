@@ -4,6 +4,14 @@ public class GitHubCommit {
     private String id;
     private String message;
 
+    public GitHubCommit() {
+    }
+
+    public GitHubCommit(String id, String message) {
+        this.id = id;
+        this.message = message;
+    }
+
     public String getId() {
         return id;
     }

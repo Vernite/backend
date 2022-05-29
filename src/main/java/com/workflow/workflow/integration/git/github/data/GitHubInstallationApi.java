@@ -4,6 +4,14 @@ public class GitHubInstallationApi {
     private long id;
     private GitHubUser account;
 
+    public GitHubInstallationApi() {
+    }
+
+    public GitHubInstallationApi(long id, GitHubUser account) {
+        this.id = id;
+        this.account = account;
+    }
+
     public GitHubUser getAccount() {
         return account;
     }
