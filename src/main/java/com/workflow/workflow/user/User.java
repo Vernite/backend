@@ -6,6 +6,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -38,8 +39,7 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
-    @NotNull
-    private boolean deleted;
+    private Date deleted;
 
     @Column(nullable = false, unique = true)
     private String email;
@@ -97,10 +97,14 @@ public class User {
     }
 
     public boolean isDeleted() {
+        return getDeleted() != null;
+    }
+
+    public Date getDeleted() {
         return deleted;
     }
 
-    public void setDeleted(boolean deleted) {
+    public void setDeleted(Date deleted) {
         this.deleted = deleted;
     }
 
@@ -211,7 +215,7 @@ public class User {
         int result = 1;
         result = prime * result + Arrays.hashCode(getHash());
         result = prime * result + Arrays.hashCode(getSalt());
-        result = prime * result + Objects.hash(getAvatar(), getCounterSequence(), getEmail(), getId(), getName(), getSurname(), getUsername(), getWorkspaces());
+        result = prime * result + Objects.hash(getAvatar(), getCounterSequence(), getEmail(), getId(), getName(), getSurname(), getUsername(), getWorkspaces(), getDeleted());
         return result;
     }
 
@@ -226,6 +230,6 @@ public class User {
                 && Objects.equals(getEmail(), other.getEmail()) && Arrays.equals(getHash(), other.getHash()) && getId() == other.getId()
                 && Objects.equals(getName(), other.getName()) && Arrays.equals(getSalt(), other.getSalt())
                 && Objects.equals(getSurname(), other.getSurname()) && Objects.equals(getUsername(), other.getUsername())
-                && Objects.equals(getWorkspaces(), other.getWorkspaces());
+                && Objects.equals(getWorkspaces(), other.getWorkspaces()) && Objects.equals(getDeleted(), other.getDeleted());
     }
 }
