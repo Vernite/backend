@@ -4,6 +4,7 @@ import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -32,6 +33,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -347,5 +349,17 @@ public class AuthController {
             c.setHttpOnly(true);
         }
         resp.addCookie(c);
+    }
+    
+    @Scheduled(cron = "* * * * * *")
+    public void deleteOldAccount() {
+        Date d = Date.from(Instant.now().minus(7, ChronoUnit.DAYS));
+        List<User> users = this.userRepository.findByDeletedPermanentlyFalseAndDeletedLessThan(d);
+        for (User u : users) {
+            u.setDeletedPermanently(true);
+            u.setUsername("(deleted) " + generateRandomSecureString());
+            u.setEmail("(deleted) " + generateRandomSecureString());
+        }
+        this.userRepository.saveAll(users);
     }
 }

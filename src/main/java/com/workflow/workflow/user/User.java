@@ -41,6 +41,9 @@ public class User {
 
     private Date deleted;
 
+    @NotNull
+    private boolean deletedPermanently;
+
     @Column(nullable = false, unique = true)
     private String email;
 
@@ -106,6 +109,14 @@ public class User {
 
     public void setDeleted(Date deleted) {
         this.deleted = deleted;
+    }
+
+    public boolean isDeletedPermanently() {
+        return deletedPermanently;
+    }
+
+    public void setDeletedPermanently(boolean deletedPermanently) {
+        this.deletedPermanently = deletedPermanently;
     }
 
     public String getEmail() {
