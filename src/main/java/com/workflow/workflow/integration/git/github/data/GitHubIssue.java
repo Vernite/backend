@@ -13,6 +13,14 @@ public class GitHubIssue {
     public GitHubIssue() {
     }
 
+    public GitHubIssue(long number, String url, String state, String title, String body) {
+        this.number = number;
+        this.url = url;
+        this.state = state;
+        this.title = title;
+        this.body = body;
+    }
+
     public GitHubIssue(Task task) {
         this.title = task.getName();
         this.body = task.getDescription();

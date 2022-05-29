@@ -9,6 +9,11 @@ public class GitHubPullRequest extends GitHubIssue {
     public GitHubPullRequest() {
     }
 
+    public GitHubPullRequest(long number, String url, String state, String title, String body, GitHubBranch head) {
+        super(number, url, state, title, body);
+        this.head = head;
+    }
+
     public GitHubPullRequest(Task task) {
         super(task);
     }

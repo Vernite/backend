@@ -7,8 +7,22 @@ public class GitHubRepository {
     private String fullName;
     private boolean isPrivate;
 
-    @JsonProperty("fullName")
+    public GitHubRepository() {
+    }
+
+    public GitHubRepository(long id, String fullName, boolean isPrivate) {
+        this.id = id;
+        this.fullName = fullName;
+        this.isPrivate = isPrivate;
+    }
+
+    @JsonProperty("full_name")
     public String getFullName() {
+        return fullName;
+    }
+
+    @JsonProperty("fullName")
+    public String getFullName2() {
         return fullName;
     }
 

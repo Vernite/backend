@@ -4,6 +4,14 @@ public class GitHubUser {
     private long id;
     private String login;
 
+    public GitHubUser() {
+    }
+
+    public GitHubUser(long id, String login) {
+        this.id = id;
+        this.login = login;
+    }
+
     public long getId() {
         return id;
     }

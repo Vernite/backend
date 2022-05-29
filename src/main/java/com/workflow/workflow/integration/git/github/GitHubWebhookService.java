@@ -116,7 +116,11 @@ public class GitHubWebhookService {
             Matcher matcher = PATTERN.matcher(commit.getMessage());
             if (matcher.find()) {
                 String controlKeyword = matcher.group(1);
-                Task task = taskRepository.findByIdOrThrow(Long.parseLong(matcher.group(2)));
+                Optional<Task> optional = taskRepository.findByIdAndActiveNull(Long.parseLong(matcher.group(2)));
+                if (optional.isEmpty()) {
+                    continue;
+                }
+                Task task = optional.get();
                 for (GitHubIntegration integration : integrationRepository
                         .findByRepositoryFullName(data.getRepository().getFullName())) {
                     if (task.getStatus().getProject().getId() == integration.getProject().getId()) {
@@ -187,7 +191,8 @@ public class GitHubWebhookService {
         if (data.getAction().equals(CLOSED) || data.getAction().equals("reopened") || data.getAction().equals(EDITED)) {
             for (GitHubIntegration gitHubIntegration : integrationRepository
                     .findByRepositoryFullName(repository.getFullName())) {
-                for (GitHubTask gitHubTask : gitTaskRepository.findByIssueIdAndGitHubIntegration(pullRequest.getNumber(),
+                for (GitHubTask gitHubTask : gitTaskRepository.findByIssueIdAndGitHubIntegration(
+                        pullRequest.getNumber(),
                         gitHubIntegration)) {
                     Task task = gitHubTask.getTask();
                     if (data.getAction().equals(EDITED)) {
