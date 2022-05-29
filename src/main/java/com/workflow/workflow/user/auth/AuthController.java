@@ -91,8 +91,8 @@ public class AuthController {
 
     @Operation(summary = "Delete account", description = "This method deletes currently logged user by sending an e-mail with a confirmation link.")
     @ApiResponse(responseCode = "200")
-    @DeleteMapping("/me")
-    public void deleteMe(@NotNull @Parameter(hidden = true) User loggedUser) {
+    @DeleteMapping("/delete")
+    public void delete(@NotNull @Parameter(hidden = true) User loggedUser) {
         DeleteAccountRequest d = new DeleteAccountRequest();
         d.setUser(loggedUser);
         d.setActive(Date.from(Instant.now().plus(30, ChronoUnit.MINUTES)));
@@ -113,6 +113,24 @@ public class AuthController {
             "https://workflow.adiantek.ovh/pl-PL/auth/delete-account?token=" + d.getToken() + "\n" +
             "Link wygaśnie po 30 minutach");
         javaMailSender.send(message);
+    }
+
+    @Operation(summary = "Delete account", description = "This method deletes currently logged user after clicking on the confirmation link.")
+    @ApiResponse(responseCode = "200", description = "Account deleted.")
+    @ApiResponse(responseCode = "403", description = "Token is not compatible with the currently logged in user.", content = @Content())
+    @ApiResponse(responseCode = "404", description = "Token is invalid.", content = @Content())
+    @DeleteMapping("/delete/confirm")
+    public void deleteConfirm(@NotNull @Parameter(hidden = true) User loggedUser, @RequestBody DeleteRequest request) {
+        DeleteAccountRequest d = deleteAccountRepository.findByToken(request.getToken());
+        if (d == null) {
+            throw new ObjectNotFoundException();
+        }
+        if (d.getUser().getId() != loggedUser.getId()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "invalid user");
+        }
+        deleteAccountRepository.delete(d);
+        loggedUser.setDeleted(new Date());
+        userRepository.save(loggedUser);
     }
 
     @Operation(summary = "Logging in", description = "This method logs the user in.")
@@ -245,6 +263,9 @@ public class AuthController {
         if (loggedUser != null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "already logged");
         }
+        if (req.getEmail() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing email");
+        }
         User u = userRepository.findByEmail(req.getEmail());
         if (u == null) {
             throw new ObjectNotFoundException();
@@ -278,6 +299,9 @@ public class AuthController {
     public void resetPassword(@Parameter(hidden = true) User loggedUser, @RequestBody ResetPasswordRequest req) {
         if (loggedUser != null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "already logged");
+        }
+        if (req.getToken() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing token");
         }
         PasswordRecovery p = passwordRecoveryRepository.findByToken(req.getToken());
         if (p == null) {
