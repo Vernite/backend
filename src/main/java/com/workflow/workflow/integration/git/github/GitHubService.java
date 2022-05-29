@@ -32,7 +32,9 @@ import com.workflow.workflow.task.Task;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.utils.ObjectNotFoundException;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ResponseStatusException;
@@ -42,6 +44,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Service
+@Component
 public class GitHubService {
     private static final String APP_ID = "195507";
     private static final String AUTHORIZATION = "Authorization";
@@ -49,16 +52,12 @@ public class GitHubService {
     private static final String BEARER = "Bearer ";
     private static final String APPLICATION_JSON_GITHUB = "application/vnd.github.v3+json";
     private static final WebClient CLIENT = WebClient.create();
+    @Autowired
     private GitHubInstallationRepository installationRepository;
+    @Autowired
     private GitHubIntegrationRepository integrationRepository;
+    @Autowired
     private GitHubTaskRepository taskRepository;
-
-    public GitHubService(GitHubInstallationRepository installationRepository,
-            GitHubIntegrationRepository integrationRepository, GitHubTaskRepository taskRepository) {
-        this.installationRepository = installationRepository;
-        this.integrationRepository = integrationRepository;
-        this.taskRepository = taskRepository;
-    }
 
     /**
      * Retrieves repositories available for user installations from GitHub.
