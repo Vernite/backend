@@ -6,7 +6,6 @@ import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.MapsId;
-import javax.persistence.OneToOne;
 
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.utils.SoftDeleteEntity;
@@ -20,7 +19,7 @@ public class GitHubTask extends SoftDeleteEntity {
     private GitHubTaskKey id;
 
     @MapsId("taskId")
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Task task;
 
@@ -32,14 +31,17 @@ public class GitHubTask extends SoftDeleteEntity {
 
     private long issueId;
 
+    private boolean isPullRequest;
+
     public GitHubTask() {
     }
 
-    public GitHubTask(Task task, GitHubIntegration gitHubIntegration, long issueId) {
+    public GitHubTask(Task task, GitHubIntegration gitHubIntegration, long issueId, boolean isPullRequest) {
         this.id = new GitHubTaskKey(task, gitHubIntegration);
         this.task = task;
         this.gitHubIntegration = gitHubIntegration;
         this.issueId = issueId;
+        this.isPullRequest = isPullRequest;
     }
 
     public GitHubTaskKey getId() {
@@ -72,6 +74,14 @@ public class GitHubTask extends SoftDeleteEntity {
 
     public void setIssueId(long issueId) {
         this.issueId = issueId;
+    }
+
+    public boolean isPullRequest() {
+        return isPullRequest;
+    }
+
+    public void setPullRequest(boolean isPullRequest) {
+        this.isPullRequest = isPullRequest;
     }
 
     public String getLink() {

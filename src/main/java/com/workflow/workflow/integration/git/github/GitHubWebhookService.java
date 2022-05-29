@@ -35,7 +35,7 @@ import reactor.core.publisher.Mono;
 
 @Service
 public class GitHubWebhookService {
-    private static HmacUtils utils;
+    private HmacUtils utils;
     private static final Pattern PATTERN = Pattern.compile("(reopen|close)?!(\\d+)");
     private final GitHubInstallationRepository installationRepository;
     private final GitHubIntegrationRepository integrationRepository;
@@ -141,7 +141,7 @@ public class GitHubWebhookService {
                 task.setState("open");
                 task.setType(0);
                 task = taskRepository.save(task);
-                gitTaskRepository.save(new GitHubTask(task, gitHubIntegration, issue.getNumber()));
+                gitTaskRepository.save(new GitHubTask(task, gitHubIntegration, issue.getNumber(), false));
             } else {
                 for (GitHubTask gitHubTask : gitTaskRepository.findByIssueIdAndGitHubIntegration(issue.getNumber(),
                         gitHubIntegration)) {
