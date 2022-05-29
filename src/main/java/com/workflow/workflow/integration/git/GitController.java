@@ -129,4 +129,22 @@ public class GitController {
         }
         return service.connectPullRequest(task, pullRequest);
     }
+
+    @Operation(summary = "Delete git pull request connection to task", description = "Deletes git pull request connection with task. It does not delete pull request on git service nor it deletes task.")
+    @ApiResponse(description = "Connection deleted.", responseCode = "200")
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project or task or git pull request connection not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @DeleteMapping("/task/{taskId}/integration/git/pull")
+    void deletePullRequest(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+            @PathVariable long taskId) {
+        Project project = projectRepository.findByIdOrThrow(id);
+        if (project.member(user) == -1) {
+            throw new ObjectNotFoundException();
+        }
+        Task task = taskRepository.findByIdOrThrow(taskId);
+        if (task.getStatus().getProject().getId() != project.getId()) {
+            throw new ObjectNotFoundException();
+        }
+        service.deletePullRequest(task);
+    }
 }
