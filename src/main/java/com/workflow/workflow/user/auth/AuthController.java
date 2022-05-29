@@ -135,6 +135,24 @@ public class AuthController {
         userRepository.save(loggedUser);
     }
 
+    @Operation(summary = "Recover deleted account", description = "This method recovers a deleted account if it was deleted in less than 1 week.")
+    @ApiResponse(responseCode = "200", description = "Recovered user.", content = {
+            @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
+    })
+    @ApiResponse(responseCode = "401", description = "User is not logged.", content = @Content())
+    @PostMapping("/delete/recover")
+    public User recoverDeleted(@Parameter(hidden = true) User loggedUser) {
+        if (loggedUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "user not logged");
+        }
+        if (loggedUser.getDeleted() == null) {
+            return loggedUser;
+        }
+        loggedUser.setDeleted(null);
+        this.userRepository.save(loggedUser);
+        return loggedUser;
+    }
+
     @Operation(summary = "Logging in", description = "This method logs the user in.")
     @ApiResponse(responseCode = "200", description = "Logged user.", content = {
             @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
@@ -351,7 +369,7 @@ public class AuthController {
         resp.addCookie(c);
     }
     
-    @Scheduled(cron = "* * * * * *")
+    @Scheduled(cron = "0 * * * * *")
     public void deleteOldAccount() {
         Date d = Date.from(Instant.now().minus(7, ChronoUnit.DAYS));
         List<User> users = this.userRepository.findByDeletedPermanentlyFalseAndDeletedLessThan(d);
