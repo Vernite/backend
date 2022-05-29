@@ -43,6 +43,9 @@ public class UserResolver implements HandlerMethodArgumentResolver {
                     }
                     us.setLastUsed(new Date());
                     userSessionRepository.save(us);
+                    if (us.getUser().isDeleted() && parameter.hasParameterAnnotation(NotNull.class)) {
+                        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "user deleted");
+                    }
                     return us.getUser();
                 }
             }

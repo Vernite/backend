@@ -24,7 +24,6 @@ import javax.validation.constraints.NotNull;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.workflow.workflow.counter.CounterSequence;
-import com.workflow.workflow.utils.SoftDeleteEntity;
 import com.workflow.workflow.workspace.Workspace;
 
 import org.hibernate.annotations.OnDelete;
@@ -33,11 +32,14 @@ import org.hibernate.annotations.Where;
 
 @Entity
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
-public class User extends SoftDeleteEntity {
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
+
+    @NotNull
+    private boolean deleted;
 
     @Column(nullable = false, unique = true)
     private String email;
@@ -94,8 +96,16 @@ public class User extends SoftDeleteEntity {
         this.id = id;
     }
 
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
+    }
+
     public String getEmail() {
-        return email;
+        return isDeleted() ? "(deleted)" : email;
     }
 
     public void setEmail(String email) {
@@ -119,7 +129,7 @@ public class User extends SoftDeleteEntity {
     }
 
     public String getAvatar() {
-        return avatar;
+        return isDeleted() ? null : avatar;
     }
 
     public void setAvatar(String avatar) {
@@ -127,7 +137,7 @@ public class User extends SoftDeleteEntity {
     }
 
     public String getName() {
-        return name;
+        return isDeleted() ? "(deleted)" : name;
     }
 
     public void setName(String name) {
@@ -135,7 +145,7 @@ public class User extends SoftDeleteEntity {
     }
 
     public String getSurname() {
-        return surname;
+        return isDeleted() ? "(deleted)" : surname;
     }
 
     public void setSurname(String surname) {
@@ -143,7 +153,7 @@ public class User extends SoftDeleteEntity {
     }
 
     public String getUsername() {
-        return username;
+        return isDeleted() ? "(deleted)" : username;
     }
 
     public void setUsername(String username) {

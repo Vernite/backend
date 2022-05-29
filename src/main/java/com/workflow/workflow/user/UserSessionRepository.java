@@ -3,6 +3,8 @@ package com.workflow.workflow.user;
 import java.util.List;
 import java.util.Optional;
 
+import javax.transaction.Transactional;
+
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.repository.CrudRepository;
@@ -16,5 +18,6 @@ public abstract interface UserSessionRepository extends CrudRepository<UserSessi
 
     List<UserSession> findByUser(User user, Sort by);
 
+    @Transactional
     void deleteBySession(String session);
 }

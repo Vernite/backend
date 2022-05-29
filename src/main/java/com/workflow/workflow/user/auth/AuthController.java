@@ -17,8 +17,8 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotNull;
 
 import com.workflow.workflow.counter.CounterSequence;
-import com.workflow.workflow.user.DeleteAccount;
-import com.workflow.workflow.user.DeleteAccountRepository;
+import com.workflow.workflow.user.DeleteAccountRequest;
+import com.workflow.workflow.user.DeleteAccountRequestRepository;
 import com.workflow.workflow.user.PasswordRecovery;
 import com.workflow.workflow.user.PasswordRecoveryRepository;
 import com.workflow.workflow.user.User;
@@ -76,7 +76,7 @@ public class AuthController {
     private JavaMailSender javaMailSender;
 
     @Autowired
-    private DeleteAccountRepository deleteAccountRepository;
+    private DeleteAccountRequestRepository deleteAccountRepository;
 
     @Autowired
     private PasswordRecoveryRepository passwordRecoveryRepository;
@@ -93,7 +93,7 @@ public class AuthController {
     @ApiResponse(responseCode = "200")
     @DeleteMapping("/me")
     public void deleteMe(@NotNull @Parameter(hidden = true) User loggedUser) {
-        DeleteAccount d = new DeleteAccount();
+        DeleteAccountRequest d = new DeleteAccountRequest();
         d.setUser(loggedUser);
         d.setActive(Date.from(Instant.now().plus(30, ChronoUnit.MINUTES)));
         d.setToken(generateRandomSecureString());
@@ -105,7 +105,7 @@ public class AuthController {
                 d.setToken(generateRandomSecureString());
             }
         }
-        
+
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(loggedUser.getEmail());
         message.setSubject("Potwierdzenie usunięcia Twojego konta");
