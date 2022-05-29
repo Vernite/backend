@@ -1,6 +1,5 @@
 package com.workflow.workflow.integration.git.github.data;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.workflow.workflow.integration.git.PullRequest;
 import com.workflow.workflow.task.Task;
 
@@ -15,10 +14,9 @@ public class GitHubPullRequest extends GitHubIssue {
     }
 
     public PullRequest toPullRequest() {
-        return new PullRequest(getNumber(), getUrl(), getTitle(), getBody(), "github", head.getRef());
+        return new PullRequest(getNumber(), getUrl().replace("api.", ""), getTitle(), getBody(), "github", head.getRef());
     }
 
-    @JsonIgnore
     public GitHubBranch getHead() {
         return head;
     }

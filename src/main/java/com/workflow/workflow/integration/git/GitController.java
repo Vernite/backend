@@ -38,7 +38,7 @@ public class GitController {
     private TaskRepository taskRepository;
 
     @Operation(summary = "Retrieve git issues for project", description = "Retrieves all issues from all integrated git services for project.")
-    @ApiResponse(description = "Integration created.", responseCode = "200", content = @Content(schema = @Schema(implementation = Issue.class)))
+    @ApiResponse(description = "List of issues.", responseCode = "200", content = @Content(schema = @Schema(implementation = Issue.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/integration/git/issue")
@@ -90,5 +90,18 @@ public class GitController {
             throw new ObjectNotFoundException();
         }
         service.deleteIssue(task);
+    }
+
+    @Operation(summary = "Retrieve git pull requests for project", description = "Retrieves all pull requests from all integrated git services for project.")
+    @ApiResponse(description = "List of pull requests.", responseCode = "200", content = @Content(schema = @Schema(implementation = PullRequest.class)))
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @GetMapping("/integration/git/pull")
+    Flux<PullRequest> getPullRequests(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+        Project project = projectRepository.findByIdOrThrow(id);
+        if (project.member(user) == -1) {
+            throw new ObjectNotFoundException();
+        }
+        return service.getPullRequests(project);
     }
 }
