@@ -195,8 +195,8 @@ public class GitHubWebhookServiceTests {
                 .bodyValue(data)
                 .exchange()
                 .expectStatus().isOk();
-        assertEquals("title 2", taskRepository
-                .findByStatusProjectAndActiveNullAndParentTaskNullOrderByNameAscIdAsc(project).get(0).getName());
+        assertEquals("title 2", gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).get(0)
+                .getTask().getName());
 
         data.setAction("closed");
         data.setIssue(new GitHubIssue(1, "url", "closed", "title 2", "body"));
@@ -207,8 +207,9 @@ public class GitHubWebhookServiceTests {
                 .bodyValue(data)
                 .exchange()
                 .expectStatus().isOk();
-        assertEquals(statuses[1].getId(), gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).get(0)
-                .getTask().getStatus().getId());
+        assertEquals(statuses[1].getId(),
+                gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).get(0)
+                        .getTask().getStatus().getId());
 
         data.setAction("reopened");
         data.setIssue(new GitHubIssue(1, "url", "open", "title 2", "body"));
@@ -219,8 +220,9 @@ public class GitHubWebhookServiceTests {
                 .bodyValue(data)
                 .exchange()
                 .expectStatus().isOk();
-        assertEquals(statuses[0].getId(), gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).get(0)
-                .getTask().getStatus().getId());
+        assertEquals(statuses[0].getId(),
+                gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).get(0)
+                        .getTask().getStatus().getId());
 
         data.setAction("deleted");
         data.setIssue(new GitHubIssue(1, "url", "open", "title 2", "body"));
@@ -388,6 +390,6 @@ public class GitHubWebhookServiceTests {
                 .bodyValue(data)
                 .exchange()
                 .expectStatus().isOk();
-        assertEquals("title 2", taskRepository.findById(task.getId()).get().getName());
+        assertEquals("TEST", taskRepository.findById(task.getId()).get().getName());
     }
 }
