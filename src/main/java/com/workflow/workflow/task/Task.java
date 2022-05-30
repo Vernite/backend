@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -72,14 +73,20 @@ public class Task extends SoftDeleteEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToMany(mappedBy = "task")
     @JsonIgnore
-    @Where(clause = "is_pull_request = false")
+    @Where(clause = "is_pull_request = 0")
     private List<GitHubTask> issues = new ArrayList<>();
 
     @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToMany(mappedBy = "task")
     @JsonIgnore
-    @Where(clause = "is_pull_request = true")
+    @Where(clause = "is_pull_request = 1")
     private List<GitHubTask> pulls = new ArrayList<>();
+
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @OneToMany(mappedBy = "task")
+    @JsonIgnore
+    @Where(clause = "is_pull_request = 2")
+    private List<GitHubTask> mergedPulls = new ArrayList<>();
 
     @JsonIgnore
     @ManyToOne
@@ -214,11 +221,15 @@ public class Task extends SoftDeleteEntity {
     }
 
     public String getIssue() {
-        return getIssues().size() > 0 ? getIssues().get(0).getLink() : null;
+        return !getIssues().isEmpty() ? getIssues().get(0).getLink() : null;
     }
 
     public String getPull() {
-        return getPulls().size() > 0 ? getPulls().get(0).getLink() : null;
+        return !getPulls().isEmpty() ? getPulls().get(0).getLink() : null;
+    }
+
+    public List<String> getMergedPullList() {
+        return !getMergedPulls().isEmpty() ? getMergedPulls().stream().map(GitHubTask::getLink).collect(Collectors.toList()) : null;
     }
 
     public List<GitHubTask> getIssues() {
@@ -235,6 +246,14 @@ public class Task extends SoftDeleteEntity {
 
     public void setPulls(List<GitHubTask> pulls) {
         this.pulls = pulls;
+    }
+
+    public List<GitHubTask> getMergedPulls() {
+        return mergedPulls;
+    }
+
+    public void setMergedPulls(List<GitHubTask> mergedPulls) {
+        this.mergedPulls = mergedPulls;
     }
 
     public Task getParentTask() {

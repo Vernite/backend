@@ -150,7 +150,7 @@ public class GitHubWebhookService {
                 task.setState("open");
                 task.setType(0);
                 task = taskRepository.save(task);
-                gitTaskRepository.save(new GitHubTask(task, gitHubIntegration, issue.getNumber(), false));
+                gitTaskRepository.save(new GitHubTask(task, gitHubIntegration, issue.getNumber(), (byte) 0));
             } else {
                 for (GitHubTask gitHubTask : gitTaskRepository.findByIssueIdAndGitHubIntegration(issue.getNumber(),
                         gitHubIntegration)) {
@@ -194,6 +194,10 @@ public class GitHubWebhookService {
                 for (GitHubTask gitHubTask : gitTaskRepository.findByIssueIdAndGitHubIntegration(
                         pullRequest.getNumber(),
                         gitHubIntegration)) {
+                    if (pullRequest.isMerged()) {
+                        gitHubTask.setIsPullRequest((byte) 2);
+                        gitTaskRepository.save(gitHubTask);
+                    }
                     Task task = gitHubTask.getTask();
                     task.setState(pullRequest.getState());
                     taskRepository.save(task);

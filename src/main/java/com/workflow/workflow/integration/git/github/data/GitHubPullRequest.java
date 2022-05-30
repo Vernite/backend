@@ -5,6 +5,7 @@ import com.workflow.workflow.task.Task;
 
 public class GitHubPullRequest extends GitHubIssue {
     private GitHubBranch head;
+    private boolean merged = false;
 
     public GitHubPullRequest() {
     }
@@ -28,5 +29,13 @@ public class GitHubPullRequest extends GitHubIssue {
 
     public void setHead(GitHubBranch head) {
         this.head = head;
+    }
+
+    public boolean isMerged() {
+        return merged;
+    }
+
+    public void setMerged(boolean merged) {
+        this.merged = merged;
     }
 }

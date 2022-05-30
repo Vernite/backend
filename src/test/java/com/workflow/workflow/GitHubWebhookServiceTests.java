@@ -357,7 +357,7 @@ public class GitHubWebhookServiceTests {
                 .expectStatus().isOk();
 
         Task task = taskRepository.save(new Task("TEST", "DESC", statuses[0], user, 1));
-        gitHubTaskRepository.save(new GitHubTask(task, integration, 20, true));
+        gitHubTaskRepository.save(new GitHubTask(task, integration, 20, (byte) 1));
 
         data.setAction("closed");
         data.setPullRequest(new GitHubPullRequest(20, "url", "closed", "title", "body", new GitHubBranch("branch")));
@@ -391,5 +391,17 @@ public class GitHubWebhookServiceTests {
                 .exchange()
                 .expectStatus().isOk();
         assertEquals("TEST", taskRepository.findById(task.getId()).get().getName());
+
+        data.setAction("closed");
+        data.setPullRequest(new GitHubPullRequest(20, "url", "open", "title 2", "body", new GitHubBranch("branch")));
+        data.getPullRequest().setMerged(true);
+        client.post().uri("/webhook/github")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
+                .header("X-GitHub-Event", "pull_request")
+                .bodyValue(data)
+                .exchange()
+                .expectStatus().isOk();
+        assertEquals((byte) 2, taskRepository.findById(task.getId()).get().getMergedPulls().get(0).getIsPullRequest());
     }
 }

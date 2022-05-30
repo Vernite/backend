@@ -140,7 +140,7 @@ public class GitHubService {
                         .retrieve()
                         .bodyToMono(GitHubIssue.class))
                 .map(issue -> {
-                    taskRepository.save(new GitHubTask(task, integration, issue.getNumber(), false));
+                    taskRepository.save(new GitHubTask(task, integration, issue.getNumber(), (byte) 0));
                     return issue.toIssue();
                 });
     }
@@ -152,7 +152,7 @@ public class GitHubService {
      * @return future containing modified issue.
      */
     public Mono<Issue> patchIssue(Task task) {
-        Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequestFalse(task);
+        Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0);
         if (optional.isEmpty()) {
             return Mono.empty();
         }
@@ -314,12 +314,12 @@ public class GitHubService {
      * @return true if task has integration else false.
      */
     public boolean isIntegrated(Task task) {
-        Optional<GitHubTask> gitHubTask = taskRepository.findByTaskAndActiveNullAndIsPullRequestFalse(task);
+        Optional<GitHubTask> gitHubTask = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0);
         return gitHubTask.isPresent() && !gitHubTask.get().getGitHubIntegration().getInstallation().getSuspended();
     }
 
     public boolean isIntegratedPull(Task task) {
-        Optional<GitHubTask> gitHubTask = taskRepository.findByTaskAndActiveNullAndIsPullRequestTrue(task);
+        Optional<GitHubTask> gitHubTask = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 1);
         return gitHubTask.isPresent() && !gitHubTask.get().getGitHubIntegration().getInstallation().getSuspended();
     }
 
@@ -340,13 +340,13 @@ public class GitHubService {
         return getIssue(integration.get(), issue.getId())
                 .onErrorMap(Exception.class, e -> new ObjectNotFoundException())
                 .map(gitHubIssue -> {
-                    taskRepository.save(new GitHubTask(task, integration.get(), gitHubIssue.getNumber(), false));
+                    taskRepository.save(new GitHubTask(task, integration.get(), gitHubIssue.getNumber(), (byte) 0));
                     return gitHubIssue.toIssue();
                 });
     }
 
     public void deleteIssue(Task task) {
-        Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequestFalse(task);
+        Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0);
         if (optional.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         }
@@ -399,13 +399,13 @@ public class GitHubService {
         return getPullRequest(integration, pullRequest.getId())
                 .onErrorMap(Exception.class, e -> new ObjectNotFoundException())
                 .map(gitHubPullRequest -> {
-                    taskRepository.save(new GitHubTask(task, integration, gitHubPullRequest.getNumber(), true));
+                    taskRepository.save(new GitHubTask(task, integration, gitHubPullRequest.getNumber(), (byte) 1));
                     return gitHubPullRequest.toPullRequest();
                 });
     }
 
     public void deletePullRequest(Task task) {
-        Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequestTrue(task);
+        Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 1);
         if (optional.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         }
@@ -415,7 +415,7 @@ public class GitHubService {
     }
 
     public Mono<Issue> patchPullRequest(Task task) {
-        Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequestTrue(task);
+        Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 1);
         if (optional.isEmpty()) {
             return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
         }
@@ -423,14 +423,19 @@ public class GitHubService {
         GitHubTask gitHubTask = optional.get();
         if (task.getStatus().isFinal()) {
             return refreshToken(gitHubTask.getGitHubIntegration().getInstallation())
-                .flatMap(installation -> CLIENT.put()
-                .uri(String.format("https://api.github.com/repos/%s/pulls/%d/merge",
-                                gitHubTask.getGitHubIntegration().getRepositoryFullName(), gitHubTask.getIssueId()))
-                        .header(AUTHORIZATION, BEARER + installation.getToken())
-                        .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                        .retrieve()
-                        .bodyToMono(Void.class))
-                .thenReturn(new Issue());
+                    .flatMap(installation -> CLIENT.put()
+                            .uri(String.format("https://api.github.com/repos/%s/pulls/%d/merge",
+                                    gitHubTask.getGitHubIntegration().getRepositoryFullName(), gitHubTask.getIssueId()))
+                            .header(AUTHORIZATION, BEARER + installation.getToken())
+                            .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                            .retrieve()
+                            .bodyToMono(Void.class))
+                    .map(v -> {
+                        gitHubTask.setIsPullRequest((byte) 2);
+                        taskRepository.save(gitHubTask);
+                        return Void.TYPE;
+                    })
+                    .thenReturn(new Issue());
 
         }
         gitHubPullRequest.setState("open");
@@ -443,10 +448,10 @@ public class GitHubService {
                         .bodyValue(gitHubPullRequest)
                         .retrieve()
                         .bodyToMono(GitHubPullRequest.class))
-                        .onErrorResume(Exception.class, e -> {
-                            taskRepository.delete(gitHubTask);
-                            return Mono.just(new GitHubPullRequest());
-                        })
-                        .map(GitHubPullRequest::toPullRequest);
+                .onErrorResume(Exception.class, e -> {
+                    taskRepository.delete(gitHubTask);
+                    return Mono.just(new GitHubPullRequest());
+                })
+                .map(GitHubPullRequest::toPullRequest);
     }
 }

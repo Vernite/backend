@@ -31,12 +31,12 @@ public class GitHubTask extends SoftDeleteEntity {
 
     private long issueId;
 
-    private boolean isPullRequest;
+    private byte isPullRequest;
 
     public GitHubTask() {
     }
 
-    public GitHubTask(Task task, GitHubIntegration gitHubIntegration, long issueId, boolean isPullRequest) {
+    public GitHubTask(Task task, GitHubIntegration gitHubIntegration, long issueId, byte isPullRequest) {
         this.id = new GitHubTaskKey(task, gitHubIntegration);
         this.task = task;
         this.gitHubIntegration = gitHubIntegration;
@@ -76,15 +76,15 @@ public class GitHubTask extends SoftDeleteEntity {
         this.issueId = issueId;
     }
 
-    public boolean isPullRequest() {
+    public byte getIsPullRequest() {
         return isPullRequest;
     }
 
-    public void setPullRequest(boolean isPullRequest) {
+    public void setIsPullRequest(byte isPullRequest) {
         this.isPullRequest = isPullRequest;
     }
 
     public String getLink() {
-        return String.format("https://github.com/%s/%s/%d", getGitHubIntegration().getRepositoryFullName(), isPullRequest() ? "pull" : "issues", getIssueId());
+        return String.format("https://github.com/%s/%s/%d", getGitHubIntegration().getRepositoryFullName(), getIsPullRequest() != 0 ? "pull" : "issues", getIssueId());
     }
 }
