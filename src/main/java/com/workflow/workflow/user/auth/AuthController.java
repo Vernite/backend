@@ -190,9 +190,6 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "User after changes.")
     @PutMapping("/edit")
     public User edit(@NotNull @Parameter(hidden = true) User loggedUser, @RequestBody EditAccountRequest req) {
-        if (req.getPassword() != null) {
-            loggedUser.setPassword(req.getPassword());
-        }
         if (req.getAvatar() != null) {
             loggedUser.setAvatar(req.getAvatar());
         }
@@ -272,6 +269,24 @@ public class AuthController {
             cookie.setMaxAge(0);
             resp.addCookie(cookie);
         }
+    }
+
+    @Operation(summary = "Change a password", description = "This method is used to change a password.")
+    @ApiResponse(responseCode = "200", description = "Password changed")
+    @ApiResponse(responseCode = "404", description = "Old password is incorrect.", content = @Content())
+    @PostMapping("/password/change")
+    public void changePassword(@NotNull @Parameter(hidden = true) User loggedUser, @RequestBody ChangePasswordRequest req) {
+        if (req.getOldPassword() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing old password");
+        }
+        if (req.getNewPassword() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing new password");
+        }
+        if (!loggedUser.checkPassword(req.getOldPassword())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "old password is incorrect");
+        }
+        loggedUser.setPassword(req.getNewPassword());
+        userRepository.save(loggedUser);
     }
 
     @Operation(summary = "Send email with link to reset password", description = "This method sends an e-mail to the user with a link that allows the user to reset the password.")

@@ -1,18 +1,9 @@
 package com.workflow.workflow.user.auth;
 
 public class EditAccountRequest {
-    private String password;
     private String avatar;
     private String name;
     private String surname;
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
 
     public String getAvatar() {
         return avatar;
