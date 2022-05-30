@@ -419,16 +419,34 @@ public class GitHubService {
         if (optional.isEmpty()) {
             return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
         }
+        GitHubPullRequest gitHubPullRequest = new GitHubPullRequest();
         GitHubTask gitHubTask = optional.get();
+        if (task.getStatus().isFinal()) {
+            return refreshToken(gitHubTask.getGitHubIntegration().getInstallation())
+                .flatMap(installation -> CLIENT.put()
+                .uri(String.format("https://api.github.com/repos/%s/pulls/%d/merge",
+                                gitHubTask.getGitHubIntegration().getRepositoryFullName(), gitHubTask.getIssueId()))
+                        .header(AUTHORIZATION, BEARER + installation.getToken())
+                        .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                        .retrieve()
+                        .bodyToMono(Void.class))
+                .thenReturn(new Issue());
+
+        }
+        gitHubPullRequest.setState("open");
         return refreshToken(gitHubTask.getGitHubIntegration().getInstallation())
                 .flatMap(installation -> CLIENT.patch()
                         .uri(String.format("https://api.github.com/repos/%s/pulls/%d",
                                 gitHubTask.getGitHubIntegration().getRepositoryFullName(), gitHubTask.getIssueId()))
                         .header(AUTHORIZATION, BEARER + installation.getToken())
                         .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                        .bodyValue(new GitHubPullRequest(task))
+                        .bodyValue(gitHubPullRequest)
                         .retrieve()
                         .bodyToMono(GitHubPullRequest.class))
-                .map(GitHubPullRequest::toPullRequest);
+                        .onErrorResume(Exception.class, e -> {
+                            taskRepository.delete(gitHubTask);
+                            return Mono.just(new GitHubPullRequest());
+                        })
+                        .map(GitHubPullRequest::toPullRequest);
     }
 }

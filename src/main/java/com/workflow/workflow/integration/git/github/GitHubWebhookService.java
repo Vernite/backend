@@ -188,21 +188,15 @@ public class GitHubWebhookService {
     private Mono<Void> handlePullRequest(GitHubWebhookData data) {
         GitHubPullRequest pullRequest = data.getPullRequest();
         GitHubRepository repository = data.getRepository();
-        if (data.getAction().equals(CLOSED) || data.getAction().equals("reopened") || data.getAction().equals(EDITED)) {
+        if (data.getAction().equals(CLOSED) || data.getAction().equals("reopened")) {
             for (GitHubIntegration gitHubIntegration : integrationRepository
                     .findByRepositoryFullName(repository.getFullName())) {
                 for (GitHubTask gitHubTask : gitTaskRepository.findByIssueIdAndGitHubIntegration(
                         pullRequest.getNumber(),
                         gitHubIntegration)) {
                     Task task = gitHubTask.getTask();
-                    if (data.getAction().equals(EDITED)) {
-                        task.setDescription(pullRequest.getBody());
-                        task.setName(pullRequest.getTitle());
-                        taskRepository.save(task);
-                    } else {
-                        task.setState(pullRequest.getState());
-                        taskRepository.save(task);
-                    }
+                    task.setState(pullRequest.getState());
+                    taskRepository.save(task);
                 }
             }
         }
