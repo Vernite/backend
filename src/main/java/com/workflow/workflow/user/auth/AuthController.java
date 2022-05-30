@@ -278,7 +278,7 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "E-mail address has been sent")
     @ApiResponse(responseCode = "403", description = "User already logged")
     @ApiResponse(responseCode = "404", description = "E-mail not found")
-    @PostMapping("/recoverPassword")
+    @PostMapping("/password/recover")
     public void recoverPassword(@Parameter(hidden = true) User loggedUser, @RequestBody PasswordRecoveryRequest req) {
         if (loggedUser != null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "already logged");
@@ -315,7 +315,7 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "The token is valid and the password (if provided) has been changed.")
     @ApiResponse(responseCode = "403", description = "User is already logged.")
     @ApiResponse(responseCode = "404", description = "The token is not valid or has expired.")
-    @PostMapping("/resetPassword")
+    @PostMapping("/password/reset")
     public void resetPassword(@Parameter(hidden = true) User loggedUser, @RequestBody ResetPasswordRequest req) {
         if (loggedUser != null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "already logged");
