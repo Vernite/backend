@@ -130,7 +130,7 @@ public class GitController {
         return service.getPullRequests(project);
     }
 
-    @Operation(summary = "Create git pull request connection to task", description = "Creates new git pull request connection with task. If request body is empty creates new pull request. Otherwise uses existing git pull request.")
+    @Operation(summary = "Create git pull request connection to task", description = "Creates new git pull request connection with task. Otherwise uses existing git pull request.")
     @ApiResponse(description = "Connection created.", responseCode = "200", content = @Content(schema = @Schema(implementation = PullRequest.class)))
     @ApiResponse(description = "Pull request is not valid", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))

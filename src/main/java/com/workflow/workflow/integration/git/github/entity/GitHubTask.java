@@ -85,6 +85,6 @@ public class GitHubTask extends SoftDeleteEntity {
     }
 
     public String getLink() {
-        return String.format("https://github.com/%s/issues/%d", getGitHubIntegration().getRepositoryFullName(), getIssueId());
+        return String.format("https://github.com/%s/%s/%d", getGitHubIntegration().getRepositoryFullName(), isPullRequest() ? "pull" : "issues", getIssueId());
     }
 }

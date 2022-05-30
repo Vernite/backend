@@ -1,7 +1,9 @@
 package com.workflow.workflow.task;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -15,7 +17,6 @@ import javax.persistence.JoinColumn;
 import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -28,6 +29,7 @@ import com.workflow.workflow.utils.SoftDeleteEntity;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.annotations.Where;
 
 @Entity
 @JsonInclude(Include.NON_NULL)
@@ -68,9 +70,16 @@ public class Task extends SoftDeleteEntity {
     private int type;
 
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @OneToOne(mappedBy = "task")
+    @OneToMany(mappedBy = "task")
     @JsonIgnore
-    private GitHubTask gitHubTask;
+    @Where(clause = "is_pull_request = false")
+    private List<GitHubTask> issues = new ArrayList<>();
+
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @OneToMany(mappedBy = "task")
+    @JsonIgnore
+    @Where(clause = "is_pull_request = true")
+    private List<GitHubTask> pulls = new ArrayList<>();
 
     @JsonIgnore
     @ManyToOne
@@ -205,15 +214,27 @@ public class Task extends SoftDeleteEntity {
     }
 
     public String getIssue() {
-        return gitHubTask != null ? gitHubTask.getLink() : null;
+        return getIssues().size() > 0 ? getIssues().get(0).getLink() : null;
     }
 
-    public GitHubTask getGitHubTask() {
-        return gitHubTask;
+    public String getPull() {
+        return getPulls().size() > 0 ? getPulls().get(0).getLink() : null;
     }
 
-    public void setGitHubTask(GitHubTask gitHubTask) {
-        this.gitHubTask = gitHubTask;
+    public List<GitHubTask> getIssues() {
+        return issues;
+    }
+
+    public void setIssues(List<GitHubTask> issues) {
+        this.issues = issues;
+    }
+
+    public List<GitHubTask> getPulls() {
+        return pulls;
+    }
+
+    public void setPulls(List<GitHubTask> pulls) {
+        this.pulls = pulls;
     }
 
     public Task getParentTask() {
@@ -238,7 +259,7 @@ public class Task extends SoftDeleteEntity {
 
     @Override
     public int hashCode() {
-        return Objects.hash(getCreatedAt(), getDeadline(), getDescription(), getEstimatedDate(), getGitHubTask(),
+        return Objects.hash(getCreatedAt(), getDeadline(), getDescription(), getEstimatedDate(),
                 getId(), this.getName(), this.getSprint(), this.getStatus(), this.getType(), this.getUser());
     }
 
@@ -253,7 +274,7 @@ public class Task extends SoftDeleteEntity {
                 && Objects.equals(getDeadline(), other.getDeadline())
                 && Objects.equals(getDescription(), other.getDescription())
                 && Objects.equals(getEstimatedDate(), other.getEstimatedDate())
-                && Objects.equals(getGitHubTask(), other.getGitHubTask()) && getId() == other.getId()
+                && getId() == other.getId()
                 && Objects.equals(getName(), other.getName())
                 && Objects.equals(getSprint(), other.getSprint())
                 && Objects.equals(getStatus(), other.getStatus())
