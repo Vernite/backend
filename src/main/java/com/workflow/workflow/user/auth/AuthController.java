@@ -190,9 +190,6 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "User after changes.")
     @PutMapping("/edit")
     public User edit(@NotNull @Parameter(hidden = true) User loggedUser, @RequestBody EditAccountRequest req) {
-        if (req.getPassword() != null) {
-            loggedUser.setPassword(req.getPassword());
-        }
         if (req.getAvatar() != null) {
             loggedUser.setAvatar(req.getAvatar());
         }
@@ -274,11 +271,29 @@ public class AuthController {
         }
     }
 
+    @Operation(summary = "Change a password", description = "This method is used to change a password.")
+    @ApiResponse(responseCode = "200", description = "Password changed")
+    @ApiResponse(responseCode = "404", description = "Old password is incorrect.", content = @Content())
+    @PostMapping("/password/change")
+    public void changePassword(@NotNull @Parameter(hidden = true) User loggedUser, @RequestBody ChangePasswordRequest req) {
+        if (req.getOldPassword() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing old password");
+        }
+        if (req.getNewPassword() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing new password");
+        }
+        if (!loggedUser.checkPassword(req.getOldPassword())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "old password is incorrect");
+        }
+        loggedUser.setPassword(req.getNewPassword());
+        userRepository.save(loggedUser);
+    }
+
     @Operation(summary = "Send email with link to reset password", description = "This method sends an e-mail to the user with a link that allows the user to reset the password.")
     @ApiResponse(responseCode = "200", description = "E-mail address has been sent")
     @ApiResponse(responseCode = "403", description = "User already logged")
     @ApiResponse(responseCode = "404", description = "E-mail not found")
-    @PostMapping("/recoverPassword")
+    @PostMapping("/password/recover")
     public void recoverPassword(@Parameter(hidden = true) User loggedUser, @RequestBody PasswordRecoveryRequest req) {
         if (loggedUser != null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "already logged");
@@ -315,7 +330,7 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "The token is valid and the password (if provided) has been changed.")
     @ApiResponse(responseCode = "403", description = "User is already logged.")
     @ApiResponse(responseCode = "404", description = "The token is not valid or has expired.")
-    @PostMapping("/resetPassword")
+    @PostMapping("/password/reset")
     public void resetPassword(@Parameter(hidden = true) User loggedUser, @RequestBody ResetPasswordRequest req) {
         if (loggedUser != null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "already logged");
