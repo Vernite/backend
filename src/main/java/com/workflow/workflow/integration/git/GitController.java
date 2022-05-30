@@ -59,7 +59,7 @@ public class GitController {
     @PostMapping("/task/{taskId}/integration/git/issue")
     Mono<Issue> newIssue(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @PathVariable long taskId,
-            @RequestBody @io.swagger.v3.oas.annotations.parameters.RequestBody(required = false) Issue issue) {
+            @RequestBody(required = false) @io.swagger.v3.oas.annotations.parameters.RequestBody(required = false) Issue issue) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) != -1) {
             throw new ObjectNotFoundException();
