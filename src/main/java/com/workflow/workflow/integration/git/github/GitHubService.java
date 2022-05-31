@@ -51,7 +51,7 @@ public class GitHubService {
     private static final String ACCEPT = "Accept";
     private static final String BEARER = "Bearer ";
     private static final String APPLICATION_JSON_GITHUB = "application/vnd.github.v3+json";
-    private WebClient client = WebClient.create();
+    private WebClient client = WebClient.create("https://api.github.com");
     @Autowired
     private GitHubInstallationRepository installationRepository;
     @Autowired
@@ -94,7 +94,7 @@ public class GitHubService {
      */
     public Mono<GitHubUser> getInstallationUser(long installationId) {
         return client.get()
-                .uri("https://api.github.com/app/installations/" + installationId)
+                .uri("/app/installations/" + installationId)
                 .header(AUTHORIZATION, BEARER + createJWT())
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
                 .retrieve()
@@ -132,7 +132,7 @@ public class GitHubService {
         GitHubIntegration integration = optional.get();
         return refreshToken(integration.getInstallation())
                 .flatMap(installation -> client.post()
-                        .uri(String.format("https://api.github.com/repos/%s/issues",
+                        .uri(String.format("/repos/%s/issues",
                                 integration.getRepositoryFullName()))
                         .header(AUTHORIZATION, BEARER + installation.getToken())
                         .header(ACCEPT, APPLICATION_JSON_GITHUB)
@@ -159,7 +159,7 @@ public class GitHubService {
         GitHubTask gitHubTask = optional.get();
         return refreshToken(gitHubTask.getGitHubIntegration().getInstallation())
                 .flatMap(installation -> client.patch()
-                        .uri(String.format("https://api.github.com/repos/%s/issues/%d",
+                        .uri(String.format("/repos/%s/issues/%d",
                                 gitHubTask.getGitHubIntegration().getRepositoryFullName(), gitHubTask.getIssueId()))
                         .header(AUTHORIZATION, BEARER + installation.getToken())
                         .header(ACCEPT, APPLICATION_JSON_GITHUB)
@@ -182,7 +182,7 @@ public class GitHubService {
         }
         return refreshToken(integration.getInstallation())
                 .flatMap(installation -> client.get()
-                        .uri(String.format("https://api.github.com/repos/%s/issues/%d",
+                        .uri(String.format("/repos/%s/issues/%d",
                                 integration.getRepositoryFullName(), issueNumber))
                         .header(AUTHORIZATION, BEARER + installation.getToken())
                         .header(ACCEPT, APPLICATION_JSON_GITHUB)
@@ -202,7 +202,7 @@ public class GitHubService {
         }
         return refreshToken(integration.getInstallation())
                 .flatMapMany(installation -> client.get()
-                        .uri(String.format("https://api.github.com/repos/%s/issues",
+                        .uri(String.format("/repos/%s/issues",
                                 integration.getRepositoryFullName()))
                         .header(AUTHORIZATION, BEARER + installation.getToken())
                         .header(ACCEPT, APPLICATION_JSON_GITHUB)
@@ -223,7 +223,7 @@ public class GitHubService {
         if (installation.getSuspended()) {
             return Mono.just(false);
         }
-        return this.getRepositoryList(installation)
+        return refreshToken(installation).flatMap(inst -> this.getRepositoryList(inst)
                 .map(list -> {
                     for (GitHubRepository gitHubRepository : list) {
                         if (gitHubRepository.getFullName().equals(fullName)) {
@@ -231,7 +231,7 @@ public class GitHubService {
                         }
                     }
                     return false;
-                });
+                }));
     }
 
     /**
@@ -243,7 +243,7 @@ public class GitHubService {
      */
     private Mono<List<GitHubRepository>> getRepositoryList(GitHubInstallation installation) {
         return client.get()
-                .uri("https://api.github.com/installation/repositories")
+                .uri("/installation/repositories")
                 .header(AUTHORIZATION, BEARER + installation.getToken())
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
                 .retrieve()
@@ -261,7 +261,7 @@ public class GitHubService {
      */
     private Mono<GitHubInstallation> refreshToken(GitHubInstallation installation) {
         return Instant.now().isAfter(installation.getExpiresAt().toInstant()) ? client.post()
-                .uri(String.format("https://api.github.com/app/installations/%d/access_tokens",
+                .uri(String.format("/app/installations/%d/access_tokens",
                         installation.getInstallationId()))
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
                 .header(AUTHORIZATION, BEARER + createJWT())
@@ -366,7 +366,7 @@ public class GitHubService {
         }
         return refreshToken(integration.getInstallation())
                 .flatMapMany(installation -> client.get()
-                        .uri(String.format("https://api.github.com/repos/%s/pulls",
+                        .uri(String.format("/repos/%s/pulls",
                                 integration.getRepositoryFullName()))
                         .header(AUTHORIZATION, BEARER + installation.getToken())
                         .header(ACCEPT, APPLICATION_JSON_GITHUB)
@@ -378,7 +378,7 @@ public class GitHubService {
     private Mono<GitHubPullRequest> getPullRequest(GitHubIntegration integration, long number) {
         return refreshToken(integration.getInstallation())
                 .flatMap(installation -> client.get()
-                        .uri(String.format("https://api.github.com/repos/%s/pulls/%d",
+                        .uri(String.format("/repos/%s/pulls/%d",
                                 integration.getRepositoryFullName(), number))
                         .header(AUTHORIZATION, BEARER + installation.getToken())
                         .header(ACCEPT, APPLICATION_JSON_GITHUB)
@@ -424,7 +424,7 @@ public class GitHubService {
         if (task.getStatus().isFinal()) {
             return refreshToken(gitHubTask.getGitHubIntegration().getInstallation())
                     .flatMap(installation -> client.put()
-                            .uri(String.format("https://api.github.com/repos/%s/pulls/%d/merge",
+                            .uri(String.format("/repos/%s/pulls/%d/merge",
                                     gitHubTask.getGitHubIntegration().getRepositoryFullName(), gitHubTask.getIssueId()))
                             .header(AUTHORIZATION, BEARER + installation.getToken())
                             .header(ACCEPT, APPLICATION_JSON_GITHUB)
@@ -441,7 +441,7 @@ public class GitHubService {
         gitHubPullRequest.setState("open");
         return refreshToken(gitHubTask.getGitHubIntegration().getInstallation())
                 .flatMap(installation -> client.patch()
-                        .uri(String.format("https://api.github.com/repos/%s/pulls/%d",
+                        .uri(String.format("/repos/%s/pulls/%d",
                                 gitHubTask.getGitHubIntegration().getRepositoryFullName(), gitHubTask.getIssueId()))
                         .header(AUTHORIZATION, BEARER + installation.getToken())
                         .header(ACCEPT, APPLICATION_JSON_GITHUB)

@@ -2,8 +2,23 @@ package com.workflow.workflow;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import java.util.Date;
 
+import java.io.IOException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
+import java.util.List;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.workflow.workflow.integration.git.github.GitHubController;
+import com.workflow.workflow.integration.git.github.GitHubService;
+import com.workflow.workflow.integration.git.github.data.GitHubInstallationApi;
+import com.workflow.workflow.integration.git.github.data.GitHubIntegrationInfo;
+import com.workflow.workflow.integration.git.github.data.GitHubRepository;
+import com.workflow.workflow.integration.git.github.data.GitHubRepositoryList;
+import com.workflow.workflow.integration.git.github.data.GitHubUser;
+import com.workflow.workflow.integration.git.github.data.InstallationToken;
 import com.workflow.workflow.integration.git.github.entity.GitHubInstallation;
 import com.workflow.workflow.integration.git.github.entity.GitHubInstallationRepository;
 import com.workflow.workflow.integration.git.github.entity.GitHubIntegration;
@@ -22,6 +37,7 @@ import com.workflow.workflow.user.auth.AuthController;
 import com.workflow.workflow.workspace.Workspace;
 import com.workflow.workflow.workspace.WorkspaceRepository;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -32,15 +48,25 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestInstance(Lifecycle.PER_CLASS)
 @TestPropertySource({ "classpath:application.properties", "classpath:application-test.properties" })
 public class GitHubControllerTests {
+    public static MockWebServer mockBackEnd;
+
+    private ObjectMapper MAPPER = new ObjectMapper();
     @Autowired
     private WebTestClient client;
+    @Autowired
+    private GitHubController controller;
     @Autowired
     private UserRepository userRepository;
     @Autowired
@@ -60,6 +86,7 @@ public class GitHubControllerTests {
 
     private User user;
     private User otherUser;
+    private User noUser;
     private UserSession session;
     private Project project;
     private Status[] statuses = new Status[2];
@@ -68,19 +95,42 @@ public class GitHubControllerTests {
     private GitHubIntegration integration;
     private Workspace workspace;
 
+    void tokenCheck() throws JsonProcessingException {
+        tokenCheck(installation);
+    }
+
+    void tokenCheck(GitHubInstallation iGitHubInstallation) throws JsonProcessingException {
+        iGitHubInstallation = installationRepository.findByIdOrThrow(iGitHubInstallation.getId());
+        if (iGitHubInstallation.getExpiresAt().before(Date.from(Instant.now()))) {
+            mockBackEnd.enqueue(new MockResponse()
+                    .setBody(MAPPER.writeValueAsString(
+                            new InstallationToken("token" + iGitHubInstallation.getId(),
+                                    Instant.now().plus(30, ChronoUnit.MINUTES).toString())))
+                    .addHeader("Content-Type", "application/json"));
+        }
+    }
+
     @BeforeAll
-    public void init() {
+    public void init() throws IOException {
+        mockBackEnd = new MockWebServer();
+        mockBackEnd.start();
+
         integrationRepository.deleteAll();
         installationRepository.deleteAll();
         user = userRepository.findById(1L)
                 .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1")));
         otherUser = userRepository.findById(2L)
                 .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username2", "Email2@test.pl", "2")));
+        noUser = userRepository.findById(3L)
+                .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username3", "Email3@test.pl", "3")));
         project = projectRepository.save(new Project("NAME"));
         statuses[0] = statusRepository.save(new Status("NAME", 1, false, true, 0, project));
         statuses[1] = statusRepository.save(new Status("NAME", 1, true, false, 1, project));
         installation = installationRepository.save(new GitHubInstallation(1, user, "username"));
         otherInstallation = installationRepository.save(new GitHubInstallation(2, otherUser, "username2"));
+        GitHubInstallation sus = new GitHubInstallation(4523, user, "username4523");
+        sus.setSuspended(true);
+        installationRepository.save(sus);
         integration = integrationRepository.save(new GitHubIntegration(project, installation, "username/repo"));
         session = new UserSession();
         session.setIp("127.0.0.1");
@@ -96,6 +146,14 @@ public class GitHubControllerTests {
         }
         workspace = workspaceRepository.save(new Workspace(1, user, "Project Tests"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+
+        GitHubService service = (GitHubService) ReflectionTestUtils.getField(controller, "service");
+        ReflectionTestUtils.setField(service, "client", WebClient.create("http://localhost:" + mockBackEnd.getPort()));
+    }
+
+    @AfterAll
+    void tearDown() throws IOException {
+        mockBackEnd.shutdown();
     }
 
     @Test
@@ -105,7 +163,7 @@ public class GitHubControllerTests {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBodyList(GitHubInstallation.class)
-                .hasSize(1);
+                .hasSize(2);
     }
 
     @Test
@@ -116,8 +174,18 @@ public class GitHubControllerTests {
     }
 
     @Test
-    void getRepositoriesSuccess() {
-        // TODO
+    void getRepositoriesSuccess() throws JsonProcessingException {
+        GitHubRepositoryList list = new GitHubRepositoryList();
+        list.setRepositories(List.of(
+                new GitHubRepository(1, "username/test", true),
+                new GitHubRepository(2, "username/repo2", false),
+                new GitHubRepository(3, "username/test3", true)));
+        tokenCheck();
+        mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(list)).addHeader("Content-Type",
+                "application/json"));
+
+        GitHubIntegrationInfo info = controller.getRepositories(user).block();
+        assertEquals(true, info.getGitRepositories().containsAll(list.getRepositories()));
     }
 
     @Test
@@ -128,8 +196,27 @@ public class GitHubControllerTests {
     }
 
     @Test
-    void newInstallationSuccess() {
-        // TODO
+    void newInstallationSuccess() throws JsonProcessingException {
+        GitHubInstallationApi api = new GitHubInstallationApi(3, new GitHubUser(24, "username3"));
+        GitHubRepositoryList list = new GitHubRepositoryList();
+        list.setRepositories(List.of(
+                new GitHubRepository(1, "username3/test", true),
+                new GitHubRepository(2, "username3/repo2", false),
+                new GitHubRepository(3, "username3/test3", true)));
+        mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(api)).addHeader("Content-Type",
+                "application/json"));
+        mockBackEnd.enqueue(new MockResponse()
+                .setBody(MAPPER.writeValueAsString(
+                        new InstallationToken("token3", Instant.now().plus(30, ChronoUnit.MINUTES).toString())))
+                .addHeader("Content-Type", "application/json"));
+        mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(list)).addHeader("Content-Type",
+                "application/json"));
+
+        GitHubIntegrationInfo info = controller.newInstallation(noUser, 3).block();
+        assertEquals(true, info.getGitRepositories().containsAll(list.getRepositories()));
+        assertEquals(true, installationRepository.findByInstallationId(3).isPresent());
+        assertEquals(api.getAccount().getLogin(),
+                installationRepository.findByInstallationId(3).get().getGitHubUsername());
     }
 
     @Test
@@ -177,8 +264,39 @@ public class GitHubControllerTests {
     }
 
     @Test
-    void newIntegrationSuccess() {
-        // TODO
+    void newIntegrationSuccess() throws JsonProcessingException {
+        GitHubInstallation testInst = installationRepository.save(new GitHubInstallation(4532, user, "username4532"));
+        GitHubRepositoryList fakeList = new GitHubRepositoryList();
+        fakeList.setRepositories(List.of(
+                new GitHubRepository(1, "Test/test", true),
+                new GitHubRepository(2, "Test/test2", false),
+                new GitHubRepository(3, "Test/test3", true)));
+        GitHubRepositoryList list = new GitHubRepositoryList();
+        list.setRepositories(List.of(
+                new GitHubRepository(1, "username/test", true),
+                new GitHubRepository(2, "username/repo2", false),
+                new GitHubRepository(3, "username/test3", true)));
+        for (GitHubInstallation installation2 : installationRepository.findByUser(user)) {
+            if (!installation2.getSuspended()) {
+                tokenCheck(installation2);
+                if (installation2.getId() == installation.getId()) {
+                    mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(list))
+                            .addHeader("Content-Type", "application/json"));
+                } else {
+                    mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(fakeList))
+                            .addHeader("Content-Type", "application/json"));
+                }
+            }
+        }
+
+        Project newProject = projectRepository.save(new Project("NAMEMEM"));
+        projectWorkspaceRepository.save(new ProjectWorkspace(newProject, workspace, 1L));
+
+        Project result = controller.newIntegration(user, newProject.getId(), "username/repo2").block();
+        assertEquals(newProject.getId(), result.getId());
+        assertEquals("username/repo2", projectRepository.findById(newProject.getId()).get().getGitHubIntegration());
+        assertEquals(true, integrationRepository.findByProjectAndActiveNull(result).isPresent());
+        installationRepository.delete(testInst);
     }
 
     @Test

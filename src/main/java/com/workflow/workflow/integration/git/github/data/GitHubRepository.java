@@ -48,4 +48,29 @@ public class GitHubRepository {
     public void setPrivate(boolean isPrivate) {
         this.isPrivate = isPrivate;
     }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + (int) (id ^ (id >>> 32));
+        result = prime * result + (isPrivate ? 1231 : 1237);
+        result = prime * result + ((fullName == null) ? 0 : fullName.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        final GitHubRepository other = (GitHubRepository) obj;
+        if (this.id != other.id) {
+            return false;
+        }
+        if ((this.fullName == null) ? (other.fullName != null) : !this.fullName.equals(other.fullName)) {
+            return false;
+        }
+        return this.isPrivate == other.isPrivate;
+    }
 }

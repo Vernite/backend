@@ -2,11 +2,20 @@ package com.workflow.workflow.integration.git.github.data;
 
 import java.time.Instant;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class InstallationToken {
     private String token;
     private String expiresAt;
+
+    public InstallationToken() {
+    }
+
+    public InstallationToken(String token, String expiresAt) {
+        this.token = token;
+        this.expiresAt = expiresAt;
+    }
 
     @JsonProperty("expires_at")
     public String getExpiresAt() {
@@ -26,6 +35,7 @@ public class InstallationToken {
         this.token = token;
     }
 
+    @JsonIgnore
     public Instant getExpiresInstant() {
         return Instant.parse(expiresAt);
     }
