@@ -35,7 +35,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestInstance(Lifecycle.PER_CLASS)
-@TestPropertySource({"classpath:application.properties", "classpath:application-test.properties"})
+@TestPropertySource({ "classpath:application.properties", "classpath:application-test.properties" })
 public class ProjectControllerTests {
     @Autowired
     private WebTestClient client;
@@ -95,13 +95,15 @@ public class ProjectControllerTests {
 
     @Test
     void newProjectBadRequest() {
-        ProjectRequest request = new ProjectRequest(null, workspace.getId().getId());
+        ProjectRequest request = new ProjectRequest();
         client.post().uri("/project")
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isBadRequest();
+
+        request.setWorkspaceId(workspace.getId().getId());
 
         request.setName("0".repeat(51));
         client.post().uri("/project")
@@ -136,7 +138,7 @@ public class ProjectControllerTests {
         Project project = projectRepository.save(new Project("GET"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
-        client.get().uri("/project/" + project.getId())
+        client.get().uri("/project/{id}", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isOk()
@@ -154,7 +156,7 @@ public class ProjectControllerTests {
         Project project = projectRepository.save(new Project("GET"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
-        client.get().uri("/project/" + project.getId())
+        client.get().uri("/project/{id}", project.getId())
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
@@ -162,6 +164,12 @@ public class ProjectControllerTests {
     @Test
     void getProjectNotFound() {
         client.get().uri("/project/1")
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
+
+        Project project = projectRepository.save(new Project("GET"));
+        client.get().uri("/project/{id}", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isNotFound();
@@ -173,7 +181,7 @@ public class ProjectControllerTests {
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
         ProjectRequest request = new ProjectRequest(null, 1L);
 
-        client.put().uri("/project/" + project.getId())
+        client.put().uri("/project/{id}", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -185,7 +193,7 @@ public class ProjectControllerTests {
 
         request.setName("NEW PUT");
         project.setName(request.getName());
-        client.put().uri("/project/" + project.getId())
+        client.put().uri("/project/{id}", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -202,7 +210,7 @@ public class ProjectControllerTests {
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
         ProjectRequest request = new ProjectRequest("0".repeat(51), 1L);
 
-        client.put().uri("/project/" + project.getId())
+        client.put().uri("/project/{id}", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -222,7 +230,7 @@ public class ProjectControllerTests {
         Project project = projectRepository.save(new Project("PUT"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
-        client.put().uri("/project/" + project.getId())
+        client.put().uri("/project/{id}", project.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
@@ -232,8 +240,16 @@ public class ProjectControllerTests {
     @Test
     void putProjectNotFound() {
         ProjectRequest request = new ProjectRequest("PUT", 1L);
+        Project project = projectRepository.save(new Project("PUT"));
 
         client.put().uri("/project/1")
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isNotFound();
+
+        client.put().uri("/project/{id}", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -246,7 +262,7 @@ public class ProjectControllerTests {
         Project project = projectRepository.save(new Project("PUT"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
-        client.delete().uri("/project/" + project.getId())
+        client.delete().uri("/project/{id}", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isOk();
@@ -260,7 +276,7 @@ public class ProjectControllerTests {
                 .expectStatus().isUnauthorized();
 
         Project project = projectRepository.save(new Project("PUT"));
-        client.delete().uri("/project/" + project.getId())
+        client.delete().uri("/project/{id}", project.getId())
                 .exchange()
                 .expectStatus().isUnauthorized();
 
@@ -273,16 +289,22 @@ public class ProjectControllerTests {
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isNotFound();
+
+        Project project = projectRepository.save(new Project("DELETE"));
+        client.delete().uri("/project/{id}", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
     }
 
     @Test
     void moveProjectWorkspaceSuccess() {
-        Project project = projectRepository.save(new Project("PUT"));
+        Project project = projectRepository.save(new Project("DELETE"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
         Workspace workspace2 = workspaceRepository.save(new Workspace(2, user, "Project Tests 2"));
 
-        client.put().uri(String.format("/project/%d/workspace/%d", project.getId(), workspace2.getId().getId()))
+        client.put().uri("/project/{id}/workspace/{wId}", project.getId(), workspace2.getId().getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isOk();
@@ -301,7 +323,7 @@ public class ProjectControllerTests {
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
         Workspace workspace2 = workspaceRepository.save(new Workspace(2, user, "Project Tests 2"));
-        client.put().uri(String.format("/project/%d/workspace/%d", project.getId(), workspace2.getId().getId()))
+        client.put().uri("/project/{id}/workspace/{wId}", project.getId(), workspace2.getId().getId())
                 .exchange()
                 .expectStatus().isUnauthorized();
 
@@ -311,10 +333,21 @@ public class ProjectControllerTests {
 
     @Test
     void moveProjectWorkspaceNotFound() {
+        client.put().uri("/project/{id}/workspace/1", 1024)
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
+
         Project project = projectRepository.save(new Project("PUT"));
+
+        client.put().uri("/project/{id}/workspace/{wId}", project.getId(), 1024)
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
+
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
-        client.put().uri(String.format("/project/%d/workspace/%d", project.getId(), 1024))
+        client.put().uri("/project/{id}/workspace/{wId}", project.getId(), 1024)
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isNotFound();
@@ -325,7 +358,7 @@ public class ProjectControllerTests {
         Project project = projectRepository.save(new Project("PUT"));
         ProjectWorkspace ps = projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
-        client.get().uri(String.format("/project/%d/member", project.getId()))
+        client.get().uri("/project/{id}/member", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isOk()
@@ -336,21 +369,27 @@ public class ProjectControllerTests {
 
     @Test
     void getProjectMembersUnauthorized() {
-        client.get().uri(String.format("/project/1/member"))
+        client.get().uri("/project/1/member")
                 .exchange()
                 .expectStatus().isUnauthorized();
 
         Project project = projectRepository.save(new Project("PUT"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
-        client.get().uri(String.format("/project/%d/member", project.getId()))
+        client.get().uri("/project/{id}/member", project.getId())
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
 
     @Test
     void getProjectMembersNotFound() {
-        client.get().uri(String.format("/project/1/member"))
+        client.get().uri("/project/1/member")
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
+
+        Project project = projectRepository.save(new Project("MEMBER"));
+        client.get().uri("/project/{id}/member", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isNotFound();

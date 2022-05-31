@@ -171,7 +171,7 @@ public class WorkspaceControllerTests {
     void getWorkspaceSuccess() {
         Workspace workspace = workspaceRepository.save(new Workspace(1, user, "GET"));
 
-        Workspace result = client.get().uri("/workspace/" + workspace.getId().getId())
+        Workspace result = client.get().uri("/workspace/{id}", workspace.getId().getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isOk()
@@ -190,7 +190,7 @@ public class WorkspaceControllerTests {
                 .expectStatus().isUnauthorized();
 
         Workspace workspace = workspaceRepository.save(new Workspace(1, user, "GET"));
-        client.get().uri("/workspace/" + workspace.getId().getId())
+        client.get().uri("/workspace/{id}", workspace.getId().getId())
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
@@ -205,7 +205,7 @@ public class WorkspaceControllerTests {
         Workspace workspace = new Workspace(1, user, "GET");
         workspace.setActive(new Date());
         workspace = workspaceRepository.save(workspace);
-        client.get().uri("/workspace/" + workspace.getId().getId())
+        client.get().uri("/workspace/{id}",  workspace.getId().getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isNotFound();
@@ -215,7 +215,7 @@ public class WorkspaceControllerTests {
     void putWorkspaceSuccess() {
         Workspace workspace = workspaceRepository.save(new Workspace(1, user, "PUT"));
         WorkspaceRequest request = new WorkspaceRequest(null);
-        Workspace result = client.put().uri("/workspace/" + workspace.getId().getId())
+        Workspace result = client.put().uri("/workspace/{id}",  workspace.getId().getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -229,7 +229,7 @@ public class WorkspaceControllerTests {
         assertEquals(workspace, workspaceRepository.findByIdOrThrow(workspace.getId()));
 
         request.setName("NEW PUT");
-        result = client.put().uri("/workspace/" + workspace.getId().getId())
+        result = client.put().uri("/workspace/{id}",  workspace.getId().getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -247,7 +247,7 @@ public class WorkspaceControllerTests {
     void putWorkspaceBadRequest() {
         Workspace workspace = workspaceRepository.save(new Workspace(1, user, "PUT"));
         WorkspaceRequest request = new WorkspaceRequest("0".repeat(51));
-        client.put().uri("/workspace/" + workspace.getId().getId())
+        client.put().uri("/workspace/{id}",  workspace.getId().getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -266,7 +266,7 @@ public class WorkspaceControllerTests {
 
         Workspace workspace = workspaceRepository.save(new Workspace(1, user, "PUT"));
 
-        client.put().uri("/workspace/" + workspace.getId().getId())
+        client.put().uri("/workspace/{id}",  workspace.getId().getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
@@ -287,7 +287,7 @@ public class WorkspaceControllerTests {
     @Test
     void deleteWorkspaceSuccess() {
         Workspace workspace = workspaceRepository.save(new Workspace(1, user, "DELETE"));
-        client.delete().uri("/workspace/" + workspace.getId().getId())
+        client.delete().uri("/workspace/{id}",  workspace.getId().getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isOk();
@@ -301,7 +301,7 @@ public class WorkspaceControllerTests {
         Workspace workspace = workspaceRepository.save(new Workspace(1, user, "DELETE"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
-        client.delete().uri("/workspace/" + workspace.getId().getId())
+        client.delete().uri("/workspace/{id}",  workspace.getId().getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isBadRequest();
@@ -316,7 +316,7 @@ public class WorkspaceControllerTests {
                 .expectStatus().isUnauthorized();
 
         Workspace workspace = workspaceRepository.save(new Workspace(1, user, "DELETE"));
-        client.delete().uri("/workspace/" + workspace.getId().getId())
+        client.delete().uri("/workspace/{id}",  workspace.getId().getId())
                 .exchange()
                 .expectStatus().isUnauthorized();
 

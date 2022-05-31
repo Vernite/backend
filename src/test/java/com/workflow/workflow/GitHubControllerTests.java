@@ -197,7 +197,7 @@ public class GitHubControllerTests {
 
     @Test
     void newInstallationSuccess() throws JsonProcessingException {
-        GitHubInstallationApi api = new GitHubInstallationApi(3, new GitHubUser(24, "username3"));
+        GitHubInstallationApi api = new GitHubInstallationApi(54, new GitHubUser(24, "username3"));
         GitHubRepositoryList list = new GitHubRepositoryList();
         list.setRepositories(List.of(
                 new GitHubRepository(1, "username3/test", true),
@@ -207,16 +207,16 @@ public class GitHubControllerTests {
                 "application/json"));
         mockBackEnd.enqueue(new MockResponse()
                 .setBody(MAPPER.writeValueAsString(
-                        new InstallationToken("token3", Instant.now().plus(30, ChronoUnit.MINUTES).toString())))
+                        new InstallationToken("token54", Instant.now().plus(30, ChronoUnit.MINUTES).toString())))
                 .addHeader("Content-Type", "application/json"));
         mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(list)).addHeader("Content-Type",
                 "application/json"));
 
-        GitHubIntegrationInfo info = controller.newInstallation(noUser, 3).block();
+        GitHubIntegrationInfo info = controller.newInstallation(noUser, 54).block();
         assertEquals(true, info.getGitRepositories().containsAll(list.getRepositories()));
-        assertEquals(true, installationRepository.findByInstallationId(3).isPresent());
+        assertEquals(true, installationRepository.findByInstallationId(54).isPresent());
         assertEquals(api.getAccount().getLogin(),
-                installationRepository.findByInstallationId(3).get().getGitHubUsername());
+                installationRepository.findByInstallationId(54).get().getGitHubUsername());
     }
 
     @Test
