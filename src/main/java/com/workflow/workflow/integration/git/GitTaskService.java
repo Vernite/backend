@@ -6,6 +6,8 @@ import com.workflow.workflow.integration.git.github.GitHubService;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.task.Task;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import reactor.core.publisher.Flux;
@@ -15,18 +17,16 @@ import reactor.core.publisher.Mono;
  * Service for managing task connected to any git service.
  */
 @Service
+@Component
 public class GitTaskService {
-    private final GitHubService gitHubService;
-
-    public GitTaskService(GitHubService gitHubService) {
-        this.gitHubService = gitHubService;
-    }
+    @Autowired
+    private GitHubService gitHubService;
 
     /**
      * Creates issue in appropriate git service.
      * 
      * @param task must not be {@literal null}.
-     * @return future containing created issues.
+     * @return Mono with created issue.
      */
     public Flux<Issue> createIssue(Task task) {
         return Flux.concat(List.of(gitHubService.createIssue(task)));
@@ -37,7 +37,7 @@ public class GitTaskService {
      * 
      * @param task must not be {@literal null}. Should have changed since last patch
      *             or since creation.
-     * @return future containing changed issues.
+     * @return Mono with patched issue.
      */
     public Flux<Issue> patchIssue(Task task) {
         return Flux.concat(List.of(gitHubService.patchIssue(task), gitHubService.patchPullRequest(task)));
@@ -47,7 +47,7 @@ public class GitTaskService {
      * Gets issues from git integrations for given project.
      * 
      * @param project must not be {@literal null}; must be entity from database.
-     * @return future containing list of issues.
+     * @return Flux with issues.
      */
     public Flux<Issue> getIssues(Project project) {
         return Flux.concat(List.of(gitHubService.getIssues(project)));
@@ -58,7 +58,7 @@ public class GitTaskService {
      * 
      * @param task  must not be {@literal null}; must be entity from database.
      * @param issue must not be {@literal null}; must be returned by getIssues.
-     * @return future containing connected issue.
+     * @return Mono with connected task.
      */
     public Mono<Issue> connectIssue(Task task, Issue issue) {
         if ("github".equals(issue.getService())) {
@@ -80,7 +80,7 @@ public class GitTaskService {
      * Gets pull requests from git integrations for given project.
      * 
      * @param project must not be {@literal null}; must be entity from database.
-     * @return future containing list of pull requests.
+     * @return Flux with pull requests.
      */
     public Flux<PullRequest> getPullRequests(Project project) {
         return Flux.concat(List.of(gitHubService.getPullRequests(project)));
@@ -92,7 +92,7 @@ public class GitTaskService {
      * @param task  must not be {@literal null}; must be entity from database.
      * @param issue must not be {@literal null}; must be returned by
      *              getPullRequests.
-     * @return future containing connected pull request.
+     * @return Mono with connected pull request.
      */
     public Mono<PullRequest> connectPullRequest(Task task, PullRequest pullRequest) {
         if ("github".equals(pullRequest.getService())) {
