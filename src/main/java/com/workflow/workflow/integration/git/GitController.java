@@ -11,7 +11,6 @@ import com.workflow.workflow.utils.ErrorType;
 import com.workflow.workflow.utils.ObjectNotFoundException;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,7 +18,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -44,7 +42,7 @@ public class GitController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/integration/git/issue")
-    Flux<Issue> getIssues(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+    public Flux<Issue> getIssues(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
@@ -57,11 +55,11 @@ public class GitController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or task or git issue not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PostMapping("/task/{taskId}/integration/git/issue")
-    Mono<Issue> newIssue(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+    public Mono<Issue> newIssue(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @PathVariable long taskId,
             @RequestBody(required = false) @io.swagger.v3.oas.annotations.parameters.RequestBody(required = false) Issue issue) {
         Project project = projectRepository.findByIdOrThrow(id);
-        if (project.member(user) != -1) {
+        if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
         }
         Task task = taskRepository.findByIdOrThrow(taskId);
@@ -81,7 +79,7 @@ public class GitController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or task or git issue not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PostMapping("/task/{taskId}/integration/git")
-    Mono<Issue> newIssueOld(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+    public Mono<Issue> newIssueOld(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @PathVariable long taskId,
             @RequestBody @io.swagger.v3.oas.annotations.parameters.RequestBody(required = false) Issue issue) {
         return newIssue(user, id, taskId, issue);
@@ -95,7 +93,7 @@ public class GitController {
     void deleteIssue(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @PathVariable long taskId) {
         Project project = projectRepository.findByIdOrThrow(id);
-        if (project.member(user) != -1) {
+        if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
         }
         Task task = taskRepository.findByIdOrThrow(taskId);
@@ -112,7 +110,7 @@ public class GitController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or task or git issue connection not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @DeleteMapping("/task/{taskId}/integration/git")
-    void deleteIssueOld(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+    public void deleteIssueOld(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @PathVariable long taskId) {
         deleteIssue(user, id, taskId);
     }
@@ -122,7 +120,7 @@ public class GitController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/integration/git/pull")
-    Flux<PullRequest> getPullRequests(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+    public Flux<PullRequest> getPullRequests(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
@@ -132,11 +130,10 @@ public class GitController {
 
     @Operation(summary = "Create git pull request connection to task", description = "Creates new git pull request connection with task. Otherwise uses existing git pull request.")
     @ApiResponse(description = "Connection created.", responseCode = "200", content = @Content(schema = @Schema(implementation = PullRequest.class)))
-    @ApiResponse(description = "Pull request is not valid", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or task or git pull request not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PostMapping("/task/{taskId}/integration/git/pull")
-    Mono<PullRequest> newPullRequest(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+    public Mono<PullRequest> newPullRequest(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @PathVariable long taskId, @RequestBody PullRequest pullRequest) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {
@@ -147,9 +144,6 @@ public class GitController {
         if (task.getStatus().getProject().getId() != project.getId()) {
             throw new ObjectNotFoundException();
         }
-        if (pullRequest == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pull request is required");
-        }
         return service.connectPullRequest(task, pullRequest);
     }
 
@@ -158,7 +152,7 @@ public class GitController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or task or git pull request connection not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @DeleteMapping("/task/{taskId}/integration/git/pull")
-    void deletePullRequest(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+    public void deletePullRequest(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @PathVariable long taskId) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {

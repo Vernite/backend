@@ -104,6 +104,12 @@ public class ProjectControllerTests {
                 .expectStatus().isBadRequest();
 
         request.setWorkspaceId(workspace.getId().getId());
+        client.post().uri("/project")
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
 
         request.setName("0".repeat(51));
         client.post().uri("/project")

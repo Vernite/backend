@@ -348,7 +348,7 @@ public class GitHubService {
     public void deleteIssue(Task task) {
         Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0);
         if (optional.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
         GitHubTask gitHubTask = optional.get();
         gitHubTask.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
