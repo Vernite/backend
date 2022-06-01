@@ -1,4 +1,4 @@
-package com.workflow.workflow;
+package com.workflow.workflow.integration.git;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -10,10 +10,6 @@ import java.util.List;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.workflow.workflow.integration.git.GitController;
-import com.workflow.workflow.integration.git.GitTaskService;
-import com.workflow.workflow.integration.git.Issue;
-import com.workflow.workflow.integration.git.PullRequest;
 import com.workflow.workflow.integration.git.github.GitHubService;
 import com.workflow.workflow.integration.git.github.data.GitHubBranch;
 import com.workflow.workflow.integration.git.github.data.GitHubIssue;

@@ -1,4 +1,4 @@
-package com.workflow.workflow;
+package com.workflow.workflow.integration.git.github;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
