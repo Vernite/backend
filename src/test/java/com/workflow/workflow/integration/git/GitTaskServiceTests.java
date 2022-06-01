@@ -2,8 +2,6 @@ package com.workflow.workflow.integration.git;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.util.Date;
-
 import com.workflow.workflow.integration.git.github.entity.GitHubInstallation;
 import com.workflow.workflow.integration.git.github.entity.GitHubInstallationRepository;
 import com.workflow.workflow.integration.git.github.entity.GitHubIntegration;
@@ -18,8 +16,6 @@ import com.workflow.workflow.task.Task;
 import com.workflow.workflow.task.TaskRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
-import com.workflow.workflow.user.UserSession;
-import com.workflow.workflow.user.UserSessionRepository;
 import com.workflow.workflow.workspace.Workspace;
 import com.workflow.workflow.workspace.WorkspaceRepository;
 
@@ -29,7 +25,6 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest
@@ -42,8 +37,6 @@ public class GitTaskServiceTests {
     private UserRepository userRepository;
     @Autowired
     private ProjectRepository projectRepository;
-    @Autowired
-    private UserSessionRepository sessionRepository;
     @Autowired
     private GitHubInstallationRepository installationRepository;
     @Autowired
@@ -58,7 +51,6 @@ public class GitTaskServiceTests {
     private TaskRepository taskRepository;
 
     private User user;
-    private UserSession session;
     private Project project;
     private Status[] statuses = new Status[2];
     private GitHubInstallation installation;
@@ -75,18 +67,6 @@ public class GitTaskServiceTests {
         statuses[1] = statusRepository.save(new Status("NAME", 1, true, false, 1, project));
         installation = installationRepository.save(new GitHubInstallation(1, user, "username"));
         integrationRepository.save(new GitHubIntegration(project, installation, "username/repo"));
-        session = new UserSession();
-        session.setIp("127.0.0.1");
-        session.setSession("session_token_git_tests");
-        session.setLastUsed(new Date());
-        session.setRemembered(true);
-        session.setUserAgent("userAgent");
-        session.setUser(user);
-        try {
-            session = sessionRepository.save(session);
-        } catch (DataIntegrityViolationException e) {
-            session = sessionRepository.findBySession("session_token_git_tests").orElseThrow();
-        }
         workspace = workspaceRepository.save(new Workspace(1, user, "Project Tests"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
     }

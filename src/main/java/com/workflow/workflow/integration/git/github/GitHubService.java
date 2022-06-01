@@ -16,6 +16,7 @@ import com.workflow.workflow.integration.git.Issue;
 import com.workflow.workflow.integration.git.PullRequest;
 import com.workflow.workflow.integration.git.github.data.GitHubInstallationApi;
 import com.workflow.workflow.integration.git.github.data.GitHubIssue;
+import com.workflow.workflow.integration.git.github.data.GitHubMergeInfo;
 import com.workflow.workflow.integration.git.github.data.GitHubPullRequest;
 import com.workflow.workflow.integration.git.github.data.GitHubRepository;
 import com.workflow.workflow.integration.git.github.data.GitHubInstallationRepositories;
@@ -289,10 +290,12 @@ public class GitHubService {
         if (Boolean.TRUE.equals(task.getStatus().isFinal())) {
             return refreshToken(integration.getInstallation())
                     .flatMap(installation -> apiPutRepositoryPull(installation, integration, gitHubTask.getIssueId()))
-                    .map(v -> {
-                        gitHubTask.setIsPullRequest((byte) 2);
-                        taskRepository.save(gitHubTask);
-                        return v;
+                    .map(mergeInfo -> {
+                        if (mergeInfo.isMerged()) {
+                            gitHubTask.setIsPullRequest((byte) 2);
+                            taskRepository.save(gitHubTask);
+                        }
+                        return new Issue(-1, gitHubTask.getLink(), mergeInfo.getMessage(), mergeInfo.getSha(), "github");
                     })
                     .then(Mono.empty());
         }
@@ -541,14 +544,15 @@ public class GitHubService {
      * @param pull         must not be {@literal null}.
      * @return Mono with nothing.
      */
-    private Mono<Void> apiPutRepositoryPull(GitHubInstallation installation, GitHubIntegration integration, long pull) {
+    private Mono<GitHubMergeInfo> apiPutRepositoryPull(GitHubInstallation installation, GitHubIntegration integration,
+            long pull) {
         return client.put()
                 .uri("/repos/{owner}/{repo}/pulls/{id}/merge", integration.getRepositoryOwner(),
                         integration.getRepositoryName(), pull)
                 .header(AUTHORIZATION, BEARER + installation.getToken())
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
                 .retrieve()
-                .bodyToMono(Void.class)
+                .bodyToMono(GitHubMergeInfo.class)
                 .onErrorResume(error -> Mono.empty());
     }
 

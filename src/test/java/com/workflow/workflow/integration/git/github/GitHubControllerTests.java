@@ -59,8 +59,8 @@ import okhttp3.mockwebserver.MockWebServer;
 @TestPropertySource({ "classpath:application.properties", "classpath:application-test.properties" })
 public class GitHubControllerTests {
     public static MockWebServer mockBackEnd;
-
-    private ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    
     @Autowired
     private WebTestClient client;
     @Autowired
