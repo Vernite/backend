@@ -14,7 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.workflow.workflow.integration.git.github.data.GitHubInstallationApi;
 import com.workflow.workflow.integration.git.github.data.GitHubIntegrationInfo;
 import com.workflow.workflow.integration.git.github.data.GitHubRepository;
-import com.workflow.workflow.integration.git.github.data.GitHubRepositoryList;
+import com.workflow.workflow.integration.git.github.data.GitHubInstallationRepositories;
 import com.workflow.workflow.integration.git.github.data.GitHubUser;
 import com.workflow.workflow.integration.git.github.data.InstallationToken;
 import com.workflow.workflow.integration.git.github.entity.GitHubInstallation;
@@ -173,7 +173,7 @@ public class GitHubControllerTests {
 
     @Test
     void getRepositoriesSuccess() throws JsonProcessingException {
-        GitHubRepositoryList list = new GitHubRepositoryList();
+        GitHubInstallationRepositories list = new GitHubInstallationRepositories();
         list.setRepositories(List.of(
                 new GitHubRepository(1, "username/test", true),
                 new GitHubRepository(2, "username/repo2", false),
@@ -196,7 +196,7 @@ public class GitHubControllerTests {
     @Test
     void newInstallationSuccess() throws JsonProcessingException {
         GitHubInstallationApi api = new GitHubInstallationApi(54, new GitHubUser(24, "username3"));
-        GitHubRepositoryList list = new GitHubRepositoryList();
+        GitHubInstallationRepositories list = new GitHubInstallationRepositories();
         list.setRepositories(List.of(
                 new GitHubRepository(1, "username3/test", true),
                 new GitHubRepository(2, "username3/repo2", false),
@@ -264,12 +264,12 @@ public class GitHubControllerTests {
     @Test
     void newIntegrationSuccess() throws JsonProcessingException {
         GitHubInstallation testInst = installationRepository.save(new GitHubInstallation(4532, user, "username4532"));
-        GitHubRepositoryList fakeList = new GitHubRepositoryList();
+        GitHubInstallationRepositories fakeList = new GitHubInstallationRepositories();
         fakeList.setRepositories(List.of(
                 new GitHubRepository(1, "Test/test", true),
                 new GitHubRepository(2, "Test/test2", false),
                 new GitHubRepository(3, "Test/test3", true)));
-        GitHubRepositoryList list = new GitHubRepositoryList();
+        GitHubInstallationRepositories list = new GitHubInstallationRepositories();
         list.setRepositories(List.of(
                 new GitHubRepository(1, "username/test", true),
                 new GitHubRepository(2, "username/repo2", false),

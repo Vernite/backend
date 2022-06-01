@@ -40,7 +40,6 @@ import reactor.core.publisher.Mono;
 
 @RestController
 public class GitHubController {
-    private static final String INTEGRATION_LINK = "https://github.com/apps/workflow-2022/installations/new";
     @Autowired
     private GitHubInstallationRepository installationRepository;
     @Autowired
@@ -63,8 +62,7 @@ public class GitHubController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/user/integration/github/repository")
     public Mono<GitHubIntegrationInfo> getRepositories(@NotNull @Parameter(hidden = true) User user) {
-        return service.getRepositories(user)
-                .map(repositories -> new GitHubIntegrationInfo(INTEGRATION_LINK, repositories));
+        return service.getRepositories(user);
     }
 
     @Operation(summary = "Create GitHub account connection", description = "Creates new GitHub appplication installation. Installation id must be retrieved from GitHub.")
@@ -76,11 +74,9 @@ public class GitHubController {
         if (installationRepository.findByInstallationId(installationId).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "installation with this id exists");
         }
-        return service.getInstallationUser(installationId)
-                .map(gitHubUser -> installationRepository
-                        .save(new GitHubInstallation(installationId, user, gitHubUser.getLogin())))
-                .flatMap(service::getRepositories)
-                .map(repositories -> new GitHubIntegrationInfo(INTEGRATION_LINK, repositories));
+        return service.newInstallation(user, installationId)
+                .switchIfEmpty(Mono.error(
+                        new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "GitHub service unavailable")));
     }
 
     @Operation(summary = "Delete GitHub account connection", description = "Retrieves link to delete GitHub account installation.")
@@ -113,11 +109,8 @@ public class GitHubController {
         if (project.getGitHubIntegration() != null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Project already has connected repository.");
         }
-        return service.getRepositoryInstallation(user, repositoryFullName)
-                .map(installation -> installation.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "installation for repository not found")))
-                .map(installation -> integrationRepository
-                        .save(new GitHubIntegration(project, installation, repositoryFullName)))
+        return service.newIntegration(user, project, repositoryFullName)
+                .switchIfEmpty(Mono.error(ObjectNotFoundException::new))
                 .thenReturn(projectRepository.findByIdOrThrow(id));
     }
 

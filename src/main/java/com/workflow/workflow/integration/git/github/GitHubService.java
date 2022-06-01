@@ -18,8 +18,8 @@ import com.workflow.workflow.integration.git.github.data.GitHubInstallationApi;
 import com.workflow.workflow.integration.git.github.data.GitHubIssue;
 import com.workflow.workflow.integration.git.github.data.GitHubPullRequest;
 import com.workflow.workflow.integration.git.github.data.GitHubRepository;
-import com.workflow.workflow.integration.git.github.data.GitHubRepositoryList;
-import com.workflow.workflow.integration.git.github.data.GitHubUser;
+import com.workflow.workflow.integration.git.github.data.GitHubInstallationRepositories;
+import com.workflow.workflow.integration.git.github.data.GitHubIntegrationInfo;
 import com.workflow.workflow.integration.git.github.data.InstallationToken;
 import com.workflow.workflow.integration.git.github.entity.GitHubInstallation;
 import com.workflow.workflow.integration.git.github.entity.GitHubInstallationRepository;
@@ -30,7 +30,6 @@ import com.workflow.workflow.integration.git.github.entity.GitHubTaskRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.user.User;
-import com.workflow.workflow.utils.ObjectNotFoundException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -48,6 +47,7 @@ import reactor.core.publisher.Mono;
 public class GitHubService {
     private static final String APP_ID = "195507";
     private static final String AUTHORIZATION = "Authorization";
+    private static final String INTEGRATION_LINK = "https://github.com/apps/workflow-2022/installations/new";
     private static final String ACCEPT = "Accept";
     private static final String BEARER = "Bearer ";
     private static final String APPLICATION_JSON_GITHUB = "application/vnd.github.v3+json";
@@ -60,68 +60,67 @@ public class GitHubService {
     private GitHubTaskRepository taskRepository;
 
     /**
-     * Retrieves repositories available for user installations from GitHub.
+     * Retrieves repositories available for user from GitHub api.
      * 
      * @param user must not be {@literal null}; must be entity from database.
-     * @return future containing list with repositories.
+     * @return Mono with list of repositories and link.
      */
-    public Mono<List<GitHubRepository>> getRepositories(User user) {
-        return Flux.fromIterable(installationRepository.findByUser(user))
-                .flatMap(this::getRepositories)
-                .reduce(new ArrayList<>(), (first, second) -> {
+    public Mono<GitHubIntegrationInfo> getRepositories(User user) {
+        return Flux.fromIterable(installationRepository.findByUserAndSuspendedFalse(user))
+                .flatMap(this::refreshToken)
+                .flatMap(this::apiGetInstallationRepositories)
+                .map(GitHubInstallationRepositories::getRepositories)
+                .reduce(new ArrayList<GitHubRepository>(), (first, second) -> {
                     first.addAll(second);
                     return first;
-                });
+                })
+                .map(repositories -> new GitHubIntegrationInfo(INTEGRATION_LINK, repositories))
+                .defaultIfEmpty(new GitHubIntegrationInfo(INTEGRATION_LINK, List.of()));
     }
 
     /**
-     * Retrieves repositories available for given installation from GitHub.
+     * Cretaes new installation for user.
      * 
-     * @param installation must not be {@literal null}; must be entity from
-     *                     database.
-     * @return future containing list with repositories.
+     * @param user must not be {@literal null}; must be entity from database.
+     * @param id   must not be {@literal null}; must be id of installation retrieved
+     *             from GitHub.
+     * @return Mono with list of repositories and link. Can be empty.
      */
-    public Mono<List<GitHubRepository>> getRepositories(GitHubInstallation installation) {
-        return installation.getSuspended() ? Mono.just(List.of())
-                : refreshToken(installation).flatMap(this::getRepositoryList);
+    public Mono<GitHubIntegrationInfo> newInstallation(User user, long id) {
+        return apiGetInstallation(id)
+                .map(GitHubInstallationApi::getAccount)
+                .map(gitUser -> installationRepository.save(new GitHubInstallation(id, user, gitUser.getLogin())))
+                .flatMap(this::refreshToken)
+                .flatMap(this::apiGetInstallationRepositories)
+                .map(GitHubInstallationRepositories::getRepositories)
+                .map(repositories -> new GitHubIntegrationInfo(INTEGRATION_LINK, repositories));
     }
 
     /**
-     * Retrieves GitHub user information for given installation id.
+     * Creates new integration for project.
      * 
-     * @param installationId must be id received from GitHub.
-     * @return future containing GitHub user.
+     * @param user     must not be {@literal null}; must be entity from database.
+     * @param project  must not be {@literal null}; must be entity from database.
+     * @param fullName must not be {@literal null}; must be valid GitHub repository
+     *                 name.
+     * @return Mono with created integration. Can be empty when repository is not
+     *         found.
      */
-    public Mono<GitHubUser> getInstallationUser(long installationId) {
-        return client.get()
-                .uri("/app/installations/" + installationId)
-                .header(AUTHORIZATION, BEARER + createJWT())
-                .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                .retrieve()
-                .bodyToMono(GitHubInstallationApi.class)
-                .map(GitHubInstallationApi::getAccount);
-    }
-
-    /**
-     * Retrieves installation which contains repository with given id for given
-     * user.
-     * 
-     * @param user     must not be {@literal null}; must be entity from
-     *                 database.
-     * @param fullName full name of repository.
-     * @return future containing optional installation.
-     */
-    public Mono<Optional<GitHubInstallation>> getRepositoryInstallation(User user, String fullName) {
-        return Flux.fromIterable(installationRepository.findByUser(user))
-                .filterWhen(installation -> this.hasRepository(installation, fullName))
-                .reduce(Optional.empty(), (first, second) -> Optional.of(second));
+    public Mono<GitHubIntegration> newIntegration(User user, Project project, String fullName) {
+        return Flux.fromIterable(installationRepository.findByUserAndSuspendedFalse(user))
+                .flatMap(this::refreshToken)
+                .filterWhen(installation -> hasRepository(installation, fullName))
+                .reduce(Optional.<GitHubInstallation>empty(), (first, second) -> Optional.of(second))
+                .filter(Optional::isPresent)
+                .map(installation -> integrationRepository
+                        .save(new GitHubIntegration(project, installation.get(), fullName)));
     }
 
     /**
      * Creates issue associeted with task.
      * 
      * @param task must not be {@literal null}; must be entity from database.
-     * @return - future containing created issue.
+     * @return - Mono with issue. Can be empty when GitHub api return error.
      */
     public Mono<Issue> createIssue(Task task) {
         Optional<GitHubIntegration> optional = integrationRepository
@@ -130,15 +129,11 @@ public class GitHubService {
             return Mono.empty();
         }
         GitHubIntegration integration = optional.get();
+        if (integration.getInstallation().getSuspended()) {
+            return Mono.empty();
+        }
         return refreshToken(integration.getInstallation())
-                .flatMap(installation -> client.post()
-                        .uri(String.format("/repos/%s/issues",
-                                integration.getRepositoryFullName()))
-                        .header(AUTHORIZATION, BEARER + installation.getToken())
-                        .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                        .bodyValue(new GitHubIssue(task))
-                        .retrieve()
-                        .bodyToMono(GitHubIssue.class))
+                .flatMap(installation -> apiPostRepositoryIssue(installation, integration, new GitHubIssue(task)))
                 .map(issue -> {
                     taskRepository.save(new GitHubTask(task, integration, issue.getNumber(), (byte) 0));
                     return issue.toIssue();
@@ -146,10 +141,10 @@ public class GitHubService {
     }
 
     /**
-     * Modifies issue on GitHub.
+     * Modifies associeted issue using GitHub api.
      * 
      * @param task must not be {@literal null}; must be entity from database.
-     * @return future containing modified issue.
+     * @return Mono with issue. Can be empty when GitHub api return error.
      */
     public Mono<Issue> patchIssue(Task task) {
         Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0);
@@ -157,120 +152,426 @@ public class GitHubService {
             return Mono.empty();
         }
         GitHubTask gitHubTask = optional.get();
+        if (gitHubTask.getGitHubIntegration().getInstallation().getSuspended()) {
+            return Mono.empty();
+        }
+        GitHubIssue gitHubIssue = new GitHubIssue(task);
+        gitHubIssue.setNumber(gitHubTask.getIssueId());
         return refreshToken(gitHubTask.getGitHubIntegration().getInstallation())
-                .flatMap(installation -> client.patch()
-                        .uri(String.format("/repos/%s/issues/%d",
-                                gitHubTask.getGitHubIntegration().getRepositoryFullName(), gitHubTask.getIssueId()))
-                        .header(AUTHORIZATION, BEARER + installation.getToken())
-                        .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                        .bodyValue(new GitHubIssue(task))
-                        .retrieve()
-                        .bodyToMono(GitHubIssue.class))
+                .flatMap(installation -> apiPatchRepositoryIssue(installation, gitHubTask.getGitHubIntegration(),
+                        gitHubIssue))
                 .map(GitHubIssue::toIssue);
     }
 
     /**
-     * Gets issue for integration with given number from GitHub.
+     * Retrieves issues for project from GitHub api.
      * 
-     * @param integration must not be {@literal null}; must be entity from database.
-     * @param issueNumber number of searched issue.
-     * @return future containing GitHub issue.
+     * @param project must not be {@literal null}; must be entity from database.
+     * @return Flux with issues. Can be empty.
      */
-    public Mono<GitHubIssue> getIssue(GitHubIntegration integration, long issueNumber) {
+    public Flux<Issue> getIssues(Project project) {
+        Optional<GitHubIntegration> optional = integrationRepository.findByProjectAndActiveNull(project);
+        if (optional.isEmpty()) {
+            return Flux.empty();
+        }
+        GitHubIntegration integration = optional.get();
         if (integration.getInstallation().getSuspended()) {
-            return Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+            return Flux.empty();
         }
         return refreshToken(integration.getInstallation())
-                .flatMap(installation -> client.get()
-                        .uri(String.format("/repos/%s/issues/%d",
-                                integration.getRepositoryFullName(), issueNumber))
-                        .header(AUTHORIZATION, BEARER + installation.getToken())
-                        .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                        .retrieve()
-                        .bodyToMono(GitHubIssue.class));
+                .flatMapMany(installation -> apiGetRepositoryIssues(installation, integration))
+                .map(GitHubIssue::toIssue);
     }
 
     /**
-     * Gets all issues from GitHub repository.
+     * Connects task to issue.
      * 
-     * @param integration must not be {@literal null}; must be entity from database.
-     * @return future containing list of GitHub issues.
+     * @param task  must not be {@literal null}; must be entity from database.
+     * @param issue must not be {@literal null}; must be issue from GitHub api.
+     * @return Mono with issue. Can be empty.
      */
-    public Flux<GitHubIssue> getIssues(GitHubIntegration integration) {
+    public Mono<Issue> connectIssue(Task task, Issue issue) {
+        Optional<GitHubIntegration> optional = integrationRepository
+                .findByProjectAndActiveNull(task.getStatus().getProject());
+        if (optional.isEmpty()) {
+            return Mono.empty();
+        }
+        GitHubIntegration integration = optional.get();
         if (integration.getInstallation().getSuspended()) {
-            return Flux.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+            return Mono.empty();
         }
         return refreshToken(integration.getInstallation())
-                .flatMapMany(installation -> client.get()
-                        .uri(String.format("/repos/%s/issues",
-                                integration.getRepositoryFullName()))
-                        .header(AUTHORIZATION, BEARER + installation.getToken())
-                        .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                        .retrieve()
-                        .bodyToFlux(GitHubIssue.class));
+                .flatMap(installation -> apiGetRepositoryIssue(installation, integration, issue.getId()))
+                .map(gitHubIssue -> {
+                    taskRepository.save(new GitHubTask(task, optional.get(), gitHubIssue.getNumber(), (byte) 0));
+                    return gitHubIssue.toIssue();
+                });
     }
 
     /**
-     * Checks if repository with given id belongs to installation.
+     * Deletes task connection to issue.
+     * 
+     * @param task must not be {@literal null}; must be entity from database.
+     */
+    public void deleteIssue(Task task) {
+        Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0);
+        if (optional.isEmpty()) {
+            return;
+        }
+        GitHubTask gitHubTask = optional.get();
+        gitHubTask.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
+        taskRepository.save(gitHubTask);
+    }
+
+    /**
+     * Retrieves pull requests for project from GitHub api.
+     * 
+     * @param project must not be {@literal null}; must be entity from database.
+     * @return Flux with pull requests. Can be empty.
+     */
+    public Flux<PullRequest> getPullRequests(Project project) {
+        Optional<GitHubIntegration> optional = integrationRepository.findByProjectAndActiveNull(project);
+        if (optional.isEmpty()) {
+            return Flux.empty();
+        }
+        GitHubIntegration integration = optional.get();
+        if (integration.getInstallation().getSuspended()) {
+            return Flux.empty();
+        }
+        return refreshToken(integration.getInstallation())
+                .flatMapMany(installation -> apiGetRepositoryPulls(installation, integration))
+                .map(GitHubPullRequest::toPullRequest);
+    }
+
+    /**
+     * Connects task to pull request.
+     * 
+     * @param task        must not be {@literal null}; must be entity from database.
+     * @param pullRequest must not be {@literal null}; must be pull request from
+     *                    GitHub api.
+     * @return Mono with pull request. Can be empty.
+     */
+    public Mono<PullRequest> connectPullRequest(Task task, PullRequest pullRequest) {
+        Optional<GitHubIntegration> optional = integrationRepository
+                .findByProjectAndActiveNull(task.getStatus().getProject());
+        if (optional.isEmpty()) {
+            return Mono.empty();
+        }
+        GitHubIntegration integration = optional.get();
+        if (integration.getInstallation().getSuspended()) {
+            return Mono.empty();
+        }
+        return refreshToken(integration.getInstallation())
+                .flatMap(installation -> apiGetRepositoryPull(installation, integration, pullRequest.getId()))
+                .map(gitHubPullRequest -> {
+                    taskRepository.save(new GitHubTask(task, integration, gitHubPullRequest.getNumber(), (byte) 1));
+                    return gitHubPullRequest.toPullRequest();
+                });
+    }
+
+    /**
+     * Modifies associeted pull request using GitHub api.
+     * 
+     * @param task must not be {@literal null}; must be entity from database.
+     * @return Mono with pull request. Can be empty when GitHub api return error.
+     */
+    public Mono<Issue> patchPullRequest(Task task) {
+        Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 1);
+        if (optional.isEmpty()) {
+            return Mono.empty();
+        }
+        GitHubTask gitHubTask = optional.get();
+        GitHubIntegration integration = gitHubTask.getGitHubIntegration();
+        if (integration.getInstallation().getSuspended()) {
+            return Mono.empty();
+        }
+        GitHubPullRequest gitHubPullRequest = new GitHubPullRequest();
+        if (Boolean.TRUE.equals(task.getStatus().isFinal())) {
+            return refreshToken(integration.getInstallation())
+                    .flatMap(installation -> apiPutRepositoryPull(installation, integration, gitHubTask.getIssueId()))
+                    .map(v -> {
+                        gitHubTask.setIsPullRequest((byte) 2);
+                        taskRepository.save(gitHubTask);
+                        return v;
+                    })
+                    .then(Mono.empty());
+        }
+        gitHubPullRequest.setState("open");
+        gitHubPullRequest.setNumber(gitHubTask.getIssueId());
+        return refreshToken(integration.getInstallation())
+                .flatMap(installation -> apiPatchRepositoryPull(installation, integration, gitHubPullRequest))
+                .map(GitHubPullRequest::toPullRequest);
+    }
+
+    /**
+     * Deletes task connection to pull request.
+     * 
+     * @param task must not be {@literal null}; must be entity from database.
+     */
+    public void deletePullRequest(Task task) {
+        Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 1);
+        if (optional.isPresent()) {
+            GitHubTask gitHubTask = optional.get();
+            gitHubTask.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
+            taskRepository.save(gitHubTask);
+        }
+    }
+
+    /**
+     * Checks if repository with given name belongs to installation.
      * 
      * @param installation must not be {@literal null}; must be entity from
-     *                     database.
+     *                     database. Must not be suspended. Token must be valid.
      * @param fullName     full name of repository which is looked for.
-     * @return future containing boolean value; True if repository belongs to
-     *         installation.
+     * @return Mono with boolean.
      */
     private Mono<Boolean> hasRepository(GitHubInstallation installation, String fullName) {
-        if (installation.getSuspended()) {
-            return Mono.just(false);
-        }
-        return refreshToken(installation).flatMap(inst -> this.getRepositoryList(inst)
-                .map(list -> {
-                    for (GitHubRepository gitHubRepository : list) {
-                        if (gitHubRepository.getFullName().equals(fullName)) {
-                            return true;
-                        }
-                    }
-                    return false;
-                }));
+        return apiGetInstallationRepositories(installation)
+                .map(GitHubInstallationRepositories::getRepositories)
+                .map(repositories -> repositories.stream()
+                        .anyMatch(repository -> repository.getFullName().equals(fullName)));
     }
 
     /**
-     * Retrives GitHub api repositories available for given installation.
+     * Checks if token needs to be refreshed and refreshes it when
+     * needed. When token does not need refreshing it does nothing.
      * 
      * @param installation must not be {@literal null}; must be entity from
      *                     database.
-     * @return future containing list with repositories.
+     * @return Mono with installation.
      */
-    private Mono<List<GitHubRepository>> getRepositoryList(GitHubInstallation installation) {
+    private Mono<GitHubInstallation> refreshToken(GitHubInstallation installation) {
+        if (Instant.now().isAfter(installation.getExpiresAt().toInstant())) {
+            return apiPostInstallationToken(installation)
+                    .map(token -> {
+                        installation.updateToken(token);
+                        return installationRepository.save(installation);
+                    });
+        }
+        return Mono.just(installation);
+    }
+
+    /**
+     * Gets information abount installation from GitHub api.
+     * 
+     * @param id must be given from GitHub.
+     * @return Mono with installation information or {@literial null} if GitHub api
+     *         gives error.
+     */
+    private Mono<GitHubInstallationApi> apiGetInstallation(long id) {
+        return client.get()
+                .uri("/app/installations/{id}", id)
+                .header(AUTHORIZATION, BEARER + createJWT())
+                .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                .retrieve()
+                .bodyToMono(GitHubInstallationApi.class)
+                .onErrorResume(error -> Mono.empty());
+    }
+
+    /**
+     * Request GitHub api for new token.
+     * 
+     * @param installation must not be {@literal null}. Must be entity from
+     *                     database.
+     * @return Mono with new token or {@literal null} if GitHub api gives error.
+     */
+    private Mono<InstallationToken> apiPostInstallationToken(GitHubInstallation installation) {
+        return client.post()
+                .uri("/app/installations/{id}/access_tokens", installation.getInstallationId())
+                .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                .header(AUTHORIZATION, BEARER + createJWT())
+                .retrieve()
+                .bodyToMono(InstallationToken.class)
+                .onErrorResume(error -> Mono.empty());
+    }
+
+    /**
+     * Retrives repositories for installation from GitHub api.
+     * 
+     * @param installation must not be {@literal null}. Must be entity from
+     *                     database.
+     * @return Mono with list of repositories; can be empty.
+     */
+    private Mono<GitHubInstallationRepositories> apiGetInstallationRepositories(GitHubInstallation installation) {
         return client.get()
                 .uri("/installation/repositories")
                 .header(AUTHORIZATION, BEARER + installation.getToken())
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
                 .retrieve()
-                .bodyToMono(GitHubRepositoryList.class)
-                .map(GitHubRepositoryList::getRepositories);
+                .bodyToMono(GitHubInstallationRepositories.class)
+                .onErrorReturn(new GitHubInstallationRepositories());
     }
 
     /**
-     * Checks if token of installation needs to be refreshed and refreshes it when
-     * needed. When token does not need refreshing it does nothing.
+     * Retrives issue for repository from GitHub api.
      * 
-     * @param installation must not be {@literal null}; must be entity from
+     * @param installation must not be {@literal null}. Must be entity from
      *                     database.
-     * @return future containing updated installation.
+     * @param integration  must not be {@literal null}. Must be entity from
+     *                     database.
+     * @return Flux with issues. Can be empty.
      */
-    private Mono<GitHubInstallation> refreshToken(GitHubInstallation installation) {
-        return Instant.now().isAfter(installation.getExpiresAt().toInstant()) ? client.post()
-                .uri(String.format("/app/installations/%d/access_tokens",
-                        installation.getInstallationId()))
+    private Flux<GitHubIssue> apiGetRepositoryIssues(GitHubInstallation installation, GitHubIntegration integration) {
+        return client.get()
+                .uri("/repo/{owner}/{repo}/issues", integration.getRepositoryOwner(), integration.getRepositoryName())
+                .header(AUTHORIZATION, BEARER + installation.getToken())
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                .header(AUTHORIZATION, BEARER + createJWT())
                 .retrieve()
-                .bodyToMono(InstallationToken.class)
-                .map(token -> {
-                    installation.updateToken(token);
-                    return installationRepository.save(installation);
-                }) : Mono.just(installation);
+                .bodyToFlux(GitHubIssue.class)
+                .onErrorResume(error -> Flux.empty());
+    }
+
+    /**
+     * Creates new issue for repository using GitHub api.
+     * 
+     * @param installation must not be {@literal null}. Must be entity from
+     *                     database.
+     * @param integration  must not be {@literal null}. Must be entity from
+     *                     database.
+     * @param issue        must not be {@literal null}.
+     * @return Mono with issue or {@literal null} if GitHub api gives error.
+     */
+    private Mono<GitHubIssue> apiPostRepositoryIssue(GitHubInstallation installation, GitHubIntegration integration,
+            GitHubIssue issue) {
+        return client.post()
+                .uri("/repos/{owner}/{repo}/issues", integration.getRepositoryOwner(), integration.getRepositoryName())
+                .header(AUTHORIZATION, BEARER + installation.getToken())
+                .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                .bodyValue(issue)
+                .retrieve()
+                .bodyToMono(GitHubIssue.class)
+                .onErrorResume(error -> Mono.empty());
+    }
+
+    /**
+     * Modifies issue for repository using GitHub api.
+     * 
+     * @param installation must not be {@literal null}. Must be entity from
+     *                     database.
+     * @param integration  must not be {@literal null}. Must be entity from
+     *                     database.
+     * @param issue        must not be {@literal null}.
+     * @return Mono with issue or {@literal null} if GitHub api gives error.
+     */
+    private Mono<GitHubIssue> apiPatchRepositoryIssue(GitHubInstallation installation, GitHubIntegration integration,
+            GitHubIssue issue) {
+        return client.patch()
+                .uri("/repos/{owner}/{repo}/issues/{id}", integration.getRepositoryOwner(),
+                        integration.getRepositoryName(), issue.getNumber())
+                .header(AUTHORIZATION, BEARER + installation.getToken())
+                .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                .bodyValue(issue)
+                .retrieve()
+                .bodyToMono(GitHubIssue.class)
+                .onErrorResume(error -> Mono.empty());
+    }
+
+    /**
+     * Retrieves issue for repository from GitHub api.
+     * 
+     * @param installation must not be {@literal null}. Must be entity from
+     *                     database.
+     * @param integration  must not be {@literal null}. Must be entity from
+     *                     database.
+     * @param issue        must not be {@literal null}.
+     * @return Mono with issue or {@literal null} if GitHub api gives error.
+     */
+    private Mono<GitHubIssue> apiGetRepositoryIssue(GitHubInstallation installation, GitHubIntegration integration,
+            long issue) {
+        return client.get()
+                .uri("/repos/{owner}/{repo}/issues/{id}", integration.getRepositoryOwner(),
+                        integration.getRepositoryName(), issue)
+                .header(AUTHORIZATION, BEARER + installation.getToken())
+                .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                .retrieve()
+                .bodyToMono(GitHubIssue.class)
+                .onErrorResume(error -> Mono.empty());
+    }
+
+    /**
+     * Retrieves pull requests for repository from GitHub api.
+     * 
+     * @param installation must not be {@literal null}. Must be entity from
+     *                     database.
+     * @param integration  must not be {@literal null}. Must be entity from
+     *                     database.
+     * @return Flux with pull requests. Can be empty.
+     */
+    private Flux<GitHubPullRequest> apiGetRepositoryPulls(GitHubInstallation installation,
+            GitHubIntegration integration) {
+        return client.get()
+                .uri("/repo/{owner}/{repo}/pulls", integration.getRepositoryOwner(), integration.getRepositoryName())
+                .header(AUTHORIZATION, BEARER + installation.getToken())
+                .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                .retrieve()
+                .bodyToFlux(GitHubPullRequest.class)
+                .onErrorResume(error -> Flux.empty());
+    }
+
+    /**
+     * Modifies pull request for repository using GitHub api.
+     * 
+     * @param installation must not be {@literal null}. Must be entity from
+     *                     database.
+     * @param integration  must not be {@literal null}. Must be entity from
+     *                     database.
+     * @param pull         must not be {@literal null}.
+     * @return Mono with pull request or {@literal null} if GitHub api gives error.
+     */
+    private Mono<GitHubPullRequest> apiPatchRepositoryPull(GitHubInstallation installation,
+            GitHubIntegration integration, GitHubPullRequest pull) {
+        return client.patch()
+                .uri("/repos/{owner}/{repo}/pulls/{id}", integration.getRepositoryOwner(),
+                        integration.getRepositoryName(), pull.getNumber())
+                .header(AUTHORIZATION, BEARER + installation.getToken())
+                .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                .bodyValue(pull)
+                .retrieve()
+                .bodyToMono(GitHubPullRequest.class)
+                .onErrorResume(error -> Mono.empty());
+    }
+
+    /**
+     * Merges pull request for repository using GitHub api.
+     * 
+     * @param installation must not be {@literal null}. Must be entity from
+     *                     database.
+     * @param integration  must not be {@literal null}. Must be entity from
+     *                     database.
+     * @param pull         must not be {@literal null}.
+     * @return Mono with nothing.
+     */
+    private Mono<Void> apiPutRepositoryPull(GitHubInstallation installation, GitHubIntegration integration, long pull) {
+        return client.put()
+                .uri("/repos/{owner}/{repo}/pulls/{id}/merge", integration.getRepositoryOwner(),
+                        integration.getRepositoryName(), pull)
+                .header(AUTHORIZATION, BEARER + installation.getToken())
+                .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                .retrieve()
+                .bodyToMono(Void.class)
+                .onErrorResume(error -> Mono.empty());
+    }
+
+    /**
+     * Retrieves pull request for repository from GitHub api.
+     * 
+     * @param installation must not be {@literal null}. Must be entity from
+     *                     database.
+     * @param integration  must not be {@literal null}. Must be entity from
+     *                     database.
+     * @param pull         must not be {@literal null}.
+     * @return Mono with pull request or {@literal null} if GitHub api gives error.
+     */
+    private Mono<GitHubPullRequest> apiGetRepositoryPull(GitHubInstallation installation,
+            GitHubIntegration integration, long pull) {
+        return client.get()
+                .uri("/repo/{owner}/{repo}/pulls/{id}", integration.getRepositoryOwner(),
+                        integration.getRepositoryName(), pull)
+                .header(AUTHORIZATION, BEARER + installation.getToken())
+                .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                .retrieve()
+                .bodyToMono(GitHubPullRequest.class)
+                .onErrorResume(error -> Mono.empty());
     }
 
     /**
@@ -294,164 +595,5 @@ public class GitHubService {
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to create JWT");
         }
-    }
-
-    /**
-     * Checks if project has integration with GitHub.
-     * 
-     * @param project must not be {@literal null}; must be entity from database.
-     * @return true if project has integration else false.
-     */
-    public boolean isIntegrated(Project project) {
-        Optional<GitHubIntegration> integration = integrationRepository.findByProjectAndActiveNull(project);
-        return integration.isPresent() && !integration.get().getInstallation().getSuspended();
-    }
-
-    /**
-     * Checks if task has integration with GitHub.
-     * 
-     * @param project must not be {@literal null}; must be entity from database.
-     * @return true if task has integration else false.
-     */
-    public boolean isIntegrated(Task task) {
-        Optional<GitHubTask> gitHubTask = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0);
-        return gitHubTask.isPresent() && !gitHubTask.get().getGitHubIntegration().getInstallation().getSuspended();
-    }
-
-    public boolean isIntegratedPull(Task task) {
-        Optional<GitHubTask> gitHubTask = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 1);
-        return gitHubTask.isPresent() && !gitHubTask.get().getGitHubIntegration().getInstallation().getSuspended();
-    }
-
-    public Flux<Issue> getIssues(Project project) {
-        Optional<GitHubIntegration> integration = integrationRepository.findByProjectAndActiveNull(project);
-        if (integration.isEmpty()) {
-            return Flux.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
-        }
-        return getIssues(integration.get()).map(GitHubIssue::toIssue);
-    }
-
-    public Mono<Issue> connectIssue(Task task, Issue issue) {
-        Optional<GitHubIntegration> integration = integrationRepository
-                .findByProjectAndActiveNull(task.getStatus().getProject());
-        if (integration.isEmpty()) {
-            return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
-        }
-        return getIssue(integration.get(), issue.getId())
-                .onErrorMap(Exception.class, e -> new ObjectNotFoundException())
-                .map(gitHubIssue -> {
-                    taskRepository.save(new GitHubTask(task, integration.get(), gitHubIssue.getNumber(), (byte) 0));
-                    return gitHubIssue.toIssue();
-                });
-    }
-
-    public void deleteIssue(Task task) {
-        Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0);
-        if (optional.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
-        GitHubTask gitHubTask = optional.get();
-        gitHubTask.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
-        taskRepository.save(gitHubTask);
-    }
-
-    public Flux<PullRequest> getPullRequests(Project project) {
-        Optional<GitHubIntegration> optional = integrationRepository.findByProjectAndActiveNull(project);
-        if (optional.isEmpty()) {
-            return Flux.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
-        }
-        GitHubIntegration integration = optional.get();
-        if (integration.getInstallation().getSuspended()) {
-            return Flux.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
-        }
-        return refreshToken(integration.getInstallation())
-                .flatMapMany(installation -> client.get()
-                        .uri(String.format("/repos/%s/pulls",
-                                integration.getRepositoryFullName()))
-                        .header(AUTHORIZATION, BEARER + installation.getToken())
-                        .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                        .retrieve()
-                        .bodyToFlux(GitHubPullRequest.class))
-                .map(GitHubPullRequest::toPullRequest);
-    }
-
-    private Mono<GitHubPullRequest> getPullRequest(GitHubIntegration integration, long number) {
-        return refreshToken(integration.getInstallation())
-                .flatMap(installation -> client.get()
-                        .uri(String.format("/repos/%s/pulls/%d",
-                                integration.getRepositoryFullName(), number))
-                        .header(AUTHORIZATION, BEARER + installation.getToken())
-                        .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                        .retrieve()
-                        .bodyToMono(GitHubPullRequest.class));
-    }
-
-    public Mono<PullRequest> connectPullRequest(Task task, PullRequest pullRequest) {
-        Optional<GitHubIntegration> optional = integrationRepository
-                .findByProjectAndActiveNull(task.getStatus().getProject());
-        if (optional.isEmpty()) {
-            return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
-        }
-        GitHubIntegration integration = optional.get();
-        if (integration.getInstallation().getSuspended()) {
-            return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
-        }
-        return getPullRequest(integration, pullRequest.getId())
-                .onErrorMap(Exception.class, e -> new ObjectNotFoundException())
-                .map(gitHubPullRequest -> {
-                    taskRepository.save(new GitHubTask(task, integration, gitHubPullRequest.getNumber(), (byte) 1));
-                    return gitHubPullRequest.toPullRequest();
-                });
-    }
-
-    public void deletePullRequest(Task task) {
-        Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 1);
-        if (optional.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
-        }
-        GitHubTask gitHubTask = optional.get();
-        gitHubTask.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
-        taskRepository.save(gitHubTask);
-    }
-
-    public Mono<Issue> patchPullRequest(Task task) {
-        Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 1);
-        if (optional.isEmpty()) {
-            return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
-        }
-        GitHubPullRequest gitHubPullRequest = new GitHubPullRequest();
-        GitHubTask gitHubTask = optional.get();
-        if (task.getStatus().isFinal()) {
-            return refreshToken(gitHubTask.getGitHubIntegration().getInstallation())
-                    .flatMap(installation -> client.put()
-                            .uri(String.format("/repos/%s/pulls/%d/merge",
-                                    gitHubTask.getGitHubIntegration().getRepositoryFullName(), gitHubTask.getIssueId()))
-                            .header(AUTHORIZATION, BEARER + installation.getToken())
-                            .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                            .retrieve()
-                            .bodyToMono(Void.class))
-                    .map(v -> {
-                        gitHubTask.setIsPullRequest((byte) 2);
-                        taskRepository.save(gitHubTask);
-                        return Void.TYPE;
-                    })
-                    .thenReturn(new Issue());
-
-        }
-        gitHubPullRequest.setState("open");
-        return refreshToken(gitHubTask.getGitHubIntegration().getInstallation())
-                .flatMap(installation -> client.patch()
-                        .uri(String.format("/repos/%s/pulls/%d",
-                                gitHubTask.getGitHubIntegration().getRepositoryFullName(), gitHubTask.getIssueId()))
-                        .header(AUTHORIZATION, BEARER + installation.getToken())
-                        .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                        .bodyValue(gitHubPullRequest)
-                        .retrieve()
-                        .bodyToMono(GitHubPullRequest.class))
-                .onErrorResume(Exception.class, e -> {
-                    taskRepository.delete(gitHubTask);
-                    return Mono.just(new GitHubPullRequest());
-                })
-                .map(GitHubPullRequest::toPullRequest);
     }
 }

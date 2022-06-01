@@ -72,4 +72,12 @@ public class GitHubIntegration extends SoftDeleteEntity {
     public void setRepositoryFullName(String repositoryFullName) {
         this.repositoryFullName = repositoryFullName;
     }
+
+    public String getRepositoryName() {
+        return repositoryFullName.split("/")[1];
+    }
+
+    public String getRepositoryOwner() {
+        return repositoryFullName.split("/")[0];
+    }
 }

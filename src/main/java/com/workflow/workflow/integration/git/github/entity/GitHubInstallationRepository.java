@@ -15,6 +15,8 @@ public interface GitHubInstallationRepository extends NotFoundRepository<GitHubI
      */
     List<GitHubInstallation> findByUser(User user);
 
+    List<GitHubInstallation> findByUserAndSuspendedFalse(User user);
+
     /**
      * This method find installation for given user with given id.
      * 

@@ -1,6 +1,5 @@
 package com.workflow.workflow.integration.git;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import com.workflow.workflow.integration.git.github.GitHubService;
@@ -30,11 +29,7 @@ public class GitTaskService {
      * @return future containing created issues.
      */
     public Flux<Issue> createIssue(Task task) {
-        List<Mono<Issue>> futures = new ArrayList<>();
-        if (gitHubService.isIntegrated(task.getStatus().getProject())) {
-            futures.add(gitHubService.createIssue(task));
-        }
-        return Flux.concat(futures);
+        return Flux.concat(List.of(gitHubService.createIssue(task)));
     }
 
     /**
@@ -45,14 +40,7 @@ public class GitTaskService {
      * @return future containing changed issues.
      */
     public Flux<Issue> patchIssue(Task task) {
-        List<Mono<Issue>> futures = new ArrayList<>();
-        if (gitHubService.isIntegrated(task)) {
-            futures.add(gitHubService.patchIssue(task));
-        }
-        if (gitHubService.isIntegratedPull(task)) {
-            futures.add(gitHubService.patchPullRequest(task));
-        }
-        return Flux.concat(futures);
+        return Flux.concat(List.of(gitHubService.patchIssue(task), gitHubService.patchPullRequest(task)));
     }
 
     /**
@@ -62,11 +50,7 @@ public class GitTaskService {
      * @return future containing list of issues.
      */
     public Flux<Issue> getIssues(Project project) {
-        List<Flux<Issue>> futures = new ArrayList<>();
-        if (gitHubService.isIntegrated(project)) {
-            futures.add(gitHubService.getIssues(project));
-        }
-        return Flux.concat(futures);
+        return Flux.concat(List.of(gitHubService.getIssues(project)));
     }
 
     /**
@@ -77,7 +61,7 @@ public class GitTaskService {
      * @return future containing connected issue.
      */
     public Mono<Issue> connectIssue(Task task, Issue issue) {
-        if ("github".equals(issue.getService()) && !gitHubService.isIntegrated(task)) {
+        if ("github".equals(issue.getService())) {
             return gitHubService.connectIssue(task, issue);
         }
         return Mono.empty();
@@ -89,9 +73,7 @@ public class GitTaskService {
      * @param task must not be {@literal null}; must be entity from database.
      */
     public void deleteIssue(Task task) {
-        if (gitHubService.isIntegrated(task)) {
-            gitHubService.deleteIssue(task);
-        }
+        gitHubService.deleteIssue(task);
     }
 
     /**
@@ -101,22 +83,19 @@ public class GitTaskService {
      * @return future containing list of pull requests.
      */
     public Flux<PullRequest> getPullRequests(Project project) {
-        List<Flux<PullRequest>> futures = new ArrayList<>();
-        if (gitHubService.isIntegrated(project)) {
-            futures.add(gitHubService.getPullRequests(project));
-        }
-        return Flux.concat(futures);
+        return Flux.concat(List.of(gitHubService.getPullRequests(project)));
     }
 
     /**
      * Connects given task with pull request from git service.
      * 
      * @param task  must not be {@literal null}; must be entity from database.
-     * @param issue must not be {@literal null}; must be returned by getPullRequests.
+     * @param issue must not be {@literal null}; must be returned by
+     *              getPullRequests.
      * @return future containing connected pull request.
      */
     public Mono<PullRequest> connectPullRequest(Task task, PullRequest pullRequest) {
-        if ("github".equals(pullRequest.getService()) && !gitHubService.isIntegratedPull(task)) {
+        if ("github".equals(pullRequest.getService())) {
             return gitHubService.connectPullRequest(task, pullRequest);
         }
         return Mono.empty();
@@ -128,8 +107,6 @@ public class GitTaskService {
      * @param task must not be {@literal null}; must be entity from database.
      */
     public void deletePullRequest(Task task) {
-        if (gitHubService.isIntegratedPull(task)) {
-            gitHubService.deletePullRequest(task);
-        }
+        gitHubService.deletePullRequest(task);
     }
 }

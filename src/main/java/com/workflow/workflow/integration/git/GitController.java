@@ -70,7 +70,7 @@ public class GitController {
         if (issue == null) {
             return service.createIssue(task).last();
         }
-        return service.connectIssue(task, issue);
+        return service.connectIssue(task, issue).switchIfEmpty(Mono.error(ObjectNotFoundException::new));
     }
 
     @Operation(summary = "Delete git issue connection to task", description = "Deletes git issue connection with task. It does not delete issue on git service nor it deletes task.")
