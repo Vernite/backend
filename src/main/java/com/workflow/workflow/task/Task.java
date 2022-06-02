@@ -67,6 +67,12 @@ public class Task extends SoftDeleteEntity {
     @JoinColumn(name = "created_by", nullable = false, foreignKey = @ForeignKey(name = "fk_task_user"))
     private User user;
 
+    @JsonIgnore
+    @ManyToOne
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = "assignee", nullable = true, foreignKey = @ForeignKey(name = "fk_task_assignee"))
+    private User assignee;
+
     @Column(nullable = false)
     private int type;
 
@@ -276,10 +282,18 @@ public class Task extends SoftDeleteEntity {
         return this.parentTask != null ? this.parentTask.getId() : null;
     }
 
+    public User getAssignee() {
+        return assignee;
+    }
+
+    public void setAssignee(User assignee) {
+        this.assignee = assignee;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(getCreatedAt(), getDeadline(), getDescription(), getEstimatedDate(),
-                getId(), this.getName(), this.getSprint(), this.getStatus(), this.getType(), this.getUser());
+                getId(), this.getName(), this.getSprint(), this.getStatus(), this.getType(), this.getUser(), this.getAssignee());
     }
 
     @Override
@@ -297,6 +311,7 @@ public class Task extends SoftDeleteEntity {
                 && Objects.equals(getName(), other.getName())
                 && Objects.equals(getSprint(), other.getSprint())
                 && Objects.equals(getStatus(), other.getStatus())
+                && Objects.equals(getAssignee(), other.getAssignee())
                 && getType() == other.getType() && Objects.equals(getUser(), other.getUser());
     }
 }
