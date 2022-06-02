@@ -10,6 +10,7 @@ public class TaskRequest {
     // private Integer sprint;
     private String description;
     private Long statusId;
+    private Long assignee;
     private Integer type;
     private Date deadline;
     private Date estimatedDate;
@@ -98,5 +99,13 @@ public class TaskRequest {
 
     public void setParentTaskId(Long superTaskId) {
         this.parentTaskId = superTaskId;
+    }
+
+    public Long getAssignee() {
+        return assignee;
+    }
+
+    public void setAssignee(Long assignee) {
+        this.assignee = assignee;
     }
 }

@@ -206,6 +206,10 @@ public class Task extends SoftDeleteEntity {
         return this.getUser().getId();
     }
 
+    public Long getAssigneeId() {
+        return this.getAssignee() == null ? null : this.getAssignee().getId();
+    }
+
     @JsonIgnore
     public void setState(String state) {
         if (state.equals("closed") && Boolean.FALSE.equals(getStatus().isFinal())) {

@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 import javax.validation.constraints.NotNull;
 
@@ -13,6 +14,7 @@ import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.status.StatusRepository;
 import com.workflow.workflow.user.User;
+import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.utils.ObjectNotFoundException;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +48,9 @@ public class TaskController {
 
     @Autowired
     private ProjectRepository projectRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private GitTaskService service;
@@ -108,9 +113,22 @@ public class TaskController {
         task.setStatus(status);
         task.setType(taskRequest.getType());
         task.setUser(user);
+        if (taskRequest.getAssignee() != null) {
+            if (taskRequest.getAssignee() == 0L) {
+                task.setAssignee(null);
+            } else {
+                Optional<User> u = userRepository.findById(taskRequest.getAssignee());
+                if (u.isPresent() && task.getStatus().getProject().member(u.get()) != -1) {
+                    task.setAssignee(u.get());
+                } else {
+                    task.setAssignee(null);
+                }
+            }
+        }
         if (taskRequest.getParentTaskId() != null) {
             Task parentTask = taskRepository.findByIdOrThrow(taskRequest.getParentTaskId());
             if (parentTask.getParentTask() != null) {
+                // TODO should have normal response status
                 throw new ResponseStatusException(HttpStatus.I_AM_A_TEAPOT, "parent task cant be subtask of another task or there will be possibility of cycle");
             }
             task.setParentTask(parentTask);
@@ -149,6 +167,18 @@ public class TaskController {
         if (taskRequest.getType() != null) {
             task.setType(taskRequest.getType());
         }
+        if (taskRequest.getAssignee() != null) {
+            if (taskRequest.getAssignee() == 0L) {
+                task.setAssignee(null);
+            } else {
+                Optional<User> u = userRepository.findById(taskRequest.getAssignee());
+                if (u.isPresent() && task.getStatus().getProject().member(u.get()) != -1) {
+                    task.setAssignee(u.get());
+                } else {
+                    task.setAssignee(null);
+                }
+            }
+        }
         // TODO sprint update
         if (taskRequest.getStatusId() != null) {
             Status newStatus = statusRepository.findByIdOrThrow(taskRequest.getStatusId());
@@ -160,6 +190,7 @@ public class TaskController {
         if (taskRequest.getParentTaskId() != null) {
             Task parentTask = taskRepository.findByIdOrThrow(taskRequest.getParentTaskId());
             if (parentTask.getParentTask() != null) {
+                // TODO normal response status
                 throw new ResponseStatusException(HttpStatus.I_AM_A_TEAPOT, "parent task cant be subtask of another task or there will be possibility of cycle");
             }
             task.setParentTask(parentTask);
