@@ -2,6 +2,7 @@ package com.workflow.workflow.project;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -13,6 +14,7 @@ import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.status.StatusRepository;
 import com.workflow.workflow.user.User;
+import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.utils.ErrorType;
 import com.workflow.workflow.utils.ObjectNotFoundException;
 import com.workflow.workflow.workspace.Workspace;
@@ -40,7 +42,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 @RestController
 @RequestMapping("/project")
 public class ProjectController {
-    
+
     @Autowired
     private ProjectRepository projectRepository;
 
@@ -52,6 +54,9 @@ public class ProjectController {
 
     @Autowired
     private StatusRepository statusRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Operation(summary = "Create project", description = "Creates new project. Authenticated user is added to project with owner privillages. Project is added to workspace with given id.")
     @ApiResponse(description = "Newly created project.", responseCode = "200")
@@ -156,5 +161,33 @@ public class ProjectController {
         }
         return projectWorkspaceRepository.findByProjectOrderByWorkspaceUserUsernameAscWorkspaceUserIdAsc(project)
                 .stream().map(ProjectWorkspace::getProjectMember).toList();
+    }
+
+    @Operation(summary = "Add members to projects", description = "Adds members with given emails or usernames to projects with given ids. Authenticated user must be member of projects. If authenticated user is not member of project invited users will not be added to this project but will be added to correct projects (no error will be returned). If user with given email or username is already member of project, nothing will happen. If user with given email or username does not exists nothing will happen.")
+    @ApiResponse(description = "List with actual user usernames and list of actual projects.", responseCode = "200")
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @PostMapping("/member")
+    public ProjectInvite addProjectMembers(@NotNull @Parameter(hidden = true) User user, @RequestBody ProjectInvite invite) {
+        List<User> users = userRepository.findByEmailInOrUsernameIn(invite.getEmails(), invite.getEmails());
+        Iterable<Project> projects = projectRepository.findAllById(invite.getProjects());
+        List<Project> result = new ArrayList<>();
+        for (Project project : projects) {
+            if (project.member(user) != -1) {
+                result.add(project);
+                for (User invitedUser : users) {
+                    if (project.member(invitedUser) != -1) {
+                        continue;
+                    }
+                    Workspace workspace = workspaceRepository.findById(new WorkspaceKey(0, invitedUser))
+                            .orElseGet(() -> workspaceRepository.save(new Workspace(0, invitedUser, "inbox")));
+                    projectWorkspaceRepository
+                            .save(new ProjectWorkspace(project, workspace, 2L));
+                }
+            }
+        }
+        if (result.isEmpty() || users.isEmpty()) {
+            return new ProjectInvite(new ArrayList<>(), new ArrayList<>());
+        }
+        return new ProjectInvite(users.stream().map(User::getUsername).toList(), result);
     }
 }

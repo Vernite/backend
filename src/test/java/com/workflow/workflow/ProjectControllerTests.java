@@ -9,6 +9,7 @@ import java.util.List;
 import com.workflow.workflow.counter.CounterSequence;
 import com.workflow.workflow.integration.git.github.entity.GitHubIntegration;
 import com.workflow.workflow.project.Project;
+import com.workflow.workflow.project.ProjectInvite;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.project.ProjectRequest;
 import com.workflow.workflow.projectworkspace.ProjectMember;
@@ -408,6 +409,98 @@ public class ProjectControllerTests {
     }
 
     @Test
+    void addProjectMemberSuccess() {
+        Project project = projectRepository.save(new Project("MEMBER"));
+
+        User user2 = userRepository.findByUsername("member_add_test_name");
+        if (user2 == null) {
+            user2 = userRepository.save(new User("1", "2", "member_add_test_name", "member_add_test@Dname", "1"));
+        }
+
+        ProjectInvite invite = new ProjectInvite();
+        invite.setEmails(List.of(user2.getEmail()));
+        invite.setProjects(List.of(project.getId()));
+
+        ProjectInvite result = client.post().uri("/project/member")
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .bodyValue(invite)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(ProjectInvite.class)
+                .returnResult()
+                .getResponseBody();
+
+        assertEquals(0, result.getEmails().size());
+        assertEquals(0, result.getProjectList().size());
+        assertEquals(true, projectWorkspaceRepository
+                .findById(new ProjectWorkspaceKey(new Workspace(0, user2, "inbox"), project)).isEmpty());
+
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+        result = client.post().uri("/project/member")
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .bodyValue(invite)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(ProjectInvite.class)
+                .returnResult()
+                .getResponseBody();
+
+        assertEquals(true, projectWorkspaceRepository
+                .findById(new ProjectWorkspaceKey(new Workspace(0, user2, "inbox"), project)).isPresent());
+        assertEquals(1, result.getEmails().size());
+        assertEquals(1, result.getProjectList().size());
+        assertEquals("member_add_test_name", result.getEmails().get(0));
+        assertEquals(project.getId(), result.getProjectList().get(0).getId());
+
+        result = client.post().uri("/project/member")
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .bodyValue(invite)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(ProjectInvite.class)
+                .returnResult()
+                .getResponseBody();
+
+        assertEquals(true, projectWorkspaceRepository
+                .findById(new ProjectWorkspaceKey(new Workspace(0, user2, "inbox"), project)).isPresent());
+        assertEquals(1, result.getEmails().size());
+        assertEquals(1, result.getProjectList().size());
+
+        invite.setEmails(null);
+
+        result = client.post().uri("/project/member")
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .bodyValue(invite)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(ProjectInvite.class)
+                .returnResult()
+                .getResponseBody();
+        assertEquals(0, result.getEmails().size());
+        assertEquals(0, result.getProjectList().size());
+
+        invite.setProjects(null);
+
+        result = client.post().uri("/project/member")
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .bodyValue(invite)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(ProjectInvite.class)
+                .returnResult()
+                .getResponseBody();
+        assertEquals(0, result.getEmails().size());
+        assertEquals(0, result.getProjectList().size());
+    }
+
+    @Test
+    void addProjectMemberUnauthorized() {
+        client.post().uri("/project/member")
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
     void projectTests() {
         Project project = new Project("name");
         Project other = new Project("other");
@@ -498,10 +591,10 @@ public class ProjectControllerTests {
         assertNotEquals(pwp.hashCode(), opwp.hashCode());
 
         pwp = new ProjectWithPrivileges(null, 1L);
-        
+
         assertEquals(false, pwp.equals(opwp));
         assertNotEquals(pwp.hashCode(), opwp.hashCode());
-        
+
         opwp = new ProjectWithPrivileges(null, 1L);
 
         assertEquals(true, pwp.equals(opwp));
@@ -552,7 +645,7 @@ public class ProjectControllerTests {
 
         assertEquals(project.getId(), key.getProjectId());
         assertEquals(workspace.getId(), key.getWorkspaceId());
-        
+
         key.setWorkspaceId(null);
         key.setProjectId(0);
 
