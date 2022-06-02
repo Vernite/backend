@@ -50,8 +50,6 @@ public class ProjectWorkspaceKey implements Serializable, Comparable<ProjectWork
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
         if (obj == null || getClass() != obj.getClass())
             return false;
         ProjectWorkspaceKey other = (ProjectWorkspaceKey) obj;
