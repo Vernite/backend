@@ -330,4 +330,60 @@ public class WorkspaceControllerTests {
                 .exchange()
                 .expectStatus().isNotFound();
     }
+
+    @Test
+    void workspaceTests() {
+            Workspace workspace = new Workspace(1, user, "Name");
+            Workspace other = new Workspace(2, user, "Name");
+
+            assertEquals(true, workspace.compareTo(other) < 0);
+
+            other.setName("Name 2");
+
+            assertEquals(true, workspace.compareTo(other) < 0);
+
+            assertEquals(true, workspace.equals(workspace));
+            assertEquals(false, workspace.equals(Long.valueOf(1)));
+            assertEquals(true, workspace.hashCode() == workspace.hashCode());
+            assertEquals(false, workspace.equals(null));
+
+            assertEquals(false, workspace.equals(other));
+            assertEquals(false, workspace.hashCode() == other.hashCode());
+
+            other.setUser(null);
+
+            assertEquals(false, workspace.equals(other));
+            assertEquals(false, other.equals(workspace));
+            assertEquals(false, workspace.hashCode() == other.hashCode());
+
+            other.setId(null);
+
+            assertEquals(false, workspace.equals(other));
+            assertEquals(false, other.equals(workspace));
+            assertEquals(false, workspace.hashCode() == other.hashCode());
+
+            other.setProjectWorkspaces(null);
+            other.setName(null);
+
+            assertEquals(true, other.equals(other));
+            assertEquals(false, workspace.equals(other));
+            assertEquals(false, other.equals(workspace));
+            assertEquals(false, workspace.hashCode() == other.hashCode());
+
+            Workspace other2 = new Workspace(3, user, "Name");
+
+            WorkspaceKey key = new WorkspaceKey(1, user);
+            key.setUserId(0);
+            other2.setId(key);
+
+            assertEquals(false, key.equals(Long.valueOf(1)));
+
+            assertEquals(false, workspace.equals(other2));
+            assertEquals(true, workspace.compareTo(other2) > 0);
+
+            other2.setId(null);
+            other2.setUser(null);
+
+            assertEquals(false, other.equals(other2));
+    }
 }

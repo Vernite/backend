@@ -121,8 +121,6 @@ public class Workspace extends SoftDeleteEntity implements Comparable<Workspace>
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
         if (obj == null || getClass() != obj.getClass())
             return false;
         Workspace other = (Workspace) obj;
@@ -132,7 +130,7 @@ public class Workspace extends SoftDeleteEntity implements Comparable<Workspace>
         } else if (!getId().equals(other.getId()))
             return false;
         if (getName() == null)
-            return other.getName() != null;
+            return other.getName() == null;
         return getName().equals(other.getName());
     }
 
