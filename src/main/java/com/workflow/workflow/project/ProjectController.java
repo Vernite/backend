@@ -208,10 +208,24 @@ public class ProjectController {
         if (project.getProjectWorkspaces().get(index).getPrivileges() != 1L) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
-        Iterable<User> users = userRepository.findAllById(ids);
+        Iterable<User> users = userRepository.findAllById(ids.stream().filter(i -> i != user.getId()).toList());
         List<ProjectWorkspace> projectWorkspaces = projectWorkspaceRepository.findByWorkspaceUserInAndProject(users,
                 project);
         projectWorkspaceRepository.deleteAll(projectWorkspaces);
         return projectWorkspaces.stream().map(ps -> ps.getWorkspace().getUser()).toList();
+    }
+
+    @Operation(summary = "Leave project", description = "Authorized user leaves project with given id. Authenticated user must be member of project.")
+    @ApiResponse(description = "Project member left.", responseCode = "200")
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @DeleteMapping("/{id}/member")
+    public void leaveProject(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+        Project project = projectRepository.findByIdOrThrow(id);
+        int index = project.member(user);
+        if (index == -1) {
+            throw new ObjectNotFoundException();
+        }
+        projectWorkspaceRepository.delete(project.getProjectWorkspaces().get(index));
     }
 }

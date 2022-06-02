@@ -515,7 +515,7 @@ public class ProjectControllerTests {
         List<User> result = client.put().uri("/project/{id}/member", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(List.of(user2.getId(), 666, 54))
+                .bodyValue(List.of(user2.getId(), 666, 54, user.getId()))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBodyList(User.class)
@@ -524,7 +524,10 @@ public class ProjectControllerTests {
         assertEquals(1, result.size());
         assertEquals(user2.getName(), result.get(0).getName());
         assertEquals(user2.getId(), result.get(0).getId());
-        assertEquals(false, projectWorkspaceRepository.findById(new ProjectWorkspaceKey(workspace2, project)).isPresent());
+        assertEquals(false,
+                projectWorkspaceRepository.findById(new ProjectWorkspaceKey(workspace2, project)).isPresent());
+        assertEquals(true,
+                projectWorkspaceRepository.findById(new ProjectWorkspaceKey(workspace, project)).isPresent());
     }
 
     @Test
@@ -565,6 +568,44 @@ public class ProjectControllerTests {
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(List.of())
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void leaveProjectSuccess() {
+        Project project = projectRepository.save(new Project("MEMBER"));
+        ProjectWorkspace pw = projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+
+        client.delete().uri("/project/{id}/member", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isOk();
+        assertEquals(false, projectWorkspaceRepository.findById(pw.getId()).isPresent());
+    }
+
+    @Test
+    void leaveProjectUnauthorized() {
+        client.delete().uri("/project/1/member")
+                .exchange()
+                .expectStatus().isUnauthorized();
+        Project project = projectRepository.save(new Project("MEMBER"));
+        client.delete().uri("/project/{id}/member", project.getId())
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void leaveProjectNotFound() {
+        client.delete().uri("/project/666/member")
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isNotFound();
+
+        Project project = projectRepository.save(new Project("MEMBER"));
+
+        client.delete().uri("/project/{id}/member", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isNotFound();
     }
