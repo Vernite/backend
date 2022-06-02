@@ -501,6 +501,75 @@ public class ProjectControllerTests {
     }
 
     @Test
+    void deleteMemberSuccess() {
+        Project project = projectRepository.save(new Project("MEMBER"));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+
+        User user2 = userRepository.findByUsername("member_add_test_name");
+        if (user2 == null) {
+            user2 = userRepository.save(new User("1", "2", "member_add_test_name", "member_add_test@Dname", "1"));
+        }
+        Workspace workspace2 = workspaceRepository.save(new Workspace(1, user2, "test"));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace2, 2L));
+
+        List<User> result = client.put().uri("/project/{id}/member", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(List.of(user2.getId(), 666, 54))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBodyList(User.class)
+                .returnResult()
+                .getResponseBody();
+        assertEquals(1, result.size());
+        assertEquals(user2.getName(), result.get(0).getName());
+        assertEquals(user2.getId(), result.get(0).getId());
+        assertEquals(false, projectWorkspaceRepository.findById(new ProjectWorkspaceKey(workspace2, project)).isPresent());
+    }
+
+    @Test
+    void deleteMemberUnautorized() {
+        Project project = projectRepository.save(new Project("MEMBER"));
+
+        client.put().uri("/project/{id}/member", project.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(List.of())
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void deleteProjectMemberForbidden() {
+        Project project = projectRepository.save(new Project("MEMBER"));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 2L));
+
+        client.put().uri("/project/{id}/member", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(List.of())
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    void deleteProjectMemberNotFound() {
+        client.put().uri("/project/666/member")
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(List.of())
+                .exchange()
+                .expectStatus().isNotFound();
+
+        Project project = projectRepository.save(new Project("MEMBER"));
+        client.put().uri("/project/{id}/member", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(List.of())
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
     void projectTests() {
         Project project = new Project("name");
         Project other = new Project("other");

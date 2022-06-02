@@ -167,7 +167,8 @@ public class ProjectController {
     @ApiResponse(description = "List with actual user usernames and list of actual projects.", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PostMapping("/member")
-    public ProjectInvite addProjectMembers(@NotNull @Parameter(hidden = true) User user, @RequestBody ProjectInvite invite) {
+    public ProjectInvite addProjectMembers(@NotNull @Parameter(hidden = true) User user,
+            @RequestBody ProjectInvite invite) {
         List<User> users = userRepository.findByEmailInOrUsernameIn(invite.getEmails(), invite.getEmails());
         Iterable<Project> projects = projectRepository.findAllById(invite.getProjects());
         List<Project> result = new ArrayList<>();
@@ -189,5 +190,28 @@ public class ProjectController {
             return new ProjectInvite(new ArrayList<>(), new ArrayList<>());
         }
         return new ProjectInvite(users.stream().map(User::getUsername).toList(), result);
+    }
+
+    @Operation(summary = "Remove members from projects", description = "Removes members with given ids from project with given id. Authenticated user must be member of projects and have privillage.")
+    @ApiResponse(description = "List with actual users removed from project.", responseCode = "200")
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Not enough privillages.", responseCode = "403", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @PutMapping("/{id}/member")
+    public List<User> deleteMember(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+            @RequestBody List<Long> ids) {
+        Project project = projectRepository.findByIdOrThrow(id);
+        int index = project.member(user);
+        if (index == -1) {
+            throw new ObjectNotFoundException();
+        }
+        if (project.getProjectWorkspaces().get(index).getPrivileges() != 1L) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+        Iterable<User> users = userRepository.findAllById(ids);
+        List<ProjectWorkspace> projectWorkspaces = projectWorkspaceRepository.findByWorkspaceUserInAndProject(users,
+                project);
+        projectWorkspaceRepository.deleteAll(projectWorkspaces);
+        return projectWorkspaces.stream().map(ps -> ps.getWorkspace().getUser()).toList();
     }
 }
