@@ -2,9 +2,14 @@ package com.workflow.workflow.project;
 
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.Schema.AccessMode;
+
 public class ProjectInvite {
     private List<String> emails;
+    @Schema(accessMode = AccessMode.WRITE_ONLY)
     private List<Long> projects;
+    @Schema(accessMode = AccessMode.READ_ONLY)
     private List<Project> projectList;
 
     public ProjectInvite() {
