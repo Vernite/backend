@@ -95,7 +95,7 @@ public class WorkspaceController {
     @DeleteMapping("/{id}")
     public void deleteWorkspace(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceKey(id, user));
-        if (!workspace.getProjectWorkspaces().isEmpty()) {
+        if (workspace.getProjectWorkspaces().stream().anyMatch(p -> p.getProject().getActive() == null)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "workspace not empty");
         }
         workspace.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));

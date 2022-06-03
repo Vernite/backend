@@ -285,13 +285,26 @@ public class WorkspaceControllerTests {
     }
 
     @Test
-    void deleteWorkspaceSuccess() {
+    void deleteWorkspaceSuccess(@Autowired ProjectRepository projectRepository,
+    @Autowired ProjectWorkspaceRepository projectWorkspaceRepository) {
         Workspace workspace = workspaceRepository.save(new Workspace(1, user, "DELETE"));
         client.delete().uri("/workspace/{id}",  workspace.getId().getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isOk();
         assertNotEquals(null, workspaceRepository.findById(workspace.getId()).get().getActive());
+
+        Project project = new Project("DELETE");
+        project.setActive(new Date());
+        project = projectRepository.save(project);
+        Workspace workspace2 = workspaceRepository.save(new Workspace(1, user, "DELETE"));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace2, 1L));
+
+        client.delete().uri("/workspace/{id}",  workspace2.getId().getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isOk();
+        assertNotEquals(null, workspaceRepository.findById(workspace2.getId()).get().getActive());
     }
 
     @Test
