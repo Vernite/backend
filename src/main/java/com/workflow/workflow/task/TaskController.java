@@ -113,11 +113,11 @@ public class TaskController {
         task.setStatus(status);
         task.setType(taskRequest.getType());
         task.setUser(user);
-        if (taskRequest.getAssignee() != null) {
-            if (taskRequest.getAssignee() == 0L) {
+        if (taskRequest.getAssigneeId() != null) {
+            if (taskRequest.getAssigneeId() == 0L) {
                 task.setAssignee(null);
             } else {
-                Optional<User> u = userRepository.findById(taskRequest.getAssignee());
+                Optional<User> u = userRepository.findById(taskRequest.getAssigneeId());
                 if (u.isPresent() && task.getStatus().getProject().member(u.get()) != -1) {
                     task.setAssignee(u.get());
                 } else {
@@ -167,11 +167,11 @@ public class TaskController {
         if (taskRequest.getType() != null) {
             task.setType(taskRequest.getType());
         }
-        if (taskRequest.getAssignee() != null) {
-            if (taskRequest.getAssignee() == 0L) {
+        if (taskRequest.getAssigneeId() != null) {
+            if (taskRequest.getAssigneeId() == 0L) {
                 task.setAssignee(null);
             } else {
-                Optional<User> u = userRepository.findById(taskRequest.getAssignee());
+                Optional<User> u = userRepository.findById(taskRequest.getAssigneeId());
                 if (u.isPresent() && task.getStatus().getProject().member(u.get()) != -1) {
                     task.setAssignee(u.get());
                 } else {
