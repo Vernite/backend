@@ -37,7 +37,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestInstance(Lifecycle.PER_CLASS)
-@TestPropertySource({"classpath:application.properties", "classpath:application-test.properties"})
+@TestPropertySource({ "classpath:application.properties", "classpath:application-test.properties" })
 public class WorkspaceControllerTests {
     @Autowired
     private WebTestClient client;
@@ -157,6 +157,14 @@ public class WorkspaceControllerTests {
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isBadRequest();
+
+        request.setName("");
+        client.post().uri("/workspace")
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
     }
 
     @Test
@@ -205,7 +213,7 @@ public class WorkspaceControllerTests {
         Workspace workspace = new Workspace(1, user, "GET");
         workspace.setActive(new Date());
         workspace = workspaceRepository.save(workspace);
-        client.get().uri("/workspace/{id}",  workspace.getId().getId())
+        client.get().uri("/workspace/{id}", workspace.getId().getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isNotFound();
@@ -215,7 +223,7 @@ public class WorkspaceControllerTests {
     void putWorkspaceSuccess() {
         Workspace workspace = workspaceRepository.save(new Workspace(1, user, "PUT"));
         WorkspaceRequest request = new WorkspaceRequest(null);
-        Workspace result = client.put().uri("/workspace/{id}",  workspace.getId().getId())
+        Workspace result = client.put().uri("/workspace/{id}", workspace.getId().getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -229,7 +237,7 @@ public class WorkspaceControllerTests {
         assertEquals(workspace, workspaceRepository.findByIdOrThrow(workspace.getId()));
 
         request.setName("NEW PUT");
-        result = client.put().uri("/workspace/{id}",  workspace.getId().getId())
+        result = client.put().uri("/workspace/{id}", workspace.getId().getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -247,7 +255,15 @@ public class WorkspaceControllerTests {
     void putWorkspaceBadRequest() {
         Workspace workspace = workspaceRepository.save(new Workspace(1, user, "PUT"));
         WorkspaceRequest request = new WorkspaceRequest("0".repeat(51));
-        client.put().uri("/workspace/{id}",  workspace.getId().getId())
+        client.put().uri("/workspace/{id}", workspace.getId().getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
+
+        request.setName("");
+        client.post().uri("/workspace")
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -266,7 +282,7 @@ public class WorkspaceControllerTests {
 
         Workspace workspace = workspaceRepository.save(new Workspace(1, user, "PUT"));
 
-        client.put().uri("/workspace/{id}",  workspace.getId().getId())
+        client.put().uri("/workspace/{id}", workspace.getId().getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
@@ -286,9 +302,9 @@ public class WorkspaceControllerTests {
 
     @Test
     void deleteWorkspaceSuccess(@Autowired ProjectRepository projectRepository,
-    @Autowired ProjectWorkspaceRepository projectWorkspaceRepository) {
+            @Autowired ProjectWorkspaceRepository projectWorkspaceRepository) {
         Workspace workspace = workspaceRepository.save(new Workspace(1, user, "DELETE"));
-        client.delete().uri("/workspace/{id}",  workspace.getId().getId())
+        client.delete().uri("/workspace/{id}", workspace.getId().getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isOk();
@@ -300,7 +316,7 @@ public class WorkspaceControllerTests {
         Workspace workspace2 = workspaceRepository.save(new Workspace(1, user, "DELETE"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace2, 1L));
 
-        client.delete().uri("/workspace/{id}",  workspace2.getId().getId())
+        client.delete().uri("/workspace/{id}", workspace2.getId().getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isOk();
@@ -314,7 +330,7 @@ public class WorkspaceControllerTests {
         Workspace workspace = workspaceRepository.save(new Workspace(1, user, "DELETE"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
-        client.delete().uri("/workspace/{id}",  workspace.getId().getId())
+        client.delete().uri("/workspace/{id}", workspace.getId().getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isBadRequest();
@@ -329,7 +345,7 @@ public class WorkspaceControllerTests {
                 .expectStatus().isUnauthorized();
 
         Workspace workspace = workspaceRepository.save(new Workspace(1, user, "DELETE"));
-        client.delete().uri("/workspace/{id}",  workspace.getId().getId())
+        client.delete().uri("/workspace/{id}", workspace.getId().getId())
                 .exchange()
                 .expectStatus().isUnauthorized();
 
@@ -346,57 +362,57 @@ public class WorkspaceControllerTests {
 
     @Test
     void workspaceTests() {
-            Workspace workspace = new Workspace(1, user, "Name");
-            Workspace other = new Workspace(2, user, "Name");
+        Workspace workspace = new Workspace(1, user, "Name");
+        Workspace other = new Workspace(2, user, "Name");
 
-            assertEquals(true, workspace.compareTo(other) < 0);
+        assertEquals(true, workspace.compareTo(other) < 0);
 
-            other.setName("Name 2");
+        other.setName("Name 2");
 
-            assertEquals(true, workspace.compareTo(other) < 0);
+        assertEquals(true, workspace.compareTo(other) < 0);
 
-            assertEquals(true, workspace.equals(workspace));
-            assertEquals(false, workspace.equals(Long.valueOf(1)));
-            assertEquals(true, workspace.hashCode() == workspace.hashCode());
-            assertEquals(false, workspace.equals(null));
+        assertEquals(true, workspace.equals(workspace));
+        assertEquals(false, workspace.equals(Long.valueOf(1)));
+        assertEquals(true, workspace.hashCode() == workspace.hashCode());
+        assertEquals(false, workspace.equals(null));
 
-            assertEquals(false, workspace.equals(other));
-            assertEquals(false, workspace.hashCode() == other.hashCode());
+        assertEquals(false, workspace.equals(other));
+        assertEquals(false, workspace.hashCode() == other.hashCode());
 
-            other.setUser(null);
+        other.setUser(null);
 
-            assertEquals(false, workspace.equals(other));
-            assertEquals(false, other.equals(workspace));
-            assertEquals(false, workspace.hashCode() == other.hashCode());
+        assertEquals(false, workspace.equals(other));
+        assertEquals(false, other.equals(workspace));
+        assertEquals(false, workspace.hashCode() == other.hashCode());
 
-            other.setId(null);
+        other.setId(null);
 
-            assertEquals(false, workspace.equals(other));
-            assertEquals(false, other.equals(workspace));
-            assertEquals(false, workspace.hashCode() == other.hashCode());
+        assertEquals(false, workspace.equals(other));
+        assertEquals(false, other.equals(workspace));
+        assertEquals(false, workspace.hashCode() == other.hashCode());
 
-            other.setProjectWorkspaces(null);
-            other.setName(null);
+        other.setProjectWorkspaces(null);
+        other.setName(null);
 
-            assertEquals(true, other.equals(other));
-            assertEquals(false, workspace.equals(other));
-            assertEquals(false, other.equals(workspace));
-            assertEquals(false, workspace.hashCode() == other.hashCode());
+        assertEquals(true, other.equals(other));
+        assertEquals(false, workspace.equals(other));
+        assertEquals(false, other.equals(workspace));
+        assertEquals(false, workspace.hashCode() == other.hashCode());
 
-            Workspace other2 = new Workspace(3, user, "Name");
+        Workspace other2 = new Workspace(3, user, "Name");
 
-            WorkspaceKey key = new WorkspaceKey(1, user);
-            key.setUserId(0);
-            other2.setId(key);
+        WorkspaceKey key = new WorkspaceKey(1, user);
+        key.setUserId(0);
+        other2.setId(key);
 
-            assertEquals(false, key.equals(Long.valueOf(1)));
+        assertEquals(false, key.equals(Long.valueOf(1)));
 
-            assertEquals(false, workspace.equals(other2));
-            assertEquals(true, workspace.compareTo(other2) > 0);
+        assertEquals(false, workspace.equals(other2));
+        assertEquals(true, workspace.compareTo(other2) > 0);
 
-            other2.setId(null);
-            other2.setUser(null);
+        other2.setId(null);
+        other2.setUser(null);
 
-            assertEquals(false, other.equals(other2));
+        assertEquals(false, other.equals(other2));
     }
 }

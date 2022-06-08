@@ -55,8 +55,8 @@ public class WorkspaceController {
         if (request.getName() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing name field");
         }
-        if (request.getName().length() > 50) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name field length bigger than 50 characters");
+        if (request.getName().length() > 50 || request.getName().length() == 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name field length bigger than 50 characters or empty");
         }
         long id = counterRepository.getIncrementCounter(user.getCounterSequence().getId());
         return workspaceRepository.save(new Workspace(id, user, request));
@@ -79,8 +79,8 @@ public class WorkspaceController {
     @PutMapping("/{id}")
     public Workspace putWorkspace(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @RequestBody WorkspaceRequest request) {
-        if (request.getName() != null && request.getName().length() > 50) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name field length bigger than 50 characters");
+        if (request.getName() != null && (request.getName().length() > 50 || request.getName().length() == 0)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name field length bigger than 50 characters or empty");
         }
         Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceKey(id, user));
         workspace.apply(request);

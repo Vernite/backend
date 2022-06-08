@@ -1,14 +1,16 @@
 package com.workflow.workflow.workspace;
 
-public class WorkspaceRequest {
+import io.swagger.v3.oas.annotations.media.Schema;
 
+public class WorkspaceRequest {
+    @Schema(description = "The name of the project. Trailing and leading whitespaces are removed. Cant be empty or longer than 50 characters.")
     private String name;
 
     public WorkspaceRequest() {
     }
 
     public WorkspaceRequest(String name) {
-        this.name = name;
+        setName(name);
     }
 
     public String getName() {
@@ -16,6 +18,6 @@ public class WorkspaceRequest {
     }
 
     public void setName(String name) {
-        this.name = name;
+        this.name = name == null ? null : name.trim();
     }
 }

@@ -71,8 +71,8 @@ public class ProjectController {
         if (request.getName() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing name field");
         }
-        if (request.getName().length() > 50) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name field length bigger than 50 characters");
+        if (request.getName().length() > 50 || request.getName().length() == 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name field length bigger than 50 characters or empty");
         }
         Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceKey(request.getWorkspaceId(), user));
         Project project = projectRepository.save(new Project(request));
@@ -105,8 +105,8 @@ public class ProjectController {
     @PutMapping("/{id}")
     public Project putProject(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @RequestBody ProjectRequest request) {
-        if (request.getName() != null && request.getName().length() > 50) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name field length bigger than 50 characters");
+        if (request.getName() != null && (request.getName().length() > 50 || request.getName().length() == 0)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name field length bigger than 50 characters or empty");
         }
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {

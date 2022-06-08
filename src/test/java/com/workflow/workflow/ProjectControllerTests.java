@@ -125,6 +125,14 @@ public class ProjectControllerTests {
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isBadRequest();
+
+        request.setName("");
+        client.post().uri("/project")
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
     }
 
     @Test
@@ -224,6 +232,14 @@ public class ProjectControllerTests {
         ProjectRequest request = new ProjectRequest("0".repeat(51), 1L);
 
         client.put().uri("/project/{id}", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
+
+        request.setName("");
+        client.post().uri("/project")
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
