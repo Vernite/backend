@@ -355,19 +355,19 @@ public class TaskControllerTests {
         taskEquals(task, result);
 
         request.setName("NEW PUT");
-        task.setName(request.getName());
+        task.setName(request.getName().get());
 
         request.setDescription("NEW PUT");
-        task.setDescription(request.getDescription());
+        task.setDescription(request.getDescription().get());
 
         request.setDeadline(Date.from(Instant.now().minusSeconds(4000)));
-        task.setDeadline(request.getDeadline());
+        task.setDeadline(request.getDeadline().get());
 
         request.setEstimatedDate(Date.from(Instant.now().minusSeconds(4000)));
-        task.setEstimatedDate(request.getEstimatedDate());
+        task.setEstimatedDate(request.getEstimatedDate().get());
 
         request.setType(1);
-        task.setType(request.getType());
+        task.setType(request.getType().get());
 
         request.setStatusId(statuses[1].getId());
         task.setStatus(statuses[1]);

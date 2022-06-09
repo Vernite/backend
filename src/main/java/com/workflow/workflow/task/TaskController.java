@@ -87,37 +87,37 @@ public class TaskController {
     @ApiResponse(responseCode = "404", description = "Project or status not found.", content = @Content())
     @PostMapping
     public Mono<Task> add(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @RequestBody TaskRequest taskRequest) {
-        if (taskRequest.getName() == null) {
+        if (taskRequest.getName() == null || taskRequest.getName().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing name");
         }
-        if (taskRequest.getDescription() == null) {
+        if (taskRequest.getDescription() == null || taskRequest.getDescription().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing description");
         }
-        if (taskRequest.getStatusId() == null) {
+        if (taskRequest.getStatusId() == null || taskRequest.getStatusId().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing statusId");
         }
-        if (taskRequest.getType() == null) {
+        if (taskRequest.getType() == null || taskRequest.getType().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing type");
         }
-        Status status = statusRepository.findByIdOrThrow(taskRequest.getStatusId());
+        Status status = statusRepository.findByIdOrThrow(taskRequest.getStatusId().get());
         if (status.getProject().getId() != projectId || status.getProject().member(user) == -1) {
             throw new ObjectNotFoundException();
         }
         Task task = new Task();
         task.setCreatedAt(new Date());
-        task.setDeadline(taskRequest.getDeadline());
-        task.setEstimatedDate(taskRequest.getEstimatedDate());
-        task.setDescription(taskRequest.getDescription());
-        task.setName(taskRequest.getName());
+        task.setDeadline(taskRequest.getDeadline().orElse(null));
+        task.setEstimatedDate(taskRequest.getEstimatedDate().orElse(null));
+        task.setDescription(taskRequest.getDescription().get());
+        task.setName(taskRequest.getName().get());
         // TODO sprint update
         task.setStatus(status);
-        task.setType(taskRequest.getType());
+        task.setType(taskRequest.getType().get());
         task.setUser(user);
         if (taskRequest.getAssigneeId() != null) {
-            if (taskRequest.getAssigneeId() == 0L) {
+            if (taskRequest.getAssigneeId().isEmpty()) {
                 task.setAssignee(null);
             } else {
-                Optional<User> u = userRepository.findById(taskRequest.getAssigneeId());
+                Optional<User> u = userRepository.findById(taskRequest.getAssigneeId().get());
                 if (u.isPresent() && task.getStatus().getProject().member(u.get()) != -1) {
                     task.setAssignee(u.get());
                 } else {
@@ -126,15 +126,15 @@ public class TaskController {
             }
         }
         if (taskRequest.getParentTaskId() != null) {
-            Task parentTask = taskRepository.findByIdOrThrow(taskRequest.getParentTaskId());
+            Task parentTask = taskRepository.findByIdOrThrow(taskRequest.getParentTaskId().get());
             if (parentTask.getParentTask() != null) {
-                // TODO should have normal response status
+                // TODO normal response status
                 throw new ResponseStatusException(HttpStatus.I_AM_A_TEAPOT, "parent task cant be subtask of another task or there will be possibility of cycle");
             }
             task.setParentTask(parentTask);
         }
         task = taskRepository.save(task);
-        if (taskRequest.getCreateIssue()) {
+        if (taskRequest.getCreateIssue().isPresent() && taskRequest.getCreateIssue().get()) {
             return service.createIssue(task).then().thenReturn(task);
         } else {
             return Mono.just(task);
@@ -153,25 +153,25 @@ public class TaskController {
             throw new ObjectNotFoundException();
         }
         if (taskRequest.getDeadline() != null) {
-            task.setDeadline(taskRequest.getDeadline());
+            task.setDeadline(taskRequest.getDeadline().orElse(null));
         }
         if (taskRequest.getEstimatedDate() != null) {
-            task.setEstimatedDate(taskRequest.getEstimatedDate());
+            task.setEstimatedDate(taskRequest.getEstimatedDate().orElse(null));
         }
         if (taskRequest.getDescription() != null) {
-            task.setDescription(taskRequest.getDescription());
+            task.setDescription(taskRequest.getDescription().get());
         }
         if (taskRequest.getName() != null) {
-            task.setName(taskRequest.getName());
+            task.setName(taskRequest.getName().get());
         }
         if (taskRequest.getType() != null) {
-            task.setType(taskRequest.getType());
+            task.setType(taskRequest.getType().get());
         }
         if (taskRequest.getAssigneeId() != null) {
-            if (taskRequest.getAssigneeId() == 0L) {
+            if (taskRequest.getAssigneeId().isEmpty()) {
                 task.setAssignee(null);
             } else {
-                Optional<User> u = userRepository.findById(taskRequest.getAssigneeId());
+                Optional<User> u = userRepository.findById(taskRequest.getAssigneeId().get());
                 if (u.isPresent() && task.getStatus().getProject().member(u.get()) != -1) {
                     task.setAssignee(u.get());
                 } else {
@@ -181,14 +181,14 @@ public class TaskController {
         }
         // TODO sprint update
         if (taskRequest.getStatusId() != null) {
-            Status newStatus = statusRepository.findByIdOrThrow(taskRequest.getStatusId());
+            Status newStatus = statusRepository.findByIdOrThrow(taskRequest.getStatusId().get());
             if (projectId != newStatus.getProject().getId()) {
                 throw new ObjectNotFoundException();
             }
             task.setStatus(newStatus);
         }
         if (taskRequest.getParentTaskId() != null) {
-            Task parentTask = taskRepository.findByIdOrThrow(taskRequest.getParentTaskId());
+            Task parentTask = taskRepository.findByIdOrThrow(taskRequest.getParentTaskId().get());
             if (parentTask.getParentTask() != null) {
                 // TODO normal response status
                 throw new ResponseStatusException(HttpStatus.I_AM_A_TEAPOT, "parent task cant be subtask of another task or there will be possibility of cycle");
