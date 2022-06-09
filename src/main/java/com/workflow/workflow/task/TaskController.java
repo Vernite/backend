@@ -99,6 +99,9 @@ public class TaskController {
         if (taskRequest.getType() == null || taskRequest.getType().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing type");
         }
+        if (taskRequest.getParentTaskId() != null && taskRequest.getParentTaskId().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "parentTaskId is null");
+        }
         Status status = statusRepository.findByIdOrThrow(taskRequest.getStatusId().get());
         if (status.getProject().getId() != projectId || status.getProject().member(user) == -1) {
             throw new ObjectNotFoundException();
@@ -170,6 +173,9 @@ public class TaskController {
         }
         if (taskRequest.getType() != null) {
             task.setType(taskRequest.getType().get());
+        }
+        if (taskRequest.getParentTaskId() != null && taskRequest.getParentTaskId().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "parentTaskId is null");
         }
         if (taskRequest.getAssigneeId() != null) {
             if (taskRequest.getAssigneeId().isEmpty()) {
