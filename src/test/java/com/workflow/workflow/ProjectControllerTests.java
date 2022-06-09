@@ -241,7 +241,7 @@ public class ProjectControllerTests {
                 .expectStatus().isBadRequest();
 
         request.setName("");
-        client.post().uri("/project")
+        client.put().uri("/project/{id}", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -342,6 +342,29 @@ public class ProjectControllerTests {
 
         assertEquals(1, workspaceRepository.findByIdOrThrow(workspace2.getId()).getProjectsWithPrivileges().size());
         assertEquals(0, workspaceRepository.findByIdOrThrow(workspace.getId()).getProjectsWithPrivileges().size());
+
+        Workspace inbox = workspaceRepository.save(new Workspace(0, user, "inbox"));
+
+        Project project2 = projectRepository.save(new Project("DELETE"));
+        Project project3 = projectRepository.save(new Project("DELETE"));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project2, inbox, 1L));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project3, inbox, 1L));
+
+        client.put().uri("/project/{id}/workspace/{wId}", project2.getId(), workspace2.getId().getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isOk();
+
+        assertEquals(1, workspaceRepository.findByIdOrThrow(inbox.getId()).getProjectsWithPrivileges().size());
+
+        client.put().uri("/project/{id}/workspace/{wId}", project3.getId(), workspace2.getId().getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isOk();
+
+        assertEquals(false, workspaceRepository.findById(inbox.getId()).isPresent());
+
+        assertEquals(3, workspaceRepository.findByIdOrThrow(workspace2.getId()).getProjectsWithPrivileges().size());
     }
 
     @Test

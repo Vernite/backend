@@ -147,6 +147,10 @@ public class ProjectController {
         long privillages = projectWorkspace.getPrivileges();
         projectWorkspaceRepository.delete(projectWorkspace);
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, privillages));
+        workspace = workspaceRepository.findByIdOrThrow(projectWorkspace.getWorkspace().getId());
+        if (workspace.getId().getId() == 0 && workspace.getProjectWorkspaces().isEmpty()) {
+            workspaceRepository.delete(workspace);
+        }
     }
 
     @Operation(summary = "Retrieve project members", description = "Retrieves members of project with given id. Authenticated user must be member of project.")
