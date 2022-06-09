@@ -99,9 +99,6 @@ public class TaskController {
         if (taskRequest.getType() == null || taskRequest.getType().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing type");
         }
-        if (taskRequest.getParentTaskId() != null && taskRequest.getParentTaskId().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "parentTaskId is null");
-        }
         Status status = statusRepository.findByIdOrThrow(taskRequest.getStatusId().get());
         if (status.getProject().getId() != projectId || status.getProject().member(user) == -1) {
             throw new ObjectNotFoundException();
@@ -133,12 +130,16 @@ public class TaskController {
             }
         }
         if (taskRequest.getParentTaskId() != null) {
-            Task parentTask = taskRepository.findByIdOrThrow(taskRequest.getParentTaskId().get());
-            if (parentTask.getParentTask() != null) {
-                // TODO normal response status
-                throw new ResponseStatusException(HttpStatus.I_AM_A_TEAPOT, "parent task cant be subtask of another task or there will be possibility of cycle");
+            if (taskRequest.getParentTaskId().isEmpty()) {
+                task.setParentTask(null);
+            } else {
+                Task parentTask = taskRepository.findByIdOrThrow(taskRequest.getParentTaskId().get());
+                if (parentTask.getParentTask() != null) {
+                    // TODO normal response status
+                    throw new ResponseStatusException(HttpStatus.I_AM_A_TEAPOT, "parent task cant be subtask of another task or there will be possibility of cycle");
+                }
+                task.setParentTask(parentTask);
             }
-            task.setParentTask(parentTask);
         }
         task = taskRepository.save(task);
         if (taskRequest.getCreateIssue().isPresent() && taskRequest.getCreateIssue().get()) {
@@ -174,9 +175,6 @@ public class TaskController {
         if (taskRequest.getType() != null) {
             task.setType(taskRequest.getType().get());
         }
-        if (taskRequest.getParentTaskId() != null && taskRequest.getParentTaskId().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "parentTaskId is null");
-        }
         if (taskRequest.getAssigneeId() != null) {
             if (taskRequest.getAssigneeId().isEmpty()) {
                 task.setAssignee(null);
@@ -198,12 +196,16 @@ public class TaskController {
             task.setStatus(newStatus);
         }
         if (taskRequest.getParentTaskId() != null) {
-            Task parentTask = taskRepository.findByIdOrThrow(taskRequest.getParentTaskId().get());
-            if (parentTask.getParentTask() != null) {
-                // TODO normal response status
-                throw new ResponseStatusException(HttpStatus.I_AM_A_TEAPOT, "parent task cant be subtask of another task or there will be possibility of cycle");
+            if (taskRequest.getParentTaskId().isEmpty()) {
+                task.setParentTask(null);
+            } else {
+                Task parentTask = taskRepository.findByIdOrThrow(taskRequest.getParentTaskId().get());
+                if (parentTask.getParentTask() != null) {
+                    // TODO normal response status
+                    throw new ResponseStatusException(HttpStatus.I_AM_A_TEAPOT, "parent task cant be subtask of another task or there will be possibility of cycle");
+                }
+                task.setParentTask(parentTask);
             }
-            task.setParentTask(parentTask);
         }
         taskRepository.save(task);
         return service.patchIssue(task).then().thenReturn(task);
