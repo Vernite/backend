@@ -7,6 +7,20 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.web.reactive.server.WebTestClient;
+
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
@@ -23,20 +37,6 @@ import com.workflow.workflow.user.UserSessionRepository;
 import com.workflow.workflow.user.auth.AuthController;
 import com.workflow.workflow.workspace.Workspace;
 import com.workflow.workflow.workspace.WorkspaceRepository;
-
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.web.reactive.server.WebTestClient;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -452,7 +452,7 @@ public class TaskControllerTests {
                 .exchange()
                 .expectStatus().isNotFound();
 
-        request.setStatusId(null);
+        request = new TaskRequest();
         request.setParentTaskId(666L);
         client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())

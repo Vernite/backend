@@ -2,14 +2,14 @@ package com.workflow.workflow;
 
 import java.util.List;
 
-import com.workflow.workflow.user.UserResolver;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import com.workflow.workflow.user.UserResolver;
 
 @EnableWebMvc
 @Configuration
@@ -24,6 +24,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedOrigins("http://localhost:4200", "https://workflow.adiantek.ovh", "tauri://localhost")
                 .allowedMethods("GET", "POST", "PUT", "DELETE");
     }
+
     @Override
     public void addArgumentResolvers(
             List<HandlerMethodArgumentResolver> resolvers) {

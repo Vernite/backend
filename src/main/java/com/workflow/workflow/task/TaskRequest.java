@@ -3,8 +3,11 @@ package com.workflow.workflow.task;
 import java.util.Date;
 import java.util.Optional;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.workflow.workflow.status.Status;
 
+@JsonInclude(Include.NON_NULL)
 public class TaskRequest {
 
     private Optional<String> name;
@@ -35,7 +38,7 @@ public class TaskRequest {
     }
 
     public void setName(String name) {
-        this.name = Optional.of(name);
+        this.name = Optional.ofNullable(name);
     }
 
     // public Integer getSprint() {
@@ -51,7 +54,7 @@ public class TaskRequest {
     }
 
     public void setDescription(String description) {
-        this.description = Optional.of(description);
+        this.description = Optional.ofNullable(description);
     }
 
     public Optional<Date> getEstimatedDate() {
@@ -59,7 +62,7 @@ public class TaskRequest {
     }
 
     public void setEstimatedDate(Date estimatedDate) {
-        this.estimatedDate = Optional.of(estimatedDate);
+        this.estimatedDate = Optional.ofNullable(estimatedDate);
     }
 
     public Optional<Long> getStatusId() {
@@ -67,7 +70,7 @@ public class TaskRequest {
     }
 
     public void setStatusId(Long statusId) {
-        this.statusId = Optional.of(statusId);
+        this.statusId = Optional.ofNullable(statusId);
     }
 
     public Optional<Integer> getType() {
@@ -75,7 +78,7 @@ public class TaskRequest {
     }
 
     public void setType(Integer type) {
-        this.type = Optional.of(type);
+        this.type = Optional.ofNullable(type);
     }
 
     public Optional<Date> getDeadline() {
@@ -83,7 +86,7 @@ public class TaskRequest {
     }
 
     public void setDeadline(Date deadline) {
-        this.deadline = Optional.of(deadline);
+        this.deadline = Optional.ofNullable(deadline);
     }
 
     public Optional<Boolean> getCreateIssue() {
@@ -91,7 +94,7 @@ public class TaskRequest {
     }
 
     public void setCreateIssue(boolean createIssue) {
-        this.createIssue = Optional.of(createIssue);
+        this.createIssue = Optional.ofNullable(createIssue);
     }
 
     public Optional<Long> getParentTaskId() {
@@ -99,7 +102,7 @@ public class TaskRequest {
     }
 
     public void setParentTaskId(Long parentTaskId) {
-        this.parentTaskId = Optional.of(parentTaskId);
+        this.parentTaskId = Optional.ofNullable(parentTaskId);
     }
 
     public Optional<Long> getAssigneeId() {
@@ -107,6 +110,6 @@ public class TaskRequest {
     }
 
     public void setAssigneeId(Long assignee) {
-        this.assigneeId = Optional.of(assignee);
+        this.assigneeId = Optional.ofNullable(assignee);
     }
 }

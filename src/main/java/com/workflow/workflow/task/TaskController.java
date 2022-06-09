@@ -105,8 +105,12 @@ public class TaskController {
         }
         Task task = new Task();
         task.setCreatedAt(new Date());
-        task.setDeadline(taskRequest.getDeadline().orElse(null));
-        task.setEstimatedDate(taskRequest.getEstimatedDate().orElse(null));
+        if (taskRequest.getDeadline() != null) {
+            task.setDeadline(taskRequest.getDeadline().orElse(null));
+        }
+        if (taskRequest.getEstimatedDate() != null) {
+            task.setEstimatedDate(taskRequest.getEstimatedDate().orElse(null));
+        }
         task.setDescription(taskRequest.getDescription().get());
         task.setName(taskRequest.getName().get());
         // TODO sprint update
