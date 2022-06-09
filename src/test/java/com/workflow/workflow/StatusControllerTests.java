@@ -74,8 +74,10 @@ public class StatusControllerTests {
 
     @BeforeAll
     void init() {
-        user = userRepository.findById(1L)
-                .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email", "Password")));
+        this.user = userRepository.findByUsername("Username");
+        if (this.user == null) {
+            this.user = userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1"));
+        }
         session = new UserSession();
         session.setIp("127.0.0.1");
         session.setSession("session_token_projects_tests");

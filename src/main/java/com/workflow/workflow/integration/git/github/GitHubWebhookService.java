@@ -45,7 +45,7 @@ public class GitHubWebhookService {
     private final TaskRepository taskRepository;
     private final GitHubTaskRepository gitTaskRepository;
     private final GitHubService service;
-    private final User systemUser;
+    private User systemUser;
 
     public GitHubWebhookService(GitHubInstallationRepository installationRepository,
             GitHubIntegrationRepository integrationRepository, TaskRepository taskRepository,
@@ -55,7 +55,10 @@ public class GitHubWebhookService {
         this.taskRepository = taskRepository;
         this.gitTaskRepository = gitHubTaskRepository;
         this.service = service;
-        this.systemUser = userRepository.findById(1L).orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1"))); // TODO: change to system user.
+        this.systemUser = userRepository.findByUsername("Username"); // TODO change system user
+        if (this.systemUser == null) {
+            this.systemUser = userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1"));
+        }
     }
 
     @Value("${githubKey}")

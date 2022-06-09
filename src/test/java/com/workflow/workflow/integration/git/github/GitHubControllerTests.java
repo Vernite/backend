@@ -115,12 +115,18 @@ public class GitHubControllerTests {
 
         integrationRepository.deleteAll();
         installationRepository.deleteAll();
-        user = userRepository.findById(1L)
-                .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1")));
-        otherUser = userRepository.findById(2L)
-                .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username2", "Email2@test.pl", "2")));
-        noUser = userRepository.findById(3L)
-                .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username3", "Email3@test.pl", "3")));
+        this.user = userRepository.findByUsername("Username");
+        if (this.user == null) {
+            this.user = userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1"));
+        }
+        this.otherUser = userRepository.findByUsername("Username2");
+        if (this.otherUser == null) {
+            this.otherUser = userRepository.save(new User("Name", "Surname", "Username2", "Email2@test.pl", "1"));
+        }
+        this.noUser = userRepository.findByUsername("Username3");
+        if (this.noUser == null) {
+            this.noUser = userRepository.save(new User("Name", "Surname", "Username3", "Email3@test.pl", "1"));
+        }
         project = projectRepository.save(new Project("NAME"));
         statuses[0] = statusRepository.save(new Status("NAME", 1, false, true, 0, project));
         statuses[1] = statusRepository.save(new Status("NAME", 1, true, false, 1, project));

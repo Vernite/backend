@@ -6,15 +6,22 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import java.time.Instant;
 import java.util.Date;
 
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
+
 import com.workflow.workflow.integration.git.github.data.GitHubRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.user.User;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-
 @SpringBootTest
+@AutoConfigureMockMvc
+@TestInstance(Lifecycle.PER_CLASS)
+@TestPropertySource({ "classpath:application.properties", "classpath:application-test.properties" })
 public class EntitiesTests {
     @Test
     void gitHubTaskTests() {

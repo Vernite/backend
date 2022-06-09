@@ -49,7 +49,7 @@ public class ProjectControllerTests {
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private UserSessionRepository sessionRepository;
+    private UserSessionRepository userSessionRepository;
     @Autowired
     private ProjectRepository projectRepository;
     @Autowired
@@ -63,8 +63,10 @@ public class ProjectControllerTests {
 
     @BeforeAll
     void init() {
-        user = userRepository.findById(1L)
-                .orElseGet(() -> userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1")));
+        this.user = userRepository.findByUsername("Username");
+        if (this.user == null) {
+            this.user = userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1"));
+        }
         session = new UserSession();
         session.setIp("127.0.0.1");
         session.setSession("session_token_projects_tests");
@@ -73,9 +75,9 @@ public class ProjectControllerTests {
         session.setUserAgent("userAgent");
         session.setUser(user);
         try {
-            session = sessionRepository.save(session);
+            session = userSessionRepository.save(session);
         } catch (DataIntegrityViolationException e) {
-            session = sessionRepository.findBySession("session_token_projects_tests").orElseThrow();
+            session = userSessionRepository.findBySession("session_token_projects_tests").orElseThrow();
         }
         workspace = workspaceRepository.save(new Workspace(1, user, "Project Tests"));
     }
