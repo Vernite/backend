@@ -89,9 +89,9 @@ public class GitTaskService {
     /**
      * Connects given task with pull request from git service.
      * 
-     * @param task  must not be {@literal null}; must be entity from database.
-     * @param issue must not be {@literal null}; must be returned by
-     *              getPullRequests.
+     * @param task        must not be {@literal null}; must be entity from database.
+     * @param pullRequest must not be {@literal null}; must be returned by
+     *                    getPullRequests.
      * @return Mono with connected pull request.
      */
     public Mono<PullRequest> connectPullRequest(Task task, PullRequest pullRequest) {
