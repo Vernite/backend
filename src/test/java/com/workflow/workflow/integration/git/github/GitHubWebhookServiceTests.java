@@ -31,6 +31,7 @@ import com.workflow.workflow.user.UserRepository;
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -91,6 +92,14 @@ public class GitHubWebhookServiceTests {
         statuses[1] = statusRepository.save(new Status("NAME", 1, true, false, 1, project));
         installation = installationRepository.save(new GitHubInstallation(1, user, "username"));
         integration = integrationRepository.save(new GitHubIntegration(project, installation, "username/repo"));
+    }
+
+    @BeforeEach
+    void ensureUser() {
+        User systemUser = userRepository.findByUsername("Username"); // TODO change system user
+        if (systemUser == null) {
+            systemUser = userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1"));
+        }
     }
 
     @Test
@@ -154,105 +163,89 @@ public class GitHubWebhookServiceTests {
                 .expectStatus().isOk();
     }
 
-// it doesn't work:   
-// 2022-06-09 18:37:32.318  WARN 98812 --- [           main] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 1452, SQLState: 23000
-// 2022-06-09 18:37:32.318 ERROR 98812 --- [           main] o.h.engine.jdbc.spi.SqlExceptionHelper   : Cannot add or update a child row: a foreign key constraint fails (`workflow_test`.`task`, CONSTRAINT `fk_task_user` FOREIGN KEY (`created_by`) REFERENCES `user` (`id`) ON DELETE CASCADE)
-// [ERROR] Tests run: 8, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 9.44 s <<< FAILURE! - in com.workflow.workflow.integration.git.github.GitHubWebhookServiceTests
-// [ERROR] githubSuccessIssues  Time elapsed: 0.368 s  <<< ERROR!
-// org.springframework.web.reactive.function.client.WebClientRequestException: Request processing failed; nested exception is org.springframework.dao.DataIntegrityViolationException: could not execute statement; SQL [n/a]; constraint [null]; nested exception is org.hibernate.exception.ConstraintViolationException: could not execute statement; nested exception is org.springframework.web.util.NestedServletException: Request processing failed; nested exception is org.springframework.dao.DataIntegrityViolationException: could not execute statement; SQL [n/a]; constraint [null]; nested exception is org.hibernate.exception.ConstraintViolationException: could not execute statement
-//         at com.workflow.workflow.integration.git.github.GitHubWebhookServiceTests.githubSuccessIssues(GitHubWebhookServiceTests.java:168)
-// Caused by: org.springframework.web.util.NestedServletException: Request processing failed; nested exception is org.springframework.dao.DataIntegrityViolationException: could not execute statement; SQL [n/a]; constraint [null]; nested exception is org.hibernate.exception.ConstraintViolationException: could not execute statement
-//         at com.workflow.workflow.integration.git.github.GitHubWebhookServiceTests.githubSuccessIssues(GitHubWebhookServiceTests.java:168)
-// Caused by: org.springframework.dao.DataIntegrityViolationException: could not execute statement; SQL [n/a]; constraint [null]; nested exception is org.hibernate.exception.ConstraintViolationException: could not execute statement
-//         at com.workflow.workflow.integration.git.github.GitHubWebhookServiceTests.githubSuccessIssues(GitHubWebhookServiceTests.java:168)
-// Caused by: org.hibernate.exception.ConstraintViolationException: could not execute statement
-//         at com.workflow.workflow.integration.git.github.GitHubWebhookServiceTests.githubSuccessIssues(GitHubWebhookServiceTests.java:168)
-// Caused by: java.sql.SQLIntegrityConstraintViolationException: Cannot add or update a child row: a foreign key constraint fails (`workflow_test`.`task`, CONSTRAINT `fk_task_user` FOREIGN KEY (`created_by`) REFERENCES `user` (`id`) ON DELETE CASCADE)
-//         at com.workflow.workflow.integration.git.github.GitHubWebhookServiceTests.githubSuccessIssues(GitHubWebhookServiceTests.java:168)
-// 
-//     @Test
-//     void githubSuccessIssues() throws JsonProcessingException {
-//         GitHubWebhookData data = new GitHubWebhookData();
-//         data.setAction("opened");
-//         data.setIssue(new GitHubIssue(1, "url", "open", "title", "body"));
-//         data.setRepository(new GitHubRepository(1, integration.getRepositoryFullName(), false));
-//         client.post().uri("/webhook/github")
-//                 .contentType(MediaType.APPLICATION_JSON)
-//                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-//                 .header("X-GitHub-Event", "issues")
-//                 .bodyValue(data)
-//                 .exchange()
-//                 .expectStatus().isOk();
-//         client.post().uri("/webhook/github")
-//                 .contentType(MediaType.APPLICATION_JSON)
-//                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-//                 .header("X-GitHub-Event", "issues")
-//                 .bodyValue(data)
-//                 .exchange()
-//                 .expectStatus().isOk();
-//         assertEquals("title",
-//                 gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).get(0).getTask().getName());
-//         assertEquals(1, gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).size());
+    @Test
+    void githubSuccessIssues() throws JsonProcessingException {
+        GitHubWebhookData data = new GitHubWebhookData();
+        data.setAction("opened");
+        data.setIssue(new GitHubIssue(1, "url", "open", "title", "body"));
+        data.setRepository(new GitHubRepository(1, integration.getRepositoryFullName(), false));
+        client.post().uri("/webhook/github")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
+                .header("X-GitHub-Event", "issues")
+                .bodyValue(data)
+                .exchange()
+                .expectStatus().isOk();
+        client.post().uri("/webhook/github")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
+                .header("X-GitHub-Event", "issues")
+                .bodyValue(data)
+                .exchange()
+                .expectStatus().isOk();
+        assertEquals("title",
+                gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).get(0).getTask().getName());
+        assertEquals(1, gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).size());
 
-//         data.setAction("labeled");
-//         data.setIssue(new GitHubIssue(1, "url", "open", "title 2", "body"));
-//         client.post().uri("/webhook/github")
-//                 .contentType(MediaType.APPLICATION_JSON)
-//                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-//                 .header("X-GitHub-Event", "issues")
-//                 .bodyValue(data)
-//                 .exchange()
-//                 .expectStatus().isOk();
+        data.setAction("labeled");
+        data.setIssue(new GitHubIssue(1, "url", "open", "title 2", "body"));
+        client.post().uri("/webhook/github")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
+                .header("X-GitHub-Event", "issues")
+                .bodyValue(data)
+                .exchange()
+                .expectStatus().isOk();
 
-//         data.setAction("edited");
-//         data.setIssue(new GitHubIssue(1, "url", "open", "title 2", "body"));
-//         client.post().uri("/webhook/github")
-//                 .contentType(MediaType.APPLICATION_JSON)
-//                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-//                 .header("X-GitHub-Event", "issues")
-//                 .bodyValue(data)
-//                 .exchange()
-//                 .expectStatus().isOk();
-//         assertEquals("title 2", gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).get(0)
-//                 .getTask().getName());
+        data.setAction("edited");
+        data.setIssue(new GitHubIssue(1, "url", "open", "title 2", "body"));
+        client.post().uri("/webhook/github")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
+                .header("X-GitHub-Event", "issues")
+                .bodyValue(data)
+                .exchange()
+                .expectStatus().isOk();
+        assertEquals("title 2", gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).get(0)
+                .getTask().getName());
 
-//         data.setAction("closed");
-//         data.setIssue(new GitHubIssue(1, "url", "closed", "title 2", "body"));
-//         client.post().uri("/webhook/github")
-//                 .contentType(MediaType.APPLICATION_JSON)
-//                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-//                 .header("X-GitHub-Event", "issues")
-//                 .bodyValue(data)
-//                 .exchange()
-//                 .expectStatus().isOk();
-//         assertEquals(statuses[1].getId(),
-//                 gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).get(0)
-//                         .getTask().getStatus().getId());
+        data.setAction("closed");
+        data.setIssue(new GitHubIssue(1, "url", "closed", "title 2", "body"));
+        client.post().uri("/webhook/github")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
+                .header("X-GitHub-Event", "issues")
+                .bodyValue(data)
+                .exchange()
+                .expectStatus().isOk();
+        assertEquals(statuses[1].getId(),
+                gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).get(0)
+                        .getTask().getStatus().getId());
 
-//         data.setAction("reopened");
-//         data.setIssue(new GitHubIssue(1, "url", "open", "title 2", "body"));
-//         client.post().uri("/webhook/github")
-//                 .contentType(MediaType.APPLICATION_JSON)
-//                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-//                 .header("X-GitHub-Event", "issues")
-//                 .bodyValue(data)
-//                 .exchange()
-//                 .expectStatus().isOk();
-//         assertEquals(statuses[0].getId(),
-//                 gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).get(0)
-//                         .getTask().getStatus().getId());
+        data.setAction("reopened");
+        data.setIssue(new GitHubIssue(1, "url", "open", "title 2", "body"));
+        client.post().uri("/webhook/github")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
+                .header("X-GitHub-Event", "issues")
+                .bodyValue(data)
+                .exchange()
+                .expectStatus().isOk();
+        assertEquals(statuses[0].getId(),
+                gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).get(0)
+                        .getTask().getStatus().getId());
 
-//         data.setAction("deleted");
-//         data.setIssue(new GitHubIssue(1, "url", "open", "title 2", "body"));
-//         client.post().uri("/webhook/github")
-//                 .contentType(MediaType.APPLICATION_JSON)
-//                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-//                 .header("X-GitHub-Event", "issues")
-//                 .bodyValue(data)
-//                 .exchange()
-//                 .expectStatus().isOk();
-//         assertEquals(0, gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).size());
-//     }
+        data.setAction("deleted");
+        data.setIssue(new GitHubIssue(1, "url", "open", "title 2", "body"));
+        client.post().uri("/webhook/github")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
+                .header("X-GitHub-Event", "issues")
+                .bodyValue(data)
+                .exchange()
+                .expectStatus().isOk();
+        assertEquals(0, gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).size());
+    }
 
     @Test
     void githubSuccessPush() throws JsonProcessingException {

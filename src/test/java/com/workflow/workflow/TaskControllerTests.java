@@ -94,7 +94,7 @@ public class TaskControllerTests {
         try {
             session = sessionRepository.save(session);
         } catch (DataIntegrityViolationException e) {
-            session = sessionRepository.findBySession("session_token_projects_tests").orElseThrow();
+            session = sessionRepository.findBySession("session_token_tasks_tests").orElseThrow();
         }
         project = projectRepository.save(new Project("Tasks project"));
         forbiddenProject = projectRepository.save(new Project("Tasks project forbidden"));
