@@ -416,7 +416,7 @@ public class GitHubService {
      */
     private Flux<GitHubIssue> apiGetRepositoryIssues(GitHubInstallation installation, GitHubIntegration integration) {
         return client.get()
-                .uri("/repo/{owner}/{repo}/issues", integration.getRepositoryOwner(), integration.getRepositoryName())
+                .uri("/repos/{owner}/{repo}/issues", integration.getRepositoryOwner(), integration.getRepositoryName())
                 .header(AUTHORIZATION, BEARER + installation.getToken())
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
                 .retrieve()
@@ -503,7 +503,7 @@ public class GitHubService {
     private Flux<GitHubPullRequest> apiGetRepositoryPulls(GitHubInstallation installation,
             GitHubIntegration integration) {
         return client.get()
-                .uri("/repo/{owner}/{repo}/pulls", integration.getRepositoryOwner(), integration.getRepositoryName())
+                .uri("/repos/{owner}/{repo}/pulls", integration.getRepositoryOwner(), integration.getRepositoryName())
                 .header(AUTHORIZATION, BEARER + installation.getToken())
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
                 .retrieve()
