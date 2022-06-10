@@ -30,8 +30,10 @@ public class AuthControllerTests {
     
     @Autowired
     private WebTestClient client;
+
     @Autowired
     private UserSessionRepository userSessionRepository;
+
     @Autowired
     private UserRepository userRepository;
     
@@ -118,6 +120,12 @@ public class AuthControllerTests {
         
         changePasswordRequest.setNewPassword("newPassword");
         client.post().uri("/auth/password/change").cookie(AuthController.COOKIE_NAME, cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(changePasswordRequest)
+                .exchange()
+                .expectStatus().isOk();
+
+        client.post().uri("/auth/logout").cookie(AuthController.COOKIE_NAME, cookie)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(changePasswordRequest)
                 .exchange()
