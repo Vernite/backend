@@ -40,7 +40,7 @@ public class AuthControllerTests {
     @BeforeEach
     void reset() {
         userSessionRepository.deleteAll();
-        userRepository.deleteAll();
+        userRepository.deleteAllByEmailNot("wflow1337@gmail.com");
     }
 
     @Test

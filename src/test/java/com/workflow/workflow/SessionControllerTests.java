@@ -2,7 +2,6 @@ package com.workflow.workflow;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -21,7 +20,6 @@ import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.user.UserSession;
 import com.workflow.workflow.user.UserSessionRepository;
 import com.workflow.workflow.user.auth.AuthController;
-import com.workflow.workflow.user.auth.ChangePasswordRequest;
 import com.workflow.workflow.user.auth.LoginRequest;
 
 @SpringBootTest
@@ -42,7 +40,7 @@ public class SessionControllerTests {
     @BeforeEach
     void reset() {
         userSessionRepository.deleteAll();
-        userRepository.deleteAll();
+        userRepository.deleteAllByEmailNot("wflow1337@gmail.com");
     }
 
     
