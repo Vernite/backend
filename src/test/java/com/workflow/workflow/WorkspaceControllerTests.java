@@ -374,7 +374,7 @@ public class WorkspaceControllerTests {
         assertEquals(true, workspace.compareTo(other) < 0);
 
         assertEquals(true, workspace.equals(workspace));
-        assertEquals(false, workspace.equals(Long.valueOf(1)));
+        assertEquals(false, workspace.equals((Object) Long.valueOf(1)));
         assertEquals(true, workspace.hashCode() == workspace.hashCode());
         assertEquals(false, workspace.equals(null));
 
@@ -407,7 +407,7 @@ public class WorkspaceControllerTests {
         key.setUserId(0);
         other2.setId(key);
 
-        assertEquals(false, key.equals(Long.valueOf(1)));
+        assertEquals(false, key.equals((Object) Long.valueOf(1)));
 
         assertEquals(false, workspace.equals(other2));
         assertEquals(true, workspace.compareTo(other2) > 0);
