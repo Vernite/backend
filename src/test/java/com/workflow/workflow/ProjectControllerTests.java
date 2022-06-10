@@ -657,7 +657,7 @@ public class ProjectControllerTests {
         Project other = new Project("other");
 
         assertEquals(false, project.equals(null));
-        assertEquals(false, project.equals("name"));
+        assertEquals(false, project.equals((Object) "name"));
         assertEquals(false, project.equals(other));
         assertEquals(true, project.compareTo(other) < 0);
 
@@ -699,7 +699,7 @@ public class ProjectControllerTests {
         ProjectMember other = new ProjectMember(user, 1L);
 
         assertEquals(false, member.equals(null));
-        assertEquals(false, member.equals("name"));
+        assertEquals(false, member.equals((Object) "name"));
         assertEquals(true, member.equals(other));
 
         other = new ProjectMember(user, 2L);
@@ -736,7 +736,7 @@ public class ProjectControllerTests {
         ProjectWithPrivileges opwp = new ProjectWithPrivileges(other, 1L);
 
         assertEquals(false, pwp.equals(null));
-        assertEquals(false, pwp.equals("name"));
+        assertEquals(false, pwp.equals((Object) "name"));
         assertEquals(false, pwp.equals(opwp));
         assertEquals(true, pwp.compareTo(opwp) < 0);
         assertNotEquals(pwp.hashCode(), opwp.hashCode());
@@ -765,7 +765,7 @@ public class ProjectControllerTests {
         ProjectWorkspace opwp = new ProjectWorkspace(other, workspace, 1L);
 
         assertEquals(false, pwp.equals(null));
-        assertEquals(false, pwp.equals("name"));
+        assertEquals(false, pwp.equals((Object) "name"));
         assertEquals(false, pwp.equals(opwp));
         assertNotEquals(pwp.hashCode(), opwp.hashCode());
 
@@ -790,7 +790,7 @@ public class ProjectControllerTests {
         ProjectWorkspaceKey key = new ProjectWorkspaceKey(workspace, project);
 
         assertEquals(false, key.equals(null));
-        assertEquals(false, key.equals("name"));
+        assertEquals(false, key.equals((Object) "name"));
         assertEquals(0, key.compareTo(key));
         assertEquals(true, key.compareTo(new ProjectWorkspaceKey(workspace, other)) < 0);
 

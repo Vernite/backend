@@ -16,7 +16,10 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.user.UserSessionRepository;
+import com.workflow.workflow.user.auth.AuthController;
+import com.workflow.workflow.user.auth.ChangePasswordRequest;
 import com.workflow.workflow.user.auth.LoginRequest;
+import com.workflow.workflow.user.auth.PasswordRecoveryRequest;
 import com.workflow.workflow.user.auth.RegisterRequest;
 
 @SpringBootTest
@@ -65,7 +68,7 @@ public class AuthControllerTests {
     }
 
     @Test
-    void loginByEmail() {
+    void loginByEmailAndChangePassword() {
         User u = new User("name", "surname", "username2", "email@127.0.0.1", "password");
         User registeredUser = userRepository.save(u);
 
@@ -74,7 +77,7 @@ public class AuthControllerTests {
         req.setPassword("password");
         req.setRemember(true);
 
-        client.post()
+        String cookie = client.post()
                 .uri("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(req)
@@ -87,7 +90,52 @@ public class AuthControllerTests {
                     assertEquals(registeredUser.getName(), user.getName());
                     assertEquals(registeredUser.getSurname(), user.getSurname());
                     assertEquals(registeredUser.getEmail(), user.getEmail());
-                });
+                })
+                .returnResult().getResponseCookies().getFirst(AuthController.COOKIE_NAME).getValue();
+        client.post()
+                .uri("/auth/login")
+                .cookie(AuthController.COOKIE_NAME, cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(req)
+                .exchange()
+                .expectStatus().isForbidden();
+        ChangePasswordRequest changePasswordRequest = new ChangePasswordRequest();
+        changePasswordRequest.setOldPassword("badPassword");
+        changePasswordRequest.setNewPassword("newPassword");
+        client.post().uri("/auth/password/change").cookie(AuthController.COOKIE_NAME, cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(changePasswordRequest)
+                .exchange()
+                .expectStatus().isNotFound();
+        
+        changePasswordRequest.setOldPassword("password");
+        changePasswordRequest.setNewPassword("");
+        client.post().uri("/auth/password/change").cookie(AuthController.COOKIE_NAME, cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(changePasswordRequest)
+                .exchange()
+                .expectStatus().isBadRequest();
+        
+        changePasswordRequest.setNewPassword("newPassword");
+        client.post().uri("/auth/password/change").cookie(AuthController.COOKIE_NAME, cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(changePasswordRequest)
+                .exchange()
+                .expectStatus().isOk();
+    }
+
+    @Test
+    void resetPassword() {
+        User u = new User("name", "surname", "username2", "email@127.0.0.1", "password");
+        userRepository.save(u);
+
+        PasswordRecoveryRequest req = new PasswordRecoveryRequest();
+        req.setEmail("email@127.0.0.1");
+        client.post().uri("/auth/password/recover")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(req)
+                .exchange()
+                .expectStatus().isOk();
     }
 
     @Test

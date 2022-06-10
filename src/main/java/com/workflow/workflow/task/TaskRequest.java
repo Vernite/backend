@@ -3,6 +3,9 @@ package com.workflow.workflow.task;
 import java.util.Date;
 import java.util.Optional;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.workflow.workflow.status.Status;
@@ -38,6 +41,14 @@ public class TaskRequest {
     }
 
     public void setName(String name) {
+        if (name != null) {
+            name = name.trim();
+            if (name.isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name cannot be empty");
+            } else if (name.length() > 50) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name cannot be longer than 50 characters");
+            }
+        }
         this.name = Optional.ofNullable(name);
     }
 
@@ -54,6 +65,9 @@ public class TaskRequest {
     }
 
     public void setDescription(String description) {
+        if (description != null) {
+            description = description.trim();
+        }
         this.description = Optional.ofNullable(description);
     }
 
