@@ -101,6 +101,7 @@ public class Task extends SoftDeleteEntity {
 
     @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToMany(mappedBy = "parentTask")
+    @Where(clause = "active is null")
     private Set<Task> subTasks = new HashSet<>();
 
     private Date deadline;
