@@ -569,7 +569,7 @@ public class GitHubService {
     private Mono<GitHubPullRequest> apiGetRepositoryPull(GitHubInstallation installation,
             GitHubIntegration integration, long pull) {
         return client.get()
-                .uri("/repo/{owner}/{repo}/pulls/{id}", integration.getRepositoryOwner(),
+                .uri("/repos/{owner}/{repo}/pulls/{id}", integration.getRepositoryOwner(),
                         integration.getRepositoryName(), pull)
                 .header(AUTHORIZATION, BEARER + installation.getToken())
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
