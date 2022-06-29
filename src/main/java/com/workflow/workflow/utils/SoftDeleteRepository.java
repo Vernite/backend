@@ -26,7 +26,7 @@ public interface SoftDeleteRepository<T extends SoftDeleteEntity, I> extends Not
      * @param id must not be {@literal null}
      * @return the entity with the given id.
      * @throws IllegalArgumentException if {@literal id} is {@literal null}.
-     * @throws ResponseStatusException  if entity with given id is not found or is
+     * @throws ObjectNotFoundException  if entity with given id is not found or is
      *                                  soft deleted.
      */
     @Override

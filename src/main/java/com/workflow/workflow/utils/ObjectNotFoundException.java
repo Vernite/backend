@@ -5,8 +5,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Creates an exception that returns an object not found on the output.
- * 
- * @return the exception with message "Object not found".
+ * it extends the exception with message "Object not found".
  */
 public class ObjectNotFoundException extends ResponseStatusException {
     public ObjectNotFoundException() {

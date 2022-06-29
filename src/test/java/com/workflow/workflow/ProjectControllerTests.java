@@ -241,7 +241,7 @@ public class ProjectControllerTests {
                 .expectStatus().isBadRequest();
 
         request.setName("");
-        client.post().uri("/project")
+        client.put().uri("/project/{id}", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -342,6 +342,29 @@ public class ProjectControllerTests {
 
         assertEquals(1, workspaceRepository.findByIdOrThrow(workspace2.getId()).getProjectsWithPrivileges().size());
         assertEquals(0, workspaceRepository.findByIdOrThrow(workspace.getId()).getProjectsWithPrivileges().size());
+
+        Workspace inbox = workspaceRepository.save(new Workspace(0, user, "inbox"));
+
+        Project project2 = projectRepository.save(new Project("DELETE"));
+        Project project3 = projectRepository.save(new Project("DELETE"));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project2, inbox, 1L));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project3, inbox, 1L));
+
+        client.put().uri("/project/{id}/workspace/{wId}", project2.getId(), workspace2.getId().getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isOk();
+
+        assertEquals(1, workspaceRepository.findByIdOrThrow(inbox.getId()).getProjectsWithPrivileges().size());
+
+        client.put().uri("/project/{id}/workspace/{wId}", project3.getId(), workspace2.getId().getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange()
+                .expectStatus().isOk();
+
+        assertEquals(false, workspaceRepository.findById(inbox.getId()).isPresent());
+
+        assertEquals(3, workspaceRepository.findByIdOrThrow(workspace2.getId()).getProjectsWithPrivileges().size());
     }
 
     @Test
@@ -634,7 +657,7 @@ public class ProjectControllerTests {
         Project other = new Project("other");
 
         assertEquals(false, project.equals(null));
-        assertEquals(false, project.equals("name"));
+        assertEquals(false, project.equals((Object) "name"));
         assertEquals(false, project.equals(other));
         assertEquals(true, project.compareTo(other) < 0);
 
@@ -676,7 +699,7 @@ public class ProjectControllerTests {
         ProjectMember other = new ProjectMember(user, 1L);
 
         assertEquals(false, member.equals(null));
-        assertEquals(false, member.equals("name"));
+        assertEquals(false, member.equals((Object) "name"));
         assertEquals(true, member.equals(other));
 
         other = new ProjectMember(user, 2L);
@@ -713,7 +736,7 @@ public class ProjectControllerTests {
         ProjectWithPrivileges opwp = new ProjectWithPrivileges(other, 1L);
 
         assertEquals(false, pwp.equals(null));
-        assertEquals(false, pwp.equals("name"));
+        assertEquals(false, pwp.equals((Object) "name"));
         assertEquals(false, pwp.equals(opwp));
         assertEquals(true, pwp.compareTo(opwp) < 0);
         assertNotEquals(pwp.hashCode(), opwp.hashCode());
@@ -742,7 +765,7 @@ public class ProjectControllerTests {
         ProjectWorkspace opwp = new ProjectWorkspace(other, workspace, 1L);
 
         assertEquals(false, pwp.equals(null));
-        assertEquals(false, pwp.equals("name"));
+        assertEquals(false, pwp.equals((Object) "name"));
         assertEquals(false, pwp.equals(opwp));
         assertNotEquals(pwp.hashCode(), opwp.hashCode());
 
@@ -767,7 +790,7 @@ public class ProjectControllerTests {
         ProjectWorkspaceKey key = new ProjectWorkspaceKey(workspace, project);
 
         assertEquals(false, key.equals(null));
-        assertEquals(false, key.equals("name"));
+        assertEquals(false, key.equals((Object) "name"));
         assertEquals(0, key.compareTo(key));
         assertEquals(true, key.compareTo(new ProjectWorkspaceKey(workspace, other)) < 0);
 

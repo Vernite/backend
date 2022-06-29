@@ -251,6 +251,7 @@ public class AuthController {
         createSession(request, response, u, false);
         SimpleMailMessage msg = new SimpleMailMessage();
         msg.setTo(req.getEmail());
+        msg.setFrom("wflow1337@gmail.com");
         // TODO activation link
         msg.setSubject("Dziękujemy za rejestrację");
         msg.setText("Cześć, " + req.getName() + "!\nDziękujemy za zarejestrowanie się w naszym serwisie");
@@ -276,11 +277,14 @@ public class AuthController {
     @ApiResponse(responseCode = "404", description = "Old password is incorrect.", content = @Content())
     @PostMapping("/password/change")
     public void changePassword(@NotNull @Parameter(hidden = true) User loggedUser, @RequestBody ChangePasswordRequest req) {
-        if (req.getOldPassword() == null) {
+        if (req.getOldPassword() == null || req.getOldPassword().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing old password");
         }
-        if (req.getNewPassword() == null) {
+        if (req.getNewPassword() == null || req.getNewPassword().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing new password");
+        }
+        if (req.getNewPassword().length() < 8) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "password too short");
         }
         if (!loggedUser.checkPassword(req.getOldPassword())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "old password is incorrect");
@@ -319,6 +323,7 @@ public class AuthController {
         }
         SimpleMailMessage msg = new SimpleMailMessage();
         msg.setTo(req.getEmail());
+        msg.setFrom("wflow1337@gmail.com");
         msg.setSubject("Zapomniałeś hasła?");
         msg.setText("Cześć, " + u.getName()
                 + "!\nJeśli zapomniałeś hasła to wejdź w link: https://workflow.adiantek.ovh/pl-PL/auth/set-new-password?token="

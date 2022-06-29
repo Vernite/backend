@@ -57,7 +57,7 @@ public class GitHubWebhookService {
         this.service = service;
         this.systemUser = userRepository.findByUsername("Username"); // TODO change system user
         if (this.systemUser == null) {
-            this.systemUser = userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1"));
+            this.systemUser = userRepository.save(new User("Name", "Surname", "Username", "wflow1337@gmail.com", "1"));
         }
     }
 
