@@ -18,6 +18,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
+import javax.persistence.OrderBy;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -102,6 +103,7 @@ public class Task extends SoftDeleteEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToMany(mappedBy = "parentTask")
     @Where(clause = "active is null")
+    @OrderBy("name, id")
     private Set<Task> subTasks = new HashSet<>();
 
     private Date deadline;
