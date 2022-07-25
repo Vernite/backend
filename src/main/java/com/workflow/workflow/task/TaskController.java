@@ -86,7 +86,8 @@ public class TaskController {
     @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content())
     @ApiResponse(responseCode = "404", description = "Project or status not found.", content = @Content())
     @PostMapping
-    public Mono<Task> add(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @RequestBody TaskRequest taskRequest) {
+    public Mono<Task> add(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @RequestBody TaskRequest taskRequest) {
         if (taskRequest.getName() == null || taskRequest.getName().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing name");
         }
@@ -136,7 +137,8 @@ public class TaskController {
                 Task parentTask = taskRepository.findByIdOrThrow(taskRequest.getParentTaskId().get());
                 if (parentTask.getParentTask() != null) {
                     // TODO normal response status
-                    throw new ResponseStatusException(HttpStatus.I_AM_A_TEAPOT, "parent task cant be subtask of another task or there will be possibility of cycle");
+                    throw new ResponseStatusException(HttpStatus.I_AM_A_TEAPOT,
+                            "parent task cant be subtask of another task or there will be possibility of cycle");
                 }
                 task.setParentTask(parentTask);
             }
@@ -145,6 +147,17 @@ public class TaskController {
         if (taskRequest.getCreateIssue().isPresent() && taskRequest.getCreateIssue().get()) {
             return service.createIssue(task).then().thenReturn(task);
         } else {
+            if (taskRequest.getIssue() != null) {
+                switch (taskRequest.getIssue()) {
+                    case ATTACH:
+                        return service.connectIssue(task, taskRequest.getIssue().getIssue())
+                                .switchIfEmpty(Mono.error(ObjectNotFoundException::new)).thenReturn(task);
+                    case CREATE:
+                        return service.createIssue(task).then().thenReturn(task);
+                    case DETACH:
+                        service.deleteIssue(task);
+                }
+            }
             return Mono.just(task);
         }
     }
@@ -155,7 +168,8 @@ public class TaskController {
     })
     @ApiResponse(responseCode = "404", description = "Task or status with given ID not found.", content = @Content())
     @PutMapping("/{id}")
-    public Mono<Task> put(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long id, @RequestBody TaskRequest taskRequest) {
+    public Mono<Task> put(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long id, @RequestBody TaskRequest taskRequest) {
         Task task = taskRepository.findByIdOrThrow(id);
         if (task.getStatus().getProject().member(user) == -1 || task.getStatus().getProject().getId() != projectId) {
             throw new ObjectNotFoundException();
@@ -202,12 +216,24 @@ public class TaskController {
                 Task parentTask = taskRepository.findByIdOrThrow(taskRequest.getParentTaskId().get());
                 if (parentTask.getParentTask() != null) {
                     // TODO normal response status
-                    throw new ResponseStatusException(HttpStatus.I_AM_A_TEAPOT, "parent task cant be subtask of another task or there will be possibility of cycle");
+                    throw new ResponseStatusException(HttpStatus.I_AM_A_TEAPOT,
+                            "parent task cant be subtask of another task or there will be possibility of cycle");
                 }
                 task.setParentTask(parentTask);
             }
         }
         taskRepository.save(task);
+        if (taskRequest.getIssue() != null) {
+            switch (taskRequest.getIssue()) {
+                case ATTACH:
+                    return service.connectIssue(task, taskRequest.getIssue().getIssue())
+                            .switchIfEmpty(Mono.error(ObjectNotFoundException::new)).thenReturn(task);
+                case CREATE:
+                    return service.createIssue(task).then().thenReturn(task);
+                case DETACH:
+                    service.deleteIssue(task);
+            }
+        }
         return service.patchIssue(task).then().thenReturn(task);
     }
 
@@ -215,7 +241,8 @@ public class TaskController {
     @ApiResponse(responseCode = "200", description = "Task with given ID has been deleted.")
     @ApiResponse(responseCode = "404", description = "Project or task with given ID not found.")
     @DeleteMapping("/{id}")
-    public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long id) {
+    public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long id) {
         Task task = taskRepository.findByIdOrThrow(id);
         if (task.getStatus().getProject().member(user) == -1 || task.getStatus().getProject().getId() != projectId) {
             throw new ObjectNotFoundException();

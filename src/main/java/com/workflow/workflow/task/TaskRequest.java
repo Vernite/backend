@@ -8,7 +8,12 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.workflow.workflow.integration.git.IssueAction;
+import com.workflow.workflow.integration.git.IssueActionDeserializer;
 import com.workflow.workflow.status.Status;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @JsonInclude(Include.NON_NULL)
 public class TaskRequest {
@@ -21,13 +26,18 @@ public class TaskRequest {
     private Optional<Integer> type;
     private Optional<Date> deadline;
     private Optional<Date> estimatedDate;
+    @Deprecated
     private Optional<Boolean> createIssue = Optional.of(true);
     private Optional<Long> parentTaskId;
+    @Schema(description = "Instead of word 'attach' send issue object received from other endpoint: /project/{id}/integration/git/issue")
+    @JsonDeserialize(using = IssueActionDeserializer.class)
+    private IssueAction issue;
 
     public TaskRequest() {
     }
 
-    public TaskRequest(String name, String description, Status status, Integer type, Date deadline, Date estimatedDate) {
+    public TaskRequest(String name, String description, Status status, Integer type, Date deadline,
+            Date estimatedDate) {
         this.name = Optional.of(name);
         this.description = Optional.of(description);
         this.statusId = Optional.of(status.getId());
@@ -53,11 +63,11 @@ public class TaskRequest {
     }
 
     // public Integer getSprint() {
-    //     return sprint;
+    // return sprint;
     // }
 
     // public void setSprint(Integer sprint) {
-    //     this.sprint = sprint;
+    // this.sprint = sprint;
     // }
 
     public Optional<String> getDescription() {
@@ -125,5 +135,13 @@ public class TaskRequest {
 
     public void setAssigneeId(Long assignee) {
         this.assigneeId = Optional.ofNullable(assignee);
+    }
+
+    public IssueAction getIssue() {
+        return issue;
+    }
+
+    public void setIssue(IssueAction issueAction) {
+        this.issue = issueAction;
     }
 }
