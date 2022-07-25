@@ -80,7 +80,7 @@ public class Task extends SoftDeleteEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToMany(mappedBy = "task")
     @JsonIgnore
-    @Where(clause = "is_pull_request = 0")
+    @Where(clause = "is_pull_request = 0 and active is null")
     private List<GitHubTask> issues = new ArrayList<>();
 
     @OnDelete(action = OnDeleteAction.CASCADE)
