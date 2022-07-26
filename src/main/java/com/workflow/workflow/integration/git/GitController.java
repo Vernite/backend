@@ -107,6 +107,7 @@ public class GitController {
         return service.getPullRequests(project);
     }
 
+    @Deprecated
     @Operation(summary = "Create git pull request connection to task", description = "Creates new git pull request connection with task. Otherwise uses existing git pull request.")
     @ApiResponse(description = "Connection created.", responseCode = "200", content = @Content(schema = @Schema(implementation = PullRequest.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
@@ -126,6 +127,7 @@ public class GitController {
         return service.connectPullRequest(task, pullRequest);
     }
 
+    @Deprecated
     @Operation(summary = "Delete git pull request connection to task", description = "Deletes git pull request connection with task. It does not delete pull request on git service nor it deletes task.")
     @ApiResponse(description = "Connection deleted.", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))

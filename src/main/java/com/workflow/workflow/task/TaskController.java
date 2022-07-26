@@ -9,6 +9,7 @@ import java.util.Optional;
 import javax.validation.constraints.NotNull;
 
 import com.workflow.workflow.integration.git.GitTaskService;
+import com.workflow.workflow.integration.git.PullAction;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.status.Status;
@@ -158,6 +159,14 @@ public class TaskController {
                         service.deleteIssue(task);
                 }
             }
+            if (taskRequest.getPull() != null) {
+                if (taskRequest.getPull().equals(PullAction.ATTACH)) {
+                    return service.connectPullRequest(task, taskRequest.getPull().getPullRequest())
+                            .switchIfEmpty(Mono.error(ObjectNotFoundException::new)).thenReturn(task);
+                } else {
+                    service.deletePullRequest(task);
+                }
+            }
             return Mono.just(task);
         }
     }
@@ -232,6 +241,14 @@ public class TaskController {
                     return service.createIssue(task).then().thenReturn(task);
                 case DETACH:
                     service.deleteIssue(task);
+            }
+        }
+        if (taskRequest.getPull() != null) {
+            if (taskRequest.getPull().equals(PullAction.ATTACH)) {
+                return service.connectPullRequest(task, taskRequest.getPull().getPullRequest())
+                        .switchIfEmpty(Mono.error(ObjectNotFoundException::new)).thenReturn(task);
+            } else {
+                service.deletePullRequest(task);
             }
         }
         return service.patchIssue(task).then().thenReturn(task);

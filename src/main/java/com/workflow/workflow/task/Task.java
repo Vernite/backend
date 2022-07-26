@@ -86,13 +86,13 @@ public class Task extends SoftDeleteEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToMany(mappedBy = "task")
     @JsonIgnore
-    @Where(clause = "is_pull_request = 1")
+    @Where(clause = "is_pull_request = 1 and active is null")
     private List<GitHubTask> pulls = new ArrayList<>();
 
     @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToMany(mappedBy = "task")
     @JsonIgnore
-    @Where(clause = "is_pull_request = 2")
+    @Where(clause = "is_pull_request = 2 and active is null")
     private List<GitHubTask> mergedPulls = new ArrayList<>();
 
     @JsonIgnore

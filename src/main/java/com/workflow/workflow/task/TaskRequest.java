@@ -11,6 +11,8 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.workflow.workflow.integration.git.IssueAction;
 import com.workflow.workflow.integration.git.IssueActionDeserializer;
+import com.workflow.workflow.integration.git.PullAction;
+import com.workflow.workflow.integration.git.PullActionDeserializer;
 import com.workflow.workflow.status.Status;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -32,6 +34,9 @@ public class TaskRequest {
     @Schema(description = "Instead of word 'attach' send issue object received from other endpoint: /project/{id}/integration/git/issue")
     @JsonDeserialize(using = IssueActionDeserializer.class)
     private IssueAction issue;
+    @Schema(description = "Instead of word 'attach' send pull request object received from other endpoint: /project/{id}/integration/git/pull")
+    @JsonDeserialize(using = PullActionDeserializer.class)
+    private PullAction pull;
 
     public TaskRequest() {
     }
@@ -143,5 +148,13 @@ public class TaskRequest {
 
     public void setIssue(IssueAction issueAction) {
         this.issue = issueAction;
+    }
+
+    public PullAction getPull() {
+        return pull;
+    }
+
+    public void setPull(PullAction pullAction) {
+        this.pull = pullAction;
     }
 }
