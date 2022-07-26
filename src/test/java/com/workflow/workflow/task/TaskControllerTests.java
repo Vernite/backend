@@ -1,7 +1,8 @@
-package com.workflow.workflow;
+package com.workflow.workflow.task;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.time.Instant;
 import java.util.Date;
@@ -25,11 +26,10 @@ import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
+import com.workflow.workflow.sprint.Sprint;
+import com.workflow.workflow.sprint.SprintRepository;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.status.StatusRepository;
-import com.workflow.workflow.task.Task;
-import com.workflow.workflow.task.TaskRepository;
-import com.workflow.workflow.task.TaskRequest;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.user.UserSession;
@@ -59,6 +59,8 @@ public class TaskControllerTests {
     private TaskRepository taskRepository;
     @Autowired
     private StatusRepository statusRepository;
+    @Autowired
+    private SprintRepository sprintRepository;
 
     private User user;
     private UserSession session;
@@ -195,6 +197,19 @@ public class TaskControllerTests {
                 .returnResult()
                 .getResponseBody();
         taskEquals(task, taskRepository.findByIdOrThrow(task.getId()));
+
+        request.setSprintId(
+                sprintRepository.save(new Sprint("name", new Date(), new Date(), "open", "desc", project)).getId());
+        task = client.post().uri("/project/{pId}/task", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Task.class)
+                .returnResult()
+                .getResponseBody();
+        taskEquals(task, taskRepository.findByIdOrThrow(task.getId()));
     }
 
     @Test
@@ -286,6 +301,16 @@ public class TaskControllerTests {
                 .expectStatus().isNotFound();
 
         client.post().uri("/project/666/task")
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isNotFound();
+
+        request.setSprintId(sprintRepository.save(
+                new Sprint("name", new Date(), new Date(), "open", "desc", projectRepository.save(new Project("name"))))
+                .getId());
+        client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -387,6 +412,26 @@ public class TaskControllerTests {
                 .returnResult()
                 .getResponseBody();
         taskEquals(task, result);
+
+        request.setSprintId(
+                sprintRepository.save(new Sprint("name", new Date(), new Date(), "open", "desc", project)).getId());
+        client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Task.class);
+        assertEquals(request.getSprintId().get(), taskRepository.findByIdOrThrow(task.getId()).getSprint().getId());
+        request.setSprintId(null);
+        client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Task.class);
+        assertNull(taskRepository.findByIdOrThrow(task.getId()).getSprint());
     }
 
     @Test
@@ -456,6 +501,17 @@ public class TaskControllerTests {
 
         request = new TaskRequest();
         request.setParentTaskId(666L);
+        client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isNotFound();
+
+        request.setParentTaskId(null);
+        request.setSprintId(sprintRepository.save(
+                new Sprint("name", new Date(), new Date(), "open", "desc", projectRepository.save(new Project("name"))))
+                .getId());
         client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)

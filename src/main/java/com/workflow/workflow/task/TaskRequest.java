@@ -21,7 +21,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public class TaskRequest {
 
     private Optional<String> name;
-    // private Integer sprint;
     private Optional<String> description;
     private Optional<Long> statusId;
     private Optional<Long> assigneeId;
@@ -37,6 +36,7 @@ public class TaskRequest {
     @Schema(description = "Instead of word 'attach' send pull request object received from other endpoint: /project/{id}/integration/git/pull")
     @JsonDeserialize(using = PullActionDeserializer.class)
     private PullAction pull;
+    private Optional<Long> sprintId;
 
     public TaskRequest() {
     }
@@ -66,14 +66,6 @@ public class TaskRequest {
         }
         this.name = Optional.ofNullable(name);
     }
-
-    // public Integer getSprint() {
-    // return sprint;
-    // }
-
-    // public void setSprint(Integer sprint) {
-    // this.sprint = sprint;
-    // }
 
     public Optional<String> getDescription() {
         return description;
@@ -156,5 +148,13 @@ public class TaskRequest {
 
     public void setPull(PullAction pullAction) {
         this.pull = pullAction;
+    }
+
+    public Optional<Long> getSprintId() {
+        return sprintId;
+    }
+
+    public void setSprintId(Long sprintId) {
+        this.sprintId = Optional.ofNullable(sprintId);
     }
 }

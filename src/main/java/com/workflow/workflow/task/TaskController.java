@@ -12,6 +12,8 @@ import com.workflow.workflow.integration.git.GitTaskService;
 import com.workflow.workflow.integration.git.PullAction;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
+import com.workflow.workflow.sprint.Sprint;
+import com.workflow.workflow.sprint.SprintRepository;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.status.StatusRepository;
 import com.workflow.workflow.user.User;
@@ -52,6 +54,9 @@ public class TaskController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private SprintRepository sprintRepository;
 
     @Autowired
     private GitTaskService service;
@@ -115,7 +120,13 @@ public class TaskController {
         }
         task.setDescription(taskRequest.getDescription().get());
         task.setName(taskRequest.getName().get());
-        // TODO sprint update
+        if (taskRequest.getSprintId() != null && taskRequest.getSprintId().isPresent()) {
+            Sprint sprint = sprintRepository.findByIdOrThrow(taskRequest.getSprintId().get());
+            if (sprint.getProject().getId() != projectId) {
+                throw new ObjectNotFoundException();
+            }
+            task.setSprint(sprint);
+        }
         task.setStatus(status);
         task.setType(taskRequest.getType().get());
         task.setUser(user);
@@ -210,7 +221,17 @@ public class TaskController {
                 }
             }
         }
-        // TODO sprint update
+        if (taskRequest.getSprintId() != null) {
+            if (taskRequest.getSprintId().isEmpty()) {
+                task.setSprint(null);
+            } else {
+                Sprint sprint = sprintRepository.findByIdOrThrow(taskRequest.getSprintId().get());
+                if (sprint.getProject().getId() != projectId) {
+                    throw new ObjectNotFoundException();
+                }
+                task.setSprint(sprint);
+            }
+        }
         if (taskRequest.getStatusId() != null) {
             Status newStatus = statusRepository.findByIdOrThrow(taskRequest.getStatusId().get());
             if (projectId != newStatus.getProject().getId()) {
