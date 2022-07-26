@@ -21,26 +21,26 @@ import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 public class Status extends SoftDeleteEntity {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private long id;
-    
+
     @Column(nullable = false, length = 50)
     private String name;
 
     @Column(nullable = false)
-    private Integer color;
+    private int color;
 
     @Column(nullable = false)
-    private Boolean isFinal;
+    private boolean isFinal;
 
     @Column(nullable = false)
     private boolean isBegin;
-    
+
     @Column(nullable = false)
-    private Integer ordinal;
+    private int ordinal;
 
     @JsonIgnore
     @ManyToOne
@@ -51,13 +51,18 @@ public class Status extends SoftDeleteEntity {
     public Status() {
     }
 
-    public Status(String name, Integer color, Boolean isFinal, boolean isBegin, Integer ordinal, Project project) {
+    public Status(String name, int color, boolean isFinal, boolean isBegin, int ordinal, Project project) {
         this.name = name;
         this.color = color;
         this.isFinal = isFinal;
         this.isBegin = isBegin;
         this.ordinal = ordinal;
         this.project = project;
+    }
+
+    public Status(StatusRequest request, Project project) {
+        this(request.getName(), request.getColor(), request.isFinal(), request.isBegin(), request.getOrdinal(),
+                project);
     }
 
     public long getId() {
@@ -76,19 +81,19 @@ public class Status extends SoftDeleteEntity {
         this.name = name;
     }
 
-    public Integer getColor() {
+    public int getColor() {
         return color;
     }
 
-    public void setColor(Integer color) {
+    public void setColor(int color) {
         this.color = color;
     }
 
-    public Boolean isFinal() {
+    public boolean isFinal() {
         return isFinal;
     }
 
-    public void setFinal(Boolean isFinal) {
+    public void setFinal(boolean isFinal) {
         this.isFinal = isFinal;
     }
 
@@ -100,11 +105,11 @@ public class Status extends SoftDeleteEntity {
         this.isBegin = isBegin;
     }
 
-    public Integer getOrdinal() {
+    public int getOrdinal() {
         return ordinal;
     }
 
-    public void setOrdinal(Integer ordinal) {
+    public void setOrdinal(int ordinal) {
         this.ordinal = ordinal;
     }
 
@@ -116,7 +121,7 @@ public class Status extends SoftDeleteEntity {
         this.project = project;
     }
 
-    public Status apply(Status o) {
+    public Status apply(StatusRequest o) {
         if (o.getColor() != null) {
             this.setColor(o.getColor());
         }
@@ -125,6 +130,12 @@ public class Status extends SoftDeleteEntity {
         }
         if (o.getOrdinal() != null) {
             this.setOrdinal(o.getOrdinal());
+        }
+        if (o.isBegin() != null) {
+            this.setBegin(o.isBegin());
+        }
+        if (o.isFinal() != null) {
+            this.setFinal(o.isFinal());
         }
         return this;
     }

@@ -1,14 +1,22 @@
 package com.workflow.workflow.status;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
-
 public class StatusRequest {
     private String name;
-    private int color;
-    private boolean isFinal;
-    private boolean isBegin;
-    private int ordinal;
+    private Integer color;
+    private Boolean isFinal;
+    private Boolean isBegin;
+    private Integer ordinal;
+
+    public StatusRequest() {
+    }
+
+    public StatusRequest(String name, Integer color, Boolean isFinal, Boolean isBegin, Integer ordinal) {
+        this.name = name;
+        this.color = color;
+        this.isFinal = isFinal;
+        this.isBegin = isBegin;
+        this.ordinal = ordinal;
+    }
 
     public String getName() {
         return name;
@@ -17,44 +25,39 @@ public class StatusRequest {
     public void setName(String name) {
         if (name != null) {
             name = name.trim();
-            if (name.isEmpty()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name cannot be empty");
-            } else if (name.length() > 50) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name cannot be longer than 50 characters");
-            }
         }
         this.name = name;
     }
 
-    public int getColor() {
+    public Integer getColor() {
         return color;
     }
 
-    public void setColor(int color) {
+    public void setColor(Integer color) {
         this.color = color;
     }
 
-    public boolean isFinal() {
+    public Boolean isFinal() {
         return isFinal;
     }
 
-    public void setFinal(boolean isFinal) {
+    public void setFinal(Boolean isFinal) {
         this.isFinal = isFinal;
     }
 
-    public boolean isBegin() {
+    public Boolean isBegin() {
         return isBegin;
     }
 
-    public void setBegin(boolean isBegin) {
+    public void setBegin(Boolean isBegin) {
         this.isBegin = isBegin;
     }
 
-    public int getOrdinal() {
+    public Integer getOrdinal() {
         return ordinal;
     }
 
-    public void setOrdinal(int ordinal) {
+    public void setOrdinal(Integer ordinal) {
         this.ordinal = ordinal;
     }
 

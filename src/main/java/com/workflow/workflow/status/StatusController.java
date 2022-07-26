@@ -35,7 +35,7 @@ public class StatusController {
 
     @Autowired
     private ProjectRepository projectRepository;
-    
+
     @Autowired
     private StatusRepository statusRepository;
 
@@ -56,32 +56,36 @@ public class StatusController {
     @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content())
     @ApiResponse(responseCode = "404", description = "User with given ID not found.", content = @Content())
     @PostMapping
-    public Status add(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @RequestBody Status status) {
-        if (status.getColor() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing color");
+    public Status add(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @RequestBody StatusRequest request) {
+        if (request.getColor() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "color is missing");
         }
-        if (status.getName() == null) {
+        if (request.getName() == null || request.getName().isEmpty() || request.getName().length() > 50) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing name");
         }
-        if (status.getOrdinal() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing ordinal");
+        if (request.getOrdinal() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ordinal is missing");
         }
-        if (status.isFinal() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing final");
+        if (request.isFinal() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "isFinal is missing");
+        }
+        if (request.isBegin() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "isBegin is missing");
         }
         Project project = projectRepository.findByIdOrThrow(projectId);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
         }
-        status.setProject(project);
-        return statusRepository.save(status);
+        return statusRepository.save(new Status(request, project));
     }
 
     @Operation(summary = "Get status information", description = "This method is used to retrive status with given ID. On success returns status with given ID. Throws 404 when project or status does not exist.")
     @ApiResponse(responseCode = "200", description = "Project with given ID.")
     @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
     @GetMapping("/{id}")
-    public Status get(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long id) {
+    public Status get(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long id) {
         Status status = statusRepository.findByIdOrThrow(id);
         if (status.getProject().getId() != projectId || status.getProject().member(user) == -1) {
             throw new ObjectNotFoundException();
@@ -94,21 +98,24 @@ public class StatusController {
     @ApiResponse(responseCode = "404", description = "Status or project with given ID not found.", content = @Content())
     @PutMapping("/{id}")
     public Status put(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long id,
-            @RequestBody Status request) {
+            @RequestBody StatusRequest request) {
         Status status = statusRepository.findByIdOrThrow(id);
         if (status.getProject().getId() != projectId || status.getProject().member(user) == -1) {
             throw new ObjectNotFoundException();
         }
+        if (request.getName() != null && (request.getName().isEmpty() || request.getName().length() > 50)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing name");
+        }
         status.apply(request);
-        statusRepository.save(status);
-        return status;
+        return statusRepository.save(status);
     }
 
     @Operation(summary = "Delete status", description = "This method is used to delete status. On success does not return anything. Throws 404 when status or project does not exist.")
     @ApiResponse(responseCode = "200", description = "Status with given ID has been deleted.")
     @ApiResponse(responseCode = "404", description = "Project or status with given ID not found.")
     @DeleteMapping("/{id}")
-    public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long id) {
+    public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long id) {
         Status status = statusRepository.findByIdOrThrow(id);
         if (status.getProject().getId() != projectId || status.getProject().member(user) == -1) {
             throw new ObjectNotFoundException();
