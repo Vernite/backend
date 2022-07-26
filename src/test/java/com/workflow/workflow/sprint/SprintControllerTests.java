@@ -1,7 +1,7 @@
 package com.workflow.workflow.sprint;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -340,7 +340,7 @@ public class SprintControllerTests {
         client.delete().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange().expectStatus().isOk();
-        assertFalse(sprintRepository.findById(sprint.getId()).isPresent());
+        assertNotNull(sprintRepository.findById(sprint.getId()).get().getActive());
     }
 
     @Test

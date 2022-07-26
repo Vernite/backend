@@ -1,5 +1,8 @@
 package com.workflow.workflow.sprint;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.List;
 
 import javax.validation.constraints.NotNull;
@@ -152,6 +155,7 @@ public class SprintController {
         if (sprint.getProject() != project) {
             throw new ObjectNotFoundException();
         }
-        sprintRepository.delete(sprint);
+        sprint.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
+        sprintRepository.save(sprint);
     }
 }
