@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.workflow.workflow.counter.CounterSequence;
 import com.workflow.workflow.integration.git.github.entity.GitHubIntegration;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
+import com.workflow.workflow.sprint.Sprint;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.utils.SoftDeleteEntity;
@@ -76,6 +77,12 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToOne(fetch = FetchType.LAZY, mappedBy = "project")
     private GitHubIntegration gitHubIntegration;
+
+    @JsonIgnore
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "project")
+    @Where(clause = "active is null")
+    private List<Sprint> sprints = new ArrayList<>();
 
     public Project() {
     }
@@ -185,6 +192,14 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
 
     public void setGitHubIntegration(GitHubIntegration gitHubIntegration) {
         this.gitHubIntegration = gitHubIntegration;
+    }
+
+    public List<Sprint> getSprints() {
+        return sprints;
+    }
+
+    public void setSprints(List<Sprint> sprints) {
+        this.sprints = sprints;
     }
 
     @Override

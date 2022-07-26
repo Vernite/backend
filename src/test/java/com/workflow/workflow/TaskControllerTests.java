@@ -157,7 +157,7 @@ public class TaskControllerTests {
 
     @Test
     void getAllTasksNotFound() {
-        client.get().uri("/project/666/task")
+        client.get().uri("/project/10000000/task")
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isNotFound();

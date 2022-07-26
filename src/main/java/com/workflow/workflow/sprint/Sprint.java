@@ -30,7 +30,7 @@ public class Sprint extends SoftDeleteEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
-    
+
     @Column(nullable = false, length = 50)
     private String name;
 
@@ -39,7 +39,7 @@ public class Sprint extends SoftDeleteEntity {
 
     @Column(nullable = false)
     private String status;
-    
+
     @Lob
     @Column(nullable = false)
     private String description;
@@ -54,6 +54,47 @@ public class Sprint extends SoftDeleteEntity {
     @OrderBy("name ASC")
     private List<Task> tasks;
 
+    public Sprint() {
+    }
+
+    public Sprint(String name, Date startDate, Date finishDate, String status, String description, Project project) {
+        this.name = name;
+        this.startDate = startDate;
+        this.finishDate = finishDate;
+        this.status = status;
+        this.description = description;
+        this.project = project;
+    }
+
+    public Sprint(SprintRequest request, Project project) {
+        this(request.getName(), request.getStartDate(), request.getFinishDate(), request.getStatus(),
+                request.getDescription(), project);
+    }
+
+    /**
+     * Applies changes contained in request object to workspace.
+     * 
+     * @param request must not be {@literal null}. Can contain {@literal null} in
+     *                fields. If field is {@literal null} it is assumed there is no
+     *                changes for that field.
+     */
+    public void apply(SprintRequest request) {
+        if (request.getName() != null) {
+            name = request.getName();
+        }
+        if (request.getStartDate() != null) {
+            startDate = request.getStartDate();
+        }
+        if (request.getFinishDate() != null) {
+            finishDate = request.getFinishDate();
+        }
+        if (request.getStatus() != null) {
+            status = request.getStatus();
+        }
+        if (request.getDescription() != null) {
+            description = request.getDescription();
+        }
+    }
 
     public long getId() {
         return id;
@@ -117,5 +158,23 @@ public class Sprint extends SoftDeleteEntity {
 
     public void setTasks(List<Task> tasks) {
         this.tasks = tasks;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null || getClass() != obj.getClass())
+            return false;
+        Sprint other = (Sprint) obj;
+        if (getId() != other.getId())
+            return false;
+        return getName().equals(other.getName());
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int hash = prime + Long.hashCode(getId());
+        hash = prime * hash + (getName() == null ? 0 : getName().hashCode());
+        return hash;
     }
 }
