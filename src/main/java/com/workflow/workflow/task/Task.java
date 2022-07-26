@@ -23,8 +23,8 @@ import javax.persistence.OrderBy;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.workflow.workflow.db.Sprint;
 import com.workflow.workflow.integration.git.github.entity.GitHubTask;
+import com.workflow.workflow.sprint.Sprint;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.utils.SoftDeleteEntity;
@@ -44,6 +44,7 @@ public class Task extends SoftDeleteEntity {
     @Column(nullable = false, length = 50)
     private String name;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "sprint_id", foreignKey = @ForeignKey(name = "fk_task_sprint"))
     @OnDelete(action = OnDeleteAction.CASCADE)
@@ -295,6 +296,10 @@ public class Task extends SoftDeleteEntity {
 
     public void setAssignee(User assignee) {
         this.assignee = assignee;
+    }
+
+    public Long getSprintId() {
+        return this.getSprint() == null ? null : this.getSprint().getId();
     }
 
     @Override

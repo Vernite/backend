@@ -1,23 +1,31 @@
-package com.workflow.workflow.db;
+package com.workflow.workflow.sprint;
 
 import java.util.Date;
+import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
+import javax.persistence.OrderBy;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.workflow.workflow.project.Project;
+import com.workflow.workflow.task.Task;
+import com.workflow.workflow.utils.SoftDeleteEntity;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
-public class Sprint {
+public class Sprint extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,10 +37,23 @@ public class Sprint {
     private Date startDate;
     private Date finishDate;
 
+    @Column(nullable = false)
+    private String status;
+    
+    @Lob
+    @Column(nullable = false)
+    private String description;
+
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "project_id", foreignKey = @ForeignKey(name = "fk_sprint_project"))
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Project project;
+
+    @OneToMany(mappedBy = "sprint", fetch = FetchType.LAZY)
+    @OrderBy("name ASC")
+    private List<Task> tasks;
+
 
     public long getId() {
         return id;
@@ -72,5 +93,29 @@ public class Sprint {
 
     public void setProject(Project project) {
         this.project = project;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public List<Task> getTasks() {
+        return tasks;
+    }
+
+    public void setTasks(List<Task> tasks) {
+        this.tasks = tasks;
     }
 }
