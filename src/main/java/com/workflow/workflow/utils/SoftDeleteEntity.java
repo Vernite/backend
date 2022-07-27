@@ -1,5 +1,7 @@
 package com.workflow.workflow.utils;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
 import javax.persistence.MappedSuperclass;
@@ -21,5 +23,12 @@ public abstract class SoftDeleteEntity {
 
     public void setActive(Date active) {
         this.active = active;
+    }
+
+    /**
+     * Soft deletes entity for one week.
+     */
+    public void softDelete() {
+        setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
     }
 }

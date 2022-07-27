@@ -1,8 +1,5 @@
 package com.workflow.workflow.workspace;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Date;
 import java.util.List;
 
 import javax.validation.constraints.NotNull;
@@ -32,7 +29,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 @RestController
 @RequestMapping("/workspace")
 public class WorkspaceController {
-
     @Autowired
     private CounterSequenceRepository counterRepository;
     @Autowired
@@ -42,7 +38,7 @@ public class WorkspaceController {
     @ApiResponse(description = "List with workspaces. Can be empty.", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping
-    public List<Workspace> getAllWorkspaces(@NotNull @Parameter(hidden = true) User user) {
+    public List<Workspace> getAll(@NotNull @Parameter(hidden = true) User user) {
         return user.getWorkspaces();
     }
 
@@ -51,15 +47,9 @@ public class WorkspaceController {
     @ApiResponse(description = "Some fields are missing or failed to satisfy requirements.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PostMapping
-    public Workspace newWorkspace(@NotNull @Parameter(hidden = true) User user, @RequestBody WorkspaceRequest request) {
-        if (request.getName() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing name field");
-        }
-        if (request.getName().length() > 50 || request.getName().length() == 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name field length bigger than 50 characters or empty");
-        }
+    public Workspace create(@NotNull @Parameter(hidden = true) User user, @RequestBody WorkspaceRequest request) {
         long id = counterRepository.getIncrementCounter(user.getCounterSequence().getId());
-        return workspaceRepository.save(new Workspace(id, user, request));
+        return workspaceRepository.save(request.createEntity(id, user));
     }
 
     @Operation(summary = "Retrieve workspace", description = "Retrieves workspace with given id for authenticated user.")
@@ -67,7 +57,7 @@ public class WorkspaceController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Workspace with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/{id}")
-    public Workspace getWorkspace(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+    public Workspace get(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         return workspaceRepository.findByIdOrThrow(new WorkspaceKey(id, user));
     }
 
@@ -77,13 +67,10 @@ public class WorkspaceController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Workspace with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PutMapping("/{id}")
-    public Workspace putWorkspace(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+    public Workspace update(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @RequestBody WorkspaceRequest request) {
-        if (request.getName() != null && (request.getName().length() > 50 || request.getName().length() == 0)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name field length bigger than 50 characters or empty");
-        }
         Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceKey(id, user));
-        workspace.apply(request);
+        workspace.update(request);
         return workspaceRepository.save(workspace);
     }
 
@@ -93,12 +80,12 @@ public class WorkspaceController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Workspace with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @DeleteMapping("/{id}")
-    public void deleteWorkspace(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+    public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceKey(id, user));
-        if (workspace.getProjectWorkspaces().stream().anyMatch(p -> p.getProject().getActive() == null)) {
+        if (!workspace.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "workspace not empty");
         }
-        workspace.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
+        workspace.softDelete();
         workspaceRepository.save(workspace);
     }
 }

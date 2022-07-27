@@ -10,6 +10,7 @@ import javax.persistence.FetchType;
 import javax.persistence.ManyToOne;
 import javax.persistence.MapsId;
 import javax.persistence.OneToMany;
+import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -23,22 +24,23 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 /**
- * Entity for representing workspace. Its primary key is composed of id and user
- * id. Workspace name cant be longer than 50 characters.
+ * Entity for representing workspace. Workspace is a collection of projects. Its
+ * primary key is composed of id and user id. Workspace with id 0 is reserved
+ * for inbox.
  */
 @Entity
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class Workspace extends SoftDeleteEntity implements Comparable<Workspace> {
-    @JsonUnwrapped
     @EmbeddedId
+    @JsonUnwrapped
     private WorkspaceKey id;
 
     @Column(nullable = false, length = 50)
     private String name;
 
     @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId("userId")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private User user;
 
     @JsonIgnore
@@ -55,21 +57,24 @@ public class Workspace extends SoftDeleteEntity implements Comparable<Workspace>
         this.name = name;
     }
 
-    public Workspace(long id, User user, WorkspaceRequest request) {
-        this(id, user, request.getName());
+    /**
+     * Updates workspace with non-empty request fields.
+     * 
+     * @param request must not be {@literal null}. When fields are not present in
+     *                request, they are not updated.
+     */
+    public void update(@NotNull WorkspaceRequest request) {
+        request.getName().ifPresent(this::setName);
     }
 
     /**
-     * Applies changes contained in request object to workspace.
+     * Checks if the workspace is empty.
      * 
-     * @param request must not be {@literal null}. Can contain {@literal null} in
-     *                fields. If field is {@literal null} it is assumed there is no
-     *                changes for that field.
+     * @return {@literal true} if the workspace is empty, {@literal false}
+     *         otherwise.
      */
-    public void apply(WorkspaceRequest request) {
-        if (request.getName() != null) {
-            name = request.getName();
-        }
+    public boolean isEmpty() {
+        return getProjectWorkspaces().stream().allMatch(p -> p.getProject().getActive() != null);
     }
 
     public WorkspaceKey getId() {
