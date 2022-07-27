@@ -37,18 +37,20 @@ public class TaskRequest {
     @JsonDeserialize(using = PullActionDeserializer.class)
     private PullAction pull;
     private Optional<Long> sprintId;
+    private String priority;
 
     public TaskRequest() {
     }
 
     public TaskRequest(String name, String description, Status status, Integer type, Date deadline,
-            Date estimatedDate) {
+            Date estimatedDate, String priority) {
         this.name = Optional.of(name);
         this.description = Optional.of(description);
         this.statusId = Optional.of(status.getId());
         this.type = Optional.of(type);
         this.deadline = Optional.of(deadline);
         this.estimatedDate = Optional.of(estimatedDate);
+        this.priority = priority;
     }
 
     public Optional<String> getName() {
@@ -156,5 +158,13 @@ public class TaskRequest {
 
     public void setSprintId(Long sprintId) {
         this.sprintId = Optional.ofNullable(sprintId);
+    }
+
+    public String getPriority() {
+        return priority;
+    }
+
+    public void setPriority(String priority) {
+        this.priority = priority;
     }
 }

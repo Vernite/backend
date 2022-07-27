@@ -106,6 +106,9 @@ public class TaskController {
         if (taskRequest.getType() == null || taskRequest.getType().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing type");
         }
+        if (taskRequest.getPriority() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing priority");
+        }
         Status status = statusRepository.findByIdOrThrow(taskRequest.getStatusId().get());
         if (status.getProject().getId() != projectId || status.getProject().member(user) == -1) {
             throw new ObjectNotFoundException();
@@ -208,6 +211,9 @@ public class TaskController {
         }
         if (taskRequest.getType() != null) {
             task.setType(taskRequest.getType().get());
+        }
+        if (taskRequest.getPriority() != null) {
+            task.setPriority(taskRequest.getPriority());
         }
         if (taskRequest.getAssigneeId() != null) {
             if (taskRequest.getAssigneeId().isEmpty()) {

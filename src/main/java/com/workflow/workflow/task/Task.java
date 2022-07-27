@@ -111,6 +111,8 @@ public class Task extends SoftDeleteEntity {
     private Date deadline;
     private Date estimatedDate;
 
+    private String priority;
+
     public Task() {
     }
 
@@ -301,6 +303,14 @@ public class Task extends SoftDeleteEntity {
 
     public Long getSprintId() {
         return this.getSprint() == null ? null : this.getSprint().getId();
+    }
+
+    public String getPriority() {
+        return priority;
+    }
+
+    public void setPriority(String priority) {
+        this.priority = priority;
     }
 
     @Override

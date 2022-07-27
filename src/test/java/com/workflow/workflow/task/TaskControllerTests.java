@@ -172,7 +172,7 @@ public class TaskControllerTests {
 
     @Test
     void newTaskSuccess() {
-        TaskRequest request = new TaskRequest("NAME", "DESC", statuses[0], 0, new Date(), new Date());
+        TaskRequest request = new TaskRequest("NAME", "DESC", statuses[0], 0, new Date(), new Date(), "low");
         Task parentTask = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
         request.setParentTaskId(parentTask.getId());
         Task task = client.post().uri("/project/{pId}/task", project.getId())
@@ -248,6 +248,15 @@ public class TaskControllerTests {
 
         request.setType(1);
 
+        client.post().uri("/project/{pId}/task", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
+        
+        request.setPriority("low");
+
         Task task = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
         Task parentTask = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
         parentTask.setParentTask(task);
@@ -265,7 +274,7 @@ public class TaskControllerTests {
 
     @Test
     void newTaskUnauthorized() {
-        TaskRequest request = new TaskRequest("NAME", "DESC", statuses[0], 0, new Date(), new Date());
+        TaskRequest request = new TaskRequest("NAME", "DESC", statuses[0], 0, new Date(), new Date(), "low");
         client.post().uri("/project/{pId}/task", project.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -275,7 +284,7 @@ public class TaskControllerTests {
 
     @Test
     void newTaskNotFound() {
-        TaskRequest request = new TaskRequest("NAME", "DESC", forbiddenStatuses[0], 0, new Date(), new Date());
+        TaskRequest request = new TaskRequest("NAME", "DESC", forbiddenStatuses[0], 0, new Date(), new Date(), "low");
         client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -401,6 +410,9 @@ public class TaskControllerTests {
 
         request.setParentTaskId(parentTask.getId());
         task.setParentTask(parentTask);
+
+        request.setPriority("low");
+        task.setPriority("low");
 
         result = client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
