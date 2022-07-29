@@ -2,11 +2,14 @@ package com.workflow.workflow.workspace;
 
 import java.util.Optional;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.utils.FieldErrorException;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+@JsonInclude(Include.NON_ABSENT)
 public class WorkspaceRequest {
     @Schema(maxLength = 50, minLength = 1, description = "The name of the workspace. Trailing and leading whitespaces are removed.")
     private Optional<String> name = Optional.empty();

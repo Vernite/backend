@@ -1,9 +1,6 @@
 package com.workflow.workflow.project;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import javax.validation.constraints.NotNull;
@@ -11,11 +8,10 @@ import javax.validation.constraints.NotNull;
 import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
-import com.workflow.workflow.status.Status;
-import com.workflow.workflow.status.StatusRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.utils.ErrorType;
+import com.workflow.workflow.utils.FieldErrorException;
 import com.workflow.workflow.utils.ObjectNotFoundException;
 import com.workflow.workflow.workspace.Workspace;
 import com.workflow.workflow.workspace.WorkspaceKey;
@@ -53,9 +49,6 @@ public class ProjectController {
     private ProjectWorkspaceRepository projectWorkspaceRepository;
 
     @Autowired
-    private StatusRepository statusRepository;
-
-    @Autowired
     private UserRepository userRepository;
 
     @Operation(summary = "Create project", description = "Creates new project. Authenticated user is added to project with owner privillages. Project is added to workspace with given id.")
@@ -64,24 +57,12 @@ public class ProjectController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Workspace with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PostMapping
-    public Project newProject(@NotNull @Parameter(hidden = true) User user, @RequestBody ProjectRequest request) {
-        if (request.getWorkspaceId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing workspace id field");
-        }
-        if (request.getName() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing name field");
-        }
-        if (request.getName().length() > 50 || request.getName().length() == 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name field length bigger than 50 characters or empty");
-        }
-        Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceKey(request.getWorkspaceId(), user));
-        Project project = projectRepository.save(new Project(request));
-        ProjectWorkspace projectWorkspace = new ProjectWorkspace(project, workspace, 1L);
-        projectWorkspaceRepository.save(projectWorkspace);
-        statusRepository.save(new Status("TO DO", 0, false, true, 0, project));
-        statusRepository.save(new Status("In Progress", 0, false, false, 1, project));
-        statusRepository.save(new Status("Done", 0, true, false, 2, project));
-        return projectRepository.findById(project.getId()).orElse(project);
+    public Project create(@NotNull @Parameter(hidden = true) User user, @RequestBody ProjectRequest request) {
+        long id = request.getWorkspaceId().orElseThrow(() -> new FieldErrorException("workspaceId", "missing"));
+        Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceKey(id, user));
+        Project project = projectRepository.save(request.createEntity());
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+        return project;
     }
 
     @Operation(summary = "Retrieve project", description = "Retrieves project with given id if authenticated user is member of this project.")
@@ -89,7 +70,7 @@ public class ProjectController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/{id}")
-    public Project getProject(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+    public Project get(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
@@ -103,17 +84,26 @@ public class ProjectController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PutMapping("/{id}")
-    public Project putProject(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+    public Project update(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @RequestBody ProjectRequest request) {
-        if (request.getName() != null && (request.getName().length() > 50 || request.getName().length() == 0)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name field length bigger than 50 characters or empty");
-        }
         Project project = projectRepository.findByIdOrThrow(id);
-        if (project.member(user) == -1) {
+        int index = project.member(user);
+        if (index == -1) {
             throw new ObjectNotFoundException();
         }
-        project.apply(request);
+        request.getWorkspaceId().ifPresent(workspaceId -> changeWorkspace(workspaceId, index, project, user));
+        project.update(request);
         return projectRepository.save(project);
+    }
+
+    private void changeWorkspace(long workspaceId, int member, Project project, User user) {
+        Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceKey(workspaceId, user));
+        ProjectWorkspace pw = project.getProjectWorkspaces().remove(member);
+        projectWorkspaceRepository.delete(pw);
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, pw.getPrivileges()));
+        if (pw.getWorkspace().getId().getId() == 0 && pw.getWorkspace().getProjectWorkspaces().isEmpty()) {
+            workspaceRepository.delete(pw.getWorkspace());
+        }
     }
 
     @Operation(summary = "Delete project", description = "Deletes project with given id. Authenticated user must be member of project.")
@@ -121,15 +111,16 @@ public class ProjectController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @DeleteMapping("/{id}")
-    public void deleteProject(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+    public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
         }
-        project.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
+        project.softDelete();
         projectRepository.save(project);
     }
 
+    @Deprecated
     @Operation(summary = "Change project workspace", description = "Changes workspace for project with given id to workspace with given id for authenticated user.")
     @ApiResponse(description = "Project workspace changed", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
@@ -142,15 +133,7 @@ public class ProjectController {
         if (index == -1) {
             throw new ObjectNotFoundException();
         }
-        Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceKey(newWorkspaceId, user));
-        ProjectWorkspace projectWorkspace = project.getProjectWorkspaces().get(index);
-        long privillages = projectWorkspace.getPrivileges();
-        projectWorkspaceRepository.delete(projectWorkspace);
-        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, privillages));
-        workspace = workspaceRepository.findByIdOrThrow(projectWorkspace.getWorkspace().getId());
-        if (workspace.getId().getId() == 0 && workspace.getProjectWorkspaces().isEmpty()) {
-            workspaceRepository.delete(workspace);
-        }
+        changeWorkspace(newWorkspaceId, index, project, user);
     }
 
     @Operation(summary = "Retrieve project members", description = "Retrieves members of project with given id. Authenticated user must be member of project.")
@@ -230,6 +213,7 @@ public class ProjectController {
         if (index == -1) {
             throw new ObjectNotFoundException();
         }
-        projectWorkspaceRepository.delete(project.getProjectWorkspaces().get(index));
+        ProjectWorkspace pw = project.getProjectWorkspaces().get(index);
+        projectWorkspaceRepository.delete(pw);
     }
 }

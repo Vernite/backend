@@ -14,7 +14,7 @@ import com.workflow.workflow.utils.FieldErrorException;
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource({ "classpath:application.properties", "classpath:application-test.properties" })
-public class WorkspaceRequestTests {
+class WorkspaceRequestTests {
     private static final User user = new User("name", "surname", "username", "email", "password");
 
     @Test

@@ -37,8 +37,6 @@ import com.workflow.workflow.integration.git.github.entity.GitHubTask;
 import com.workflow.workflow.integration.git.github.entity.GitHubTaskRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
-import com.workflow.workflow.status.Status;
-import com.workflow.workflow.status.StatusRepository;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.task.TaskRepository;
 import com.workflow.workflow.user.User;
@@ -61,8 +59,6 @@ public class GitHubWebhookServiceTests {
     @Autowired
     private GitHubIntegrationRepository integrationRepository;
     @Autowired
-    private StatusRepository statusRepository;
-    @Autowired
     private TaskRepository taskRepository;
     @Autowired
     private GitHubTaskRepository gitHubTaskRepository;
@@ -71,7 +67,6 @@ public class GitHubWebhookServiceTests {
 
     private User user;
     private Project project;
-    private Status[] statuses = new Status[2];
     private GitHubInstallation installation;
     private GitHubIntegration integration;
 
@@ -89,8 +84,6 @@ public class GitHubWebhookServiceTests {
             this.user = userRepository.save(new User("Name", "Surname", "Username", "wflow1337@gmail.com", "1"));
         }
         project = projectRepository.save(new Project("NAME"));
-        statuses[0] = statusRepository.save(new Status("NAME", 1, false, true, 0, project));
-        statuses[1] = statusRepository.save(new Status("NAME", 1, true, false, 1, project));
         installation = installationRepository.save(new GitHubInstallation(1, user, "username"));
         integration = integrationRepository.save(new GitHubIntegration(project, installation, "username/repo"));
     }
@@ -220,7 +213,7 @@ public class GitHubWebhookServiceTests {
                 .bodyValue(data)
                 .exchange()
                 .expectStatus().isOk();
-        assertEquals(statuses[1].getId(),
+        assertEquals(project.getStatuses().get(2).getId(),
                 gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).get(0)
                         .getTask().getStatus().getId());
 
@@ -233,7 +226,7 @@ public class GitHubWebhookServiceTests {
                 .bodyValue(data)
                 .exchange()
                 .expectStatus().isOk();
-        assertEquals(statuses[0].getId(),
+        assertEquals(project.getStatuses().get(0).getId(),
                 gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).get(0)
                         .getTask().getStatus().getId());
 
@@ -262,7 +255,7 @@ public class GitHubWebhookServiceTests {
                 .exchange()
                 .expectStatus().isOk();
 
-        Task task = taskRepository.save(new Task("TEST", "DESC", statuses[0], user, 1));
+        Task task = taskRepository.save(new Task("TEST", "DESC", project.getStatuses().get(0), user, 1));
 
         data.setCommits(List.of(new GitHubCommit("1", "messagge without anything intresting"),
                 new GitHubCommit("2", "messagge with something intresting !" + task.getId())));
@@ -274,7 +267,7 @@ public class GitHubWebhookServiceTests {
                 .bodyValue(data)
                 .exchange()
                 .expectStatus().isOk();
-        assertEquals(statuses[1].getId(), taskRepository.findById(task.getId()).get().getStatus().getId());
+        assertEquals(project.getStatuses().get(2).getId(), taskRepository.findById(task.getId()).get().getStatus().getId());
 
         data.setCommits(List.of(new GitHubCommit("1", "messagge without anything intresting"),
                 new GitHubCommit("2", "messagge with something intresting !666")));
@@ -296,7 +289,7 @@ public class GitHubWebhookServiceTests {
                 .bodyValue(data)
                 .exchange()
                 .expectStatus().isOk();
-        assertEquals(statuses[0].getId(), taskRepository.findById(task.getId()).get().getStatus().getId());
+        assertEquals(project.getStatuses().get(0).getId(), taskRepository.findById(task.getId()).get().getStatus().getId());
     }
 
     @Test
@@ -369,7 +362,7 @@ public class GitHubWebhookServiceTests {
                 .exchange()
                 .expectStatus().isOk();
 
-        Task task = taskRepository.save(new Task("TEST", "DESC", statuses[0], user, 1));
+        Task task = taskRepository.save(new Task("TEST", "DESC", project.getStatuses().get(0), user, 1));
         gitHubTaskRepository.save(new GitHubTask(task, integration, 20, (byte) 1));
 
         data.setAction("closed");
@@ -381,7 +374,7 @@ public class GitHubWebhookServiceTests {
                 .bodyValue(data)
                 .exchange()
                 .expectStatus().isOk();
-        assertEquals(statuses[1].getId(), taskRepository.findById(task.getId()).get().getStatus().getId());
+        assertEquals(project.getStatuses().get(2).getId(), taskRepository.findById(task.getId()).get().getStatus().getId());
 
         data.setAction("reopened");
         data.setPullRequest(new GitHubPullRequest(20, "url", "open", "title", "body", new GitHubBranch("branch")));
@@ -392,7 +385,7 @@ public class GitHubWebhookServiceTests {
                 .bodyValue(data)
                 .exchange()
                 .expectStatus().isOk();
-        assertEquals(statuses[0].getId(), taskRepository.findById(task.getId()).get().getStatus().getId());
+        assertEquals(project.getStatuses().get(0).getId(), taskRepository.findById(task.getId()).get().getStatus().getId());
 
         data.setAction("edited");
         data.setPullRequest(new GitHubPullRequest(20, "url", "open", "title 2", "body", new GitHubBranch("branch")));

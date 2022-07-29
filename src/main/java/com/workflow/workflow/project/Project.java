@@ -14,6 +14,7 @@ import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.OrderBy;
+import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -48,30 +49,30 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     private String name;
 
     @JsonIgnore
-    @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToMany(mappedBy = "project")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private List<ProjectWorkspace> projectWorkspaces = new ArrayList<>();
 
     @JsonIgnore
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    @OneToMany(cascade = { CascadeType.PERSIST }, mappedBy = "project")
     @OrderBy("ordinal")
     @Where(clause = "active is null")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @OneToMany(cascade = CascadeType.PERSIST, mappedBy = "project")
     private List<Status> statuses = new ArrayList<>();
 
     @JsonIgnore
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @OneToOne(cascade = { CascadeType.PERSIST }, fetch = FetchType.LAZY, optional = false)
+    @OneToOne(cascade = CascadeType.PERSIST, fetch = FetchType.LAZY, optional = false)
     private CounterSequence statusCounter;
 
     @JsonIgnore
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @OneToOne(cascade = { CascadeType.PERSIST }, fetch = FetchType.LAZY, optional = false)
+    @OneToOne(cascade = CascadeType.PERSIST, fetch = FetchType.LAZY, optional = false)
     private CounterSequence taskCounter;
 
     @JsonIgnore
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @OneToOne(cascade = { CascadeType.PERSIST }, fetch = FetchType.LAZY, optional = false)
+    @OneToOne(cascade = CascadeType.PERSIST, fetch = FetchType.LAZY, optional = false)
     private CounterSequence sprintCounter;
 
     @OnDelete(action = OnDeleteAction.CASCADE)
@@ -79,9 +80,9 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     private GitHubIntegration gitHubIntegration;
 
     @JsonIgnore
+    @Where(clause = "active is null")
     @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "project")
-    @Where(clause = "active is null")
     private List<Sprint> sprints = new ArrayList<>();
 
     public Project() {
@@ -92,23 +93,19 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
         this.statusCounter = new CounterSequence();
         this.taskCounter = new CounterSequence();
         this.sprintCounter = new CounterSequence();
-    }
-
-    public Project(ProjectRequest request) {
-        this(request.getName());
+        this.statuses.add(new Status("To Do", 0, false, true, 0, this));
+        this.statuses.add(new Status("In Progress", 0, false, false, 1, this));
+        this.statuses.add(new Status("Done", 0, true, false, 2, this));
     }
 
     /**
-     * Applies changes contained in request object to project.
+     * Updates workspace with non-empty request fields.
      * 
-     * @param request must not be {@literal null}. Can contain {@literal null} in
-     *                fields. If field is {@literal null} it is assumed there is no
-     *                changes for that field.
+     * @param request must not be {@literal null}. When fields are not present in
+     *                request, they are not updated.
      */
-    public void apply(ProjectRequest request) {
-        if (request.getName() != null) {
-            name = request.getName();
-        }
+    public void update(@NotNull ProjectRequest request) {
+        request.getName().ifPresent(this::setName);
     }
 
     /**

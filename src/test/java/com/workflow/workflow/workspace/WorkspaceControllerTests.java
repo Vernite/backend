@@ -33,7 +33,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 @AutoConfigureMockMvc
 @TestInstance(Lifecycle.PER_CLASS)
 @TestPropertySource({ "classpath:application.properties", "classpath:application-test.properties" })
-public class WorkspaceControllerTests {
+class WorkspaceControllerTests {
     @Autowired
     private WebTestClient client;
     @Autowired
@@ -107,7 +107,7 @@ public class WorkspaceControllerTests {
     }
 
     @Test
-    void newWorkspaceSuccess() {
+    void createSuccess() {
         Workspace workspace = client.post().uri("/workspace").cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(new WorkspaceRequest("POST")).exchange().expectStatus().isOk().expectBody(Workspace.class)
                 .returnResult().getResponseBody();
@@ -174,6 +174,10 @@ public class WorkspaceControllerTests {
     void updateSuccess() {
         Workspace workspace = workspaceRepository.save(new Workspace(1, user, "PUT"));
 
+        client.put().uri("/workspace/{id}", workspace.getId().getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new WorkspaceRequest()).exchange()
+                .expectStatus().isOk();
+
         Workspace result = client.put().uri("/workspace/{id}", workspace.getId().getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new WorkspaceRequest("NEW PUT"))
                 .exchange().expectStatus().isOk().expectBody(Workspace.class).returnResult().getResponseBody();
@@ -185,9 +189,6 @@ public class WorkspaceControllerTests {
     @Test
     void updateBadRequest() {
         long id = workspaceRepository.save(new Workspace(1, user, "PUT")).getId().getId();
-        client.put().uri("/workspace/{id}", id)
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new WorkspaceRequest()).exchange()
-                .expectStatus().isBadRequest();
 
         client.put().uri("/workspace/{id}", id)
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new WorkspaceRequest("")).exchange()
