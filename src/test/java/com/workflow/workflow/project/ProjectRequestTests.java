@@ -40,4 +40,16 @@ class ProjectRequestTests {
 
         assertThrows(FieldErrorException.class, () -> projectRequest.setWorkspaceId(null));
     }
+
+    @Test
+    void createEntityTests() {
+        ProjectRequest projectRequest = new ProjectRequest();
+
+        assertThrows(FieldErrorException.class, () -> projectRequest.createEntity());
+
+        ProjectRequest projectRequest2 = new ProjectRequest("Test", 1L);
+        Project project = projectRequest2.createEntity();
+
+        assertEquals("Test", project.getName());
+    }
 }

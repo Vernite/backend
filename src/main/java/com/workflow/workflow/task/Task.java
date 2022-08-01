@@ -302,7 +302,7 @@ public class Task extends SoftDeleteEntity {
     }
 
     public Long getSprintId() {
-        return this.getSprint() == null ? null : this.getSprint().getId();
+        return this.getSprint() == null ? null : this.getSprint().getNumber();
     }
 
     public String getPriority() {

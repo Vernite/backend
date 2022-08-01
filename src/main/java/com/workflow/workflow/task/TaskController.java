@@ -124,10 +124,7 @@ public class TaskController {
         task.setDescription(taskRequest.getDescription().get());
         task.setName(taskRequest.getName().get());
         if (taskRequest.getSprintId() != null && taskRequest.getSprintId().isPresent()) {
-            Sprint sprint = sprintRepository.findByIdOrThrow(taskRequest.getSprintId().get());
-            if (sprint.getProject().getId() != projectId) {
-                throw new ObjectNotFoundException();
-            }
+            Sprint sprint = sprintRepository.findByProjectAndNumberOrThrow(status.getProject(), taskRequest.getSprintId().get());
             task.setSprint(sprint);
         }
         task.setStatus(status);
@@ -231,10 +228,7 @@ public class TaskController {
             if (taskRequest.getSprintId().isEmpty()) {
                 task.setSprint(null);
             } else {
-                Sprint sprint = sprintRepository.findByIdOrThrow(taskRequest.getSprintId().get());
-                if (sprint.getProject().getId() != projectId) {
-                    throw new ObjectNotFoundException();
-                }
+                Sprint sprint = sprintRepository.findByProjectAndNumberOrThrow(task.getStatus().getProject(), taskRequest.getSprintId().get());
                 task.setSprint(sprint);
             }
         }

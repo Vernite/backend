@@ -80,6 +80,7 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     private GitHubIntegration gitHubIntegration;
 
     @JsonIgnore
+    @OrderBy("number")
     @Where(clause = "active is null")
     @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "project")

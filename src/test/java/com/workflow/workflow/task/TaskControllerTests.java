@@ -65,6 +65,7 @@ public class TaskControllerTests {
     private User user;
     private UserSession session;
     private Project project;
+    private Sprint sprint;
     private Project forbiddenProject;
     private Status[] statuses = new Status[2];
     private Status[] forbiddenStatuses = new Status[2];
@@ -99,6 +100,7 @@ public class TaskControllerTests {
             session = sessionRepository.findBySession("session_token_tasks_tests").orElseThrow();
         }
         project = projectRepository.save(new Project("Tasks project"));
+        sprint = sprintRepository.save(new Sprint(1, "name", new Date(), new Date(), "status", "description", project));
         forbiddenProject = projectRepository.save(new Project("Tasks project forbidden"));
         Workspace workspace = workspaceRepository.save(new Workspace(1, user, "tasks test workspace"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
@@ -198,8 +200,7 @@ public class TaskControllerTests {
                 .getResponseBody();
         taskEquals(task, taskRepository.findByIdOrThrow(task.getId()));
 
-        request.setSprintId(
-                sprintRepository.save(new Sprint("name", new Date(), new Date(), "open", "desc", project)).getId());
+        request.setSprintId(sprint.getNumber());
         task = client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -254,7 +255,7 @@ public class TaskControllerTests {
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isBadRequest();
-        
+
         request.setPriority("low");
 
         Task task = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
@@ -316,9 +317,7 @@ public class TaskControllerTests {
                 .exchange()
                 .expectStatus().isNotFound();
 
-        request.setSprintId(sprintRepository.save(
-                new Sprint("name", new Date(), new Date(), "open", "desc", projectRepository.save(new Project("name"))))
-                .getId());
+        request.setSprintId(sprint.getNumber());
         client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -425,8 +424,7 @@ public class TaskControllerTests {
                 .getResponseBody();
         taskEquals(task, result);
 
-        request.setSprintId(
-                sprintRepository.save(new Sprint("name", new Date(), new Date(), "open", "desc", project)).getId());
+        request.setSprintId(sprint.getNumber());
         client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -434,7 +432,7 @@ public class TaskControllerTests {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(Task.class);
-        assertEquals(request.getSprintId().get(), taskRepository.findByIdOrThrow(task.getId()).getSprint().getId());
+        assertEquals(request.getSprintId().get(), taskRepository.findByIdOrThrow(task.getId()).getSprint().getNumber());
         request.setSprintId(null);
         client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
@@ -521,9 +519,7 @@ public class TaskControllerTests {
                 .expectStatus().isNotFound();
 
         request.setParentTaskId(null);
-        request.setSprintId(sprintRepository.save(
-                new Sprint("name", new Date(), new Date(), "open", "desc", projectRepository.save(new Project("name"))))
-                .getId());
+        request.setSprintId(2L);
         client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)

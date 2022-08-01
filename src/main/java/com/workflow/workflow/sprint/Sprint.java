@@ -15,8 +15,10 @@ import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OrderBy;
+import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.utils.SoftDeleteEntity;
@@ -28,13 +30,21 @@ import org.hibernate.annotations.OnDeleteAction;
 public class Sprint extends SoftDeleteEntity {
 
     @Id
+    @JsonIgnore
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
+
+    @JsonProperty("id")
+    @Column(nullable = false)
+    private long number;
 
     @Column(nullable = false, length = 50)
     private String name;
 
+    @Column(nullable = false)
     private Date startDate;
+
+    @Column(nullable = false)
     private Date finishDate;
 
     @Column(nullable = false)
@@ -57,43 +67,28 @@ public class Sprint extends SoftDeleteEntity {
     public Sprint() {
     }
 
-    public Sprint(String name, Date startDate, Date finishDate, String status, String description, Project project) {
+    public Sprint(long id, String name, Date start, Date finish, String status, String description, Project project) {
+        this.number = id;
         this.name = name;
-        this.startDate = startDate;
-        this.finishDate = finishDate;
+        this.startDate = start;
+        this.finishDate = finish;
         this.status = status;
         this.description = description;
         this.project = project;
     }
 
-    public Sprint(SprintRequest request, Project project) {
-        this(request.getName(), request.getStartDate(), request.getFinishDate(), request.getStatus(),
-                request.getDescription(), project);
-    }
-
     /**
-     * Applies changes contained in request object to workspace.
+     * Updates sprint with non-empty request fields.
      * 
-     * @param request must not be {@literal null}. Can contain {@literal null} in
-     *                fields. If field is {@literal null} it is assumed there is no
-     *                changes for that field.
+     * @param request must not be {@literal null}. When fields are not present in
+     *                request, they are not updated.
      */
-    public void apply(SprintRequest request) {
-        if (request.getName() != null) {
-            name = request.getName();
-        }
-        if (request.getStartDate() != null) {
-            startDate = request.getStartDate();
-        }
-        if (request.getFinishDate() != null) {
-            finishDate = request.getFinishDate();
-        }
-        if (request.getStatus() != null) {
-            status = request.getStatus();
-        }
-        if (request.getDescription() != null) {
-            description = request.getDescription();
-        }
+    public void update(@NotNull SprintRequest request) {
+        request.getName().ifPresent(this::setName);
+        request.getDescription().ifPresent(this::setDescription);
+        request.getStartDate().ifPresent(this::setStartDate);
+        request.getFinishDate().ifPresent(this::setFinishDate);
+        request.getStatus().ifPresent(this::setStatus);
     }
 
     public long getId() {
@@ -102,6 +97,14 @@ public class Sprint extends SoftDeleteEntity {
 
     public void setId(long id) {
         this.id = id;
+    }
+
+    public long getNumber() {
+        return number;
+    }
+
+    public void setNumber(long number) {
+        this.number = number;
     }
 
     public String getName() {
@@ -158,23 +161,5 @@ public class Sprint extends SoftDeleteEntity {
 
     public void setTasks(List<Task> tasks) {
         this.tasks = tasks;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null || getClass() != obj.getClass())
-            return false;
-        Sprint other = (Sprint) obj;
-        if (getId() != other.getId())
-            return false;
-        return getName().equals(other.getName());
-    }
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int hash = prime + Long.hashCode(getId());
-        hash = prime * hash + (getName() == null ? 0 : getName().hashCode());
-        return hash;
     }
 }
