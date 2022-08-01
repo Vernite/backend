@@ -94,6 +94,7 @@ public class TaskController {
     @PostMapping
     public Mono<Task> add(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @RequestBody TaskRequest taskRequest) {
+        Project project = projectRepository.findByIdOrThrow(projectId);
         if (taskRequest.getName() == null || taskRequest.getName().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing name");
         }
@@ -109,7 +110,7 @@ public class TaskController {
         if (taskRequest.getPriority() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing priority");
         }
-        Status status = statusRepository.findByIdOrThrow(taskRequest.getStatusId().get());
+        Status status = statusRepository.findByProjectAndNumberOrThrow(project, taskRequest.getStatusId().get());
         if (status.getProject().getId() != projectId || status.getProject().member(user) == -1) {
             throw new ObjectNotFoundException();
         }
@@ -233,7 +234,7 @@ public class TaskController {
             }
         }
         if (taskRequest.getStatusId() != null) {
-            Status newStatus = statusRepository.findByIdOrThrow(taskRequest.getStatusId().get());
+            Status newStatus = statusRepository.findByProjectAndNumberOrThrow(task.getStatus().getProject(), taskRequest.getStatusId().get());
             if (projectId != newStatus.getProject().getId()) {
                 throw new ObjectNotFoundException();
             }

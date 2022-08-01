@@ -229,7 +229,7 @@ public class TaskControllerTests {
                 .exchange()
                 .expectStatus().isBadRequest();
 
-        request.setStatusId(project.getStatuses().get(0).getId());
+        request.setStatusId(project.getStatuses().get(0).getNumber());
         client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -276,12 +276,6 @@ public class TaskControllerTests {
     @Test
     void newTaskNotFound() {
         TaskRequest request = new TaskRequest("NAME", "DESC", forbiddenProject.getStatuses().get(0), 0, new Date(), new Date(), "low");
-        client.post().uri("/project/{pId}/task", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isNotFound();
 
         request.setStatusId(666L);
         client.post().uri("/project/{pId}/task", project.getId())
@@ -394,7 +388,7 @@ public class TaskControllerTests {
         request.setType(1);
         task.setType(request.getType().get());
 
-        request.setStatusId(project.getStatuses().get(2).getId());
+        request.setStatusId(project.getStatuses().get(2).getNumber());
         task.setStatus(project.getStatuses().get(2));
 
         request.setParentTaskId(parentTask.getId());

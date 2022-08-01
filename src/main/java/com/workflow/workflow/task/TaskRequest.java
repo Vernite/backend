@@ -46,7 +46,7 @@ public class TaskRequest {
             Date estimatedDate, String priority) {
         this.name = Optional.of(name);
         this.description = Optional.of(description);
-        this.statusId = Optional.of(status.getId());
+        this.statusId = Optional.of(status.getNumber());
         this.type = Optional.of(type);
         this.deadline = Optional.of(deadline);
         this.estimatedDate = Optional.of(estimatedDate);
