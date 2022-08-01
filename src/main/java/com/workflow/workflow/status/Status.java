@@ -1,7 +1,5 @@
 package com.workflow.workflow.status;
 
-import java.util.Objects;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.ForeignKey;
@@ -10,6 +8,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -23,9 +22,13 @@ import org.hibernate.annotations.OnDeleteAction;
 public class Status extends SoftDeleteEntity {
 
     @Id
+    @JsonIgnore
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private long id;
+
+    @JsonProperty("id")
+    @Column(nullable = false)
+    private long number;
 
     @Column(nullable = false, length = 50)
     private String name;
@@ -51,7 +54,8 @@ public class Status extends SoftDeleteEntity {
     public Status() {
     }
 
-    public Status(String name, int color, boolean isFinal, boolean isBegin, int ordinal, Project project) {
+    public Status(long id, String name, int color, boolean isFinal, boolean isBegin, int ordinal, Project project) {
+        this.number = id;
         this.name = name;
         this.color = color;
         this.isFinal = isFinal;
@@ -60,9 +64,18 @@ public class Status extends SoftDeleteEntity {
         this.project = project;
     }
 
-    public Status(StatusRequest request, Project project) {
-        this(request.getName(), request.getColor(), request.isFinal(), request.isBegin(), request.getOrdinal(),
-                project);
+    /**
+     * Updates status with non-empty request fields.
+     * 
+     * @param request must not be {@literal null}. When fields are not present in
+     *                request, they are not updated.
+     */
+    public void update(@NotNull StatusRequest request) {
+        request.getName().ifPresent(this::setName);
+        request.getColor().ifPresent(this::setColor);
+        request.getIsFinal().ifPresent(this::setFinal);
+        request.getIsBegin().ifPresent(this::setBegin);
+        request.getOrdinal().ifPresent(this::setOrdinal);
     }
 
     public long getId() {
@@ -71,6 +84,14 @@ public class Status extends SoftDeleteEntity {
 
     public void setId(long id) {
         this.id = id;
+    }
+
+    public long getNumber() {
+        return number;
+    }
+
+    public void setNumber(long number) {
+        this.number = number;
     }
 
     public String getName() {
@@ -119,41 +140,5 @@ public class Status extends SoftDeleteEntity {
 
     public void setProject(Project project) {
         this.project = project;
-    }
-
-    public Status apply(StatusRequest o) {
-        if (o.getColor() != null) {
-            this.setColor(o.getColor());
-        }
-        if (o.getName() != null) {
-            this.setName(o.getName());
-        }
-        if (o.getOrdinal() != null) {
-            this.setOrdinal(o.getOrdinal());
-        }
-        if (o.isBegin() != null) {
-            this.setBegin(o.isBegin());
-        }
-        if (o.isFinal() != null) {
-            this.setFinal(o.isFinal());
-        }
-        return this;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(getColor(), getId(), isBegin(), isFinal(), getName(), getOrdinal(), getProject());
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (!(obj instanceof Status))
-            return false;
-        Status other = (Status) obj;
-        return Objects.equals(getColor(), other.getColor()) && getId() == other.getId() && isBegin() == other.isBegin()
-                && Objects.equals(isFinal(), other.isFinal()) && Objects.equals(getName(), other.getName())
-                && Objects.equals(getOrdinal(), other.getOrdinal()) && Objects.equals(getProject(), other.getProject());
     }
 }

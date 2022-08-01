@@ -128,8 +128,8 @@ public class GitHubControllerTests {
             this.noUser = userRepository.save(new User("Name", "Surname", "Username3", "Email3@test.pl", "1"));
         }
         project = projectRepository.save(new Project("NAME"));
-        statuses[0] = statusRepository.save(new Status("NAME", 1, false, true, 0, project));
-        statuses[1] = statusRepository.save(new Status("NAME", 1, true, false, 1, project));
+        statuses[0] = project.getStatuses().get(0);
+        statuses[1] = project.getStatuses().get(2);
         installation = installationRepository.save(new GitHubInstallation(1, user, "username"));
         otherInstallation = installationRepository.save(new GitHubInstallation(2, otherUser, "username2"));
         GitHubInstallation sus = new GitHubInstallation(4523, user, "username4523");

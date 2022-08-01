@@ -91,16 +91,16 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
 
     public Project(String name) {
         this.name = name;
-        this.statusCounter = new CounterSequence();
+        this.statusCounter = new CounterSequence(3);
         this.taskCounter = new CounterSequence();
         this.sprintCounter = new CounterSequence();
-        this.statuses.add(new Status("To Do", 0, false, true, 0, this));
-        this.statuses.add(new Status("In Progress", 0, false, false, 1, this));
-        this.statuses.add(new Status("Done", 0, true, false, 2, this));
+        this.statuses.add(new Status(1, "To Do", 0, false, true, 0, this));
+        this.statuses.add(new Status(2, "In Progress", 0, false, false, 1, this));
+        this.statuses.add(new Status(3, "Done", 0, true, false, 2, this));
     }
 
     /**
-     * Updates workspace with non-empty request fields.
+     * Updates project with non-empty request fields.
      * 
      * @param request must not be {@literal null}. When fields are not present in
      *                request, they are not updated.

@@ -127,8 +127,8 @@ public class GitControllerTests {
             this.user = userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1"));
         }
         project = projectRepository.save(new Project("NAME"));
-        statuses[0] = statusRepository.save(new Status("NAME", 1, false, true, 0, project));
-        statuses[1] = statusRepository.save(new Status("NAME", 1, true, false, 1, project));
+        statuses[0] = project.getStatuses().get(0);
+        statuses[1] = project.getStatuses().get(2);
         installation = installationRepository.save(new GitHubInstallation(1, user, "username"));
         integration = integrationRepository.save(new GitHubIntegration(project, installation, "username/repo"));
         session = new UserSession();
@@ -277,7 +277,7 @@ public class GitControllerTests {
                 .expectStatus().isNotFound();
 
         Project newProject = projectRepository.save(new Project("NAME"));
-        Status newStatus = statusRepository.save(new Status("name", 0, false, true, 0, newProject));
+        Status newStatus = statusRepository.save(new Status(77, "name", 0, false, true, 0, newProject));
         Task task2 = taskRepository.save(new Task("name", "description", newStatus, user, 0));
 
         client.post().uri("/project/{id}/task/{taskId}/integration/git/issue", newProject.getId(), task2.getId())
@@ -338,7 +338,7 @@ public class GitControllerTests {
                 .expectStatus().isNotFound();
 
         Project newProject = projectRepository.save(new Project("NAME"));
-        Status newStatus = statusRepository.save(new Status("name", 0, false, true, 0, newProject));
+        Status newStatus = statusRepository.save(new Status(98, "name", 0, false, true, 0, newProject));
         Task task2 = taskRepository.save(new Task("name", "description", newStatus, user, 0));
         gitHubTaskRepository.save(new GitHubTask(task2, integration, 1, (byte) 0));
 
@@ -451,7 +451,7 @@ public class GitControllerTests {
                 .expectStatus().isNotFound();
 
         Project newProject = projectRepository.save(new Project("NAME"));
-        Status newStatus = statusRepository.save(new Status("name", 0, false, true, 0, newProject));
+        Status newStatus = statusRepository.save(new Status(102, "name", 0, false, true, 0, newProject));
         Task task = taskRepository.save(new Task("name", "description", newStatus, user, 0));
 
         client.post().uri("/project/{id}/task/{taskId}/integration/git/pull", project.getId(), task.getId())
@@ -510,7 +510,7 @@ public class GitControllerTests {
                 .expectStatus().isNotFound();
 
         Project newProject = projectRepository.save(new Project("NAME"));
-        Status newStatus = statusRepository.save(new Status("name", 0, false, true, 0, newProject));
+        Status newStatus = statusRepository.save(new Status(899231, "name", 0, false, true, 0, newProject));
         Task task = taskRepository.save(new Task("name", "description", newStatus, user, 0));
 
         client.delete().uri("/project/{id}/task/{taskId}/integration/git/pull", project.getId(), task.getId())

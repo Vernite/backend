@@ -28,8 +28,6 @@ import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
 import com.workflow.workflow.sprint.Sprint;
 import com.workflow.workflow.sprint.SprintRepository;
-import com.workflow.workflow.status.Status;
-import com.workflow.workflow.status.StatusRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.user.UserSession;
@@ -58,8 +56,6 @@ public class TaskControllerTests {
     @Autowired
     private TaskRepository taskRepository;
     @Autowired
-    private StatusRepository statusRepository;
-    @Autowired
     private SprintRepository sprintRepository;
 
     private User user;
@@ -67,8 +63,6 @@ public class TaskControllerTests {
     private Project project;
     private Sprint sprint;
     private Project forbiddenProject;
-    private Status[] statuses = new Status[2];
-    private Status[] forbiddenStatuses = new Status[2];
 
     void taskEquals(Task expected, Task actual) {
         assertEquals(expected.getName(), actual.getName());
@@ -104,10 +98,6 @@ public class TaskControllerTests {
         forbiddenProject = projectRepository.save(new Project("Tasks project forbidden"));
         Workspace workspace = workspaceRepository.save(new Workspace(1, user, "tasks test workspace"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
-        statuses[0] = statusRepository.save(new Status("TO DO", 0, false, true, 0, project));
-        statuses[1] = statusRepository.save(new Status("In Progress", 0, false, false, 1, project));
-        forbiddenStatuses[0] = statusRepository.save(new Status("TO DO", 0, false, true, 0, forbiddenProject));
-        forbiddenStatuses[1] = statusRepository.save(new Status("In Progress", 0, false, false, 1, forbiddenProject));
     }
 
     @BeforeEach
@@ -125,9 +115,9 @@ public class TaskControllerTests {
                 .expectBodyList(Task.class).hasSize(0);
         // Prepare some workspaces for next test
         List<Task> tasks = List.of(
-                taskRepository.save(new Task("NAME 1", "DESC", statuses[0], user, 0)),
-                taskRepository.save(new Task("NAME 3", "DESC", statuses[0], user, 0)),
-                taskRepository.save(new Task("NAME 2", "DESC", statuses[0], user, 0)));
+                taskRepository.save(new Task("NAME 1", "DESC", project.getStatuses().get(0), user, 0)),
+                taskRepository.save(new Task("NAME 3", "DESC", project.getStatuses().get(0), user, 0)),
+                taskRepository.save(new Task("NAME 2", "DESC", project.getStatuses().get(0), user, 0)));
         // Test non empty return list
         List<Task> result = client.get().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
@@ -174,8 +164,8 @@ public class TaskControllerTests {
 
     @Test
     void newTaskSuccess() {
-        TaskRequest request = new TaskRequest("NAME", "DESC", statuses[0], 0, new Date(), new Date(), "low");
-        Task parentTask = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
+        TaskRequest request = new TaskRequest("NAME", "DESC", project.getStatuses().get(0), 0, new Date(), new Date(), "low");
+        Task parentTask = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
         request.setParentTaskId(parentTask.getId());
         Task task = client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
@@ -239,7 +229,7 @@ public class TaskControllerTests {
                 .exchange()
                 .expectStatus().isBadRequest();
 
-        request.setStatusId(statuses[0].getId());
+        request.setStatusId(project.getStatuses().get(0).getId());
         client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -258,8 +248,8 @@ public class TaskControllerTests {
 
         request.setPriority("low");
 
-        Task task = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
-        Task parentTask = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
+        Task parentTask = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
         parentTask.setParentTask(task);
         parentTask = taskRepository.save(parentTask);
 
@@ -275,7 +265,7 @@ public class TaskControllerTests {
 
     @Test
     void newTaskUnauthorized() {
-        TaskRequest request = new TaskRequest("NAME", "DESC", statuses[0], 0, new Date(), new Date(), "low");
+        TaskRequest request = new TaskRequest("NAME", "DESC", project.getStatuses().get(0), 0, new Date(), new Date(), "low");
         client.post().uri("/project/{pId}/task", project.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -285,7 +275,7 @@ public class TaskControllerTests {
 
     @Test
     void newTaskNotFound() {
-        TaskRequest request = new TaskRequest("NAME", "DESC", forbiddenStatuses[0], 0, new Date(), new Date(), "low");
+        TaskRequest request = new TaskRequest("NAME", "DESC", forbiddenProject.getStatuses().get(0), 0, new Date(), new Date(), "low");
         client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -301,7 +291,7 @@ public class TaskControllerTests {
                 .exchange()
                 .expectStatus().isNotFound();
 
-        request.setStatusId(statuses[0].getId());
+        request.setStatusId(project.getStatuses().get(0).getId());
         request.setParentTaskId(666L);
         client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
@@ -328,7 +318,7 @@ public class TaskControllerTests {
 
     @Test
     void getTaskSuccess() {
-        Task task = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
 
         Task result = client.get().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
@@ -346,7 +336,7 @@ public class TaskControllerTests {
                 .exchange()
                 .expectStatus().isUnauthorized();
 
-        Task task = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
 
         client.get().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
                 .exchange()
@@ -365,7 +355,7 @@ public class TaskControllerTests {
                 .exchange()
                 .expectStatus().isNotFound();
 
-        Task task = taskRepository.save(new Task("NAME", "DESC", forbiddenStatuses[0], user, 0));
+        Task task = taskRepository.save(new Task("NAME", "DESC", forbiddenProject.getStatuses().get(0), user, 0));
         client.get().uri("/project/{pId}/task/{id}", forbiddenProject.getId(), task.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
@@ -374,8 +364,8 @@ public class TaskControllerTests {
 
     @Test
     void putTaskSuccess() {
-        Task task = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
-        Task parentTask = taskRepository.save(new Task("NAME 2", "DESC", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
+        Task parentTask = taskRepository.save(new Task("NAME 2", "DESC", project.getStatuses().get(0), user, 0));
         TaskRequest request = new TaskRequest();
 
         Task result = client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
@@ -404,8 +394,8 @@ public class TaskControllerTests {
         request.setType(1);
         task.setType(request.getType().get());
 
-        request.setStatusId(statuses[1].getId());
-        task.setStatus(statuses[1]);
+        request.setStatusId(project.getStatuses().get(2).getId());
+        task.setStatus(project.getStatuses().get(2));
 
         request.setParentTaskId(parentTask.getId());
         task.setParentTask(parentTask);
@@ -446,9 +436,9 @@ public class TaskControllerTests {
 
     @Test
     void putTaskBadRequest() {
-        Task task = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
-        Task parentTask = taskRepository.save(new Task("NAME 2", "DESC", statuses[0], user, 0));
-        Task parentParentTask = taskRepository.save(new Task("NAME 2", "DESC", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
+        Task parentTask = taskRepository.save(new Task("NAME 2", "DESC", project.getStatuses().get(0), user, 0));
+        Task parentParentTask = taskRepository.save(new Task("NAME 2", "DESC", project.getStatuses().get(0), user, 0));
         parentTask.setParentTask(parentParentTask);
         parentTask = taskRepository.save(parentTask);
         TaskRequest request = new TaskRequest();
@@ -471,7 +461,7 @@ public class TaskControllerTests {
                 .exchange()
                 .expectStatus().isUnauthorized();
 
-        Task task = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
 
         client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -491,8 +481,8 @@ public class TaskControllerTests {
                 .exchange()
                 .expectStatus().isNotFound();
 
-        Task forbiddenTask = taskRepository.save(new Task("NAME", "DESC", forbiddenStatuses[0], user, 0));
-        Task task = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
+        Task forbiddenTask = taskRepository.save(new Task("NAME", "DESC", forbiddenProject.getStatuses().get(0), user, 0));
+        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
 
         client.put().uri("/project/{pId}/task/{id}", forbiddenProject.getId(), forbiddenTask.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
@@ -530,7 +520,7 @@ public class TaskControllerTests {
 
     @Test
     void deleteTaskSuccess() {
-        Task task = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
 
         client.delete().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
@@ -545,7 +535,7 @@ public class TaskControllerTests {
                 .exchange()
                 .expectStatus().isUnauthorized();
 
-        Task task = taskRepository.save(new Task("NAME", "DESC", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
         client.delete().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
                 .exchange()
                 .expectStatus().isUnauthorized();
@@ -565,7 +555,7 @@ public class TaskControllerTests {
                 .exchange()
                 .expectStatus().isNotFound();
 
-        Task task = taskRepository.save(new Task("NAME", "DESC", forbiddenStatuses[0], user, 0));
+        Task task = taskRepository.save(new Task("NAME", "DESC", forbiddenProject.getStatuses().get(0), user, 0));
         client.delete().uri("/project/{pId}/task/{id}", forbiddenProject.getId(), task.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()

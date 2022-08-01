@@ -14,8 +14,16 @@ public class CounterSequence {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
+
     @Column(nullable = false)
     private long counterValue = 0;
+
+    public CounterSequence() {
+    }
+
+    public CounterSequence(long counterValue) {
+        this.counterValue = counterValue;
+    }
 
     public long getId() {
         return id;

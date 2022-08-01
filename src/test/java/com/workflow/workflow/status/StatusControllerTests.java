@@ -34,8 +34,7 @@ import com.workflow.workflow.workspace.WorkspaceRepository;
 @AutoConfigureMockMvc
 @TestInstance(Lifecycle.PER_CLASS)
 @TestPropertySource({ "classpath:application.properties", "classpath:application-test.properties" })
-public class StatusControllerTests {
-
+class StatusControllerTests {
     @Autowired
     private WebTestClient client;
     @Autowired
@@ -93,16 +92,17 @@ public class StatusControllerTests {
     }
 
     @Test
-    void getAllStatusSuccess() {
+    void getAllSuccess() {
         // Test empty return list
         client.get().uri("/project/{projectId}/status", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange().expectStatus().isOk().expectBodyList(Status.class).hasSize(0);
         // Test non-empty return list
         List<Status> statuses = List.of(
-                statusRepository.save(new Status("name 1", 1, false, true, 0, project)),
-                statusRepository.save(new Status("name 2", 2, false, false, 1, project)),
-                statusRepository.save(new Status("name 3", 3, true, false, 2, project)));
+                new Status(1, "name 1", 1, false, true, 0, project),
+                new Status(2, "name 2", 2, false, false, 1, project),
+                new Status(3, "name 3", 3, true, false, 2, project));
+        statusRepository.saveAll(statuses);
         List<Status> result = client.get().uri("/project/{projectId}/status", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange().expectStatus().isOk().expectBodyList(Status.class).hasSize(3).returnResult()
@@ -113,7 +113,7 @@ public class StatusControllerTests {
     }
 
     @Test
-    void getAllStatusUnauthorized() {
+    void getAllUnauthorized() {
         client.get().uri("/project/{projectId}/status", project.getId())
                 .cookie(AuthController.COOKIE_NAME, "bad_session_token")
                 .exchange().expectStatus().isUnauthorized();
@@ -123,7 +123,7 @@ public class StatusControllerTests {
     }
 
     @Test
-    void getAllStatusNotFound() {
+    void getAllNotFound() {
         client.get().uri("/project/{projectId}/status", -1)
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange().expectStatus().isNotFound();
@@ -135,18 +135,54 @@ public class StatusControllerTests {
     }
 
     @Test
-    void newStatusSuccess() {
-        Status status = new Status("name", 1, false, true, 0, project);
+    void createSuccess() {
         Status result = client.post().uri("/project/{projectId}/status", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new StatusRequest("name", 1, false, true, 0))
-                .exchange().expectStatus().isOk().expectBody(Status.class).returnResult()
-                .getResponseBody();
+                .bodyValue(new StatusRequest("name", 1, false, true, 0)).exchange().expectStatus().isOk()
+                .expectBody(Status.class).returnResult().getResponseBody();
+        Status status = statusRepository.findByProjectAndNumberOrThrow(project, result.getNumber());
         statusEquals(status, result);
     }
 
     @Test
-    void newStatusUnauthorized() {
+    void createBadRequest() {
+        // Test missing name
+        client.post().uri("/project/{projectId}/status", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .bodyValue(new StatusRequest(null, 1, false, true, 0)).exchange().expectStatus().isBadRequest();
+        // Test empty name
+        client.post().uri("/project/{projectId}/status", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .bodyValue(new StatusRequest("", 1, false, true, 0)).exchange().expectStatus().isBadRequest();
+        // Test too long name
+        client.post().uri("/project/{projectId}/status", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .bodyValue(new StatusRequest("a".repeat(51), 1, false, true, 0)).exchange().expectStatus()
+                .isBadRequest();
+        // Test missing ordinal
+        client.post().uri("/project/{projectId}/status", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .bodyValue(new StatusRequest("name", 1, false, true, null)).exchange().expectStatus()
+                .isBadRequest();
+        // Test missing color
+        client.post().uri("/project/{projectId}/status", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .bodyValue(new StatusRequest("name", null, false, true, 0)).exchange().expectStatus()
+                .isBadRequest();
+        // Test missing final
+        client.post().uri("/project/{projectId}/status", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .bodyValue(new StatusRequest("name", 1, null, true, 0)).exchange().expectStatus()
+                .isBadRequest();
+        // Test missing begin
+        client.post().uri("/project/{projectId}/status", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .bodyValue(new StatusRequest("name", 1, false, null, 0)).exchange().expectStatus()
+                .isBadRequest();
+    }
+
+    @Test
+    void createUnauthorized() {
         client.post().uri("/project/{projectId}/status", project.getId())
                 .cookie(AuthController.COOKIE_NAME, "bad_session_token")
                 .bodyValue(new StatusRequest("name", 1, false, true, 0))
@@ -158,52 +194,7 @@ public class StatusControllerTests {
     }
 
     @Test
-    void newStatusBadRequest() {
-        StatusRequest status = new StatusRequest();
-        client.post().uri("/project/{projectId}/status", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(status)
-                .exchange().expectStatus().isBadRequest();
-
-        status.setColor(1);
-        client.post().uri("/project/{projectId}/status", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(status)
-                .exchange().expectStatus().isBadRequest();
-
-        status.setName("");
-        client.post().uri("/project/{projectId}/status", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(status)
-                .exchange().expectStatus().isBadRequest();
-
-        status.setName("a".repeat(51));
-        client.post().uri("/project/{projectId}/status", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(status)
-                .exchange().expectStatus().isBadRequest();
-
-        status.setName("name");
-        client.post().uri("/project/{projectId}/status", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(status)
-                .exchange().expectStatus().isBadRequest();
-
-        status.setOrdinal(1);
-        client.post().uri("/project/{projectId}/status", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(status)
-                .exchange().expectStatus().isBadRequest();
-
-        status.setFinal(true);
-        client.post().uri("/project/{projectId}/status", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(status)
-                .exchange().expectStatus().isBadRequest();
-    }
-
-    @Test
-    void newStatusNotFound() {
+    void createNotFound() {
         client.post().uri("/project/{projectId}/status", -1)
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(new StatusRequest("name", 1, false, true, 0))
@@ -217,18 +208,17 @@ public class StatusControllerTests {
     }
 
     @Test
-    void getStatusSuccess() {
-        Status status = statusRepository.save(new Status("name", 1, false, true, 0, project));
-        Status result = client.get().uri("/project/{projectId}/status/{statusId}", project.getId(), status.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .exchange().expectStatus().isOk().expectBody(Status.class).returnResult()
-                .getResponseBody();
+    void getSuccess() {
+        Status status = statusRepository.save(new Status(1, "name", 1, false, true, 0, project));
+        Status result = client.get().uri("/project/{projectId}/status/{statusId}", project.getId(), status.getNumber())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBody(Status.class).returnResult().getResponseBody();
         statusEquals(status, result);
     }
 
     @Test
-    void getStatusUnauthorized() {
-        Status status = statusRepository.save(new Status("name", 1, false, true, 0, project));
+    void getUnauthorized() {
+        Status status = statusRepository.save(new Status(1, "name", 1, false, true, 0, project));
         client.get().uri("/project/{projectId}/status/{statusId}", project.getId(), status.getId())
                 .cookie(AuthController.COOKIE_NAME, "bad_session_token")
                 .exchange().expectStatus().isUnauthorized();
@@ -238,104 +228,100 @@ public class StatusControllerTests {
     }
 
     @Test
-    void getStatusNotFound() {
+    void getNotFound() {
         client.get().uri("/project/{projectId}/status/{statusId}", project.getId(), -1)
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .exchange().expectStatus().isNotFound();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
 
         Project project2 = projectRepository.save(new Project("Sprint Tests 2"));
-        Status status2 = statusRepository.save(new Status("name", 1, false, true, 0, project2));
-        client.get().uri("/project/{projectId}/status/{statusId}", project2.getId(), status2.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .exchange().expectStatus().isNotFound();
+        client.get().uri("/project/{projectId}/status/{statusId}", project2.getId(), 1)
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
     }
 
     @Test
-    void putStatusSuccess() {
-        Status status = statusRepository.save(new Status("name", 1, false, true, 0, project));
-        Status result = client.put().uri("/project/{projectId}/status/{statusId}", project.getId(), status.getId())
+    void updateSuccess() {
+        Status status = statusRepository.save(new Status(1, "name", 1, false, true, 0, project));
+        Status result = client.put().uri("/project/{projectId}/status/{statusId}", project.getId(), status.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new StatusRequest("new name", 2, true, false, 1))
-                .exchange().expectStatus().isOk().expectBody(Status.class).returnResult()
-                .getResponseBody();
-        statusEquals(new Status("new name", 2, true, false, 1, project), result);
+                .bodyValue(new StatusRequest("new name", 2, true, false, 1)).exchange().expectStatus().isOk()
+                .expectBody(Status.class).returnResult().getResponseBody();
+        statusEquals(new Status(1, "new name", 2, true, false, 1, project), result);
     }
 
     @Test
-    void putStatusBadRequest() {
-        Status status = statusRepository.save(new Status("name", 1, false, true, 0, project));
-        client.put().uri("/project/{projectId}/status/{statusId}", project.getId(), status.getId())
+    void updateBadRequest() {
+        Status status = statusRepository.save(new Status(1, "name", 1, false, true, 0, project));
+        client.put().uri("/project/{projectId}/status/{statusId}", project.getId(), status.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new StatusRequest("", 2, true, false, 1))
+                .bodyValue(new StatusRequest(" ", 2, true, false, 1))
                 .exchange().expectStatus().isBadRequest();
 
-        client.put().uri("/project/{projectId}/status/{statusId}", project.getId(), status.getId())
+        client.put().uri("/project/{projectId}/status/{statusId}", project.getId(), status.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(new StatusRequest("a".repeat(51), 2, true, false, 1))
                 .exchange().expectStatus().isBadRequest();
     }
 
     @Test
-    void putStatusUnauthorized() {
-        Status status = statusRepository.save(new Status("name", 1, false, true, 0, project));
-        client.put().uri("/project/{projectId}/status/{statusId}", project.getId(), status.getId())
+    void updateUnauthorized() {
+        Status status = statusRepository.save(new Status(1, "name", 1, false, true, 0, project));
+        client.put().uri("/project/{projectId}/status/{statusId}", project.getId(), status.getNumber())
                 .cookie(AuthController.COOKIE_NAME, "bad_session_token")
                 .bodyValue(new StatusRequest("new name", 2, true, false, 1))
                 .exchange().expectStatus().isUnauthorized();
 
-        client.put().uri("/project/{projectId}/status/{statusId}", project.getId(), status.getId())
+        client.put().uri("/project/{projectId}/status/{statusId}", project.getId(), status.getNumber())
                 .bodyValue(new StatusRequest("new name", 2, true, false, 1))
                 .exchange().expectStatus().isUnauthorized();
     }
 
     @Test
-    void putStatusNotFound() {
-        Status status = statusRepository.save(new Status("name", 1, false, true, 0, project));
+    void updateNotFound() {
+        Status status = statusRepository.save(new Status(1, "name", 1, false, true, 0, project));
         client.put().uri("/project/{projectId}/status/{statusId}", project.getId(), -1)
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(new StatusRequest("new name", 2, true, false, 1))
                 .exchange().expectStatus().isNotFound();
 
         Project project2 = projectRepository.save(new Project("Sprint Tests 2"));
-        client.put().uri("/project/{projectId}/status/{statusId}", project2.getId(), status.getId())
+        client.put().uri("/project/{projectId}/status/{statusId}", project2.getId(), status.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(new StatusRequest("new name", 2, true, false, 1))
                 .exchange().expectStatus().isNotFound();
     }
 
     @Test
-    void deleteStatusSuccess() {
-        Status status = statusRepository.save(new Status("name", 1, false, true, 0, project));
-        client.delete().uri("/project/{projectId}/status/{statusId}", project.getId(), status.getId())
+    void deleteSuccess() {
+        Status status = statusRepository.save(new Status(1, "name", 1, false, true, 0, project));
+        client.delete().uri("/project/{projectId}/status/{statusId}", project.getId(), status.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange().expectStatus().isOk();
         assertNotNull(statusRepository.findById(status.getId()).get().getActive());
     }
 
     @Test
-    void deleteStatusUnauthorized() {
-        Status status = statusRepository.save(new Status("name", 1, false, true, 0, project));
-        client.delete().uri("/project/{projectId}/status/{statusId}", project.getId(), status.getId())
+    void deleteUnauthorized() {
+        Status status = statusRepository.save(new Status(1, "name", 1, false, true, 0, project));
+        client.delete().uri("/project/{projectId}/status/{statusId}", project.getId(), status.getNumber())
                 .cookie(AuthController.COOKIE_NAME, "bad_session_token")
                 .exchange().expectStatus().isUnauthorized();
 
-        client.delete().uri("/project/{projectId}/status/{statusId}", project.getId(), status.getId())
+        client.delete().uri("/project/{projectId}/status/{statusId}", project.getId(), status.getNumber())
                 .exchange().expectStatus().isUnauthorized();
     }
 
     @Test
-    void deleteStatusNotFound() {
+    void deleteNotFound() {
         client.delete().uri("/project/{projectId}/status/{statusId}", project.getId(), -1)
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange().expectStatus().isNotFound();
 
         Project project2 = projectRepository.save(new Project("Sprint Tests 2"));
-        Status status2 = statusRepository.save(new Status("name", 1, false, true, 0, project2));
-        client.delete().uri("/project/{projectId}/status/{statusId}", project2.getId(), status2.getId())
+        Status status2 = statusRepository.save(new Status(1, "name", 1, false, true, 0, project2));
+        client.delete().uri("/project/{projectId}/status/{statusId}", project2.getId(), status2.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange().expectStatus().isNotFound();
 
-        client.delete().uri("/project/{projectId}/status/{statusId}", project.getId(), status2.getId())
+        client.delete().uri("/project/{projectId}/status/{statusId}", project.getId(), status2.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange().expectStatus().isNotFound();
     }

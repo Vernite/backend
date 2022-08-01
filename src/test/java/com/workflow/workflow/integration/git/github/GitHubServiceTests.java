@@ -113,8 +113,8 @@ public class GitHubServiceTests {
             this.user = userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1"));
         }
         project = projectRepository.save(new Project("NAME"));
-        statuses[0] = statusRepository.save(new Status("NAME", 1, false, true, 0, project));
-        statuses[1] = statusRepository.save(new Status("NAME", 1, true, false, 1, project));
+        statuses[0] = project.getStatuses().get(0);
+        statuses[1] = project.getStatuses().get(2);
         installation = installationRepository.save(new GitHubInstallation(1, user, "username"));
         integration = integrationRepository.save(new GitHubIntegration(project, installation, "username/repo"));
         workspace = workspaceRepository.save(new Workspace(1, user, "Project Tests"));
@@ -140,7 +140,7 @@ public class GitHubServiceTests {
         assertEquals(null, issue);
 
         Project newProject = projectRepository.save(new Project("NEW_NAME"));
-        Status newStatus = statusRepository.save(new Status("NEW_NAME", 1, false, true, 0, newProject));
+        Status newStatus = statusRepository.save(new Status(67, "NEW_NAME", 1, false, true, 0, newProject));
         task = taskRepository.save(new Task("name", "description", newStatus, user, 0));
         gitHubTaskRepository.save(new GitHubTask(task, integration, 1, (byte) 0));
 
@@ -164,7 +164,7 @@ public class GitHubServiceTests {
         assertEquals(null, issue);
 
         Project newProject = projectRepository.save(new Project("NEW_NAME"));
-        Status newStatus = statusRepository.save(new Status("NEW_NAME", 1, false, true, 0, newProject));
+        Status newStatus = statusRepository.save(new Status(123124, "NEW_NAME", 1, false, true, 0, newProject));
         Task task2 = taskRepository.save(new Task("name", "description", newStatus, user, 0));
         gitHubTaskRepository.save(new GitHubTask(task2, integration, 1, (byte) 0));
 
@@ -207,7 +207,7 @@ public class GitHubServiceTests {
     @Test
     void connectIssueTest() {
         Project newProject = projectRepository.save(new Project("NEW_NAME"));
-        Status newStatus = statusRepository.save(new Status("NEW_NAME", 1, false, true, 0, newProject));
+        Status newStatus = statusRepository.save(new Status(213214124, "NEW_NAME", 1, false, true, 0, newProject));
         Task task = taskRepository.save(new Task("name", "description", newStatus, user, 0));
 
         Issue issue = service.connectIssue(task, new Issue(1, "url", "title", "description", "github")).block();
@@ -250,7 +250,7 @@ public class GitHubServiceTests {
     @Test
     void connectPullRequest() {
         Project newProject = projectRepository.save(new Project("NEW_NAME"));
-        Status newStatus = statusRepository.save(new Status("NEW_NAME", 1, false, true, 0, newProject));
+        Status newStatus = statusRepository.save(new Status(563434, "NEW_NAME", 1, false, true, 0, newProject));
         Task task = taskRepository.save(new Task("name", "description", newStatus, user, 0));
 
         PullRequest pull = service.connectPullRequest(task, new PullRequest(1, "url", "title", "description", "github", "ref")).block();

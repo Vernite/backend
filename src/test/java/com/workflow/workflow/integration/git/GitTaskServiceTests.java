@@ -42,8 +42,6 @@ public class GitTaskServiceTests {
     @Autowired
     private GitHubIntegrationRepository integrationRepository;
     @Autowired
-    private StatusRepository statusRepository;
-    @Autowired
     private WorkspaceRepository workspaceRepository;
     @Autowired
     private ProjectWorkspaceRepository projectWorkspaceRepository;
@@ -65,8 +63,8 @@ public class GitTaskServiceTests {
             this.user = userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1"));
         }
         project = projectRepository.save(new Project("NAME"));
-        statuses[0] = statusRepository.save(new Status("NAME", 1, false, true, 0, project));
-        statuses[1] = statusRepository.save(new Status("NAME", 1, true, false, 1, project));
+        statuses[0] = project.getStatuses().get(0);
+        statuses[1] =project.getStatuses().get(2);
         installation = installationRepository.save(new GitHubInstallation(1, user, "username"));
         integrationRepository.save(new GitHubIntegration(project, installation, "username/repo"));
         workspace = workspaceRepository.save(new Workspace(1, user, "Project Tests"));
