@@ -133,7 +133,7 @@ public class GitHubServiceTests {
         installation.setSuspended(true);
         installation = installationRepository.save(installation);
 
-        Task task = taskRepository.save(new Task("name", "description", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task(1, "name", "description", statuses[0], user, 0));
 
         Issue issue = service.createIssue(task).block();
 
@@ -141,7 +141,7 @@ public class GitHubServiceTests {
 
         Project newProject = projectRepository.save(new Project("NEW_NAME"));
         Status newStatus = statusRepository.save(new Status(67, "NEW_NAME", 1, false, true, 0, newProject));
-        task = taskRepository.save(new Task("name", "description", newStatus, user, 0));
+        task = taskRepository.save(new Task(2, "name", "description", newStatus, user, 0));
         gitHubTaskRepository.save(new GitHubTask(task, integration, 1, (byte) 0));
 
         issue = service.createIssue(task).block();
@@ -157,7 +157,7 @@ public class GitHubServiceTests {
         installation.setSuspended(true);
         installation = installationRepository.save(installation);
 
-        Task task = taskRepository.save(new Task("name", "description", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task(3, "name", "description", statuses[0], user, 0));
 
         Issue issue = service.patchIssue(task).block();
 
@@ -165,7 +165,7 @@ public class GitHubServiceTests {
 
         Project newProject = projectRepository.save(new Project("NEW_NAME"));
         Status newStatus = statusRepository.save(new Status(123124, "NEW_NAME", 1, false, true, 0, newProject));
-        Task task2 = taskRepository.save(new Task("name", "description", newStatus, user, 0));
+        Task task2 = taskRepository.save(new Task(4, "name", "description", newStatus, user, 0));
         gitHubTaskRepository.save(new GitHubTask(task2, integration, 1, (byte) 0));
 
         issue = service.patchIssue(task2).block();
@@ -208,13 +208,13 @@ public class GitHubServiceTests {
     void connectIssueTest() {
         Project newProject = projectRepository.save(new Project("NEW_NAME"));
         Status newStatus = statusRepository.save(new Status(213214124, "NEW_NAME", 1, false, true, 0, newProject));
-        Task task = taskRepository.save(new Task("name", "description", newStatus, user, 0));
+        Task task = taskRepository.save(new Task(5, "name", "description", newStatus, user, 0));
 
         Issue issue = service.connectIssue(task, new Issue(1, "url", "title", "description", "github")).block();
 
         assertEquals(null, issue);
 
-        task = taskRepository.save(new Task("name", "description", statuses[0], user, 0));
+        task = taskRepository.save(new Task(6, "name", "description", statuses[0], user, 0));
         installation.setSuspended(true);
         installation = installationRepository.save(installation);
         issue = service.connectIssue(task, new Issue(1, "url", "title", "description", "github")).block();
@@ -226,7 +226,7 @@ public class GitHubServiceTests {
 
     @Test
     void deleteIssueTest() {
-        Task task = taskRepository.save(new Task("name", "description", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task(7, "name", "description", statuses[0], user, 0));
         GitHubTask gitHubTask = new GitHubTask(task, integration, 1, (byte) 0);
         gitHubTask.setActive(new Date());
         gitHubTaskRepository.save(gitHubTask);
@@ -251,13 +251,13 @@ public class GitHubServiceTests {
     void connectPullRequest() {
         Project newProject = projectRepository.save(new Project("NEW_NAME"));
         Status newStatus = statusRepository.save(new Status(563434, "NEW_NAME", 1, false, true, 0, newProject));
-        Task task = taskRepository.save(new Task("name", "description", newStatus, user, 0));
+        Task task = taskRepository.save(new Task(8, "name", "description", newStatus, user, 0));
 
         PullRequest pull = service.connectPullRequest(task, new PullRequest(1, "url", "title", "description", "github", "ref")).block();
 
         assertEquals(null, pull);
 
-        task = taskRepository.save(new Task("name", "description", statuses[0], user, 0));
+        task = taskRepository.save(new Task(9, "name", "description", statuses[0], user, 0));
         installation.setSuspended(true);
         installation = installationRepository.save(installation);
         pull = service.connectPullRequest(task, new PullRequest(1, "url", "title", "description", "github", "ref")).block();
@@ -269,7 +269,7 @@ public class GitHubServiceTests {
 
     @Test
     void patchPullRequest() throws JsonProcessingException {
-        Task task = taskRepository.save(new Task("name", "description", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task(10, "name", "description", statuses[0], user, 0));
         gitHubTaskRepository.save(new GitHubTask(task, integration, 1, (byte) 1));
         installation.setSuspended(true);
         installation = installationRepository.save(installation);

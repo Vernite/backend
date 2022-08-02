@@ -63,7 +63,7 @@ public class GitTaskServiceTests {
         }
         project = projectRepository.save(new Project("NAME"));
         statuses[0] = project.getStatuses().get(0);
-        statuses[1] =project.getStatuses().get(2);
+        statuses[1] = project.getStatuses().get(2);
         installation = installationRepository.save(new GitHubInstallation(1, user, "username"));
         integrationRepository.save(new GitHubIntegration(project, installation, "username/repo"));
         workspace = workspaceRepository.save(new Workspace(1, user, "Project Tests"));
@@ -72,7 +72,7 @@ public class GitTaskServiceTests {
 
     @Test
     void connectIssueTest() {
-        Task task = taskRepository.save(new Task("name", "description", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task(1, "name", "description", statuses[0], user, 0));
         Issue issue = new Issue(1, "url", "title", "description", "unknown");
 
         Issue result = service.connectIssue(task, issue).block();
@@ -81,7 +81,7 @@ public class GitTaskServiceTests {
 
     @Test
     void connectPullRequestTest() {
-        Task task = taskRepository.save(new Task("name", "description", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task(2, "name", "description", statuses[0], user, 0));
         PullRequest pull = new PullRequest(1, "url", "title", "description", "unknown", "branch");
 
         PullRequest result = service.connectPullRequest(task, pull).block();

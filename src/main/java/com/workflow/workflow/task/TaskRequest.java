@@ -67,17 +67,18 @@ public class TaskRequest {
     /**
      * Creates a new task entity from the task request.
      * 
+     * @param id     the id of the task.
      * @param status the status of the task.
      * @param user   the user who created the task.
      * @return the task entity.
      * @throws FieldErrorException if the task request is invalid.
      */
-    public Task createEntity(Status status, User user) {
+    public Task createEntity(long id, Status status, User user) {
         String nameString = name.orElseThrow(() -> new FieldErrorException("name", MISSING));
         String descriptionString = description.orElseThrow(() -> new FieldErrorException("description", MISSING));
         int typeInt = type.orElseThrow(() -> new FieldErrorException("type", MISSING));
         String priorityString = priority.orElseThrow(() -> new FieldErrorException("priority", MISSING));
-        return new Task(nameString, descriptionString, status, user, typeInt, priorityString);
+        return new Task(id, nameString, descriptionString, status, user, typeInt, priorityString);
     }
 
     public Optional<String> getName() {

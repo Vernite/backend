@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.integration.git.github.data.GitHubCommit;
 import com.workflow.workflow.integration.git.github.data.GitHubInstallationApi;
 import com.workflow.workflow.integration.git.github.data.GitHubIssue;
@@ -45,11 +46,14 @@ public class GitHubWebhookService {
     private final TaskRepository taskRepository;
     private final GitHubTaskRepository gitTaskRepository;
     private final GitHubService service;
+    private final CounterSequenceRepository counterSequenceRepository;
     private User systemUser;
 
     public GitHubWebhookService(GitHubInstallationRepository installationRepository,
             GitHubIntegrationRepository integrationRepository, TaskRepository taskRepository,
-            GitHubTaskRepository gitHubTaskRepository, GitHubService service, UserRepository userRepository) {
+            GitHubTaskRepository gitHubTaskRepository, GitHubService service, UserRepository userRepository,
+            CounterSequenceRepository counterSequenceRepository) {
+        this.counterSequenceRepository = counterSequenceRepository;
         this.installationRepository = installationRepository;
         this.integrationRepository = integrationRepository;
         this.taskRepository = taskRepository;
@@ -119,17 +123,13 @@ public class GitHubWebhookService {
             Matcher matcher = PATTERN.matcher(commit.getMessage());
             if (matcher.find()) {
                 String controlKeyword = matcher.group(1);
-                Optional<Task> optional = taskRepository.findByIdAndActiveNull(Long.parseLong(matcher.group(2)));
-                if (optional.isEmpty()) {
-                    continue;
-                }
-                Task task = optional.get();
                 for (GitHubIntegration integration : integrationRepository
                         .findByRepositoryFullName(data.getRepository().getFullName())) {
-                    if (task.getStatus().getProject().getId() == integration.getProject().getId()) {
-                        task.setState("reopen".equals(controlKeyword) ? "open" : CLOSED);
-                        tasks.add(taskRepository.save(task));
-                    }
+                    taskRepository.findByStatusProjectAndNumberAndActiveNull(integration.getProject(),
+                            Long.parseLong(matcher.group(2))).ifPresent(t -> {
+                                t.setState("reopen".equals(controlKeyword) ? "open" : CLOSED);
+                                tasks.add(taskRepository.save(t));
+                            });
                 }
             }
         }
@@ -144,6 +144,7 @@ public class GitHubWebhookService {
             if (data.getAction().equals("opened") && gitTaskRepository
                     .findByIssueIdAndGitHubIntegration(issue.getNumber(), gitHubIntegration).isEmpty()) {
                 Task task = new Task();
+                task.setNumber(counterSequenceRepository.getIncrementCounter(gitHubIntegration.getProject().getTaskCounter().getId()));
                 task.setUser(systemUser);
                 task.setCreatedAt(new Date());
                 task.setDeadline(new Date());

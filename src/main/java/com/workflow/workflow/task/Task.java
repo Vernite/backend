@@ -23,6 +23,7 @@ import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.workflow.workflow.integration.git.github.entity.GitHubTask;
 import com.workflow.workflow.sprint.Sprint;
@@ -38,8 +39,13 @@ import org.hibernate.annotations.Where;
 @JsonInclude(Include.NON_NULL)
 public class Task extends SoftDeleteEntity {
     @Id
+    @JsonIgnore
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
+
+    @JsonProperty("id")
+    @Column(nullable = false)
+    private long number;
 
     @Column(nullable = false, length = 50)
     private String name;
@@ -116,7 +122,8 @@ public class Task extends SoftDeleteEntity {
     public Task() {
     }
 
-    public Task(String name, String description, Status status, User user, int type, String priority) {
+    public Task(long id, String name, String description, Status status, User user, int type, String priority) {
+        this.number = id;
         this.name = name;
         this.description = description;
         this.status = status;
@@ -126,8 +133,8 @@ public class Task extends SoftDeleteEntity {
         this.createdAt = new Date();
     }
 
-    public Task(String name, String description, Status status, User user, int type) {
-        this(name, description, status, user, type, "low");
+    public Task(long id, String name, String description, Status status, User user, int type) {
+        this(id, name, description, status, user, type, "low");
     }
 
     /**
@@ -151,6 +158,14 @@ public class Task extends SoftDeleteEntity {
 
     public void setId(long id) {
         this.id = id;
+    }
+
+    public long getNumber() {
+        return number;
+    }
+
+    public void setNumber(long number) {
+        this.number = number;
     }
 
     public String getName() {

@@ -255,10 +255,10 @@ public class GitHubWebhookServiceTests {
                 .exchange()
                 .expectStatus().isOk();
 
-        Task task = taskRepository.save(new Task("TEST", "DESC", project.getStatuses().get(0), user, 1));
+        Task task = taskRepository.save(new Task(1, "TEST", "DESC", project.getStatuses().get(0), user, 1));
 
         data.setCommits(List.of(new GitHubCommit("1", "messagge without anything intresting"),
-                new GitHubCommit("2", "messagge with something intresting !" + task.getId())));
+                new GitHubCommit("2", "messagge with something intresting !" + task.getNumber())));
 
         client.post().uri("/webhook/github")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -281,7 +281,7 @@ public class GitHubWebhookServiceTests {
                 .expectStatus().isOk();
 
         data.setCommits(List.of(new GitHubCommit("1", "messagge without anything intresting"),
-                new GitHubCommit("2", "messagge with something intresting reopen!" + task.getId())));
+                new GitHubCommit("2", "messagge with something intresting reopen!" + task.getNumber())));
         client.post().uri("/webhook/github")
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
@@ -362,7 +362,7 @@ public class GitHubWebhookServiceTests {
                 .exchange()
                 .expectStatus().isOk();
 
-        Task task = taskRepository.save(new Task("TEST", "DESC", project.getStatuses().get(0), user, 1));
+        Task task = taskRepository.save(new Task(2, "TEST", "DESC", project.getStatuses().get(0), user, 1));
         gitHubTaskRepository.save(new GitHubTask(task, integration, 20, (byte) 1));
 
         data.setAction("closed");

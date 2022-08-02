@@ -25,7 +25,7 @@ import com.workflow.workflow.user.User;
 public class EntitiesTests {
     @Test
     void gitHubTaskTests() {
-        Task task = new Task("name", "description", null, null, 0);
+        Task task = new Task(1, "name", "description", null, null, 0);
         task.setId(1);
         GitHubIntegration gitHubIntegration = new GitHubIntegration(new Project("name"), null, "full/name");
         gitHubIntegration.setId(1);
@@ -39,7 +39,7 @@ public class EntitiesTests {
         gitHubTask.setGitHubIntegration(new GitHubIntegration(new Project("2"), null, "full/full"));
         assertEquals("https://github.com/full/full/pull/1", gitHubTask.getLink());
 
-        GitHubTaskKey key = new GitHubTaskKey(new Task("name", "description", null, null, 0), gitHubIntegration);
+        GitHubTaskKey key = new GitHubTaskKey(new Task(1, "name", "description", null, null, 0), gitHubIntegration);
 
         assertNotEquals(key, gitHubTask.getId());
         gitHubTask.setId(key);

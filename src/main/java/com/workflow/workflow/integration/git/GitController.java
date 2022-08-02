@@ -27,6 +27,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import com.workflow.workflow.task.TaskController;
+
 @RestController
 @RequestMapping("/project/{id}")
 public class GitController {
@@ -50,6 +52,15 @@ public class GitController {
         return service.getIssues(project);
     }
 
+    /**
+     * @deprecated in favor of
+     *             {@link TaskController#update(User, long, long, TaskRequest)}
+     * @param user   the user.
+     * @param id     the project id.
+     * @param taskId the task id.
+     * @param issue  the issue.
+     * @return the updated task.
+     */
     @Deprecated
     @Operation(summary = "Create git issue connection to task", description = "Creates new git issue connection with task. If request body is empty creates new issue. Otherwise uses existing git issue. @Deprecated in favor of TaskRequest 'issue' field.")
     @ApiResponse(description = "Connection created.", responseCode = "200", content = @Content(schema = @Schema(implementation = Issue.class)))
@@ -63,17 +74,20 @@ public class GitController {
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
         }
-        Task task = taskRepository.findByIdOrThrow(taskId);
-        // TODO: remove when task id will be related to project id
-        if (task.getStatus().getProject().getId() != project.getId()) {
-            throw new ObjectNotFoundException();
-        }
+        Task task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
         if (issue == null) {
             return service.createIssue(task).last();
         }
         return service.connectIssue(task, issue).switchIfEmpty(Mono.error(ObjectNotFoundException::new));
     }
 
+    /**
+     * @deprecated in favor of
+     *             {@link TaskController#update(User, long, long, TaskRequest)}
+     * @param user   the user.
+     * @param id     the project id.
+     * @param taskId the task id.
+     */
     @Deprecated
     @Operation(summary = "Delete git issue connection to task", description = "Deletes git issue connection with task. It does not delete issue on git service nor it deletes task. @Deprecated in favor of TaskRequest 'issue' field.")
     @ApiResponse(description = "Connection deleted.", responseCode = "200")
@@ -86,11 +100,7 @@ public class GitController {
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
         }
-        Task task = taskRepository.findByIdOrThrow(taskId);
-        // TODO: remove when task id will be related to project id
-        if (task.getStatus().getProject().getId() != project.getId()) {
-            throw new ObjectNotFoundException();
-        }
+        Task task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
         service.deleteIssue(task);
     }
 
@@ -107,6 +117,15 @@ public class GitController {
         return service.getPullRequests(project);
     }
 
+    /**
+     * @deprecated in favor of
+     *             {@link TaskController#update(User, long, long, TaskRequest)}
+     * @param user        the user.
+     * @param id          the project id.
+     * @param taskId      the task id.
+     * @param pullRequest the pull request.
+     * @return the updated task.
+     */
     @Deprecated
     @Operation(summary = "Create git pull request connection to task", description = "Creates new git pull request connection with task. Otherwise uses existing git pull request. @Deprecated in favor of TaskRequest 'issue' field.")
     @ApiResponse(description = "Connection created.", responseCode = "200", content = @Content(schema = @Schema(implementation = PullRequest.class)))
@@ -119,14 +138,17 @@ public class GitController {
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
         }
-        Task task = taskRepository.findByIdOrThrow(taskId);
-        // TODO: remove when task id will be related to project id
-        if (task.getStatus().getProject().getId() != project.getId()) {
-            throw new ObjectNotFoundException();
-        }
+        Task task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
         return service.connectPullRequest(task, pullRequest);
     }
 
+    /**
+     * @deprecated in favor of
+     *             {@link TaskController#update(User, long, long, TaskRequest)}
+     * @param user   the user.
+     * @param id     the project id.
+     * @param taskId the task id.
+     */
     @Deprecated
     @Operation(summary = "Delete git pull request connection to task", description = "Deletes git pull request connection with task. It does not delete pull request on git service nor it deletes task. @Deprecated in favor of TaskRequest 'issue' field.")
     @ApiResponse(description = "Connection deleted.", responseCode = "200")
@@ -139,10 +161,7 @@ public class GitController {
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
         }
-        Task task = taskRepository.findByIdOrThrow(taskId);
-        if (task.getStatus().getProject().getId() != project.getId()) {
-            throw new ObjectNotFoundException();
-        }
+        Task task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
         service.deletePullRequest(task);
     }
 }

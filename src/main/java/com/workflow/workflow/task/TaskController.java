@@ -5,6 +5,7 @@ import java.util.List;
 
 import javax.validation.constraints.NotNull;
 
+import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.integration.git.GitTaskService;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
@@ -50,6 +51,8 @@ public class TaskController {
     @Autowired
     private SprintRepository sprintRepository;
     @Autowired
+    private CounterSequenceRepository counterSequenceRepository;
+    @Autowired
     private GitTaskService service;
 
     @Operation(summary = "Get all tasks", description = "This method returns array of all tasks for project with given ID.")
@@ -71,11 +74,11 @@ public class TaskController {
     @ApiResponse(description = "Project or/and task with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/{id}")
     public Task get(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long id) {
-        Task task = taskRepository.findByIdOrThrow(id);
-        if (task.getStatus().getProject().member(user) == -1 || task.getStatus().getProject().getId() != projectId) {
+        Project project = projectRepository.findByIdOrThrow(projectId);
+        if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
         }
-        return task;
+        return taskRepository.findByProjectAndNumberOrThrow(project, id);
     }
 
     @Operation(summary = "Create task", description = "This method creates new task. On success returns newly created task.")
@@ -92,7 +95,8 @@ public class TaskController {
         }
         long statusId = taskRequest.getStatusId().orElseThrow(() -> new FieldErrorException("statusId", "missing"));
         Status status = statusRepository.findByProjectAndNumberOrThrow(project, statusId);
-        Task task = taskRequest.createEntity(status, user);
+        long id = counterSequenceRepository.getIncrementCounter(project.getTaskCounter().getId());
+        Task task = taskRequest.createEntity(id, status, user);
         taskRequest.getDeadline().ifPresent(task::setDeadline);
         taskRequest.getEstimatedDate().ifPresent(task::setEstimatedDate);
         taskRequest.getSprintId().ifPresent(sprintId -> {
@@ -112,7 +116,7 @@ public class TaskController {
         taskRequest.getParentTaskId().ifPresent(parentTaskId -> {
             Task parentTask = null;
             if (parentTaskId.isPresent()) {
-                parentTask = taskRepository.findByIdOrThrow(parentTaskId.get());
+                parentTask = taskRepository.findByProjectAndNumberOrThrow(project, parentTaskId.get());
                 if (parentTask.getParentTask() != null) {
                     throw new FieldErrorException("parentTaskId", "possible circular dependency");
                 }
@@ -140,10 +144,10 @@ public class TaskController {
     public Mono<Task> update(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long id, @RequestBody TaskRequest taskRequest) {
         Project project = projectRepository.findByIdOrThrow(projectId);
-        Task task = taskRepository.findByIdOrThrow(id);
-        if (project.member(user) == -1 || task.getStatus().getProject().getId() != projectId) {
+        if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
         }
+        Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
         task.update(taskRequest);
         taskRequest.getSprintId().ifPresent(sprintId -> {
             Sprint sprint = null;
@@ -162,7 +166,7 @@ public class TaskController {
         taskRequest.getParentTaskId().ifPresent(parentTaskId -> {
             Task parentTask = null;
             if (parentTaskId.isPresent()) {
-                parentTask = taskRepository.findByIdOrThrow(parentTaskId.get());
+                parentTask = taskRepository.findByProjectAndNumberOrThrow(project, parentTaskId.get());
                 if (parentTask.getParentTask() != null) {
                     throw new FieldErrorException("parentTaskId", "possible circular dependency");
                 }
@@ -191,10 +195,11 @@ public class TaskController {
     @DeleteMapping("/{id}")
     public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long id) {
-        Task task = taskRepository.findByIdOrThrow(id);
-        if (task.getStatus().getProject().member(user) == -1 || task.getStatus().getProject().getId() != projectId) {
+        Project project = projectRepository.findByIdOrThrow(projectId);
+        if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
         }
+        Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
         task.softDelete();
         taskRepository.save(task);
     }

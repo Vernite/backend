@@ -104,10 +104,10 @@ class TaskRequestTests {
     void createEntityTests() {
         TaskRequest taskRequest = new TaskRequest();
 
-        assertThrows(FieldErrorException.class, () -> taskRequest.createEntity(null, null));
+        assertThrows(FieldErrorException.class, () -> taskRequest.createEntity(1, null, null));
 
         TaskRequest taskRequest2 = new TaskRequest("name", "description", 1L, 1, "low");
-        Task task = taskRequest2.createEntity(null, null);
+        Task task = taskRequest2.createEntity(1, null, null);
 
         assertEquals("name", task.getName());
     }

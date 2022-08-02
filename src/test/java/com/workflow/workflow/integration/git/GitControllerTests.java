@@ -206,14 +206,14 @@ public class GitControllerTests {
 
     @Test
     void newIssueSuccess() throws JsonProcessingException {
-        Task task = taskRepository.save(new Task("name", "description", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task(1, "name", "description", statuses[0], user, 0));
         tokenCheck();
 
         mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(
                 new GitHubIssue(1, "url", "open", "name", "description")))
                 .addHeader("Content-Type", "application/json"));
 
-        Issue issue = controller.newIssue(user, project.getId(), task.getId(), null).block();
+        Issue issue = controller.newIssue(user, project.getId(), task.getNumber(), null).block();
 
         assertEquals(1, issue.getId());
         assertEquals("url", issue.getUrl());
@@ -230,7 +230,7 @@ public class GitControllerTests {
                 new GitHubIssue(1, "url", "open", "name", "description")))
                 .addHeader("Content-Type", "application/json"));
         Issue issue2 = controller
-                .newIssue(user, project.getId(), task.getId(), new Issue(1, "url", "title", "description", "github"))
+                .newIssue(user, project.getId(), task.getNumber(), new Issue(1, "url", "title", "description", "github"))
                 .block();
 
         assertEquals(1, issue2.getId());
@@ -250,7 +250,7 @@ public class GitControllerTests {
                 .exchange()
                 .expectStatus().isUnauthorized();
 
-        Task task = taskRepository.save(new Task("name", "description", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task(2, "name", "description", statuses[0], user, 0));
 
         client.post().uri("/project/{id}/task/{taskId}/integration/git/issue", project.getId(), task.getId())
                 .exchange()
@@ -264,7 +264,7 @@ public class GitControllerTests {
                 .exchange()
                 .expectStatus().isNotFound();
 
-        Task task = taskRepository.save(new Task("name", "description", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task(3, "name", "description", statuses[0], user, 0));
 
         client.post().uri("/project/{id}/task/{taskId}/integration/git/issue", project.getId(), 666)
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
@@ -278,7 +278,7 @@ public class GitControllerTests {
 
         Project newProject = projectRepository.save(new Project("NAME"));
         Status newStatus = statusRepository.save(new Status(77, "name", 0, false, true, 0, newProject));
-        Task task2 = taskRepository.save(new Task("name", "description", newStatus, user, 0));
+        Task task2 = taskRepository.save(new Task(4, "name", "description", newStatus, user, 0));
 
         client.post().uri("/project/{id}/task/{taskId}/integration/git/issue", newProject.getId(), task2.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
@@ -293,10 +293,10 @@ public class GitControllerTests {
 
     @Test
     void deleteIssueSuccess() {
-        Task task = taskRepository.save(new Task("name", "description", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task(5, "name", "description", statuses[0], user, 0));
         gitHubTaskRepository.save(new GitHubTask(task, integration, 1, (byte) 0));
 
-        client.delete().uri("/project/{id}/task/{taskId}/integration/git/issue", project.getId(), task.getId())
+        client.delete().uri("/project/{id}/task/{taskId}/integration/git/issue", project.getId(), task.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isOk();
@@ -310,7 +310,7 @@ public class GitControllerTests {
                 .exchange()
                 .expectStatus().isUnauthorized();
 
-        Task task = taskRepository.save(new Task("name", "description", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task(6, "name", "description", statuses[0], user, 0));
         gitHubTaskRepository.save(new GitHubTask(task, integration, 1, (byte) 0));
 
         client.delete().uri("/project/{id}/task/{taskId}/integration/git/issue", project.getId(), task.getId())
@@ -325,7 +325,7 @@ public class GitControllerTests {
                 .exchange()
                 .expectStatus().isNotFound();
 
-        Task task = taskRepository.save(new Task("name", "description", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task(7, "name", "description", statuses[0], user, 0));
 
         client.delete().uri("/project/{id}/task/{taskId}/integration/git/issue", project.getId(), 666)
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
@@ -339,7 +339,7 @@ public class GitControllerTests {
 
         Project newProject = projectRepository.save(new Project("NAME"));
         Status newStatus = statusRepository.save(new Status(98, "name", 0, false, true, 0, newProject));
-        Task task2 = taskRepository.save(new Task("name", "description", newStatus, user, 0));
+        Task task2 = taskRepository.save(new Task(8, "name", "description", newStatus, user, 0));
         gitHubTaskRepository.save(new GitHubTask(task2, integration, 1, (byte) 0));
 
         client.delete().uri("/project/{id}/task/{taskId}/integration/git/issue", newProject.getId(), task2.getId())
@@ -406,14 +406,14 @@ public class GitControllerTests {
 
     @Test
     void newPullRequestSuccess() throws JsonProcessingException {
-        Task task = taskRepository.save(new Task("name", "description", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task(9, "name", "description", statuses[0], user, 0));
 
         tokenCheck();
         mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(
                 new GitHubPullRequest(1, "url", "open", "title", "body", new GitHubBranch("ref"))))
                 .addHeader("Content-Type", "application/json"));
 
-        PullRequest pull = controller.newPullRequest(user, project.getId(), task.getId(),
+        PullRequest pull = controller.newPullRequest(user, project.getId(), task.getNumber(),
                 new PullRequest(1, "url", "title", "body", "github", "ref")).block();
 
         assertEquals(1, pull.getId());
@@ -434,8 +434,8 @@ public class GitControllerTests {
                 .exchange()
                 .expectStatus().isUnauthorized();
 
-        Task task = taskRepository.save(new Task("name", "description", statuses[0], user, 0));
-        client.post().uri("/project/{id}/task/{taskId}/integration/git/pull", project.getId(), task.getId())
+        Task task = taskRepository.save(new Task(10, "name", "description", statuses[0], user, 0));
+        client.post().uri("/project/{id}/task/{taskId}/integration/git/pull", project.getId(), task.getNumber())
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
@@ -452,7 +452,7 @@ public class GitControllerTests {
 
         Project newProject = projectRepository.save(new Project("NAME"));
         Status newStatus = statusRepository.save(new Status(102, "name", 0, false, true, 0, newProject));
-        Task task = taskRepository.save(new Task("name", "description", newStatus, user, 0));
+        Task task = taskRepository.save(new Task(11, "name", "description", newStatus, user, 0));
 
         client.post().uri("/project/{id}/task/{taskId}/integration/git/pull", project.getId(), task.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
@@ -466,7 +466,7 @@ public class GitControllerTests {
                 .exchange()
                 .expectStatus().isNotFound();
 
-        task = taskRepository.save(new Task("name", "description", statuses[0], user, 0));
+        task = taskRepository.save(new Task(12, "name", "description", statuses[0], user, 0));
 
         client.post().uri("/project/{id}/task/{taskId}/integration/git/pull", 666, task.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
@@ -477,10 +477,10 @@ public class GitControllerTests {
 
     @Test
     void deletePullRequestSuccess() {
-        Task task = taskRepository.save(new Task("name", "description", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task(13, "name", "description", statuses[0], user, 0));
         gitHubTaskRepository.save(new GitHubTask(task, integration, 1, (byte) 1));
 
-        client.delete().uri("/project/{id}/task/{taskId}/integration/git/pull", project.getId(), task.getId())
+        client.delete().uri("/project/{id}/task/{taskId}/integration/git/pull", project.getId(), task.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isOk();
@@ -494,7 +494,7 @@ public class GitControllerTests {
                 .exchange()
                 .expectStatus().isUnauthorized();
 
-        Task task = taskRepository.save(new Task("name", "description", statuses[0], user, 0));
+        Task task = taskRepository.save(new Task(14, "name", "description", statuses[0], user, 0));
         gitHubTaskRepository.save(new GitHubTask(task, integration, 1, (byte) 1));
 
         client.delete().uri("/project/{id}/task/{taskId}/integration/git/pull", project.getId(), task.getId())
@@ -511,7 +511,7 @@ public class GitControllerTests {
 
         Project newProject = projectRepository.save(new Project("NAME"));
         Status newStatus = statusRepository.save(new Status(899231, "name", 0, false, true, 0, newProject));
-        Task task = taskRepository.save(new Task("name", "description", newStatus, user, 0));
+        Task task = taskRepository.save(new Task(15, "name", "description", newStatus, user, 0));
 
         client.delete().uri("/project/{id}/task/{taskId}/integration/git/pull", project.getId(), task.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
@@ -523,7 +523,7 @@ public class GitControllerTests {
                 .exchange()
                 .expectStatus().isNotFound();
 
-        task = taskRepository.save(new Task("name", "description", statuses[0], user, 0));
+        task = taskRepository.save(new Task(16, "name", "description", statuses[0], user, 0));
 
         client.delete().uri("/project/{id}/task/{taskId}/integration/git/pull", 666, task.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
