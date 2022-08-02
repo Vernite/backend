@@ -177,10 +177,7 @@ public class TaskRequest {
     }
 
     public void setIssue(IssueAction issueAction) {
-        if (issueAction == null) {
-            throw new FieldErrorException("issue", NULL_VALUE);
-        }
-        this.issue = Optional.of(issueAction);
+        this.issue = Optional.ofNullable(issueAction);
     }
 
     public Optional<PullAction> getPull() {
@@ -188,10 +185,7 @@ public class TaskRequest {
     }
 
     public void setPull(PullAction pullAction) {
-        if (pullAction == null) {
-            throw new FieldErrorException("pull", NULL_VALUE);
-        }
-        this.pull = Optional.of(pullAction);
+        this.pull = Optional.ofNullable(pullAction);
     }
 
     public Optional<Optional<Long>> getSprintId() {

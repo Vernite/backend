@@ -73,7 +73,6 @@ class TaskRequestTests {
 
         taskRequest.setIssue(IssueAction.CREATE);
         assertEquals(IssueAction.CREATE, taskRequest.getIssue().get());
-        assertThrows(FieldErrorException.class, () -> taskRequest.setIssue(null));
 
         taskRequest.setIssue(IssueAction.ATTACH);
         assertEquals(IssueAction.ATTACH, taskRequest.getIssue().get());
@@ -85,7 +84,6 @@ class TaskRequestTests {
 
         taskRequest.setPull(PullAction.ATTACH);
         assertEquals(PullAction.ATTACH, taskRequest.getPull().get());
-        assertThrows(FieldErrorException.class, () -> taskRequest.setPull(null));
 
         taskRequest.setPull(PullAction.DETACH);
         assertEquals(PullAction.DETACH, taskRequest.getPull().get());
