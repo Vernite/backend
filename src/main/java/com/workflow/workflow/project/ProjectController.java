@@ -121,7 +121,7 @@ public class ProjectController {
     }
 
     @Deprecated
-    @Operation(summary = "Change project workspace", description = "Changes workspace for project with given id to workspace with given id for authenticated user.")
+    @Operation(summary = "Change project workspace", description = "Changes workspace for project with given id to workspace with given id for authenticated user. @Deprecated in favor of ProjectRequest 'workspaceId' field.") 
     @ApiResponse(description = "Project workspace changed", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or workspace with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))

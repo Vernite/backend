@@ -51,7 +51,7 @@ public class GitController {
     }
 
     @Deprecated
-    @Operation(summary = "Create git issue connection to task", description = "Creates new git issue connection with task. If request body is empty creates new issue. Otherwise uses existing git issue.")
+    @Operation(summary = "Create git issue connection to task", description = "Creates new git issue connection with task. If request body is empty creates new issue. Otherwise uses existing git issue. @Deprecated in favor of TaskRequest 'issue' field.")
     @ApiResponse(description = "Connection created.", responseCode = "200", content = @Content(schema = @Schema(implementation = Issue.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or task or git issue not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
@@ -75,7 +75,7 @@ public class GitController {
     }
 
     @Deprecated
-    @Operation(summary = "Delete git issue connection to task", description = "Deletes git issue connection with task. It does not delete issue on git service nor it deletes task.")
+    @Operation(summary = "Delete git issue connection to task", description = "Deletes git issue connection with task. It does not delete issue on git service nor it deletes task. @Deprecated in favor of TaskRequest 'issue' field.")
     @ApiResponse(description = "Connection deleted.", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or task or git issue connection not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
@@ -108,7 +108,7 @@ public class GitController {
     }
 
     @Deprecated
-    @Operation(summary = "Create git pull request connection to task", description = "Creates new git pull request connection with task. Otherwise uses existing git pull request.")
+    @Operation(summary = "Create git pull request connection to task", description = "Creates new git pull request connection with task. Otherwise uses existing git pull request. @Deprecated in favor of TaskRequest 'issue' field.")
     @ApiResponse(description = "Connection created.", responseCode = "200", content = @Content(schema = @Schema(implementation = PullRequest.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or task or git pull request not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
@@ -128,7 +128,7 @@ public class GitController {
     }
 
     @Deprecated
-    @Operation(summary = "Delete git pull request connection to task", description = "Deletes git pull request connection with task. It does not delete pull request on git service nor it deletes task.")
+    @Operation(summary = "Delete git pull request connection to task", description = "Deletes git pull request connection with task. It does not delete pull request on git service nor it deletes task. @Deprecated in favor of TaskRequest 'issue' field.")
     @ApiResponse(description = "Connection deleted.", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or task or git pull request connection not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))

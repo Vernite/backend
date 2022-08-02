@@ -23,6 +23,25 @@ public class GitTaskService {
     private GitHubService gitHubService;
 
     /**
+     * Handle issue action for a given task.
+     * 
+     * @param action the action to handle.
+     * @param task   the task to handle.
+     * @return flux with changed issues.
+     */
+    public Flux<Issue> handleIssueAction(IssueAction action, Task task) {
+        switch (action) {
+            case ATTACH:
+                return connectIssue(task, action.getIssue()).flux();
+            case CREATE:
+                return createIssue(task);
+            case DETACH:
+                deleteIssue(task);
+        }
+        return Flux.empty();
+    }
+
+    /**
      * Creates issue in appropriate git service.
      * 
      * @param task must not be {@literal null}.
@@ -74,6 +93,22 @@ public class GitTaskService {
      */
     public void deleteIssue(Task task) {
         gitHubService.deleteIssue(task);
+    }
+
+    /**
+     * Handles pull action for a given task.
+     * 
+     * @param action the action to handle.
+     * @param task   the task to handle.
+     * @return flux with changed pull requests.
+     */
+    public Flux<PullRequest> handlePullAction(PullAction action, Task task) {
+        if (action.equals(PullAction.ATTACH)) {
+            return connectPullRequest(task, action.getPullRequest()).flux();
+        } else {
+            deletePullRequest(task);
+        }
+        return Flux.empty();
     }
 
     /**
