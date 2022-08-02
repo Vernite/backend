@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -20,6 +19,7 @@ import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OrderBy;
+import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -37,7 +37,6 @@ import org.hibernate.annotations.Where;
 @Entity
 @JsonInclude(Include.NON_NULL)
 public class Task extends SoftDeleteEntity {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
@@ -47,8 +46,8 @@ public class Task extends SoftDeleteEntity {
 
     @JsonIgnore
     @ManyToOne(cascade = CascadeType.PERSIST)
-    @JoinColumn(name = "sprint_id", foreignKey = @ForeignKey(name = "fk_task_sprint"))
     @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = "sprint_id", foreignKey = @ForeignKey(name = "fk_task_sprint"))
     private Sprint sprint;
 
     @Lob
@@ -111,18 +110,39 @@ public class Task extends SoftDeleteEntity {
     private Date deadline;
     private Date estimatedDate;
 
+    @Column(nullable = false)
     private String priority;
 
     public Task() {
     }
 
-    public Task(String name, String description, Status status, User user, int type) {
+    public Task(String name, String description, Status status, User user, int type, String priority) {
         this.name = name;
         this.description = description;
         this.status = status;
         this.user = user;
         this.type = type;
+        this.priority = priority;
         this.createdAt = new Date();
+    }
+
+    public Task(String name, String description, Status status, User user, int type) {
+        this(name, description, status, user, type, "low");
+    }
+
+    /**
+     * Updates task with non-empty request fields.
+     * 
+     * @param request must not be {@literal null}. When fields are not present in
+     *                request, they are not updated.
+     */
+    public void update(@NotNull TaskRequest request) {
+        request.getDeadline().ifPresent(this::setDeadline);
+        request.getEstimatedDate().ifPresent(this::setEstimatedDate);
+        request.getPriority().ifPresent(this::setPriority);
+        request.getName().ifPresent(this::setName);
+        request.getDescription().ifPresent(this::setDescription);
+        request.getType().ifPresent(this::setType);
     }
 
     public long getId() {
@@ -246,7 +266,9 @@ public class Task extends SoftDeleteEntity {
     }
 
     public List<String> getMergedPullList() {
-        return !getMergedPulls().isEmpty() ? getMergedPulls().stream().map(GitHubTask::getLink).collect(Collectors.toList()) : null;
+        return !getMergedPulls().isEmpty()
+                ? getMergedPulls().stream().map(GitHubTask::getLink).collect(Collectors.toList())
+                : null;
     }
 
     public List<GitHubTask> getIssues() {
@@ -311,30 +333,5 @@ public class Task extends SoftDeleteEntity {
 
     public void setPriority(String priority) {
         this.priority = priority;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(getCreatedAt(), getDeadline(), getDescription(), getEstimatedDate(),
-                getId(), this.getName(), this.getSprint(), this.getStatus(), this.getType(), this.getUser(), this.getAssignee());
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (!(obj instanceof Task))
-            return false;
-        Task other = (Task) obj;
-        return Objects.equals(getCreatedAt(), other.getCreatedAt())
-                && Objects.equals(getDeadline(), other.getDeadline())
-                && Objects.equals(getDescription(), other.getDescription())
-                && Objects.equals(getEstimatedDate(), other.getEstimatedDate())
-                && getId() == other.getId()
-                && Objects.equals(getName(), other.getName())
-                && Objects.equals(getSprint(), other.getSprint())
-                && Objects.equals(getStatus(), other.getStatus())
-                && Objects.equals(getAssignee(), other.getAssignee())
-                && getType() == other.getType() && Objects.equals(getUser(), other.getUser());
     }
 }

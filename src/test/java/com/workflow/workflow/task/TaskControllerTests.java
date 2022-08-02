@@ -1,7 +1,7 @@
 package com.workflow.workflow.task;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.time.Instant;
@@ -17,8 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
@@ -40,7 +38,7 @@ import com.workflow.workflow.workspace.WorkspaceRepository;
 @AutoConfigureMockMvc
 @TestInstance(Lifecycle.PER_CLASS)
 @TestPropertySource({ "classpath:application.properties", "classpath:application-test.properties" })
-public class TaskControllerTests {
+class TaskControllerTests {
     @Autowired
     private WebTestClient client;
     @Autowired
@@ -67,12 +65,12 @@ public class TaskControllerTests {
     void taskEquals(Task expected, Task actual) {
         assertEquals(expected.getName(), actual.getName());
         assertEquals(expected.getActive(), actual.getActive());
-        assertEquals(expected.getCreatedAt(), actual.getCreatedAt());
         assertEquals(expected.getDeadline(), actual.getDeadline());
         assertEquals(expected.getDescription(), actual.getDescription());
         assertEquals(expected.getEstimatedDate(), actual.getEstimatedDate());
-        assertEquals(expected.getId(), actual.getId());
         assertEquals(expected.getIssue(), actual.getIssue());
+        assertEquals(expected.getPriority(), actual.getPriority());
+        assertEquals(expected.getPull(), actual.getPull());
     }
 
     @BeforeAll
@@ -106,278 +104,207 @@ public class TaskControllerTests {
     }
 
     @Test
-    void getAllTasksSuccess() {
+    void getAllSuccess() {
         // Test empty return list
         client.get().uri("/project/{pId}/task", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .exchange()
-                .expectStatus().isOk()
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBodyList(Task.class).hasSize(0);
         // Prepare some workspaces for next test
         List<Task> tasks = List.of(
-                taskRepository.save(new Task("NAME 1", "DESC", project.getStatuses().get(0), user, 0)),
-                taskRepository.save(new Task("NAME 3", "DESC", project.getStatuses().get(0), user, 0)),
-                taskRepository.save(new Task("NAME 2", "DESC", project.getStatuses().get(0), user, 0)));
+                new Task("name 1", "description", project.getStatuses().get(0), user, 0, "low"),
+                new Task("name 3", "description", project.getStatuses().get(0), user, 0, "low"),
+                new Task("name 2", "description", project.getStatuses().get(0), user, 0, "low"));
+        taskRepository.saveAll(tasks);
         // Test non empty return list
         List<Task> result = client.get().uri("/project/{pId}/task", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .exchange()
-                .expectStatus().isOk()
-                .expectBodyList(Task.class)
-                .hasSize(3)
-                .returnResult()
-                .getResponseBody();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Task.class).hasSize(3).returnResult().getResponseBody();
         taskEquals(tasks.get(0), result.get(0));
         taskEquals(tasks.get(1), result.get(2));
         taskEquals(tasks.get(2), result.get(1));
-
+        // Test with soft deleted tasks
         tasks.get(0).setActive(new Date());
         taskRepository.save(tasks.get(0));
 
         client.get().uri("/project/{pId}/task", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .exchange()
-                .expectStatus().isOk()
-                .expectBodyList(Task.class)
-                .hasSize(2);
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Task.class).hasSize(2);
     }
 
     @Test
-    void getAllTasksUnauthorized() {
-        client.get().uri("/project/{pId}/task", project.getId())
-                .exchange()
-                .expectStatus().isUnauthorized();
+    void getAllUnauthorized() {
+        client.get().uri("/project/{pId}/task", project.getId()).exchange().expectStatus().isUnauthorized();
     }
 
     @Test
-    void getAllTasksNotFound() {
-        client.get().uri("/project/10000000/task")
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .exchange()
+    void getAllNotFound() {
+        client.get().uri("/project/{pId}/task", -1).cookie(AuthController.COOKIE_NAME, session.getSession()).exchange()
                 .expectStatus().isNotFound();
 
         client.get().uri("/project/{pId}/task", forbiddenProject.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .exchange()
-                .expectStatus().isNotFound();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
     }
 
     @Test
-    void newTaskSuccess() {
-        TaskRequest request = new TaskRequest("NAME", "DESC", project.getStatuses().get(0), 0, new Date(), new Date(), "low");
-        Task parentTask = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
-        request.setParentTaskId(parentTask.getId());
+    void createSuccess() {
+        TaskRequest request = new TaskRequest("name", "desc", project.getStatuses().get(0).getNumber(), 0, "low");
+        Task parentTask = taskRepository.save(new Task("parent", "desc", project.getStatuses().get(0), user, 0, "low"));
         Task task = client.post().uri("/project/{pId}/task", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(Task.class)
-                .returnResult()
-                .getResponseBody();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
+                .isOk().expectBody(Task.class).returnResult().getResponseBody();
         taskEquals(task, taskRepository.findByIdOrThrow(task.getId()));
+        taskEquals(task, request.createEntity(project.getStatuses().get(0), user));
 
-        request.setCreateIssue(false);
+        request.setParentTaskId(parentTask.getId());
         task = client.post().uri("/project/{pId}/task", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(Task.class)
-                .returnResult()
-                .getResponseBody();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
+                .isOk().expectBody(Task.class).returnResult().getResponseBody();
         taskEquals(task, taskRepository.findByIdOrThrow(task.getId()));
 
         request.setSprintId(sprint.getNumber());
         task = client.post().uri("/project/{pId}/task", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(Task.class)
-                .returnResult()
-                .getResponseBody();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
+                .isOk().expectBody(Task.class).returnResult().getResponseBody();
+        taskEquals(task, taskRepository.findByIdOrThrow(task.getId()));
+
+        request.setAssigneeId(user.getId());
+        task = client.post().uri("/project/{pId}/task", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
+                .isOk().expectBody(Task.class).returnResult().getResponseBody();
         taskEquals(task, taskRepository.findByIdOrThrow(task.getId()));
     }
 
     @Test
-    void newTaskBadRequest() {
-        TaskRequest request = new TaskRequest();
+    void createBadRequest() {
         client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
+                .bodyValue(new TaskRequest(null, "desc", project.getStatuses().get(0).getNumber(), 0, "low")).exchange()
                 .expectStatus().isBadRequest();
-
-        request.setName("NAME");
-        client.post().uri("/project/{pId}/task", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isBadRequest();
-
-        request.setDescription("DESC");
-        client.post().uri("/project/{pId}/task", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isBadRequest();
-
-        request.setStatusId(project.getStatuses().get(0).getNumber());
-        client.post().uri("/project/{pId}/task", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isBadRequest();
-
-        request.setType(1);
 
         client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
+                .bodyValue(new TaskRequest(" ", "desc", project.getStatuses().get(0).getNumber(), 0, "low")).exchange()
                 .expectStatus().isBadRequest();
 
-        request.setPriority("low");
+        client.post().uri("/project/{pId}/task", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .bodyValue(new TaskRequest("a".repeat(51), "desc", project.getStatuses().get(0).getNumber(), 0, "low"))
+                .exchange().expectStatus().isBadRequest();
 
-        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
-        Task parentTask = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
+        client.post().uri("/project/{pId}/task", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .bodyValue(new TaskRequest("name", null, project.getStatuses().get(0).getNumber(), 0, "low"))
+                .exchange().expectStatus().isBadRequest();
+
+        client.post().uri("/project/{pId}/task", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .bodyValue(new TaskRequest("name", "desc", null, 0, "low"))
+                .exchange().expectStatus().isBadRequest();
+
+        client.post().uri("/project/{pId}/task", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .bodyValue(new TaskRequest("name", "desc", project.getStatuses().get(0).getNumber(), null, "low"))
+                .exchange().expectStatus().isBadRequest();
+
+        client.post().uri("/project/{pId}/task", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .bodyValue(new TaskRequest("name", "desc", project.getStatuses().get(0).getNumber(), 0, null))
+                .exchange().expectStatus().isBadRequest();
+
+        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
+        Task parentTask = new Task("NAME", "DESC", project.getStatuses().get(0), user, 0, "low");
         parentTask.setParentTask(task);
         parentTask = taskRepository.save(parentTask);
 
+        TaskRequest request = new TaskRequest("name", "desc", project.getStatuses().get(0).getNumber(), 0, "low");
         request.setParentTaskId(parentTask.getId());
 
         client.post().uri("/project/{pId}/task", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isEqualTo(HttpStatus.I_AM_A_TEAPOT);
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
+                .isBadRequest();
     }
 
     @Test
-    void newTaskUnauthorized() {
-        TaskRequest request = new TaskRequest("NAME", "DESC", project.getStatuses().get(0), 0, new Date(), new Date(), "low");
+    void createUnauthorized() {
         client.post().uri("/project/{pId}/task", project.getId())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isUnauthorized();
+                .bodyValue(new TaskRequest("NAME", "DESC", project.getStatuses().get(0).getNumber(), 0, "low"))
+                .exchange().expectStatus().isUnauthorized();
     }
 
     @Test
-    void newTaskNotFound() {
-        TaskRequest request = new TaskRequest("NAME", "DESC", forbiddenProject.getStatuses().get(0), 0, new Date(), new Date(), "low");
+    void createNotFound() {
+        TaskRequest request = new TaskRequest("n", "d", forbiddenProject.getStatuses().get(0).getNumber(), 0, "low");
 
-        request.setStatusId(666L);
-        client.post().uri("/project/{pId}/task", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isNotFound();
+        client.post().uri("/project/{pId}/task", forbiddenProject.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
+                .isNotFound();
 
         request.setStatusId(project.getStatuses().get(0).getId());
         request.setParentTaskId(666L);
         client.post().uri("/project/{pId}/task", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isNotFound();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
+                .isNotFound();
 
-        client.post().uri("/project/666/task")
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isNotFound();
+        request.setParentTaskId(null);
+        client.post().uri("/project/{pId}/task", -1).cookie(AuthController.COOKIE_NAME, session.getSession())
+                .bodyValue(request).exchange().expectStatus().isNotFound();
 
-        request.setSprintId(sprint.getNumber());
+        request.setSprintId(sprint.getNumber() + 1);
         client.post().uri("/project/{pId}/task", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isNotFound();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
+                .isNotFound();
     }
 
     @Test
-    void getTaskSuccess() {
-        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
+    void getSuccess() {
+        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
 
         Task result = client.get().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(Task.class)
-                .returnResult()
-                .getResponseBody();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBody(Task.class).returnResult().getResponseBody();
         taskEquals(task, result);
     }
 
     @Test
-    void getTaskUnauthorized() {
-        client.get().uri("/project/{pId}/task/1", project.getId())
-                .exchange()
-                .expectStatus().isUnauthorized();
+    void getUnauthorized() {
+        client.get().uri("/project/{pId}/task/1", project.getId()).exchange().expectStatus().isUnauthorized();
+        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
 
-        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
-
-        client.get().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
-                .exchange()
-                .expectStatus().isUnauthorized();
+        client.get().uri("/project/{pId}/task/{id}", project.getId(), task.getId()).exchange().expectStatus()
+                .isUnauthorized();
     }
 
     @Test
-    void getTaskNotFound() {
+    void getNotFound() {
         client.get().uri("/project/{pId}/task/1", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .exchange()
-                .expectStatus().isNotFound();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
 
-        client.get().uri("/project/{pId}/task/1", forbiddenProject.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .exchange()
-                .expectStatus().isNotFound();
-
-        Task task = taskRepository.save(new Task("NAME", "DESC", forbiddenProject.getStatuses().get(0), user, 0));
+        Task task = taskRepository.save(new Task("n", "d", forbiddenProject.getStatuses().get(0), user, 0, "low"));
         client.get().uri("/project/{pId}/task/{id}", forbiddenProject.getId(), task.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .exchange()
-                .expectStatus().isNotFound();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
     }
 
     @Test
-    void putTaskSuccess() {
-        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
-        Task parentTask = taskRepository.save(new Task("NAME 2", "DESC", project.getStatuses().get(0), user, 0));
-        TaskRequest request = new TaskRequest();
+    void updateSuccess() {
+        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
+        Task parentTask = taskRepository.save(new Task("NAME 2", "DESC", project.getStatuses().get(0), user, 0, "low"));
 
         Task result = client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(Task.class)
-                .returnResult()
-                .getResponseBody();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new TaskRequest()).exchange()
+                .expectStatus().isOk().expectBody(Task.class).returnResult().getResponseBody();
         taskEquals(task, result);
 
-        request.setName("NEW PUT");
+        TaskRequest request = new TaskRequest("new", "new", project.getStatuses().get(1).getNumber(), 1, "medium");
+        task.setType(1);
+        task.setPriority("medium");
         task.setName(request.getName().get());
-
-        request.setDescription("NEW PUT");
         task.setDescription(request.getDescription().get());
+        task.setStatus(project.getStatuses().get(1));
+
+        result = client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
+                .isOk().expectBody(Task.class).returnResult().getResponseBody();
+        taskEquals(task, result);
 
         request.setDeadline(Date.from(Instant.now().minusSeconds(4000)));
         task.setDeadline(request.getDeadline().get());
@@ -385,174 +312,129 @@ public class TaskControllerTests {
         request.setEstimatedDate(Date.from(Instant.now().minusSeconds(4000)));
         task.setEstimatedDate(request.getEstimatedDate().get());
 
-        request.setType(1);
-        task.setType(request.getType().get());
-
-        request.setStatusId(project.getStatuses().get(2).getNumber());
-        task.setStatus(project.getStatuses().get(2));
-
         request.setParentTaskId(parentTask.getId());
         task.setParentTask(parentTask);
 
-        request.setPriority("low");
-        task.setPriority("low");
+        request.setSprintId(sprint.getNumber());
+        task.setSprint(sprint);
+
+        request.setAssigneeId(user.getId());
+        task.setAssignee(user);
 
         result = client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(Task.class)
-                .returnResult()
-                .getResponseBody();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
+                .isOk().expectBody(Task.class).returnResult().getResponseBody();
         taskEquals(task, result);
+        assertNotNull(taskRepository.findByIdOrThrow(task.getId()).getSprint());
+        assertNotNull(taskRepository.findByIdOrThrow(task.getId()).getAssignee());
 
-        request.setSprintId(sprint.getNumber());
-        client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(Task.class);
-        assertEquals(request.getSprintId().get(), taskRepository.findByIdOrThrow(task.getId()).getSprint().getNumber());
         request.setSprintId(null);
+        task.setSprint(null);
+
+        request.setAssigneeId(null);
+        task.setAssignee(null);
+
         client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(Task.class);
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
+                .isOk().expectBody(Task.class);
         assertNull(taskRepository.findByIdOrThrow(task.getId()).getSprint());
+        assertNull(taskRepository.findByIdOrThrow(task.getId()).getAssignee());
     }
 
     @Test
-    void putTaskBadRequest() {
-        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
-        Task parentTask = taskRepository.save(new Task("NAME 2", "DESC", project.getStatuses().get(0), user, 0));
-        Task parentParentTask = taskRepository.save(new Task("NAME 2", "DESC", project.getStatuses().get(0), user, 0));
+    void updateBadRequest() {
+        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
+        Task parentTask = new Task("NAME 2", "DESC", project.getStatuses().get(0), user, 0, "low");
+        Task parentParentTask = taskRepository.save(new Task("2", "D", project.getStatuses().get(0), user, 0, "low"));
         parentTask.setParentTask(parentParentTask);
         parentTask = taskRepository.save(parentTask);
         TaskRequest request = new TaskRequest();
         request.setParentTaskId(parentTask.getId());
 
         client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isEqualTo(HttpStatus.I_AM_A_TEAPOT);
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
+                .isBadRequest();
     }
 
     @Test
-    void putTaskUnauthorized() {
+    void updateUnauthorized() {
         TaskRequest request = new TaskRequest();
-        client.put().uri("/project/{pId}/task/1", project.getId())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isUnauthorized();
+        client.put().uri("/project/{pId}/task/1", project.getId()).bodyValue(request).exchange().expectStatus()
+                .isUnauthorized();
 
-        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
+        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
 
-        client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
+        client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId()).bodyValue(request).exchange()
                 .expectStatus().isUnauthorized();
     }
 
     @Test
-    void putTaskNotFound() {
+    void updateNotFound() {
         TaskRequest request = new TaskRequest();
 
         client.put().uri("/project/{pId}/task/1", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isNotFound();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
+                .isNotFound();
 
-        Task forbiddenTask = taskRepository.save(new Task("NAME", "DESC", forbiddenProject.getStatuses().get(0), user, 0));
-        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
+        Task fTask = taskRepository.save(new Task("N", "D", forbiddenProject.getStatuses().get(0), user, 0, "low"));
+        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
 
-        client.put().uri("/project/{pId}/task/{id}", forbiddenProject.getId(), forbiddenTask.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isNotFound();
+        client.put().uri("/project/{pId}/task/{id}", forbiddenProject.getId(), fTask.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
+                .isNotFound();
 
         request.setStatusId(666L);
         client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isNotFound();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
+                .isNotFound();
 
         request = new TaskRequest();
         request.setParentTaskId(666L);
         client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isNotFound();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
+                .isNotFound();
 
         request.setParentTaskId(null);
         request.setSprintId(2L);
         client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isNotFound();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
+                .isNotFound();
+        // This should return error, but it doesn't.
+        // request.setSprintId(null);
+        // request.setAssigneeId(10891L);
+        // client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
+        // .cookie(AuthController.COOKIE_NAME,
+        // session.getSession()).bodyValue(request).exchange().expectStatus()
+        // .isNotFound();
     }
 
     @Test
-    void deleteTaskSuccess() {
-        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
+    void deleteSuccess() {
+        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
 
         client.delete().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .exchange()
-                .expectStatus().isOk();
-        assertNotEquals(null, taskRepository.findById(task.getId()).get().getActive());
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk();
+        assertNotNull(taskRepository.findById(task.getId()).get().getActive());
     }
 
     @Test
-    void deleteTaskUnauthorized() {
-        client.delete().uri("/project/{pId}/task/1", project.getId())
-                .exchange()
-                .expectStatus().isUnauthorized();
+    void deleteUnauthorized() {
+        client.delete().uri("/project/{pId}/task/1", project.getId()).exchange().expectStatus().isUnauthorized();
 
-        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0));
-        client.delete().uri("/project/{pId}/task/{id}", project.getId(), task.getId())
-                .exchange()
-                .expectStatus().isUnauthorized();
+        Task task = taskRepository.save(new Task("NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
+        client.delete().uri("/project/{pId}/task/{id}", project.getId(), task.getId()).exchange().expectStatus()
+                .isUnauthorized();
 
         assertEquals(task.getActive(), taskRepository.findByIdOrThrow(task.getId()).getActive());
     }
 
     @Test
-    void deleteTaskNotFound() {
+    void deleteNotFound() {
         client.delete().uri("/project/{pId}/task/1", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .exchange()
-                .expectStatus().isNotFound();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
 
-        client.delete().uri("/project/{pId}/task/1", forbiddenProject.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .exchange()
-                .expectStatus().isNotFound();
-
-        Task task = taskRepository.save(new Task("NAME", "DESC", forbiddenProject.getStatuses().get(0), user, 0));
+        Task task = taskRepository.save(new Task("N", "D", forbiddenProject.getStatuses().get(0), user, 0, "low"));
         client.delete().uri("/project/{pId}/task/{id}", forbiddenProject.getId(), task.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .exchange()
-                .expectStatus().isNotFound();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
     }
 }

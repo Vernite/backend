@@ -26,7 +26,6 @@ import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
 import com.workflow.workflow.status.Status;
-import com.workflow.workflow.status.StatusRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.user.UserSession;
@@ -75,8 +74,6 @@ public class GitHubControllerTests {
     private GitHubInstallationRepository installationRepository;
     @Autowired
     private GitHubIntegrationRepository integrationRepository;
-    @Autowired
-    private StatusRepository statusRepository;
     @Autowired
     private WorkspaceRepository workspaceRepository;
     @Autowired

@@ -152,6 +152,7 @@ public class GitHubWebhookService {
                 task.setStatus(gitHubIntegration.getProject().getStatuses().stream().findFirst().orElseThrow());
                 task.setState("open");
                 task.setType(0);
+                task.setPriority("low");
                 task = taskRepository.save(task);
                 gitTaskRepository.save(new GitHubTask(task, gitHubIntegration, issue.getNumber(), (byte) 0));
             } else {
