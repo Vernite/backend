@@ -121,14 +121,14 @@ public class TaskController {
         });
         Task savedTask = taskRepository.save(task);
         List<Mono<Void>> results = new ArrayList<>();
+        taskRequest.getIssue().ifPresent(issue -> results.add(service.handleIssueAction(issue, task).then()));
+        taskRequest.getPull().ifPresent(pull -> results.add(service.handlePullAction(pull, task).then()));
         taskRequest.getCreateIssue().ifPresent(createIssue -> {
-            if (Boolean.TRUE.equals(createIssue)) {
+            if (Boolean.TRUE.equals(createIssue) && results.isEmpty()) {
                 results.add(service.createIssue(task).then());
             }
         });
-        taskRequest.getIssue().ifPresent(issue -> results.add(service.handleIssueAction(issue, task).then()));
-        taskRequest.getPull().ifPresent(pull -> results.add(service.handlePullAction(pull, task).then()));
-        return Flux.fromIterable(results).then(Mono.just(savedTask));
+        return Flux.concat(results).then(Mono.just(savedTask));
     }
 
     @Operation(summary = "Alter the task", description = "This method is used to modify existing task. On success returns task.")
@@ -175,14 +175,14 @@ public class TaskController {
         });
         Task savedTask = taskRepository.save(task);
         List<Mono<Void>> results = new ArrayList<>();
+        taskRequest.getIssue().ifPresent(issue -> results.add(service.handleIssueAction(issue, task).then()));
+        taskRequest.getPull().ifPresent(pull -> results.add(service.handlePullAction(pull, task).then()));
         taskRequest.getCreateIssue().ifPresent(createIssue -> {
-            if (Boolean.TRUE.equals(createIssue)) {
+            if (Boolean.TRUE.equals(createIssue) && results.isEmpty()) {
                 results.add(service.createIssue(task).then());
             }
         });
-        taskRequest.getIssue().ifPresent(issue -> results.add(service.handleIssueAction(issue, task).then()));
-        taskRequest.getPull().ifPresent(pull -> results.add(service.handlePullAction(pull, task).then()));
-        return Flux.fromIterable(results).then(service.patchIssue(task).then()).thenReturn(savedTask);
+        return Flux.concat(results).then(service.patchIssue(task).then()).thenReturn(savedTask);
     }
 
     @Operation(summary = "Delete task", description = "This method is used to delete task. On success does not return anything. Throws 404 when task or project does not exist.")
