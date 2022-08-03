@@ -19,6 +19,7 @@ import com.workflow.workflow.integration.git.github.data.GitHubIssue;
 import com.workflow.workflow.integration.git.github.data.GitHubMergeInfo;
 import com.workflow.workflow.integration.git.github.data.GitHubPullRequest;
 import com.workflow.workflow.integration.git.github.data.GitHubRepository;
+import com.workflow.workflow.integration.git.github.data.GitHubUser;
 import com.workflow.workflow.integration.git.github.data.GitHubInstallationRepositories;
 import com.workflow.workflow.integration.git.github.data.GitHubIntegrationInfo;
 import com.workflow.workflow.integration.git.github.data.InstallationToken;
@@ -142,6 +143,7 @@ public class GitHubService {
         }
         GitHubIssue issue = new GitHubIssue(task, assignees);
         return refreshToken(integration.getInstallation())
+                .flatMap(inst -> hasCollaborator(inst, integration, issue))
                 .flatMap(installation -> apiPostRepositoryIssue(installation, integration, issue))
                 .map(i -> {
                     taskRepository.save(new GitHubTask(task, integration, i.getNumber(), (byte) 0));
@@ -174,6 +176,7 @@ public class GitHubService {
         GitHubIssue gitHubIssue = new GitHubIssue(task, assignees);
         gitHubIssue.setNumber(gitHubTask.getIssueId());
         return refreshToken(gitHubTask.getGitHubIntegration().getInstallation())
+                .flatMap(inst -> hasCollaborator(inst, gitHubTask.getGitHubIntegration(), gitHubIssue))
                 .flatMap(inst -> apiPatchRepositoryIssue(inst, gitHubTask.getGitHubIntegration(), gitHubIssue))
                 .map(GitHubIssue::toIssue);
     }
@@ -322,6 +325,7 @@ public class GitHubService {
         gitHubPullRequest.setState("open");
         gitHubPullRequest.setNumber(gitHubTask.getIssueId());
         return refreshToken(integration.getInstallation())
+                .flatMap(inst -> hasCollaborator(inst, gitHubTask.getGitHubIntegration(), gitHubPullRequest))
                 .flatMap(installation -> apiPatchRepositoryPull(installation, integration, gitHubPullRequest))
                 .map(GitHubPullRequest::toPullRequest);
     }
@@ -353,6 +357,29 @@ public class GitHubService {
                 .map(GitHubInstallationRepositories::getRepositories)
                 .map(repositories -> repositories.stream()
                         .anyMatch(repository -> repository.getFullName().equals(fullName)));
+    }
+
+    /**
+     * Removes assigned user from issue if is not collaborator.
+     * 
+     * @param installation must be entity from database. Must not be suspended.
+     * @param integration  must be entity from database.
+     * @param issue        must be issue from GitHub api.
+     * @return Mono with installation.
+     */
+    private Mono<GitHubInstallation> hasCollaborator(GitHubInstallation installation, GitHubIntegration integration,
+            GitHubIssue issue) {
+        if (issue.getAssignees().isEmpty()) {
+            return Mono.just(installation);
+        }
+        return apiGetRepositoryCollaborators(installation, integration)
+                .any(collaborator -> collaborator.getLogin().equals(issue.getAssignees().get(0)))
+                .map(b -> {
+                    if (Boolean.FALSE.equals(b)) {
+                        issue.setAssignees(List.of());
+                    }
+                    return installation;
+                });
     }
 
     /**
@@ -593,6 +620,25 @@ public class GitHubService {
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
                 .retrieve()
                 .bodyToMono(GitHubPullRequest.class)
+                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
+    }
+
+    /**
+     * Retrieves collaborators for repository from GitHub api.
+     * 
+     * @param installation must be entity from database.
+     * @param integration  must be entity from database.
+     * @return Flux with collaborators. Can be empty.
+     */
+    private Flux<GitHubUser> apiGetRepositoryCollaborators(GitHubInstallation installation,
+            GitHubIntegration integration) {
+        return client.get()
+                .uri("/repos/{owner}/{repo}/collaborators", integration.getRepositoryOwner(),
+                        integration.getRepositoryName())
+                .header(AUTHORIZATION, BEARER + installation.getToken())
+                .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                .retrieve()
+                .bodyToFlux(GitHubUser.class)
                 .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
     }
 

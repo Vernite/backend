@@ -16,6 +16,7 @@ import com.workflow.workflow.integration.git.github.data.GitHubBranch;
 import com.workflow.workflow.integration.git.github.data.GitHubIssue;
 import com.workflow.workflow.integration.git.github.data.GitHubMergeInfo;
 import com.workflow.workflow.integration.git.github.data.GitHubPullRequest;
+import com.workflow.workflow.integration.git.github.data.GitHubUser;
 import com.workflow.workflow.integration.git.github.data.InstallationToken;
 import com.workflow.workflow.integration.git.github.entity.GitHubInstallation;
 import com.workflow.workflow.integration.git.github.entity.GitHubInstallationRepository;
@@ -185,6 +186,24 @@ public class GitHubServiceTests {
 
         Issue result = service.patchIssue(task).block();
 
+        task.setAssignee(user);
+        tokenCheck();
+        mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(List.of())).addHeader("Content-Type",
+                "application/json"));
+        mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(gitIssue)).addHeader("Content-Type",
+                "application/json"));
+
+        result = service.patchIssue(task).block();
+
+        tokenCheck();
+        mockBackEnd.enqueue(new MockResponse()
+                .setBody(MAPPER.writeValueAsString(List.of(new GitHubUser(1, "username")))).addHeader("Content-Type",
+                        "application/json"));
+        mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(gitIssue)).addHeader("Content-Type",
+                "application/json"));
+
+        result = service.patchIssue(task).block();
+
         assertEquals(gitIssue.getUrl(), result.getUrl());
         assertEquals(gitIssue.getState(), result.getState());
         assertEquals(gitIssue.getTitle(), result.getTitle());
@@ -253,14 +272,16 @@ public class GitHubServiceTests {
         Status newStatus = statusRepository.save(new Status(563434, "NEW_NAME", 1, false, true, 0, newProject));
         Task task = taskRepository.save(new Task(8, "name", "description", newStatus, user, 0));
 
-        PullRequest pull = service.connectPullRequest(task, new PullRequest(1, "url", "title", "description", "github", "ref")).block();
+        PullRequest pull = service
+                .connectPullRequest(task, new PullRequest(1, "url", "title", "description", "github", "ref")).block();
 
         assertEquals(null, pull);
 
         task = taskRepository.save(new Task(9, "name", "description", statuses[0], user, 0));
         installation.setSuspended(true);
         installation = installationRepository.save(installation);
-        pull = service.connectPullRequest(task, new PullRequest(1, "url", "title", "description", "github", "ref")).block();
+        pull = service.connectPullRequest(task, new PullRequest(1, "url", "title", "description", "github", "ref"))
+                .block();
 
         assertEquals(null, pull);
         installation.setSuspended(false);
@@ -273,41 +294,67 @@ public class GitHubServiceTests {
         gitHubTaskRepository.save(new GitHubTask(task, integration, 1, (byte) 1));
         installation.setSuspended(true);
         installation = installationRepository.save(installation);
-        
+
         Issue issue = service.patchPullRequest(task).block();
-        
+
         assertEquals(null, issue);
 
         installation.setSuspended(false);
         installation = installationRepository.save(installation);
 
         tokenCheck();
-        mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(new GitHubPullRequest(1, "url", "open", "name", "description", new GitHubBranch("ref")))).addHeader("Content-Type",
-                "application/json"));
-        
+        mockBackEnd.enqueue(new MockResponse()
+                .setBody(MAPPER.writeValueAsString(
+                        new GitHubPullRequest(1, "url", "open", "name", "description", new GitHubBranch("ref"))))
+                .addHeader("Content-Type",
+                        "application/json"));
+
         issue = service.patchPullRequest(task).block();
-        
+
         assertEquals(1, issue.getId());
         assertEquals("url", issue.getUrl());
         assertEquals("open", issue.getState());
         assertEquals("name", issue.getTitle());
 
+        task.setAssignee(user);
+        tokenCheck();
+        mockBackEnd.enqueue(new MockResponse()
+                .setBody(MAPPER.writeValueAsString(List.of())).addHeader("Content-Type", "application/json"));
+        mockBackEnd.enqueue(new MockResponse()
+                .setBody(MAPPER.writeValueAsString(
+                        new GitHubPullRequest(1, "url", "open", "name", "description", new GitHubBranch("ref"))))
+                .addHeader("Content-Type", "application/json"));
+        issue = service.patchPullRequest(task).block();
+
+        tokenCheck();
+        mockBackEnd.enqueue(new MockResponse()
+                .setBody(MAPPER.writeValueAsString(List.of(new GitHubUser(1, "username"))))
+                .addHeader("Content-Type", "application/json"));
+        mockBackEnd.enqueue(new MockResponse()
+                .setBody(MAPPER.writeValueAsString(
+                        new GitHubPullRequest(1, "url", "open", "name", "description", new GitHubBranch("ref"))))
+                .addHeader("Content-Type", "application/json"));
+        issue = service.patchPullRequest(task).block();
+
         task.setStatus(statuses[1]);
         tokenCheck();
-        mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(new GitHubMergeInfo("1", false, "message"))).addHeader("Content-Type",
-                "application/json"));
+        mockBackEnd.enqueue(
+                new MockResponse().setBody(MAPPER.writeValueAsString(new GitHubMergeInfo("1", false, "message")))
+                        .addHeader("Content-Type",
+                                "application/json"));
         issue = service.patchPullRequest(task).block();
-        
+
         assertEquals(null, issue);
 
         assertEquals(true, gitHubTaskRepository.findById(new GitHubTaskKey(task, integration)).isPresent());
         assertEquals(true, gitHubTaskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 2).isEmpty());
 
         tokenCheck();
-        mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(new GitHubMergeInfo("1", true, "message"))).addHeader("Content-Type",
-                "application/json"));
+        mockBackEnd.enqueue(new MockResponse()
+                .setBody(MAPPER.writeValueAsString(new GitHubMergeInfo("1", true, "message"))).addHeader("Content-Type",
+                        "application/json"));
         issue = service.patchPullRequest(task).block();
-        
+
         assertEquals(null, issue);
 
         assertEquals(true, gitHubTaskRepository.findById(new GitHubTaskKey(task, integration)).isPresent());

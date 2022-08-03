@@ -16,7 +16,7 @@ public class GitHubIssue {
     private String title;
     private String body;
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    private List<String> assignees;
+    private List<String> assignees = List.of();
 
     public GitHubIssue() {
     }

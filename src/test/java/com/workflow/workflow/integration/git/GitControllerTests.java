@@ -14,6 +14,7 @@ import com.workflow.workflow.integration.git.github.GitHubService;
 import com.workflow.workflow.integration.git.github.data.GitHubBranch;
 import com.workflow.workflow.integration.git.github.data.GitHubIssue;
 import com.workflow.workflow.integration.git.github.data.GitHubPullRequest;
+import com.workflow.workflow.integration.git.github.data.GitHubUser;
 import com.workflow.workflow.integration.git.github.data.InstallationToken;
 import com.workflow.workflow.integration.git.github.entity.GitHubInstallation;
 import com.workflow.workflow.integration.git.github.entity.GitHubInstallationRepository;
@@ -239,6 +240,48 @@ public class GitControllerTests {
         assertEquals("name", issue2.getTitle());
         assertEquals("description", issue2.getDescription());
         assertEquals("github", issue2.getService());
+
+        assertEquals(true, gitHubTaskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0).isPresent());
+        gitHubTaskRepository.delete(gitHubTaskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0).get());
+
+        task.setAssignee(user);
+        taskRepository.save(task);
+        tokenCheck();
+        mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(List.of()))
+                .addHeader("Content-Type", "application/json"));
+        mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(
+                new GitHubIssue(1, "url", "open", "name", "description")))
+                .addHeader("Content-Type", "application/json"));
+        Issue issue3 = controller
+                .newIssue(user, project.getId(), task.getNumber(), null)
+                .block();
+
+        assertEquals(1, issue3.getId());
+        assertEquals("url", issue3.getUrl());
+        assertEquals("open", issue3.getState());
+        assertEquals("name", issue3.getTitle());
+        assertEquals("description", issue3.getDescription());
+        assertEquals("github", issue3.getService());
+
+        assertEquals(true, gitHubTaskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0).isPresent());
+        gitHubTaskRepository.delete(gitHubTaskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0).get());
+
+        tokenCheck();
+        mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(List.of(new GitHubUser(1, "username"))))
+                .addHeader("Content-Type", "application/json"));
+        mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(
+                new GitHubIssue(1, "url", "open", "name", "description")))
+                .addHeader("Content-Type", "application/json"));
+        issue3 = controller
+                .newIssue(user, project.getId(), task.getNumber(), null)
+                .block();
+
+        assertEquals(1, issue3.getId());
+        assertEquals("url", issue3.getUrl());
+        assertEquals("open", issue3.getState());
+        assertEquals("name", issue3.getTitle());
+        assertEquals("description", issue3.getDescription());
+        assertEquals("github", issue3.getService());
 
         assertEquals(true, gitHubTaskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0).isPresent());
         gitHubTaskRepository.delete(gitHubTaskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0).get());

@@ -186,8 +186,10 @@ public class GitHubWebhookService {
                     case "assigned":
                         installationRepository.findByGitHubUsername(data.getAssignee().getLogin())
                                 .ifPresent(installation -> {
-                                    task.setAssignee(installation.getUser());
-                                    taskRepository.save(task);
+                                    if (integration.getProject().member(installation.getUser()) != -1) {
+                                        task.setAssignee(installation.getUser());
+                                        taskRepository.save(task);
+                                    }
                                 });
                         break;
                     case "unassigned":
@@ -236,8 +238,10 @@ public class GitHubWebhookService {
                 case "assigned":
                     installationRepository.findByGitHubUsername(data.getAssignee().getLogin())
                             .ifPresent(installation -> {
-                                task.setAssignee(installation.getUser());
-                                taskRepository.save(task);
+                                if (integration.getProject().member(installation.getUser()) != -1) {
+                                    task.setAssignee(installation.getUser());
+                                    taskRepository.save(task);
+                                }
                             });
                     break;
                 case "unassigned":
