@@ -1,5 +1,7 @@
 package com.workflow.workflow.integration.git.github.data;
 
+import java.util.List;
+
 import com.workflow.workflow.integration.git.PullRequest;
 import com.workflow.workflow.task.Task;
 
@@ -18,8 +20,8 @@ public class GitHubPullRequest extends GitHubIssue {
         this.head = head;
     }
 
-    public GitHubPullRequest(Task task) {
-        super(task);
+    public GitHubPullRequest(Task task, List<String> assignees) {
+        super(task, assignees);
     }
 
     public PullRequest toPullRequest() {

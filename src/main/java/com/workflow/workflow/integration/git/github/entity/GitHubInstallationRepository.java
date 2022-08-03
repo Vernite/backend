@@ -39,4 +39,12 @@ public interface GitHubInstallationRepository extends NotFoundRepository<GitHubI
      * @return Installation with given installation id.
      */
     Optional<GitHubInstallation> findByInstallationId(long installationId);
+
+    /**
+     * This method finds installation by GitHub username.
+     * 
+     * @param gitHubUsername GitHub username.
+     * @return Installation with for given username.
+     */
+    Optional<GitHubInstallation> findByGitHubUsername(String gitHubUsername);
 }

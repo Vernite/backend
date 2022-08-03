@@ -133,11 +133,19 @@ public class GitHubService {
         if (integration.getInstallation().getSuspended()) {
             return Mono.empty();
         }
+        List<String> assignees = List.of();
+        if (task.getAssignee() != null) {
+            List<GitHubInstallation> inst = installationRepository.findByUser(task.getAssignee());
+            if (!inst.isEmpty()) {
+                assignees = List.of(inst.get(0).getGitHubUsername());
+            }
+        }
+        GitHubIssue issue = new GitHubIssue(task, assignees);
         return refreshToken(integration.getInstallation())
-                .flatMap(installation -> apiPostRepositoryIssue(installation, integration, new GitHubIssue(task)))
-                .map(issue -> {
-                    taskRepository.save(new GitHubTask(task, integration, issue.getNumber(), (byte) 0));
-                    return issue.toIssue();
+                .flatMap(installation -> apiPostRepositoryIssue(installation, integration, issue))
+                .map(i -> {
+                    taskRepository.save(new GitHubTask(task, integration, i.getNumber(), (byte) 0));
+                    return i.toIssue();
                 });
     }
 
@@ -156,7 +164,14 @@ public class GitHubService {
         if (gitHubTask.getGitHubIntegration().getInstallation().getSuspended()) {
             return Mono.empty();
         }
-        GitHubIssue gitHubIssue = new GitHubIssue(task);
+        List<String> assignees = List.of();
+        if (task.getAssignee() != null) {
+            List<GitHubInstallation> inst = installationRepository.findByUser(task.getAssignee());
+            if (!inst.isEmpty()) {
+                assignees = List.of(inst.get(0).getGitHubUsername());
+            }
+        }
+        GitHubIssue gitHubIssue = new GitHubIssue(task, assignees);
         gitHubIssue.setNumber(gitHubTask.getIssueId());
         return refreshToken(gitHubTask.getGitHubIntegration().getInstallation())
                 .flatMap(inst -> apiPatchRepositoryIssue(inst, gitHubTask.getGitHubIntegration(), gitHubIssue))
@@ -297,6 +312,12 @@ public class GitHubService {
                                 GITHUB);
                     })
                     .then(Mono.empty());
+        }
+        if (task.getAssignee() != null) {
+            List<GitHubInstallation> inst = installationRepository.findByUser(task.getAssignee());
+            if (!inst.isEmpty()) {
+                gitHubPullRequest.setAssignees(List.of(inst.get(0).getGitHubUsername()));
+            }
         }
         gitHubPullRequest.setState("open");
         gitHubPullRequest.setNumber(gitHubTask.getIssueId());

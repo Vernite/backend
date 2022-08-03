@@ -1,5 +1,8 @@
 package com.workflow.workflow.integration.git.github.data;
 
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.workflow.workflow.integration.git.Issue;
 import com.workflow.workflow.task.Task;
 
@@ -12,6 +15,9 @@ public class GitHubIssue {
     private String state;
     private String title;
     private String body;
+    private GitHubUser assignee;
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private List<String> assignees;
 
     public GitHubIssue() {
     }
@@ -24,10 +30,11 @@ public class GitHubIssue {
         this.body = body;
     }
 
-    public GitHubIssue(Task task) {
+    public GitHubIssue(Task task, List<String> assignees) {
         this.title = task.getName();
         this.body = task.getDescription();
         this.state = task.getStatus().isFinal() ? "closed" : "open";
+        this.assignees = assignees;
     }
 
     public Issue toIssue() {
@@ -72,5 +79,21 @@ public class GitHubIssue {
 
     public void setBody(String body) {
         this.body = body;
+    }
+
+    public GitHubUser getAssignee() {
+        return assignee;
+    }
+
+    public void setAssignee(GitHubUser assignee) {
+        this.assignee = assignee;
+    }
+
+    public List<String> getAssignees() {
+        return assignees;
+    }
+
+    public void setAssignees(List<String> assignees) {
+        this.assignees = assignees;
     }
 }

@@ -183,6 +183,17 @@ public class GitHubWebhookService {
                         gitTaskRepository.delete(gitTask);
                         taskRepository.delete(task);
                         break;
+                    case "assigned":
+                        installationRepository.findByGitHubUsername(issue.getAssignee().getLogin())
+                                .ifPresent(installation -> {
+                                    task.setAssignee(installation.getUser());
+                                    taskRepository.save(task);
+                                });
+                        break;
+                    case "unassigned":
+                        task.setAssignee(null);
+                        taskRepository.save(task);
+                        break;
                     default:
                         break;
                 }
@@ -209,16 +220,32 @@ public class GitHubWebhookService {
             return;
         }
         GitHubIntegration integration = optional.get();
-        if (data.getAction().equals(CLOSED) || data.getAction().equals("reopened")) {
-            for (GitHubTask gitHubTask : gitTaskRepository.findByIssueIdAndGitHubIntegration(pullRequest.getNumber(),
-                    integration)) {
-                if (pullRequest.isMerged()) {
-                    gitHubTask.setIsPullRequest((byte) 2);
-                    gitTaskRepository.save(gitHubTask);
-                }
-                Task task = gitHubTask.getTask();
-                task.changeStatus(pullRequest.getState().equals("open"));
-                taskRepository.save(task);
+        for (GitHubTask gitTask : gitTaskRepository.findByIssueIdAndGitHubIntegration(pullRequest.getNumber(),
+                integration)) {
+            Task task = gitTask.getTask();
+            switch (data.getAction()) {
+                case CLOSED:
+                case "reopened":
+                    if (pullRequest.isMerged()) {
+                        gitTask.setIsPullRequest((byte) 2);
+                        gitTaskRepository.save(gitTask);
+                    }
+                    task.changeStatus(pullRequest.getState().equals("open"));
+                    taskRepository.save(task);
+                    break;
+                case "assigned":
+                    installationRepository.findByGitHubUsername(pullRequest.getAssignee().getLogin())
+                            .ifPresent(installation -> {
+                                task.setAssignee(installation.getUser());
+                                taskRepository.save(task);
+                            });
+                    break;
+                case "unassigned":
+                    task.setAssignee(null);
+                    taskRepository.save(task);
+                    break;
+                default:
+                    break;
             }
         }
     }
