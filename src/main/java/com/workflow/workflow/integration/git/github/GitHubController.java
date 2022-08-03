@@ -1,8 +1,5 @@
 package com.workflow.workflow.integration.git.github;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -128,7 +125,7 @@ public class GitHubController {
             throw new ObjectNotFoundException();
         }
         GitHubIntegration integration = integrationRepository.findByProjectAndActiveNull(project).orElseThrow();
-        integration.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
+        integration.softDelete();
         integrationRepository.save(integration);
     }
 }

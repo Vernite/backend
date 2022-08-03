@@ -2,6 +2,9 @@ package com.workflow.workflow.integration.git.github.data;
 
 import java.util.List;
 
+/**
+ * Object to represent repositories an installation link.
+ */
 public class GitHubIntegrationInfo {
     private String link;
     private List<GitHubRepository> gitRepositories;

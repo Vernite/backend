@@ -2,6 +2,9 @@ package com.workflow.workflow.integration.git.github.data;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/**
+ * Object to represent GitHub Rest api repository.
+ */
 public class GitHubRepository {
     private long id;
     private String fullName;
@@ -23,7 +26,7 @@ public class GitHubRepository {
 
     @JsonProperty("fullName")
     public String getFullName2() {
-        return fullName;
+        return getFullName();
     }
 
     @JsonProperty("full_name")

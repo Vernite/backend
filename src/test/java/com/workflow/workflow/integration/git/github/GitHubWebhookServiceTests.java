@@ -15,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
@@ -99,36 +98,21 @@ public class GitHubWebhookServiceTests {
 
     @Test
     void githubUnauthorized() {
-        client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
-                .header("X-Hub-Signature-256", "sha256=12345")
-                .header("X-GitHub-Event", "push")
-                .bodyValue("{}")
-                .exchange()
-                .expectStatus().isUnauthorized();
+        client.post().uri("/webhook/github").header("X-Hub-Signature-256", "sha256=12345")
+                .header("X-GitHub-Event", "push").bodyValue("{}").exchange().expectStatus().isUnauthorized();
     }
 
     @Test
     void githubBadRequest() {
-        client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
-                .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex("[]"))
-                .header("X-GitHub-Event", "push")
-                .bodyValue("[]")
-                .exchange()
-                .expectStatus().isBadRequest();
+        client.post().uri("/webhook/github").header("X-Hub-Signature-256", "sha256=" + utils.hmacHex("[]"))
+                .header("X-GitHub-Event", "push").bodyValue("[]").exchange().expectStatus().isBadRequest();
     }
 
     @Test
     void githubSuccessRepositories() throws JsonProcessingException {
         // Test empty repositories remove
-        client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
-                .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex("{}"))
-                .header("X-GitHub-Event", "installation_repositories")
-                .bodyValue("{}")
-                .exchange()
-                .expectStatus().isOk();
+        client.post().uri("/webhook/github").header("X-Hub-Signature-256", "sha256=" + utils.hmacHex("{}"))
+                .header("X-GitHub-Event", "installation_repositories").bodyValue("{}").exchange().expectStatus().isOk();
         // Test not empty repositories remove
         GitHubWebhookData data = new GitHubWebhookData();
         GitHubIntegration mockIntegration = new GitHubIntegration(project, installation, "username/test");
@@ -137,25 +121,16 @@ public class GitHubWebhookServiceTests {
                 new GitHubRepository(2, "untitled/23", false),
                 new GitHubRepository(3, "untitled/test11", false)));
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "installation_repositories")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
+                .header("X-GitHub-Event", "installation_repositories").bodyValue(data).exchange().expectStatus().isOk();
         assertEquals(false, integrationRepository.findById(mockIntegration.getId()).isPresent());
         assertEquals(true, integrationRepository.findById(integration.getId()).isPresent());
     }
 
     @Test
     void githubSuccessDefault() {
-        client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
-                .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex("{}"))
-                .header("X-GitHub-Event", "unknown_event")
-                .bodyValue("{}")
-                .exchange()
-                .expectStatus().isOk();
+        client.post().uri("/webhook/github").header("X-Hub-Signature-256", "sha256=" + utils.hmacHex("{}"))
+                .header("X-GitHub-Event", "unknown_event").bodyValue("{}").exchange().expectStatus().isOk();
     }
 
     @Test
@@ -165,19 +140,11 @@ public class GitHubWebhookServiceTests {
         data.setIssue(new GitHubIssue(1, "url", "open", "title", "body"));
         data.setRepository(new GitHubRepository(1, integration.getRepositoryFullName(), false));
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "issues")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
+                .header("X-GitHub-Event", "issues").bodyValue(data).exchange().expectStatus().isOk();
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "issues")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
+                .header("X-GitHub-Event", "issues").bodyValue(data).exchange().expectStatus().isOk();
         assertEquals("title",
                 gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).get(0).getTask().getName());
         assertEquals(1, gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).size());
@@ -185,34 +152,22 @@ public class GitHubWebhookServiceTests {
         data.setAction("labeled");
         data.setIssue(new GitHubIssue(1, "url", "open", "title 2", "body"));
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "issues")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
+                .header("X-GitHub-Event", "issues").bodyValue(data).exchange().expectStatus().isOk();
 
         data.setAction("edited");
         data.setIssue(new GitHubIssue(1, "url", "open", "title 2", "body"));
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "issues")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
+                .header("X-GitHub-Event", "issues").bodyValue(data).exchange().expectStatus().isOk();
         assertEquals("title 2", gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).get(0)
                 .getTask().getName());
 
         data.setAction("closed");
         data.setIssue(new GitHubIssue(1, "url", "closed", "title 2", "body"));
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "issues")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
+                .header("X-GitHub-Event", "issues").bodyValue(data).exchange().expectStatus().isOk();
         assertEquals(project.getStatuses().get(2).getId(),
                 gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).get(0)
                         .getTask().getStatus().getId());
@@ -220,12 +175,8 @@ public class GitHubWebhookServiceTests {
         data.setAction("reopened");
         data.setIssue(new GitHubIssue(1, "url", "open", "title 2", "body"));
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "issues")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
+                .header("X-GitHub-Event", "issues").bodyValue(data).exchange().expectStatus().isOk();
         assertEquals(project.getStatuses().get(0).getId(),
                 gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).get(0)
                         .getTask().getStatus().getId());
@@ -233,12 +184,14 @@ public class GitHubWebhookServiceTests {
         data.setAction("deleted");
         data.setIssue(new GitHubIssue(1, "url", "open", "title 2", "body"));
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "issues")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
+                .header("X-GitHub-Event", "issues").bodyValue(data).exchange().expectStatus().isOk();
+        assertEquals(0, gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).size());
+
+        data.getRepository().setFullName("username/repo2");
+        client.post().uri("/webhook/github")
+                .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
+                .header("X-GitHub-Event", "issues").bodyValue(data).exchange().expectStatus().isOk();
         assertEquals(0, gitHubTaskRepository.findByIssueIdAndGitHubIntegration(1, integration).size());
     }
 
@@ -248,12 +201,8 @@ public class GitHubWebhookServiceTests {
         data.setRepository(new GitHubRepository(1, integration.getRepositoryFullName(), false));
         data.setCommits(List.of(new GitHubCommit("1", "messagge without anything intresting")));
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "push")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
+                .header("X-GitHub-Event", "push").bodyValue(data).exchange().expectStatus().isOk();
 
         Task task = taskRepository.save(new Task(1, "TEST", "DESC", project.getStatuses().get(0), user, 1));
 
@@ -261,35 +210,29 @@ public class GitHubWebhookServiceTests {
                 new GitHubCommit("2", "messagge with something intresting !" + task.getNumber())));
 
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "push")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
-        assertEquals(project.getStatuses().get(2).getId(), taskRepository.findById(task.getId()).get().getStatus().getId());
+                .header("X-GitHub-Event", "push").bodyValue(data).exchange().expectStatus().isOk();
+        assertEquals(project.getStatuses().get(2).getId(),
+                taskRepository.findById(task.getId()).get().getStatus().getId());
 
         data.setCommits(List.of(new GitHubCommit("1", "messagge without anything intresting"),
                 new GitHubCommit("2", "messagge with something intresting !666")));
-
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "push")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
+                .header("X-GitHub-Event", "push").bodyValue(data).exchange().expectStatus().isOk();
 
         data.setCommits(List.of(new GitHubCommit("1", "messagge without anything intresting"),
                 new GitHubCommit("2", "messagge with something intresting reopen!" + task.getNumber())));
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "push")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
-        assertEquals(project.getStatuses().get(0).getId(), taskRepository.findById(task.getId()).get().getStatus().getId());
+                .header("X-GitHub-Event", "push").bodyValue(data).exchange().expectStatus().isOk();
+        assertEquals(project.getStatuses().get(0).getId(),
+                taskRepository.findById(task.getId()).get().getStatus().getId());
+
+        data.getRepository().setFullName("username/repo2");
+        client.post().uri("/webhook/github")
+                .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
+                .header("X-GitHub-Event", "push").bodyValue(data).exchange().expectStatus().isOk();
     }
 
     @Test
@@ -298,50 +241,30 @@ public class GitHubWebhookServiceTests {
         data.setInstallation(new GitHubInstallationApi(2, new GitHubUser(1, "login")));
         data.setAction("unknown");
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "installation")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
+                .header("X-GitHub-Event", "installation").bodyValue(data).exchange().expectStatus().isOk();
 
         data.setInstallation(new GitHubInstallationApi(1, new GitHubUser(1, "login")));
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "installation")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
+                .header("X-GitHub-Event", "installation").bodyValue(data).exchange().expectStatus().isOk();
 
         data.setAction("suspend");
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "installation")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
+                .header("X-GitHub-Event", "installation").bodyValue(data).exchange().expectStatus().isOk();
         assertEquals(true, installationRepository.findByInstallationId(1L).get().getSuspended());
 
         data.setAction("unsuspend");
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "installation")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
+                .header("X-GitHub-Event", "installation").bodyValue(data).exchange().expectStatus().isOk();
         assertEquals(false, installationRepository.findByInstallationId(1L).get().getSuspended());
 
         data.setAction("deleted");
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "installation")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
+                .header("X-GitHub-Event", "installation").bodyValue(data).exchange().expectStatus().isOk();
         assertEquals(false, installationRepository.findById(installation.getId()).isPresent());
 
         installation = installationRepository.save(new GitHubInstallation(1, user, "username"));
@@ -355,12 +278,8 @@ public class GitHubWebhookServiceTests {
         data.setPullRequest(new GitHubPullRequest(20, "url", "open", "title", "body", new GitHubBranch("branch")));
         data.setRepository(new GitHubRepository(1, integration.getRepositoryFullName(), false));
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "pull_request")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
+                .header("X-GitHub-Event", "pull_request").bodyValue(data).exchange().expectStatus().isOk();
 
         Task task = taskRepository.save(new Task(2, "TEST", "DESC", project.getStatuses().get(0), user, 1));
         gitHubTaskRepository.save(new GitHubTask(task, integration, 20, (byte) 1));
@@ -368,46 +287,38 @@ public class GitHubWebhookServiceTests {
         data.setAction("closed");
         data.setPullRequest(new GitHubPullRequest(20, "url", "closed", "title", "body", new GitHubBranch("branch")));
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "pull_request")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
-        assertEquals(project.getStatuses().get(2).getId(), taskRepository.findById(task.getId()).get().getStatus().getId());
+                .header("X-GitHub-Event", "pull_request").bodyValue(data).exchange().expectStatus().isOk();
+        assertEquals(project.getStatuses().get(2).getId(),
+                taskRepository.findById(task.getId()).get().getStatus().getId());
 
         data.setAction("reopened");
         data.setPullRequest(new GitHubPullRequest(20, "url", "open", "title", "body", new GitHubBranch("branch")));
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "pull_request")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
-        assertEquals(project.getStatuses().get(0).getId(), taskRepository.findById(task.getId()).get().getStatus().getId());
+                .header("X-GitHub-Event", "pull_request").bodyValue(data).exchange().expectStatus().isOk();
+        assertEquals(project.getStatuses().get(0).getId(),
+                taskRepository.findById(task.getId()).get().getStatus().getId());
 
         data.setAction("edited");
         data.setPullRequest(new GitHubPullRequest(20, "url", "open", "title 2", "body", new GitHubBranch("branch")));
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "pull_request")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
+                .header("X-GitHub-Event", "pull_request").bodyValue(data).exchange().expectStatus().isOk();
         assertEquals("TEST", taskRepository.findById(task.getId()).get().getName());
 
         data.setAction("closed");
         data.setPullRequest(new GitHubPullRequest(20, "url", "open", "title 2", "body", new GitHubBranch("branch")));
         data.getPullRequest().setMerged(true);
         client.post().uri("/webhook/github")
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
-                .header("X-GitHub-Event", "pull_request")
-                .bodyValue(data)
-                .exchange()
-                .expectStatus().isOk();
+                .header("X-GitHub-Event", "pull_request").bodyValue(data).exchange().expectStatus().isOk();
+        assertEquals((byte) 2, taskRepository.findById(task.getId()).get().getMergedPulls().get(0).getIsPullRequest());
+
+        data.getRepository().setFullName("username/repo2");
+        client.post().uri("/webhook/github")
+                .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
+                .header("X-GitHub-Event", "pull_request").bodyValue(data).exchange().expectStatus().isOk();
         assertEquals((byte) 2, taskRepository.findById(task.getId()).get().getMergedPulls().get(0).getIsPullRequest());
     }
 }

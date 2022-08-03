@@ -1,5 +1,8 @@
 package com.workflow.workflow.integration.git.github.data;
 
+/**
+ * Object to represent a GitHub Rest api commit.
+ */
 public class GitHubCommit {
     private String id;
     private String message;

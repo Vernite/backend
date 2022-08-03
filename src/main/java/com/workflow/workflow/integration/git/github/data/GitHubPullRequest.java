@@ -3,6 +3,9 @@ package com.workflow.workflow.integration.git.github.data;
 import com.workflow.workflow.integration.git.PullRequest;
 import com.workflow.workflow.task.Task;
 
+/**
+ * Object to represent a GitHub Rest api pull request.
+ */
 public class GitHubPullRequest extends GitHubIssue {
     private GitHubBranch head;
     private boolean merged = false;
@@ -20,7 +23,8 @@ public class GitHubPullRequest extends GitHubIssue {
     }
 
     public PullRequest toPullRequest() {
-        return new PullRequest(getNumber(), getUrl() != null ? getUrl().replace("api.", "") : null, getTitle(), getBody(), "github", head.getRef());
+        return new PullRequest(getNumber(), getUrl() != null ? getUrl().replace("api.", "") : null, getTitle(),
+                getBody(), "github", head.getRef());
     }
 
     public GitHubBranch getHead() {

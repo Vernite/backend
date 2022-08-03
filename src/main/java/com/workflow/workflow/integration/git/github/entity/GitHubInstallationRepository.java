@@ -10,18 +10,24 @@ public interface GitHubInstallationRepository extends NotFoundRepository<GitHubI
     /**
      * This method finds all associeted GitHub istallations for given user.
      * 
-     * @param user - user which GitHub installations will be returned;
+     * @param user user which GitHub installations will be returned;
      * @return List with all users GitHub installations.
      */
     List<GitHubInstallation> findByUser(User user);
 
+    /**
+     * This method finds GitHub installation by given user that is not suspended.
+     * 
+     * @param user which GitHub installation will be returned.
+     * @return List with GitHub installations.
+     */
     List<GitHubInstallation> findByUserAndSuspendedFalse(User user);
 
     /**
      * This method find installation for given user with given id.
      * 
-     * @param id   - id of installation to find.
-     * @param user - user which installation will be returned.
+     * @param id   of installation to find.
+     * @param user which installation will be returned.
      * @return Installation with given id and user.
      */
     Optional<GitHubInstallation> findByIdAndUser(long id, User user);
@@ -29,7 +35,7 @@ public interface GitHubInstallationRepository extends NotFoundRepository<GitHubI
     /**
      * This method finds installation by installation id.
      * 
-     * @param installationId - id of installation to find.
+     * @param installationId of installation to find.
      * @return Installation with given installation id.
      */
     Optional<GitHubInstallation> findByInstallationId(long installationId);

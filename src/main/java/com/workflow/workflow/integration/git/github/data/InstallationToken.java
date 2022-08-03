@@ -5,6 +5,9 @@ import java.time.Instant;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/**
+ * Object to represent a GitHub Rest api installation token.
+ */
 public class InstallationToken {
     private String token;
     private String expiresAt;

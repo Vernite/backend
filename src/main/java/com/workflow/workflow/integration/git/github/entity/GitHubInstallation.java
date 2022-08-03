@@ -33,8 +33,8 @@ public class GitHubInstallation {
     private Date expiresAt;
 
     @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private User user;
 
     @JsonIgnore

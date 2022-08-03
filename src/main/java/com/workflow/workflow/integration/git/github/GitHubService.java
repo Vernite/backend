@@ -31,6 +31,7 @@ import com.workflow.workflow.integration.git.github.entity.GitHubTaskRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.user.User;
+import com.workflow.workflow.utils.ExternalApiException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -52,6 +53,8 @@ public class GitHubService {
     private static final String ACCEPT = "Accept";
     private static final String BEARER = "Bearer ";
     private static final String APPLICATION_JSON_GITHUB = "application/vnd.github.v3+json";
+    private static final String GITHUB = "github";
+
     private WebClient client = WebClient.create("https://api.github.com");
     @Autowired
     private GitHubInstallationRepository installationRepository;
@@ -63,7 +66,7 @@ public class GitHubService {
     /**
      * Retrieves repositories available for user from GitHub api.
      * 
-     * @param user must not be {@literal null}; must be entity from database.
+     * @param user must be entity from database.
      * @return Mono with list of repositories and link.
      */
     public Mono<GitHubIntegrationInfo> getRepositories(User user) {
@@ -82,9 +85,8 @@ public class GitHubService {
     /**
      * Cretaes new installation for user.
      * 
-     * @param user must not be {@literal null}; must be entity from database.
-     * @param id   must not be {@literal null}; must be id of installation retrieved
-     *             from GitHub.
+     * @param user must be entity from database.
+     * @param id   must be id of installation retrieved from GitHub.
      * @return Mono with list of repositories and link. Can be empty.
      */
     public Mono<GitHubIntegrationInfo> newInstallation(User user, long id) {
@@ -100,10 +102,9 @@ public class GitHubService {
     /**
      * Creates new integration for project.
      * 
-     * @param user     must not be {@literal null}; must be entity from database.
-     * @param project  must not be {@literal null}; must be entity from database.
-     * @param fullName must not be {@literal null}; must be valid GitHub repository
-     *                 name.
+     * @param user     must be entity from database.
+     * @param project  must be entity from database.
+     * @param fullName must be valid GitHub repository name.
      * @return Mono with created integration. Can be empty when repository is not
      *         found.
      */
@@ -113,15 +114,14 @@ public class GitHubService {
                 .filterWhen(installation -> hasRepository(installation, fullName))
                 .reduce(Optional.<GitHubInstallation>empty(), (first, second) -> Optional.of(second))
                 .filter(Optional::isPresent)
-                .map(installation -> integrationRepository
-                        .save(new GitHubIntegration(project, installation.get(), fullName)));
+                .map(inst -> integrationRepository.save(new GitHubIntegration(project, inst.get(), fullName)));
     }
 
     /**
      * Creates issue associeted with task.
      * 
-     * @param task must not be {@literal null}; must be entity from database.
-     * @return - Mono with issue. Can be empty when GitHub api return error.
+     * @param task must be entity from database.
+     * @return - Mono with issue.
      */
     public Mono<Issue> createIssue(Task task) {
         Optional<GitHubIntegration> optional = integrationRepository
@@ -144,8 +144,8 @@ public class GitHubService {
     /**
      * Modifies associeted issue using GitHub api.
      * 
-     * @param task must not be {@literal null}; must be entity from database.
-     * @return Mono with issue. Can be empty when GitHub api return error.
+     * @param task must be entity from database.
+     * @return Mono with issue.
      */
     public Mono<Issue> patchIssue(Task task) {
         Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0);
@@ -159,15 +159,14 @@ public class GitHubService {
         GitHubIssue gitHubIssue = new GitHubIssue(task);
         gitHubIssue.setNumber(gitHubTask.getIssueId());
         return refreshToken(gitHubTask.getGitHubIntegration().getInstallation())
-                .flatMap(installation -> apiPatchRepositoryIssue(installation, gitHubTask.getGitHubIntegration(),
-                        gitHubIssue))
+                .flatMap(inst -> apiPatchRepositoryIssue(inst, gitHubTask.getGitHubIntegration(), gitHubIssue))
                 .map(GitHubIssue::toIssue);
     }
 
     /**
      * Retrieves issues for project from GitHub api.
      * 
-     * @param project must not be {@literal null}; must be entity from database.
+     * @param project must be entity from database.
      * @return Flux with issues. Can be empty.
      */
     public Flux<Issue> getIssues(Project project) {
@@ -187,8 +186,8 @@ public class GitHubService {
     /**
      * Connects task to issue.
      * 
-     * @param task  must not be {@literal null}; must be entity from database.
-     * @param issue must not be {@literal null}; must be issue from GitHub api.
+     * @param task  must be entity from database.
+     * @param issue must be issue from GitHub api.
      * @return Mono with issue. Can be empty.
      */
     public Mono<Issue> connectIssue(Task task, Issue issue) {
@@ -212,7 +211,7 @@ public class GitHubService {
     /**
      * Deletes task connection to issue.
      * 
-     * @param task must not be {@literal null}; must be entity from database.
+     * @param task must be entity from database.
      */
     public void deleteIssue(Task task) {
         Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0);
@@ -227,7 +226,7 @@ public class GitHubService {
     /**
      * Retrieves pull requests for project from GitHub api.
      * 
-     * @param project must not be {@literal null}; must be entity from database.
+     * @param project must be entity from database.
      * @return Flux with pull requests. Can be empty.
      */
     public Flux<PullRequest> getPullRequests(Project project) {
@@ -247,9 +246,8 @@ public class GitHubService {
     /**
      * Connects task to pull request.
      * 
-     * @param task        must not be {@literal null}; must be entity from database.
-     * @param pullRequest must not be {@literal null}; must be pull request from
-     *                    GitHub api.
+     * @param task        must be entity from database.
+     * @param pullRequest must be pull request from GitHub api.
      * @return Mono with pull request. Can be empty.
      */
     public Mono<PullRequest> connectPullRequest(Task task, PullRequest pullRequest) {
@@ -273,8 +271,8 @@ public class GitHubService {
     /**
      * Modifies associeted pull request using GitHub api.
      * 
-     * @param task must not be {@literal null}; must be entity from database.
-     * @return Mono with pull request. Can be empty when GitHub api return error.
+     * @param task must be entity from database.
+     * @return Mono with pull request.
      */
     public Mono<Issue> patchPullRequest(Task task) {
         Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 1);
@@ -295,7 +293,8 @@ public class GitHubService {
                             gitHubTask.setIsPullRequest((byte) 2);
                             taskRepository.save(gitHubTask);
                         }
-                        return new Issue(-1, gitHubTask.getLink(), mergeInfo.getMessage(), mergeInfo.getSha(), "github");
+                        return new Issue(-1, gitHubTask.getLink(), mergeInfo.getMessage(), mergeInfo.getSha(),
+                                GITHUB);
                     })
                     .then(Mono.empty());
         }
@@ -309,7 +308,7 @@ public class GitHubService {
     /**
      * Deletes task connection to pull request.
      * 
-     * @param task must not be {@literal null}; must be entity from database.
+     * @param task must be entity from database.
      */
     public void deletePullRequest(Task task) {
         Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 1);
@@ -323,8 +322,8 @@ public class GitHubService {
     /**
      * Checks if repository with given name belongs to installation.
      * 
-     * @param installation must not be {@literal null}; must be entity from
-     *                     database. Must not be suspended. Token must be valid.
+     * @param installation must be entity from database. Must not be suspended.
+     *                     Token must be valid.
      * @param fullName     full name of repository which is looked for.
      * @return Mono with boolean.
      */
@@ -339,8 +338,7 @@ public class GitHubService {
      * Checks if token needs to be refreshed and refreshes it when
      * needed. When token does not need refreshing it does nothing.
      * 
-     * @param installation must not be {@literal null}; must be entity from
-     *                     database.
+     * @param installation must be entity from database.
      * @return Mono with installation.
      */
     private Mono<GitHubInstallation> refreshToken(GitHubInstallation installation) {
@@ -358,8 +356,7 @@ public class GitHubService {
      * Gets information abount installation from GitHub api.
      * 
      * @param id must be given from GitHub.
-     * @return Mono with installation information or {@literial null} if GitHub api
-     *         gives error.
+     * @return Mono with installation information.
      */
     private Mono<GitHubInstallationApi> apiGetInstallation(long id) {
         return client.get()
@@ -368,7 +365,7 @@ public class GitHubService {
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
                 .retrieve()
                 .bodyToMono(GitHubInstallationApi.class)
-                .onErrorResume(error -> Mono.empty());
+                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
     }
 
     /**
@@ -376,7 +373,7 @@ public class GitHubService {
      * 
      * @param installation must not be {@literal null}. Must be entity from
      *                     database.
-     * @return Mono with new token or {@literal null} if GitHub api gives error.
+     * @return Mono with new token.
      */
     private Mono<InstallationToken> apiPostInstallationToken(GitHubInstallation installation) {
         return client.post()
@@ -385,7 +382,7 @@ public class GitHubService {
                 .header(AUTHORIZATION, BEARER + createJWT())
                 .retrieve()
                 .bodyToMono(InstallationToken.class)
-                .onErrorResume(error -> Mono.empty());
+                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
     }
 
     /**
@@ -402,7 +399,7 @@ public class GitHubService {
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
                 .retrieve()
                 .bodyToMono(GitHubInstallationRepositories.class)
-                .onErrorReturn(new GitHubInstallationRepositories());
+                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
     }
 
     /**
@@ -421,7 +418,7 @@ public class GitHubService {
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
                 .retrieve()
                 .bodyToFlux(GitHubIssue.class)
-                .onErrorResume(error -> Flux.empty());
+                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
     }
 
     /**
@@ -432,7 +429,7 @@ public class GitHubService {
      * @param integration  must not be {@literal null}. Must be entity from
      *                     database.
      * @param issue        must not be {@literal null}.
-     * @return Mono with issue or {@literal null} if GitHub api gives error.
+     * @return Mono with issue.
      */
     private Mono<GitHubIssue> apiPostRepositoryIssue(GitHubInstallation installation, GitHubIntegration integration,
             GitHubIssue issue) {
@@ -443,7 +440,7 @@ public class GitHubService {
                 .bodyValue(issue)
                 .retrieve()
                 .bodyToMono(GitHubIssue.class)
-                .onErrorResume(error -> Mono.empty());
+                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
     }
 
     /**
@@ -454,7 +451,7 @@ public class GitHubService {
      * @param integration  must not be {@literal null}. Must be entity from
      *                     database.
      * @param issue        must not be {@literal null}.
-     * @return Mono with issue or {@literal null} if GitHub api gives error.
+     * @return Mono with issue.
      */
     private Mono<GitHubIssue> apiPatchRepositoryIssue(GitHubInstallation installation, GitHubIntegration integration,
             GitHubIssue issue) {
@@ -466,7 +463,7 @@ public class GitHubService {
                 .bodyValue(issue)
                 .retrieve()
                 .bodyToMono(GitHubIssue.class)
-                .onErrorResume(error -> Mono.empty());
+                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
     }
 
     /**
@@ -477,7 +474,7 @@ public class GitHubService {
      * @param integration  must not be {@literal null}. Must be entity from
      *                     database.
      * @param issue        must not be {@literal null}.
-     * @return Mono with issue or {@literal null} if GitHub api gives error.
+     * @return Mono with issue.
      */
     private Mono<GitHubIssue> apiGetRepositoryIssue(GitHubInstallation installation, GitHubIntegration integration,
             long issue) {
@@ -488,7 +485,7 @@ public class GitHubService {
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
                 .retrieve()
                 .bodyToMono(GitHubIssue.class)
-                .onErrorResume(error -> Mono.empty());
+                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
     }
 
     /**
@@ -508,7 +505,7 @@ public class GitHubService {
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
                 .retrieve()
                 .bodyToFlux(GitHubPullRequest.class)
-                .onErrorResume(error -> Flux.empty());
+                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
     }
 
     /**
@@ -519,7 +516,7 @@ public class GitHubService {
      * @param integration  must not be {@literal null}. Must be entity from
      *                     database.
      * @param pull         must not be {@literal null}.
-     * @return Mono with pull request or {@literal null} if GitHub api gives error.
+     * @return Mono with pull request.
      */
     private Mono<GitHubPullRequest> apiPatchRepositoryPull(GitHubInstallation installation,
             GitHubIntegration integration, GitHubPullRequest pull) {
@@ -531,7 +528,7 @@ public class GitHubService {
                 .bodyValue(pull)
                 .retrieve()
                 .bodyToMono(GitHubPullRequest.class)
-                .onErrorResume(error -> Mono.empty());
+                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
     }
 
     /**
@@ -553,7 +550,7 @@ public class GitHubService {
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
                 .retrieve()
                 .bodyToMono(GitHubMergeInfo.class)
-                .onErrorResume(error -> Mono.empty());
+                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
     }
 
     /**
@@ -564,7 +561,7 @@ public class GitHubService {
      * @param integration  must not be {@literal null}. Must be entity from
      *                     database.
      * @param pull         must not be {@literal null}.
-     * @return Mono with pull request or {@literal null} if GitHub api gives error.
+     * @return Mono with pull request.
      */
     private Mono<GitHubPullRequest> apiGetRepositoryPull(GitHubInstallation installation,
             GitHubIntegration integration, long pull) {
@@ -575,7 +572,7 @@ public class GitHubService {
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
                 .retrieve()
                 .bodyToMono(GitHubPullRequest.class)
-                .onErrorResume(error -> Mono.empty());
+                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
     }
 
     /**

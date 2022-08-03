@@ -251,19 +251,17 @@ public class Task extends SoftDeleteEntity {
         return this.getAssignee() == null ? null : this.getAssignee().getId();
     }
 
-    @JsonIgnore
-    public void setState(String state) {
-        if (state.equals("closed") && Boolean.FALSE.equals(getStatus().isFinal())) {
+    public void changeStatus(boolean isOpen) {
+        if (isOpen && !getStatus().isBegin()) {
             for (Status newStatus : getStatus().getProject().getStatuses()) {
-                if (Boolean.TRUE.equals(newStatus.isFinal())) {
+                if (newStatus.isBegin()) {
                     setStatus(newStatus);
                     break;
                 }
             }
-        }
-        if (state.equals("open") && Boolean.TRUE.equals(getStatus().isFinal())) {
+        } else if (!isOpen && !getStatus().isFinal()) {
             for (Status newStatus : getStatus().getProject().getStatuses()) {
-                if (newStatus.isBegin()) {
+                if (newStatus.isFinal()) {
                     setStatus(newStatus);
                     break;
                 }

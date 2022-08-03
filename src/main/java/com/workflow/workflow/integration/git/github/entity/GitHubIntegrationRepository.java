@@ -28,7 +28,7 @@ public interface GitHubIntegrationRepository extends SoftDeleteRepository<GitHub
      * 
      * @param respositoryFullName - full name of GitHub repostory to which
      *                            integrations will be returned.
-     * @return Integrations associated with repository with given name.
+     * @return Integration associated with repository with given name.
      */
-    List<GitHubIntegration> findByRepositoryFullName(String respositoryFullName);
+    Optional<GitHubIntegration> findByRepositoryFullName(String respositoryFullName);
 }

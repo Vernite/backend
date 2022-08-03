@@ -1,5 +1,8 @@
 package com.workflow.workflow.integration.git.github.data;
 
+/**
+ * Object to represent a GitHub Rest api branch.
+ */
 public class GitHubBranch {
     private String ref;
 

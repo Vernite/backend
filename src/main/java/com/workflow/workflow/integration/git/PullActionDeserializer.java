@@ -6,6 +6,10 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 
+/**
+ * Deserializer for {@link PullAction} enum. It deserializes either string with
+ * enum name or JSON object with pull request.
+ */
 public class PullActionDeserializer extends JsonDeserializer<PullAction> {
 
     @Override

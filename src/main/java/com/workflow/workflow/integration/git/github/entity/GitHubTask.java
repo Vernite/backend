@@ -19,14 +19,14 @@ public class GitHubTask extends SoftDeleteEntity {
     private GitHubTaskKey id;
 
     @MapsId("taskId")
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private Task task;
 
     @MapsId("integrationId")
     @JoinColumn(name = "integration_id")
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private GitHubIntegration gitHubIntegration;
 
     private long issueId;
@@ -85,6 +85,7 @@ public class GitHubTask extends SoftDeleteEntity {
     }
 
     public String getLink() {
-        return String.format("https://github.com/%s/%s/%d", getGitHubIntegration().getRepositoryFullName(), getIsPullRequest() != 0 ? "pull" : "issues", getIssueId());
+        return String.format("https://github.com/%s/%s/%d", getGitHubIntegration().getRepositoryFullName(),
+                getIsPullRequest() != 0 ? "pull" : "issues", getIssueId());
     }
 }

@@ -4,17 +4,18 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/**
+ * Object to represent GitHub Rest api webhook data.
+ */
 public class GitHubWebhookData {
     private String action;
     private GitHubRepository repository;
     private GitHubInstallationApi installation;
-
     @JsonProperty("repositories_removed")
     private List<GitHubRepository> repositoriesRemoved;
     private GitHubIssue issue;
     private List<GitHubCommit> commits;
     private String after;
-
     @JsonProperty("pull_request")
     private GitHubPullRequest pullRequest;
 

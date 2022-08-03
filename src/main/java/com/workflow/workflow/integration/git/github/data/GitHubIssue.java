@@ -3,6 +3,9 @@ package com.workflow.workflow.integration.git.github.data;
 import com.workflow.workflow.integration.git.Issue;
 import com.workflow.workflow.task.Task;
 
+/**
+ * Object to represent a GitHub Rest api issue.
+ */
 public class GitHubIssue {
     private long number;
     private String url;
@@ -24,11 +27,7 @@ public class GitHubIssue {
     public GitHubIssue(Task task) {
         this.title = task.getName();
         this.body = task.getDescription();
-        if (Boolean.TRUE.equals(task.getStatus().isFinal())) {
-            this.state = "closed";
-        } else {
-            this.state = "open";
-        }
+        this.state = task.getStatus().isFinal() ? "closed" : "open";
     }
 
     public Issue toIssue() {

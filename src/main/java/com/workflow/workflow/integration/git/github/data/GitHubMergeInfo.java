@@ -1,5 +1,8 @@
 package com.workflow.workflow.integration.git.github.data;
 
+/**
+ * Object to represent a GitHub Rest api merge information.
+ */
 public class GitHubMergeInfo {
     private String sha;
     private boolean merged;

@@ -3,7 +3,6 @@ package com.workflow.workflow.integration.git.github;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -22,6 +21,7 @@ import com.workflow.workflow.integration.git.github.entity.GitHubIntegration;
 import com.workflow.workflow.integration.git.github.entity.GitHubIntegrationRepository;
 import com.workflow.workflow.integration.git.github.entity.GitHubTask;
 import com.workflow.workflow.integration.git.github.entity.GitHubTaskRepository;
+import com.workflow.workflow.status.Status;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.task.TaskRepository;
 import com.workflow.workflow.user.User;
@@ -78,25 +78,30 @@ public class GitHubWebhookService {
     public Mono<Void> handleWebhook(String event, GitHubWebhookData data) {
         switch (event) {
             case "installation_repositories":
-                return handleInstallationRepositories(data);
+                handleInstallationRepositories(data);
+                break;
             case "issues":
-                return handleIssue(data);
+                handleIssue(data);
+                break;
             case "push":
                 return handlePush(data);
             case "installation":
-                return handleInstallation(data);
+                handleInstallation(data);
+                break;
             case "pull_request":
-                return handlePullRequest(data);
+                handlePullRequest(data);
+                break;
             default:
-                return Mono.empty();
+                break;
         }
+        return Mono.empty();
     }
 
-    private Mono<Void> handleInstallation(GitHubWebhookData data) {
+    private void handleInstallation(GitHubWebhookData data) {
         GitHubInstallationApi installationApi = data.getInstallation();
         Optional<GitHubInstallation> optional = installationRepository.findByInstallationId(installationApi.getId());
         if (optional.isEmpty()) {
-            return Mono.empty();
+            return;
         }
         GitHubInstallation installation = optional.get();
         switch (data.getAction()) {
@@ -114,101 +119,107 @@ public class GitHubWebhookService {
             default:
                 break;
         }
-        return Mono.empty();
     }
 
     private Mono<Void> handlePush(GitHubWebhookData data) {
         List<Task> tasks = new ArrayList<>();
+        Optional<GitHubIntegration> optional = integrationRepository
+                .findByRepositoryFullName(data.getRepository().getFullName());
+        if (optional.isEmpty()) {
+            return Mono.empty();
+        }
+        GitHubIntegration integration = optional.get();
         for (GitHubCommit commit : data.getCommits()) {
             Matcher matcher = PATTERN.matcher(commit.getMessage());
             if (matcher.find()) {
-                String controlKeyword = matcher.group(1);
-                for (GitHubIntegration integration : integrationRepository
-                        .findByRepositoryFullName(data.getRepository().getFullName())) {
-                    taskRepository.findByStatusProjectAndNumberAndActiveNull(integration.getProject(),
-                            Long.parseLong(matcher.group(2))).ifPresent(t -> {
-                                t.setState("reopen".equals(controlKeyword) ? "open" : CLOSED);
-                                tasks.add(taskRepository.save(t));
-                            });
-                }
+                boolean isOpen = "reopen".equals(matcher.group(1));
+                long taskId = Long.parseLong(matcher.group(2));
+                taskRepository.findByStatusProjectAndNumberAndActiveNull(integration.getProject(), taskId)
+                        .ifPresent(task -> {
+                            task.changeStatus(isOpen);
+                            tasks.add(taskRepository.save(task));
+                        });
+
             }
         }
         return Flux.fromIterable(tasks).flatMap(service::patchIssue).then();
     }
 
-    private Mono<Void> handleIssue(GitHubWebhookData data) {
+    private void handleIssue(GitHubWebhookData data) {
         GitHubRepository repository = data.getRepository();
         GitHubIssue issue = data.getIssue();
-        for (GitHubIntegration gitHubIntegration : integrationRepository
-                .findByRepositoryFullName(repository.getFullName())) {
-            if (data.getAction().equals("opened") && gitTaskRepository
-                    .findByIssueIdAndGitHubIntegration(issue.getNumber(), gitHubIntegration).isEmpty()) {
-                Task task = new Task();
-                task.setNumber(counterSequenceRepository.getIncrementCounter(gitHubIntegration.getProject().getTaskCounter().getId()));
-                task.setUser(systemUser);
-                task.setCreatedAt(new Date());
-                task.setDeadline(new Date());
-                task.setDescription(issue.getBody());
-                task.setName(issue.getTitle());
-                task.setStatus(gitHubIntegration.getProject().getStatuses().stream().findFirst().orElseThrow());
-                task.setState("open");
-                task.setType(0);
-                task.setPriority("low");
-                task = taskRepository.save(task);
-                gitTaskRepository.save(new GitHubTask(task, gitHubIntegration, issue.getNumber(), (byte) 0));
-            } else {
-                for (GitHubTask gitHubTask : gitTaskRepository.findByIssueIdAndGitHubIntegration(issue.getNumber(),
-                        gitHubIntegration)) {
-                    Task task = gitHubTask.getTask();
-                    if (data.getAction().equals(EDITED)) {
-                        task.setDescription(issue.getBody());
+        Optional<GitHubIntegration> optional = integrationRepository.findByRepositoryFullName(repository.getFullName());
+        if (optional.isEmpty()) {
+            return;
+        }
+        GitHubIntegration integration = optional.get();
+        if (data.getAction().equals("opened") && gitTaskRepository
+                .findByIssueIdAndGitHubIntegration(issue.getNumber(), integration).isEmpty()) {
+            long id = counterSequenceRepository.getIncrementCounter(integration.getProject().getTaskCounter().getId());
+            Status status = integration.getProject().getStatuses().get(0);
+            Task task = new Task(id, issue.getTitle(), issue.getBody(), status, systemUser, 0);
+            task.changeStatus(true);
+            task = taskRepository.save(task);
+            gitTaskRepository.save(new GitHubTask(task, integration, issue.getNumber(), (byte) 0));
+        } else {
+            for (GitHubTask gitTask : gitTaskRepository.findByIssueIdAndGitHubIntegration(issue.getNumber(),
+                    integration)) {
+                Task task = gitTask.getTask();
+                switch (data.getAction()) {
+                    case EDITED:
                         task.setName(issue.getTitle());
+                        task.setDescription(issue.getBody());
                         taskRepository.save(task);
-                    } else if (data.getAction().equals(CLOSED) || data.getAction().equals("reopened")) {
-                        task.setState(issue.getState());
+                        break;
+                    case CLOSED:
+                        task.changeStatus(false);
                         taskRepository.save(task);
-                    } else if (data.getAction().equals("deleted")) {
-                        gitTaskRepository.delete(gitHubTask);
+                        break;
+                    case "reopened":
+                        task.changeStatus(true);
+                        taskRepository.save(task);
+                        break;
+                    case "deleted":
+                        gitTaskRepository.delete(gitTask);
                         taskRepository.delete(task);
-                    }
-
+                        break;
+                    default:
+                        break;
                 }
             }
         }
-        return Mono.empty();
     }
 
-    private Mono<Void> handleInstallationRepositories(GitHubWebhookData data) {
+    private void handleInstallationRepositories(GitHubWebhookData data) {
         if (data.getRepositoriesRemoved() == null) {
-            return Mono.empty();
+            return;
         }
         List<GitHubIntegration> integrations = new ArrayList<>();
         for (GitHubRepository repository : data.getRepositoriesRemoved()) {
-            integrations.addAll(integrationRepository.findByRepositoryFullName(repository.getFullName()));
+            integrationRepository.findByRepositoryFullName(repository.getFullName()).ifPresent(integrations::add);
         }
         integrationRepository.deleteAll(integrations);
-        return Mono.empty();
     }
 
-    private Mono<Void> handlePullRequest(GitHubWebhookData data) {
+    private void handlePullRequest(GitHubWebhookData data) {
         GitHubPullRequest pullRequest = data.getPullRequest();
         GitHubRepository repository = data.getRepository();
+        Optional<GitHubIntegration> optional = integrationRepository.findByRepositoryFullName(repository.getFullName());
+        if (optional.isEmpty()) {
+            return;
+        }
+        GitHubIntegration integration = optional.get();
         if (data.getAction().equals(CLOSED) || data.getAction().equals("reopened")) {
-            for (GitHubIntegration gitHubIntegration : integrationRepository
-                    .findByRepositoryFullName(repository.getFullName())) {
-                for (GitHubTask gitHubTask : gitTaskRepository.findByIssueIdAndGitHubIntegration(
-                        pullRequest.getNumber(),
-                        gitHubIntegration)) {
-                    if (pullRequest.isMerged()) {
-                        gitHubTask.setIsPullRequest((byte) 2);
-                        gitTaskRepository.save(gitHubTask);
-                    }
-                    Task task = gitHubTask.getTask();
-                    task.setState(pullRequest.getState());
-                    taskRepository.save(task);
+            for (GitHubTask gitHubTask : gitTaskRepository.findByIssueIdAndGitHubIntegration(pullRequest.getNumber(),
+                    integration)) {
+                if (pullRequest.isMerged()) {
+                    gitHubTask.setIsPullRequest((byte) 2);
+                    gitTaskRepository.save(gitHubTask);
                 }
+                Task task = gitHubTask.getTask();
+                task.changeStatus(pullRequest.getState().equals("open"));
+                taskRepository.save(task);
             }
         }
-        return Mono.empty();
     }
 }

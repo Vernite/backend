@@ -1,5 +1,8 @@
 package com.workflow.workflow.integration.git.github.data;
 
+/**
+ * Object to represent a GitHub Rest api user account.
+ */
 public class GitHubUser {
     private long id;
     private String login;

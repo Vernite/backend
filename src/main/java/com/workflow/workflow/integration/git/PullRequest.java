@@ -1,5 +1,9 @@
 package com.workflow.workflow.integration.git;
 
+/**
+ * Object representing general git pull request. Its common interface for
+ * various git services.
+ */
 public class PullRequest extends Issue {
     private String branch;
 
