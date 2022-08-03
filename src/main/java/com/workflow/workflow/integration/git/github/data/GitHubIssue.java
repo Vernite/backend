@@ -15,6 +15,7 @@ public class GitHubIssue {
     private String state;
     private String title;
     private String body;
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private GitHubUser assignee;
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private List<String> assignees;
