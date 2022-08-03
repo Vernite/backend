@@ -18,6 +18,7 @@ public class GitHubWebhookData {
     private String after;
     @JsonProperty("pull_request")
     private GitHubPullRequest pullRequest;
+    private GitHubUser assignee;
 
     public String getAction() {
         return action;
@@ -81,5 +82,13 @@ public class GitHubWebhookData {
 
     public void setPullRequest(GitHubPullRequest pullRequest) {
         this.pullRequest = pullRequest;
+    }
+
+    public GitHubUser getAssignee() {
+        return assignee;
+    }
+
+    public void setAssignee(GitHubUser assignee) {
+        this.assignee = assignee;
     }
 }

@@ -184,7 +184,7 @@ public class GitHubWebhookService {
                         taskRepository.delete(task);
                         break;
                     case "assigned":
-                        installationRepository.findByGitHubUsername(issue.getAssignee().getLogin())
+                        installationRepository.findByGitHubUsername(data.getAssignee().getLogin())
                                 .ifPresent(installation -> {
                                     task.setAssignee(installation.getUser());
                                     taskRepository.save(task);
@@ -234,7 +234,7 @@ public class GitHubWebhookService {
                     taskRepository.save(task);
                     break;
                 case "assigned":
-                    installationRepository.findByGitHubUsername(pullRequest.getAssignee().getLogin())
+                    installationRepository.findByGitHubUsername(data.getAssignee().getLogin())
                             .ifPresent(installation -> {
                                 task.setAssignee(installation.getUser());
                                 taskRepository.save(task);

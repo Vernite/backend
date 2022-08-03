@@ -51,7 +51,7 @@ public class TaskRequest {
     /** @deprecated in favor of issue field */
     @Deprecated
     @Schema(description = "Deprecated in favor of issue field.")
-    private Optional<Boolean> createIssue = Optional.of(true);
+    private Optional<Boolean> createIssue = Optional.of(false);
 
     public TaskRequest() {
     }
