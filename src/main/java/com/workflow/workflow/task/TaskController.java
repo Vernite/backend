@@ -22,6 +22,7 @@ import com.workflow.workflow.utils.ObjectNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -60,12 +61,13 @@ public class TaskController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping
-    public List<Task> getAll(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId) {
+    public List<Task> getAll(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @ModelAttribute TaskFilter filter) {
         Project project = projectRepository.findByIdOrThrow(projectId);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
         }
-        return taskRepository.findByStatusProjectAndActiveNullAndParentTaskNullOrderByNameAscIdAsc(project);
+        return taskRepository.findAllOrdered(filter.toSpecification(project));
     }
 
     @Operation(summary = "Get task information", description = "This method is used to retrive status with given ID. On success returns task with given ID. Throws 404 when project or task does not exist.")

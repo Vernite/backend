@@ -109,7 +109,7 @@ class TaskControllerTests {
         client.get().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBodyList(Task.class).hasSize(0);
-        // Prepare some workspaces for next test
+        // Prepare some tasks for next test
         List<Task> tasks = List.of(
                 new Task(1, "name 1", "description", project.getStatuses().get(0), user, 0, "low"),
                 new Task(2, "name 3", "description", project.getStatuses().get(0), user, 0, "low"),
@@ -129,6 +129,44 @@ class TaskControllerTests {
         client.get().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBodyList(Task.class).hasSize(2);
+    }
+
+    @Test
+    void getAllSuccessWithFilter() {
+        // Prepare some tasks for next test
+        List<Task> tasks = List.of(
+                new Task(1, "name 1", "description", project.getStatuses().get(0), user, 0, "low"),
+                new Task(2, "name 3", "description", project.getStatuses().get(1), user, 0, "low"),
+                new Task(3, "name 2", "description", project.getStatuses().get(2), user, 0, "low"));
+        tasks.get(0).setSprint(sprint);
+        tasks.get(1).setAssignee(user);
+        taskRepository.saveAll(tasks);
+        client.get().uri("/project/{pId}/task", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Task.class).hasSize(3);
+
+        List<Task> result = client.get().uri("/project/{pId}/task?sprintId={sId}", project.getId(), sprint.getNumber())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Task.class).hasSize(1).returnResult().getResponseBody();
+        taskEquals(tasks.get(0), result.get(0));
+
+        result = client.get().uri("/project/{pId}/task?assigneeId={iId}", project.getId(), user.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Task.class).hasSize(1).returnResult().getResponseBody();
+        taskEquals(tasks.get(1), result.get(0));
+
+        result = client.get()
+                .uri("/project/{pId}/task?statusId={iId}", project.getId(), project.getStatuses().get(2).getNumber())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Task.class).hasSize(1).returnResult().getResponseBody();
+        taskEquals(tasks.get(2), result.get(0));
+
+        result = client.get()
+                .uri("/project/{pId}/task?statusId={iId}&assigneeId={aId}", project.getId(),
+                        project.getStatuses().get(1).getNumber(), user.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Task.class).hasSize(1).returnResult().getResponseBody();
+        taskEquals(tasks.get(1), result.get(0));
     }
 
     @Test
