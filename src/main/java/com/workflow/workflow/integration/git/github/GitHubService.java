@@ -134,16 +134,13 @@ public class GitHubService {
         if (integration.getInstallation().getSuspended()) {
             return Mono.empty();
         }
-        List<String> assignees = List.of();
+        List<GitHubInstallation> installations = new ArrayList<>();
         if (task.getAssignee() != null) {
-            List<GitHubInstallation> inst = installationRepository.findByUser(task.getAssignee());
-            if (!inst.isEmpty()) {
-                assignees = List.of(inst.get(0).getGitHubUsername());
-            }
+            installations.addAll(installationRepository.findByUser(task.getAssignee()));
         }
-        GitHubIssue issue = new GitHubIssue(task, assignees);
+        GitHubIssue issue = new GitHubIssue(task, List.of());
         return refreshToken(integration.getInstallation())
-                .flatMap(inst -> hasCollaborator(inst, integration, issue))
+                .flatMap(inst -> hasCollaborator(inst, integration, issue, installations))
                 .flatMap(installation -> apiPostRepositoryIssue(installation, integration, issue))
                 .map(i -> {
                     taskRepository.save(new GitHubTask(task, integration, i.getNumber(), (byte) 0));
@@ -166,17 +163,14 @@ public class GitHubService {
         if (gitHubTask.getGitHubIntegration().getInstallation().getSuspended()) {
             return Mono.empty();
         }
-        List<String> assignees = List.of();
+        List<GitHubInstallation> installations = new ArrayList<>();
         if (task.getAssignee() != null) {
-            List<GitHubInstallation> inst = installationRepository.findByUser(task.getAssignee());
-            if (!inst.isEmpty()) {
-                assignees = List.of(inst.get(0).getGitHubUsername());
-            }
+            installations.addAll(installationRepository.findByUser(task.getAssignee()));
         }
-        GitHubIssue gitHubIssue = new GitHubIssue(task, assignees);
+        GitHubIssue gitHubIssue = new GitHubIssue(task, List.of());
         gitHubIssue.setNumber(gitHubTask.getIssueId());
         return refreshToken(gitHubTask.getGitHubIntegration().getInstallation())
-                .flatMap(inst -> hasCollaborator(inst, gitHubTask.getGitHubIntegration(), gitHubIssue))
+                .flatMap(inst -> hasCollaborator(inst, gitHubTask.getGitHubIntegration(), gitHubIssue, installations))
                 .flatMap(inst -> apiPatchRepositoryIssue(inst, gitHubTask.getGitHubIntegration(), gitHubIssue))
                 .map(GitHubIssue::toIssue);
     }
@@ -316,16 +310,15 @@ public class GitHubService {
                     })
                     .then(Mono.empty());
         }
+        List<GitHubInstallation> installations = new ArrayList<>();
         if (task.getAssignee() != null) {
-            List<GitHubInstallation> inst = installationRepository.findByUser(task.getAssignee());
-            if (!inst.isEmpty()) {
-                gitHubPullRequest.setAssignees(List.of(inst.get(0).getGitHubUsername()));
-            }
+            installations.addAll(installationRepository.findByUser(task.getAssignee()));
         }
         gitHubPullRequest.setState("open");
         gitHubPullRequest.setNumber(gitHubTask.getIssueId());
         return refreshToken(integration.getInstallation())
-                .flatMap(inst -> hasCollaborator(inst, gitHubTask.getGitHubIntegration(), gitHubPullRequest))
+                .flatMap(inst -> hasCollaborator(inst, gitHubTask.getGitHubIntegration(), gitHubPullRequest,
+                        installations))
                 .flatMap(installation -> apiPatchRepositoryPull(installation, integration, gitHubPullRequest))
                 .map(GitHubPullRequest::toPullRequest);
     }
@@ -368,18 +361,21 @@ public class GitHubService {
      * @return Mono with installation.
      */
     private Mono<GitHubInstallation> hasCollaborator(GitHubInstallation installation, GitHubIntegration integration,
-            GitHubIssue issue) {
-        if (issue.getAssignees().isEmpty()) {
+            GitHubIssue issue, List<GitHubInstallation> installations) {
+        if (installations.isEmpty()) {
             return Mono.just(installation);
         }
         return apiGetRepositoryCollaborators(installation, integration)
-                .any(collaborator -> collaborator.getLogin().equals(issue.getAssignees().get(0)))
-                .map(b -> {
-                    if (Boolean.FALSE.equals(b)) {
-                        issue.setAssignees(List.of());
+                .any(collaborator -> {
+                    for (GitHubInstallation isnt : installations) {
+                        if (collaborator.getLogin().equals(isnt.getGitHubUsername())) {
+                            issue.setAssignees(List.of(isnt.getGitHubUsername()));
+                            return true;
+                        }
                     }
-                    return installation;
-                });
+                    return false;
+                })
+                .thenReturn(installation);
     }
 
     /**
