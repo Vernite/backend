@@ -22,8 +22,8 @@ public class TaskFilter {
     private Optional<Long> sprintId = Optional.empty();
     @Parameter(description = "Id of assignee to filter by (filters are combined with 'and')")
     private Optional<Long> assigneeId = Optional.empty();
-    @Parameter(description = "Id of status to filter by (filters are combined with 'and')")
-    private Optional<Long> statusId = Optional.empty();
+    @Parameter(description = "Id of status to filter by (filters are combined with 'and'); multiple values are allowed")
+    private Optional<List<Long>> statusId = Optional.empty();
 
     public Optional<Long> getSprintId() {
         return sprintId;
@@ -41,11 +41,11 @@ public class TaskFilter {
         this.assigneeId = Optional.of(asigneeId);
     }
 
-    public Optional<Long> getStatusId() {
+    public Optional<List<Long>> getStatusId() {
         return statusId;
     }
 
-    public void setStatusId(long statusId) {
+    public void setStatusId(List<Long> statusId) {
         this.statusId = Optional.of(statusId);
     }
 
@@ -57,7 +57,7 @@ public class TaskFilter {
             predicates.add(builder.isNull(root.get("parentTask")));
             sprintId.ifPresent(id -> predicates.add(builder.equal(root.get("sprint").get("number"), id)));
             assigneeId.ifPresent(id -> predicates.add(builder.equal(root.get("assignee").get("id"), id)));
-            statusId.ifPresent(id -> predicates.add(builder.equal(root.get("status").get("number"), id)));
+            statusId.ifPresent(ids -> predicates.add(builder.in(root.get("status").get("number")).value(ids)));
             return builder.and(predicates.toArray(new Predicate[predicates.size()]));
         };
     }
