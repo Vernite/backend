@@ -37,7 +37,7 @@ public class GitHubIssue {
     }
 
     public Issue toIssue() {
-        return new Issue(number, url.replace("api.", ""), title, body, "github");
+        return new Issue(number, url.replace("api.", "").replace("/repos", ""), title, body, "github");
     }
 
     public long getNumber() {

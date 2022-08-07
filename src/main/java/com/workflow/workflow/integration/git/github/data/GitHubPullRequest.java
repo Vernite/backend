@@ -25,7 +25,8 @@ public class GitHubPullRequest extends GitHubIssue {
     }
 
     public PullRequest toPullRequest() {
-        return new PullRequest(getNumber(), getUrl() != null ? getUrl().replace("api.", "") : null, getTitle(),
+        return new PullRequest(getNumber(),
+                getUrl() != null ? getUrl().replace("api.", "").replace("/repos", "") : null, getTitle(),
                 getBody(), "github", head.getRef());
     }
 
