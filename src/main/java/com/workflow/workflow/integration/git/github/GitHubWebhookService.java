@@ -160,7 +160,7 @@ public class GitHubWebhookService {
             Task task = new Task(id, issue.getTitle(), issue.getBody(), status, systemUser, 0);
             task.changeStatus(true);
             task = taskRepository.save(task);
-            gitTaskRepository.save(new GitHubTask(task, integration, issue.getNumber(), (byte) 0));
+            gitTaskRepository.save(new GitHubTask(task, integration, issue, (byte) 0));
         } else {
             for (GitHubTask gitTask : gitTaskRepository.findByIssueIdAndGitHubIntegration(issue.getNumber(),
                     integration)) {
@@ -169,7 +169,10 @@ public class GitHubWebhookService {
                     case EDITED:
                         task.setName(issue.getTitle());
                         task.setDescription(issue.getBody());
+                        gitTask.setTitle(issue.getTitle());
+                        gitTask.setDescription(issue.getBody());
                         taskRepository.save(task);
+                        gitTaskRepository.save(gitTask);
                         break;
                     case CLOSED:
                         task.changeStatus(false);

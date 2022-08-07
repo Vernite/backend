@@ -24,6 +24,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.workflow.workflow.integration.git.Issue;
+import com.workflow.workflow.integration.git.PullRequest;
 import com.workflow.workflow.integration.git.github.entity.GitHubTask;
 import com.workflow.workflow.sprint.Sprint;
 import com.workflow.workflow.status.Status;
@@ -269,17 +271,18 @@ public class Task extends SoftDeleteEntity {
         }
     }
 
-    public String getIssue() {
-        return !getIssues().isEmpty() ? getIssues().get(0).getLink() : null;
+    public Issue getIssue() {
+        return !getIssues().isEmpty() ? getIssues().get(0).toIssue() : null;
     }
 
-    public String getPull() {
-        return !getPulls().isEmpty() ? getPulls().get(0).getLink() : null;
+    public PullRequest getPull() {
+        return !getPulls().isEmpty() ? (PullRequest) getPulls().get(0).toIssue() : null;
     }
 
-    public List<String> getMergedPullList() {
+    public List<PullRequest> getMergedPullList() {
         return !getMergedPulls().isEmpty()
-                ? getMergedPulls().stream().map(GitHubTask::getLink).collect(Collectors.toList())
+                ? getMergedPulls().stream().map(GitHubTask::toIssue).map(PullRequest.class::cast)
+                        .collect(Collectors.toList())
                 : null;
     }
 

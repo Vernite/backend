@@ -1,12 +1,18 @@
 package com.workflow.workflow.integration.git.github.entity;
 
+import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
+import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.MapsId;
 
+import com.workflow.workflow.integration.git.Issue;
+import com.workflow.workflow.integration.git.PullRequest;
+import com.workflow.workflow.integration.git.github.data.GitHubIssue;
+import com.workflow.workflow.integration.git.github.data.GitHubPullRequest;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.utils.SoftDeleteEntity;
 
@@ -31,11 +37,34 @@ public class GitHubTask extends SoftDeleteEntity {
 
     private long issueId;
 
+    @Column(length = 50)
+    private String title;
+
+    @Lob
+    private String description;
+
+    @Column(length = 50)
+    private String branch;
+
     private byte isPullRequest;
 
     public GitHubTask() {
     }
 
+    public GitHubTask(Task task, GitHubIntegration gitHubIntegration, GitHubIssue issue, byte isPullRequest) {
+        this.id = new GitHubTaskKey(task, gitHubIntegration);
+        this.task = task;
+        this.gitHubIntegration = gitHubIntegration;
+        this.issueId = issue.getNumber();
+        this.isPullRequest = isPullRequest;
+        this.title = issue.getTitle();
+        this.description = issue.getBody();
+        if (issue instanceof GitHubPullRequest) {
+            this.branch = ((GitHubPullRequest) issue).getHead().getRef();
+        }
+    }
+
+    @Deprecated
     public GitHubTask(Task task, GitHubIntegration gitHubIntegration, long issueId, byte isPullRequest) {
         this.id = new GitHubTaskKey(task, gitHubIntegration);
         this.task = task;
@@ -84,8 +113,50 @@ public class GitHubTask extends SoftDeleteEntity {
         this.isPullRequest = isPullRequest;
     }
 
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getState() {
+        if (getIsPullRequest() == 2) {
+            return "merged";
+        }
+        if (getTask().getStatus().isFinal()) {
+            return "closed";
+        }
+        return "open";
+    }
+
+    public String getBranch() {
+        return branch;
+    }
+
+    public void setBranch(String branch) {
+        this.branch = branch;
+    }
+
     public String getLink() {
         return String.format("https://github.com/%s/%s/%d", getGitHubIntegration().getRepositoryFullName(),
                 getIsPullRequest() != 0 ? "pull" : "issues", getIssueId());
+    }
+
+    public Issue toIssue() {
+        if (getIsPullRequest() != 0) {
+            return new PullRequest(getIssueId(), getLink(), getTitle(), getDescription(), "github", getBranch());
+        } else {
+            return new Issue(getIssueId(), getLink(), getTitle(), getDescription(), "github");
+        }
     }
 }

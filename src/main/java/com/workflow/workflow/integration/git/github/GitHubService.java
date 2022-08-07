@@ -143,7 +143,7 @@ public class GitHubService {
                 .flatMap(inst -> hasCollaborator(inst, integration, issue, installations))
                 .flatMap(installation -> apiPostRepositoryIssue(installation, integration, issue))
                 .map(i -> {
-                    taskRepository.save(new GitHubTask(task, integration, i.getNumber(), (byte) 0));
+                    taskRepository.save(new GitHubTask(task, integration, i, (byte) 0));
                     return i.toIssue();
                 });
     }
@@ -215,7 +215,7 @@ public class GitHubService {
         return refreshToken(integration.getInstallation())
                 .flatMap(installation -> apiGetRepositoryIssue(installation, integration, issue.getId()))
                 .map(gitHubIssue -> {
-                    taskRepository.save(new GitHubTask(task, optional.get(), gitHubIssue.getNumber(), (byte) 0));
+                    taskRepository.save(new GitHubTask(task, optional.get(), gitHubIssue, (byte) 0));
                     return gitHubIssue.toIssue();
                 });
     }
@@ -275,7 +275,7 @@ public class GitHubService {
         return refreshToken(integration.getInstallation())
                 .flatMap(installation -> apiGetRepositoryPull(installation, integration, pullRequest.getId()))
                 .map(gitHubPullRequest -> {
-                    taskRepository.save(new GitHubTask(task, integration, gitHubPullRequest.getNumber(), (byte) 1));
+                    taskRepository.save(new GitHubTask(task, integration, gitHubPullRequest, (byte) 1));
                     return gitHubPullRequest.toPullRequest();
                 });
     }
