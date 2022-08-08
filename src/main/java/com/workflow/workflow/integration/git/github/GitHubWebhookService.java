@@ -127,24 +127,21 @@ public class GitHubWebhookService {
     }
 
     private Mono<Void> handlePush(GitHubWebhookData data) {
+        GitHubRepository repository = data.getRepository();
         List<Task> tasks = new ArrayList<>();
-        Optional<GitHubIntegration> optional = integrationRepository
-                .findByRepositoryFullName(data.getRepository().getFullName());
-        if (optional.isEmpty()) {
-            return Mono.empty();
-        }
-        GitHubIntegration integration = optional.get();
-        for (GitHubCommit commit : data.getCommits()) {
-            Matcher matcher = PATTERN.matcher(commit.getMessage());
-            if (matcher.find()) {
-                boolean isOpen = "reopen".equals(matcher.group(1));
-                long taskId = Long.parseLong(matcher.group(2));
-                taskRepository.findByStatusProjectAndNumberAndActiveNull(integration.getProject(), taskId)
-                        .ifPresent(task -> {
-                            task.changeStatus(isOpen);
-                            tasks.add(taskRepository.save(task));
-                        });
+        for (GitHubIntegration integration : integrationRepository.findByRepositoryFullName(repository.getFullName())) {
+            for (GitHubCommit commit : data.getCommits()) {
+                Matcher matcher = PATTERN.matcher(commit.getMessage());
+                if (matcher.find()) {
+                    boolean isOpen = "reopen".equals(matcher.group(1));
+                    long taskId = Long.parseLong(matcher.group(2));
+                    taskRepository.findByStatusProjectAndNumberAndActiveNull(integration.getProject(), taskId)
+                            .ifPresent(task -> {
+                                task.changeStatus(isOpen);
+                                tasks.add(taskRepository.save(task));
+                            });
 
+                }
             }
         }
         return Flux.fromIterable(tasks).flatMap(service::patchIssue).then();
@@ -153,41 +150,87 @@ public class GitHubWebhookService {
     private void handleIssue(GitHubWebhookData data) {
         GitHubRepository repository = data.getRepository();
         GitHubIssue issue = data.getIssue();
-        Optional<GitHubIntegration> optional = integrationRepository.findByRepositoryFullName(repository.getFullName());
-        if (optional.isEmpty()) {
+        for (GitHubIntegration integration : integrationRepository.findByRepositoryFullName(repository.getFullName())) {
+            if (data.getAction().equals("opened")
+                    && issueRepository.findByIssueIdAndGitHubIntegration(issue.getNumber(), integration).isEmpty()) {
+                long id = counterSequenceRepository
+                        .getIncrementCounter(integration.getProject().getTaskCounter().getId());
+                Status status = integration.getProject().getStatuses().get(0);
+                Task task = new Task(id, issue.getTitle(), issue.getBody(), status, systemUser, 0);
+                task.changeStatus(true);
+                task = taskRepository.save(task);
+                issueRepository.save(new GitHubTaskIssue(task, integration, issue));
+            } else {
+                for (GitHubTaskIssue gitTask : issueRepository.findByIssueIdAndGitHubIntegration(issue.getNumber(),
+                        integration)) {
+                    Task task = gitTask.getTask();
+                    switch (data.getAction()) {
+                        case EDITED:
+                            task.setName(issue.getTitle());
+                            task.setDescription(issue.getBody());
+                            taskRepository.save(task);
+                            issueRepository.save(gitTask);
+                            break;
+                        case CLOSED:
+                            task.changeStatus(false);
+                            taskRepository.save(task);
+                            break;
+                        case "reopened":
+                            task.changeStatus(true);
+                            taskRepository.save(task);
+                            break;
+                        case "deleted":
+                            issueRepository.delete(gitTask);
+                            taskRepository.delete(task);
+                            break;
+                        case "assigned":
+                            installationRepository.findByGitHubUsername(data.getAssignee().getLogin())
+                                    .ifPresent(installation -> {
+                                        if (integration.getProject().member(installation.getUser()) != -1) {
+                                            task.setAssignee(installation.getUser());
+                                            taskRepository.save(task);
+                                        }
+                                    });
+                            break;
+                        case "unassigned":
+                            task.setAssignee(null);
+                            taskRepository.save(task);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+        }
+    }
+
+    private void handleInstallationRepositories(GitHubWebhookData data) {
+        if (data.getRepositoriesRemoved() == null) {
             return;
         }
-        GitHubIntegration integration = optional.get();
-        if (data.getAction().equals("opened")
-                && issueRepository.findByIssueIdAndGitHubIntegration(issue.getNumber(), integration).isEmpty()) {
-            long id = counterSequenceRepository.getIncrementCounter(integration.getProject().getTaskCounter().getId());
-            Status status = integration.getProject().getStatuses().get(0);
-            Task task = new Task(id, issue.getTitle(), issue.getBody(), status, systemUser, 0);
-            task.changeStatus(true);
-            task = taskRepository.save(task);
-            issueRepository.save(new GitHubTaskIssue(task, integration, issue));
-        } else {
-            for (GitHubTaskIssue gitTask : issueRepository.findByIssueIdAndGitHubIntegration(issue.getNumber(),
+        List<GitHubIntegration> integrations = new ArrayList<>();
+        for (GitHubRepository repository : data.getRepositoriesRemoved()) {
+            integrations.addAll(integrationRepository.findByRepositoryFullName(repository.getFullName()));
+        }
+        integrationRepository.deleteAll(integrations);
+    }
+
+    private void handlePullRequest(GitHubWebhookData data) {
+        GitHubPullRequest pullRequest = data.getPullRequest();
+        GitHubRepository repository = data.getRepository();
+        for (GitHubIntegration integration : integrationRepository.findByRepositoryFullName(repository.getFullName())) {
+            for (GitHubTaskPull gitTask : pullRepository.findByIssueIdAndGitHubIntegration(pullRequest.getNumber(),
                     integration)) {
                 Task task = gitTask.getTask();
                 switch (data.getAction()) {
-                    case EDITED:
-                        task.setName(issue.getTitle());
-                        task.setDescription(issue.getBody());
-                        taskRepository.save(task);
-                        issueRepository.save(gitTask);
-                        break;
                     case CLOSED:
-                        task.changeStatus(false);
-                        taskRepository.save(task);
-                        break;
                     case "reopened":
-                        task.changeStatus(true);
+                        if (pullRequest.isMerged()) {
+                            gitTask.setMerged(true);
+                            pullRepository.save(gitTask);
+                        }
+                        task.changeStatus(pullRequest.getState().equals("open"));
                         taskRepository.save(task);
-                        break;
-                    case "deleted":
-                        issueRepository.delete(gitTask);
-                        taskRepository.delete(task);
                         break;
                     case "assigned":
                         installationRepository.findByGitHubUsername(data.getAssignee().getLogin())
@@ -202,65 +245,14 @@ public class GitHubWebhookService {
                         task.setAssignee(null);
                         taskRepository.save(task);
                         break;
+                    case EDITED:
+                        gitTask.setTitle(pullRequest.getTitle());
+                        gitTask.setDescription(pullRequest.getBody());
+                        pullRepository.save(gitTask);
+                        break;
                     default:
                         break;
                 }
-            }
-        }
-    }
-
-    private void handleInstallationRepositories(GitHubWebhookData data) {
-        if (data.getRepositoriesRemoved() == null) {
-            return;
-        }
-        List<GitHubIntegration> integrations = new ArrayList<>();
-        for (GitHubRepository repository : data.getRepositoriesRemoved()) {
-            integrationRepository.findByRepositoryFullName(repository.getFullName()).ifPresent(integrations::add);
-        }
-        integrationRepository.deleteAll(integrations);
-    }
-
-    private void handlePullRequest(GitHubWebhookData data) {
-        GitHubPullRequest pullRequest = data.getPullRequest();
-        GitHubRepository repository = data.getRepository();
-        Optional<GitHubIntegration> optional = integrationRepository.findByRepositoryFullName(repository.getFullName());
-        if (optional.isEmpty()) {
-            return;
-        }
-        GitHubIntegration integration = optional.get();
-        for (GitHubTaskPull gitTask : pullRepository.findByIssueIdAndGitHubIntegration(pullRequest.getNumber(),
-                integration)) {
-            Task task = gitTask.getTask();
-            switch (data.getAction()) {
-                case CLOSED:
-                case "reopened":
-                    if (pullRequest.isMerged()) {
-                        gitTask.setMerged(true);
-                        pullRepository.save(gitTask);
-                    }
-                    task.changeStatus(pullRequest.getState().equals("open"));
-                    taskRepository.save(task);
-                    break;
-                case "assigned":
-                    installationRepository.findByGitHubUsername(data.getAssignee().getLogin())
-                            .ifPresent(installation -> {
-                                if (integration.getProject().member(installation.getUser()) != -1) {
-                                    task.setAssignee(installation.getUser());
-                                    taskRepository.save(task);
-                                }
-                            });
-                    break;
-                case "unassigned":
-                    task.setAssignee(null);
-                    taskRepository.save(task);
-                    break;
-                case EDITED:
-                    gitTask.setTitle(pullRequest.getTitle());
-                    gitTask.setDescription(pullRequest.getBody());
-                    pullRepository.save(gitTask);
-                    break;
-                default:
-                    break;
             }
         }
     }
