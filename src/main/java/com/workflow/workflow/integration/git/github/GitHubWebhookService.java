@@ -19,8 +19,10 @@ import com.workflow.workflow.integration.git.github.entity.GitHubInstallation;
 import com.workflow.workflow.integration.git.github.entity.GitHubInstallationRepository;
 import com.workflow.workflow.integration.git.github.entity.GitHubIntegration;
 import com.workflow.workflow.integration.git.github.entity.GitHubIntegrationRepository;
-import com.workflow.workflow.integration.git.github.entity.GitHubTask;
-import com.workflow.workflow.integration.git.github.entity.GitHubTaskRepository;
+import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskIssue;
+import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskIssueRepository;
+import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskPull;
+import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskPullRepository;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.task.TaskRepository;
@@ -44,21 +46,23 @@ public class GitHubWebhookService {
     private final GitHubInstallationRepository installationRepository;
     private final GitHubIntegrationRepository integrationRepository;
     private final TaskRepository taskRepository;
-    private final GitHubTaskRepository gitTaskRepository;
+    private final GitHubTaskIssueRepository issueRepository;
+    private final GitHubTaskPullRepository pullRepository;
     private final GitHubService service;
     private final CounterSequenceRepository counterSequenceRepository;
     private User systemUser;
 
     public GitHubWebhookService(GitHubInstallationRepository installationRepository,
-            GitHubIntegrationRepository integrationRepository, TaskRepository taskRepository,
-            GitHubTaskRepository gitHubTaskRepository, GitHubService service, UserRepository userRepository,
-            CounterSequenceRepository counterSequenceRepository) {
+            GitHubIntegrationRepository integrationRepository, TaskRepository taskRepository, GitHubService service,
+            UserRepository userRepository, CounterSequenceRepository counterSequenceRepository,
+            GitHubTaskIssueRepository issueRepository, GitHubTaskPullRepository pullRepository) {
         this.counterSequenceRepository = counterSequenceRepository;
         this.installationRepository = installationRepository;
         this.integrationRepository = integrationRepository;
         this.taskRepository = taskRepository;
-        this.gitTaskRepository = gitHubTaskRepository;
         this.service = service;
+        this.issueRepository = issueRepository;
+        this.pullRepository = pullRepository;
         this.systemUser = userRepository.findByUsername("Username"); // TODO change system user
         if (this.systemUser == null) {
             this.systemUser = userRepository.save(new User("Name", "Surname", "Username", "wflow1337@gmail.com", "1"));
@@ -153,26 +157,24 @@ public class GitHubWebhookService {
             return;
         }
         GitHubIntegration integration = optional.get();
-        if (data.getAction().equals("opened") && gitTaskRepository
-                .findByIssueIdAndGitHubIntegration(issue.getNumber(), integration).isEmpty()) {
+        if (data.getAction().equals("opened")
+                && issueRepository.findByIssueIdAndGitHubIntegration(issue.getNumber(), integration).isEmpty()) {
             long id = counterSequenceRepository.getIncrementCounter(integration.getProject().getTaskCounter().getId());
             Status status = integration.getProject().getStatuses().get(0);
             Task task = new Task(id, issue.getTitle(), issue.getBody(), status, systemUser, 0);
             task.changeStatus(true);
             task = taskRepository.save(task);
-            gitTaskRepository.save(new GitHubTask(task, integration, issue, (byte) 0));
+            issueRepository.save(new GitHubTaskIssue(task, integration, issue));
         } else {
-            for (GitHubTask gitTask : gitTaskRepository.findByIssueIdAndGitHubIntegration(issue.getNumber(),
+            for (GitHubTaskIssue gitTask : issueRepository.findByIssueIdAndGitHubIntegration(issue.getNumber(),
                     integration)) {
                 Task task = gitTask.getTask();
                 switch (data.getAction()) {
                     case EDITED:
                         task.setName(issue.getTitle());
                         task.setDescription(issue.getBody());
-                        gitTask.setTitle(issue.getTitle());
-                        gitTask.setDescription(issue.getBody());
                         taskRepository.save(task);
-                        gitTaskRepository.save(gitTask);
+                        issueRepository.save(gitTask);
                         break;
                     case CLOSED:
                         task.changeStatus(false);
@@ -183,7 +185,7 @@ public class GitHubWebhookService {
                         taskRepository.save(task);
                         break;
                     case "deleted":
-                        gitTaskRepository.delete(gitTask);
+                        issueRepository.delete(gitTask);
                         taskRepository.delete(task);
                         break;
                     case "assigned":
@@ -225,15 +227,15 @@ public class GitHubWebhookService {
             return;
         }
         GitHubIntegration integration = optional.get();
-        for (GitHubTask gitTask : gitTaskRepository.findByIssueIdAndGitHubIntegration(pullRequest.getNumber(),
+        for (GitHubTaskPull gitTask : pullRepository.findByIssueIdAndGitHubIntegration(pullRequest.getNumber(),
                 integration)) {
             Task task = gitTask.getTask();
             switch (data.getAction()) {
                 case CLOSED:
                 case "reopened":
                     if (pullRequest.isMerged()) {
-                        gitTask.setIsPullRequest((byte) 2);
-                        gitTaskRepository.save(gitTask);
+                        gitTask.setMerged(true);
+                        pullRepository.save(gitTask);
                     }
                     task.changeStatus(pullRequest.getState().equals("open"));
                     taskRepository.save(task);

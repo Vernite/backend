@@ -6,7 +6,6 @@ import java.security.Key;
 import java.security.KeyFactory;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -27,8 +26,10 @@ import com.workflow.workflow.integration.git.github.entity.GitHubInstallation;
 import com.workflow.workflow.integration.git.github.entity.GitHubInstallationRepository;
 import com.workflow.workflow.integration.git.github.entity.GitHubIntegration;
 import com.workflow.workflow.integration.git.github.entity.GitHubIntegrationRepository;
-import com.workflow.workflow.integration.git.github.entity.GitHubTask;
-import com.workflow.workflow.integration.git.github.entity.GitHubTaskRepository;
+import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskIssue;
+import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskIssueRepository;
+import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskPull;
+import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskPullRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.user.User;
@@ -62,7 +63,9 @@ public class GitHubService {
     @Autowired
     private GitHubIntegrationRepository integrationRepository;
     @Autowired
-    private GitHubTaskRepository taskRepository;
+    private GitHubTaskIssueRepository issueRepository;
+    @Autowired
+    private GitHubTaskPullRepository pullRepository;
 
     /**
      * Retrieves repositories available for user from GitHub api.
@@ -143,7 +146,7 @@ public class GitHubService {
                 .flatMap(inst -> hasCollaborator(inst, integration, issue, installations))
                 .flatMap(installation -> apiPostRepositoryIssue(installation, integration, issue))
                 .map(i -> {
-                    taskRepository.save(new GitHubTask(task, integration, i, (byte) 0));
+                    issueRepository.save(new GitHubTaskIssue(task, integration, i));
                     return i.toIssue();
                 });
     }
@@ -155,11 +158,11 @@ public class GitHubService {
      * @return Mono with issue.
      */
     public Mono<Issue> patchIssue(Task task) {
-        Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0);
+        Optional<GitHubTaskIssue> optional = issueRepository.findByTask(task);
         if (optional.isEmpty()) {
             return Mono.empty();
         }
-        GitHubTask gitHubTask = optional.get();
+        GitHubTaskIssue gitHubTask = optional.get();
         if (gitHubTask.getGitHubIntegration().getInstallation().getSuspended()) {
             return Mono.empty();
         }
@@ -215,7 +218,7 @@ public class GitHubService {
         return refreshToken(integration.getInstallation())
                 .flatMap(installation -> apiGetRepositoryIssue(installation, integration, issue.getId()))
                 .map(gitHubIssue -> {
-                    taskRepository.save(new GitHubTask(task, optional.get(), gitHubIssue, (byte) 0));
+                    issueRepository.save(new GitHubTaskIssue(task, integration, gitHubIssue));
                     return gitHubIssue.toIssue();
                 });
     }
@@ -226,13 +229,7 @@ public class GitHubService {
      * @param task must be entity from database.
      */
     public void deleteIssue(Task task) {
-        Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0);
-        if (optional.isEmpty()) {
-            return;
-        }
-        GitHubTask gitHubTask = optional.get();
-        gitHubTask.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
-        taskRepository.save(gitHubTask);
+        issueRepository.findByTask(task).ifPresent(issueRepository::delete);
     }
 
     /**
@@ -275,7 +272,7 @@ public class GitHubService {
         return refreshToken(integration.getInstallation())
                 .flatMap(installation -> apiGetRepositoryPull(installation, integration, pullRequest.getId()))
                 .map(gitHubPullRequest -> {
-                    taskRepository.save(new GitHubTask(task, integration, gitHubPullRequest, (byte) 1));
+                    pullRepository.save(new GitHubTaskPull(task, integration, gitHubPullRequest));
                     return gitHubPullRequest.toPullRequest();
                 });
     }
@@ -287,11 +284,11 @@ public class GitHubService {
      * @return Mono with pull request.
      */
     public Mono<Issue> patchPullRequest(Task task) {
-        Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 1);
+        Optional<GitHubTaskPull> optional = pullRepository.findByTask(task);
         if (optional.isEmpty()) {
             return Mono.empty();
         }
-        GitHubTask gitHubTask = optional.get();
+        GitHubTaskPull gitHubTask = optional.get();
         GitHubIntegration integration = gitHubTask.getGitHubIntegration();
         if (integration.getInstallation().getSuspended()) {
             return Mono.empty();
@@ -302,8 +299,8 @@ public class GitHubService {
                     .flatMap(installation -> apiPutRepositoryPull(installation, integration, gitHubTask.getIssueId()))
                     .map(mergeInfo -> {
                         if (mergeInfo.isMerged()) {
-                            gitHubTask.setIsPullRequest((byte) 2);
-                            taskRepository.save(gitHubTask);
+                            gitHubTask.setMerged(true);
+                            pullRepository.save(gitHubTask);
                         }
                         return new Issue(-1, gitHubTask.getLink(), mergeInfo.getMessage(), mergeInfo.getSha(),
                                 GITHUB);
@@ -329,12 +326,7 @@ public class GitHubService {
      * @param task must be entity from database.
      */
     public void deletePullRequest(Task task) {
-        Optional<GitHubTask> optional = taskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 1);
-        if (optional.isPresent()) {
-            GitHubTask gitHubTask = optional.get();
-            gitHubTask.setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
-            taskRepository.save(gitHubTask);
-        }
+        pullRepository.findByTask(task).ifPresent(pullRepository::delete);
     }
 
     /**

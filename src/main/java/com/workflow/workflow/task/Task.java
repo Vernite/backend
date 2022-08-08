@@ -1,11 +1,8 @@
 package com.workflow.workflow.task;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -17,6 +14,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 import javax.persistence.OrderBy;
 import javax.validation.constraints.NotNull;
 
@@ -26,7 +24,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.workflow.workflow.integration.git.Issue;
 import com.workflow.workflow.integration.git.PullRequest;
-import com.workflow.workflow.integration.git.github.entity.GitHubTask;
+import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskIssue;
+import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskPull;
 import com.workflow.workflow.sprint.Sprint;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.user.User;
@@ -85,23 +84,15 @@ public class Task extends SoftDeleteEntity {
     @Column(nullable = false)
     private int type;
 
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    @OneToMany(mappedBy = "task")
     @JsonIgnore
-    @Where(clause = "is_pull_request = 0 and active is null")
-    private List<GitHubTask> issues = new ArrayList<>();
+    @OneToOne(mappedBy = "task")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private GitHubTaskIssue issueTask;
 
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    @OneToMany(mappedBy = "task")
     @JsonIgnore
-    @Where(clause = "is_pull_request = 1 and active is null")
-    private List<GitHubTask> pulls = new ArrayList<>();
-
+    @OneToOne(mappedBy = "task")
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @OneToMany(mappedBy = "task")
-    @JsonIgnore
-    @Where(clause = "is_pull_request = 2 and active is null")
-    private List<GitHubTask> mergedPulls = new ArrayList<>();
+    private GitHubTaskPull pullTask;
 
     @JsonIgnore
     @ManyToOne
@@ -272,42 +263,27 @@ public class Task extends SoftDeleteEntity {
     }
 
     public Issue getIssue() {
-        return !getIssues().isEmpty() ? getIssues().get(0).toIssue() : null;
+        return getIssueTask() != null ? getIssueTask().toIssue() : null;
     }
 
     public PullRequest getPull() {
-        return !getPulls().isEmpty() ? (PullRequest) getPulls().get(0).toIssue() : null;
+        return getPullTask() != null ? getPullTask().toPull() : null;
     }
 
-    public List<PullRequest> getMergedPullList() {
-        return !getMergedPulls().isEmpty()
-                ? getMergedPulls().stream().map(GitHubTask::toIssue).map(PullRequest.class::cast)
-                        .collect(Collectors.toList())
-                : null;
+    public GitHubTaskIssue getIssueTask() {
+        return issueTask;
     }
 
-    public List<GitHubTask> getIssues() {
-        return issues;
+    public void setIssueTask(GitHubTaskIssue issues) {
+        this.issueTask = issues;
     }
 
-    public void setIssues(List<GitHubTask> issues) {
-        this.issues = issues;
+    public GitHubTaskPull getPullTask() {
+        return pullTask;
     }
 
-    public List<GitHubTask> getPulls() {
-        return pulls;
-    }
-
-    public void setPulls(List<GitHubTask> pulls) {
-        this.pulls = pulls;
-    }
-
-    public List<GitHubTask> getMergedPulls() {
-        return mergedPulls;
-    }
-
-    public void setMergedPulls(List<GitHubTask> mergedPulls) {
-        this.mergedPulls = mergedPulls;
+    public void setPullTask(GitHubTaskPull pulls) {
+        this.pullTask = pulls;
     }
 
     public Task getParentTask() {

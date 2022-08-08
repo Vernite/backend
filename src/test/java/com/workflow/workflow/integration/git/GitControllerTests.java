@@ -20,8 +20,10 @@ import com.workflow.workflow.integration.git.github.entity.GitHubInstallation;
 import com.workflow.workflow.integration.git.github.entity.GitHubInstallationRepository;
 import com.workflow.workflow.integration.git.github.entity.GitHubIntegration;
 import com.workflow.workflow.integration.git.github.entity.GitHubIntegrationRepository;
-import com.workflow.workflow.integration.git.github.entity.GitHubTask;
-import com.workflow.workflow.integration.git.github.entity.GitHubTaskRepository;
+import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskIssue;
+import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskIssueRepository;
+import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskPull;
+import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskPullRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
@@ -86,7 +88,9 @@ public class GitControllerTests {
     @Autowired
     private TaskRepository taskRepository;
     @Autowired
-    private GitHubTaskRepository gitHubTaskRepository;
+    private GitHubTaskIssueRepository issueRepository;
+    @Autowired
+    private GitHubTaskPullRepository pullRepository;
 
     private User user;
     private UserSession session;
@@ -223,8 +227,8 @@ public class GitControllerTests {
         assertEquals("description", issue.getDescription());
         assertEquals("github", issue.getService());
 
-        assertEquals(true, gitHubTaskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0).isPresent());
-        gitHubTaskRepository.delete(gitHubTaskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0).get());
+        assertEquals(true, issueRepository.findByTask(task).isPresent());
+        issueRepository.delete(issueRepository.findByTask(task).get());
 
         tokenCheck();
         mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(
@@ -241,8 +245,8 @@ public class GitControllerTests {
         assertEquals("description", issue2.getDescription());
         assertEquals("github", issue2.getService());
 
-        assertEquals(true, gitHubTaskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0).isPresent());
-        gitHubTaskRepository.delete(gitHubTaskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0).get());
+        assertEquals(true, issueRepository.findByTask(task).isPresent());
+        issueRepository.delete(issueRepository.findByTask(task).get());
 
         task.setAssignee(user);
         taskRepository.save(task);
@@ -263,8 +267,8 @@ public class GitControllerTests {
         assertEquals("description", issue3.getDescription());
         assertEquals("github", issue3.getService());
 
-        assertEquals(true, gitHubTaskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0).isPresent());
-        gitHubTaskRepository.delete(gitHubTaskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0).get());
+        assertEquals(true, issueRepository.findByTask(task).isPresent());
+        issueRepository.delete(issueRepository.findByTask(task).get());
 
         tokenCheck();
         mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(List.of(new GitHubUser(1, "username"))))
@@ -283,8 +287,8 @@ public class GitControllerTests {
         assertEquals("description", issue3.getDescription());
         assertEquals("github", issue3.getService());
 
-        assertEquals(true, gitHubTaskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0).isPresent());
-        gitHubTaskRepository.delete(gitHubTaskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0).get());
+        assertEquals(true, issueRepository.findByTask(task).isPresent());
+        issueRepository.delete(issueRepository.findByTask(task).get());
     }
 
     @Test
@@ -337,14 +341,14 @@ public class GitControllerTests {
     @Test
     void deleteIssueSuccess() {
         Task task = taskRepository.save(new Task(5, "name", "description", statuses[0], user, 0));
-        gitHubTaskRepository.save(new GitHubTask(task, integration, 1, (byte) 0));
+        issueRepository.save(new GitHubTaskIssue(task, integration, new GitHubIssue(1, "url", "state", "title", "body")));
 
         client.delete().uri("/project/{id}/task/{taskId}/integration/git/issue", project.getId(), task.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isOk();
 
-        assertEquals(false, gitHubTaskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0).isPresent());
+        assertEquals(false, issueRepository.findByTask(task).isPresent());
     }
 
     @Test
@@ -354,7 +358,7 @@ public class GitControllerTests {
                 .expectStatus().isUnauthorized();
 
         Task task = taskRepository.save(new Task(6, "name", "description", statuses[0], user, 0));
-        gitHubTaskRepository.save(new GitHubTask(task, integration, 1, (byte) 0));
+        issueRepository.save(new GitHubTaskIssue(task, integration, new GitHubIssue(1, "url", "state", "title", "body")));
 
         client.delete().uri("/project/{id}/task/{taskId}/integration/git/issue", project.getId(), task.getId())
                 .exchange()
@@ -383,7 +387,7 @@ public class GitControllerTests {
         Project newProject = projectRepository.save(new Project("NAME"));
         Status newStatus = statusRepository.save(new Status(98, "name", 0, false, true, 0, newProject));
         Task task2 = taskRepository.save(new Task(8, "name", "description", newStatus, user, 0));
-        gitHubTaskRepository.save(new GitHubTask(task2, integration, 1, (byte) 0));
+        issueRepository.save(new GitHubTaskIssue(task2, integration, new GitHubIssue(1, "url", "state", "title", "body")));
 
         client.delete().uri("/project/{id}/task/{taskId}/integration/git/issue", newProject.getId(), task2.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
@@ -467,8 +471,8 @@ public class GitControllerTests {
         assertEquals("github", pull.getService());
         assertEquals("ref", pull.getBranch());
 
-        assertEquals(true, gitHubTaskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 1).isPresent());
-        gitHubTaskRepository.delete(gitHubTaskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 1).get());
+        assertEquals(true, pullRepository.findByTask(task).isPresent());
+        pullRepository.delete(pullRepository.findByTask(task).get());
     }
 
     @Test
@@ -521,14 +525,14 @@ public class GitControllerTests {
     @Test
     void deletePullRequestSuccess() {
         Task task = taskRepository.save(new Task(13, "name", "description", statuses[0], user, 0));
-        gitHubTaskRepository.save(new GitHubTask(task, integration, 1, (byte) 1));
+        pullRepository.save(new GitHubTaskPull(task, integration, new GitHubPullRequest(1, "url", "state", "title", "body", new GitHubBranch("ref"))));
 
         client.delete().uri("/project/{id}/task/{taskId}/integration/git/pull", project.getId(), task.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange()
                 .expectStatus().isOk();
 
-        assertEquals(false, gitHubTaskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 0).isPresent());
+        assertEquals(false, pullRepository.findByTask(task).isPresent());
     }
 
     @Test
@@ -538,7 +542,7 @@ public class GitControllerTests {
                 .expectStatus().isUnauthorized();
 
         Task task = taskRepository.save(new Task(14, "name", "description", statuses[0], user, 0));
-        gitHubTaskRepository.save(new GitHubTask(task, integration, 1, (byte) 1));
+        pullRepository.save(new GitHubTaskPull(task, integration, new GitHubPullRequest(1, "url", "state", "title", "body", new GitHubBranch("ref"))));
 
         client.delete().uri("/project/{id}/task/{taskId}/integration/git/pull", project.getId(), task.getId())
                 .exchange()

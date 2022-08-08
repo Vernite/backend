@@ -1,5 +1,6 @@
 package com.workflow.workflow.integration.git.github;
 
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -22,9 +23,11 @@ import com.workflow.workflow.integration.git.github.entity.GitHubInstallation;
 import com.workflow.workflow.integration.git.github.entity.GitHubInstallationRepository;
 import com.workflow.workflow.integration.git.github.entity.GitHubIntegration;
 import com.workflow.workflow.integration.git.github.entity.GitHubIntegrationRepository;
-import com.workflow.workflow.integration.git.github.entity.GitHubTask;
-import com.workflow.workflow.integration.git.github.entity.GitHubTaskKey;
-import com.workflow.workflow.integration.git.github.entity.GitHubTaskRepository;
+import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskIssue;
+import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskIssueRepository;
+import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskKey;
+import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskPull;
+import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskPullRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
@@ -78,7 +81,9 @@ public class GitHubServiceTests {
     @Autowired
     private TaskRepository taskRepository;
     @Autowired
-    private GitHubTaskRepository gitHubTaskRepository;
+    private GitHubTaskIssueRepository issueRepository;
+    @Autowired
+    private GitHubTaskPullRepository pullRepository;
 
     private User user;
     private Project project;
@@ -143,7 +148,7 @@ public class GitHubServiceTests {
         Project newProject = projectRepository.save(new Project("NEW_NAME"));
         Status newStatus = statusRepository.save(new Status(67, "NEW_NAME", 1, false, true, 0, newProject));
         task = taskRepository.save(new Task(2, "name", "description", newStatus, user, 0));
-        gitHubTaskRepository.save(new GitHubTask(task, integration, 1, (byte) 0));
+        issueRepository.save(new GitHubTaskIssue(task, integration, new GitHubIssue(1, "url", "state", "title", "body")));
 
         issue = service.createIssue(task).block();
 
@@ -167,7 +172,7 @@ public class GitHubServiceTests {
         Project newProject = projectRepository.save(new Project("NEW_NAME"));
         Status newStatus = statusRepository.save(new Status(123124, "NEW_NAME", 1, false, true, 0, newProject));
         Task task2 = taskRepository.save(new Task(4, "name", "description", newStatus, user, 0));
-        gitHubTaskRepository.save(new GitHubTask(task2, integration, 1, (byte) 0));
+        issueRepository.save(new GitHubTaskIssue(task2, integration, new GitHubIssue(1, "url", "state", "title", "body")));
 
         issue = service.patchIssue(task2).block();
 
@@ -176,7 +181,7 @@ public class GitHubServiceTests {
         installation.setSuspended(false);
         installation = installationRepository.save(installation);
 
-        gitHubTaskRepository.save(new GitHubTask(task, integration, 1, (byte) 0));
+        issueRepository.save(new GitHubTaskIssue(task, integration, new GitHubIssue(1, "url", "state", "title", "body")));
 
         GitHubIssue gitIssue = new GitHubIssue(1, "url", "open", "name", "description");
 
@@ -246,11 +251,10 @@ public class GitHubServiceTests {
     @Test
     void deleteIssueTest() {
         Task task = taskRepository.save(new Task(7, "name", "description", statuses[0], user, 0));
-        GitHubTask gitHubTask = new GitHubTask(task, integration, 1, (byte) 0);
-        gitHubTask.setActive(new Date());
-        gitHubTaskRepository.save(gitHubTask);
+        GitHubTaskIssue gitHubTask = new GitHubTaskIssue(task, integration, new GitHubIssue(1, "url", "state", "title", "body"));
+        issueRepository.save(gitHubTask);
         service.deleteIssue(task);
-        assertEquals(true, gitHubTaskRepository.findById(new GitHubTaskKey(task, integration)).isPresent());
+        assertEquals(false, issueRepository.findById(new GitHubTaskKey(task, integration)).isPresent());
     }
 
     @Test
@@ -291,7 +295,7 @@ public class GitHubServiceTests {
     @Test
     void patchPullRequest() throws JsonProcessingException {
         Task task = taskRepository.save(new Task(10, "name", "description", statuses[0], user, 0));
-        gitHubTaskRepository.save(new GitHubTask(task, integration, 1, (byte) 1));
+        pullRepository.save(new GitHubTaskPull(task, integration, new GitHubPullRequest(1, "url", "state", "title", "body", new GitHubBranch("ref"))));
         installation.setSuspended(true);
         installation = installationRepository.save(installation);
 
@@ -346,8 +350,8 @@ public class GitHubServiceTests {
 
         assertEquals(null, issue);
 
-        assertEquals(true, gitHubTaskRepository.findById(new GitHubTaskKey(task, integration)).isPresent());
-        assertEquals(true, gitHubTaskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 2).isEmpty());
+        assertEquals(true, pullRepository.findById(new GitHubTaskKey(task, integration)).isPresent());
+        assertNotEquals("merged", pullRepository.findByTask(task).get().getState());
 
         tokenCheck();
         mockBackEnd.enqueue(new MockResponse()
@@ -357,7 +361,7 @@ public class GitHubServiceTests {
 
         assertEquals(null, issue);
 
-        assertEquals(true, gitHubTaskRepository.findById(new GitHubTaskKey(task, integration)).isPresent());
-        assertEquals(true, gitHubTaskRepository.findByTaskAndActiveNullAndIsPullRequest(task, (byte) 2).isPresent());
+        assertEquals(true, pullRepository.findById(new GitHubTaskKey(task, integration)).isPresent());
+        assertEquals(true, pullRepository.findByTask(task).isPresent());
     }
 }

@@ -1,10 +1,11 @@
-package com.workflow.workflow.integration.git.github.entity;
+package com.workflow.workflow.integration.git.github.entity.task;
 
 import java.io.Serializable;
 
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 
+import com.workflow.workflow.integration.git.github.entity.GitHubIntegration;
 import com.workflow.workflow.task.Task;
 
 @Embeddable

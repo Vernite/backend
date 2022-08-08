@@ -13,7 +13,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 
+import com.workflow.workflow.integration.git.github.data.GitHubIssue;
 import com.workflow.workflow.integration.git.github.data.GitHubRepository;
+import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskIssue;
+import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskKey;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.user.User;
@@ -30,14 +33,13 @@ public class EntitiesTests {
         GitHubIntegration gitHubIntegration = new GitHubIntegration(new Project("name"), null, "full/name");
         gitHubIntegration.setId(1);
 
-        GitHubTask gitHubTask = new GitHubTask(task, gitHubIntegration, 0, (byte) 0);
+        GitHubTaskIssue gitHubTask = new GitHubTaskIssue(task, gitHubIntegration, new GitHubIssue(0, "url", "state", "title", "body"));
 
         assertEquals("https://github.com/full/name/issues/0", gitHubTask.getLink());
         gitHubTask.setIssueId(1);
         gitHubTask.setTask(task);
-        gitHubTask.setIsPullRequest((byte) 1);
         gitHubTask.setGitHubIntegration(new GitHubIntegration(new Project("2"), null, "full/full"));
-        assertEquals("https://github.com/full/full/pull/1", gitHubTask.getLink());
+        assertEquals("https://github.com/full/full/issues/1", gitHubTask.getLink());
 
         GitHubTaskKey key = new GitHubTaskKey(new Task(1, "name", "description", null, null, 0), gitHubIntegration);
 
