@@ -33,7 +33,7 @@ public interface GitHubTaskRepository<T, K> extends JpaRepository<T, K> {
      * 
      * @param issueId     id of github issue.
      * @param integration integration with github.
-     * @return List of connection between issue and task.
+     * @return Optional with connection between issue and task.
      */
-    List<T> findByIssueIdAndGitHubIntegration(long issueId, GitHubIntegration integration);
+    Optional<T> findByIssueIdAndGitHubIntegration(long issueId, GitHubIntegration integration);
 }

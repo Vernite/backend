@@ -31,41 +31,42 @@ import com.workflow.workflow.user.UserRepository;
 
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Service
+@Component
 public class GitHubWebhookService {
     private HmacUtils utils;
     private static final Pattern PATTERN = Pattern.compile("(reopen|close)?!(\\d+)");
     private static final String CLOSED = "closed";
     private static final String EDITED = "edited";
-    private final GitHubInstallationRepository installationRepository;
-    private final GitHubIntegrationRepository integrationRepository;
-    private final TaskRepository taskRepository;
-    private final GitHubTaskIssueRepository issueRepository;
-    private final GitHubTaskPullRepository pullRepository;
-    private final GitHubService service;
-    private final CounterSequenceRepository counterSequenceRepository;
+    @Autowired
+    private GitHubInstallationRepository installationRepository;
+    @Autowired
+    private GitHubIntegrationRepository integrationRepository;
+    @Autowired
+    private TaskRepository taskRepository;
+    @Autowired
+    private GitHubTaskIssueRepository issueRepository;
+    @Autowired
+    private GitHubTaskPullRepository pullRepository;
+    @Autowired
+    private GitHubService service;
+    @Autowired
+    private CounterSequenceRepository counterSequenceRepository;
     private User systemUser;
 
-    public GitHubWebhookService(GitHubInstallationRepository installationRepository,
-            GitHubIntegrationRepository integrationRepository, TaskRepository taskRepository, GitHubService service,
-            UserRepository userRepository, CounterSequenceRepository counterSequenceRepository,
-            GitHubTaskIssueRepository issueRepository, GitHubTaskPullRepository pullRepository) {
-        this.counterSequenceRepository = counterSequenceRepository;
-        this.installationRepository = installationRepository;
-        this.integrationRepository = integrationRepository;
-        this.taskRepository = taskRepository;
-        this.service = service;
-        this.issueRepository = issueRepository;
-        this.pullRepository = pullRepository;
-        this.systemUser = userRepository.findByUsername("Username"); // TODO change system user
-        if (this.systemUser == null) {
-            this.systemUser = userRepository.save(new User("Name", "Surname", "Username", "wflow1337@gmail.com", "1"));
+    @Autowired
+    public void setSystemUser(UserRepository userRepository) {
+        systemUser = userRepository.findByUsername("Username"); // TODO change system user
+        if (systemUser == null) {
+            systemUser = userRepository.save(new User("Name", "Surname", "Username", "wflow1337@gmail.com", "1"));
         }
     }
 
@@ -166,44 +167,47 @@ public class GitHubWebhookService {
             task = taskRepository.save(task);
             issueRepository.save(new GitHubTaskIssue(task, integration, issue));
         } else {
-            for (GitHubTaskIssue gitTask : issueRepository.findByIssueIdAndGitHubIntegration(issue.getNumber(),
-                    integration)) {
-                Task task = gitTask.getTask();
-                switch (data.getAction()) {
-                    case EDITED:
-                        task.setName(issue.getTitle());
-                        task.setDescription(issue.getBody());
-                        taskRepository.save(task);
-                        issueRepository.save(gitTask);
-                        break;
-                    case CLOSED:
-                        task.changeStatus(false);
-                        taskRepository.save(task);
-                        break;
-                    case "reopened":
-                        task.changeStatus(true);
-                        taskRepository.save(task);
-                        break;
-                    case "deleted":
-                        issueRepository.delete(gitTask);
-                        taskRepository.delete(task);
-                        break;
-                    case "assigned":
-                        installationRepository.findByGitHubUsername(data.getAssignee().getLogin())
-                                .ifPresent(installation -> {
-                                    if (integration.getProject().member(installation.getUser()) != -1) {
-                                        task.setAssignee(installation.getUser());
-                                        taskRepository.save(task);
-                                    }
-                                });
-                        break;
-                    case "unassigned":
-                        task.setAssignee(null);
-                        taskRepository.save(task);
-                        break;
-                    default:
-                        break;
-                }
+            Optional<GitHubTaskIssue> optionalIssue = issueRepository
+                    .findByIssueIdAndGitHubIntegration(issue.getNumber(), integration);
+            if (optionalIssue.isEmpty()) {
+                return;
+            }
+            GitHubTaskIssue gitTask = optionalIssue.get();
+            Task task = gitTask.getTask();
+            switch (data.getAction()) {
+                case EDITED:
+                    task.setName(issue.getTitle());
+                    task.setDescription(issue.getBody());
+                    taskRepository.save(task);
+                    issueRepository.save(gitTask);
+                    break;
+                case CLOSED:
+                    task.changeStatus(false);
+                    taskRepository.save(task);
+                    break;
+                case "reopened":
+                    task.changeStatus(true);
+                    taskRepository.save(task);
+                    break;
+                case "deleted":
+                    issueRepository.delete(gitTask);
+                    taskRepository.delete(task);
+                    break;
+                case "assigned":
+                    installationRepository.findByGitHubUsername(data.getAssignee().getLogin())
+                            .ifPresent(installation -> {
+                                if (integration.getProject().member(installation.getUser()) != -1) {
+                                    task.setAssignee(installation.getUser());
+                                    taskRepository.save(task);
+                                }
+                            });
+                    break;
+                case "unassigned":
+                    task.setAssignee(null);
+                    taskRepository.save(task);
+                    break;
+                default:
+                    break;
             }
         }
     }
@@ -227,35 +231,43 @@ public class GitHubWebhookService {
             return;
         }
         GitHubIntegration integration = optional.get();
-        for (GitHubTaskPull gitTask : pullRepository.findByIssueIdAndGitHubIntegration(pullRequest.getNumber(),
-                integration)) {
-            Task task = gitTask.getTask();
-            switch (data.getAction()) {
-                case CLOSED:
-                case "reopened":
-                    if (pullRequest.isMerged()) {
-                        gitTask.setMerged(true);
-                        pullRepository.save(gitTask);
-                    }
-                    task.changeStatus(pullRequest.getState().equals("open"));
-                    taskRepository.save(task);
-                    break;
-                case "assigned":
-                    installationRepository.findByGitHubUsername(data.getAssignee().getLogin())
-                            .ifPresent(installation -> {
-                                if (integration.getProject().member(installation.getUser()) != -1) {
-                                    task.setAssignee(installation.getUser());
-                                    taskRepository.save(task);
-                                }
-                            });
-                    break;
-                case "unassigned":
-                    task.setAssignee(null);
-                    taskRepository.save(task);
-                    break;
-                default:
-                    break;
-            }
+        Optional<GitHubTaskPull> optionalPull = pullRepository
+                .findByIssueIdAndGitHubIntegration(pullRequest.getNumber(), integration);
+        if (optionalPull.isEmpty()) {
+            return;
+        }
+        GitHubTaskPull gitTask = optionalPull.get();
+        Task task = gitTask.getTask();
+        switch (data.getAction()) {
+            case CLOSED:
+            case "reopened":
+                if (pullRequest.isMerged()) {
+                    gitTask.setMerged(true);
+                    pullRepository.save(gitTask);
+                }
+                task.changeStatus(pullRequest.getState().equals("open"));
+                taskRepository.save(task);
+                break;
+            case "assigned":
+                installationRepository.findByGitHubUsername(data.getAssignee().getLogin())
+                        .ifPresent(installation -> {
+                            if (integration.getProject().member(installation.getUser()) != -1) {
+                                task.setAssignee(installation.getUser());
+                                taskRepository.save(task);
+                            }
+                        });
+                break;
+            case "unassigned":
+                task.setAssignee(null);
+                taskRepository.save(task);
+                break;
+            case EDITED:
+                gitTask.setTitle(pullRequest.getTitle());
+                gitTask.setDescription(pullRequest.getBody());
+                pullRepository.save(gitTask);
+                break;
+            default:
+                break;
         }
     }
 }
