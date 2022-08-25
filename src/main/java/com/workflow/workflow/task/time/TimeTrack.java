@@ -127,4 +127,12 @@ public class TimeTrack {
     public boolean getEnabled() {
         return startTime != null;
     }
+
+    public long getTaskId() {
+        return task.getNumber();
+    }
+
+    public long getProjectId() {
+        return task.getStatus().getProject().getId();
+    }
 }

@@ -10,6 +10,10 @@ import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceKey;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
+import com.workflow.workflow.task.Task;
+import com.workflow.workflow.task.TaskRepository;
+import com.workflow.workflow.task.time.TimeTrack;
+import com.workflow.workflow.task.time.TimeTrackRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.user.UserSession;
@@ -48,6 +52,8 @@ class ProjectControllerTests {
     private WorkspaceRepository workspaceRepository;
     @Autowired
     private ProjectWorkspaceRepository projectWorkspaceRepository;
+    @Autowired
+    private TimeTrackRepository timeTrackRepository;
 
     private User user;
     private UserSession session;
@@ -504,6 +510,38 @@ class ProjectControllerTests {
         Project project = projectRepository.save(new Project("MEMBER"));
 
         client.delete().uri("/project/{id}/member", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
+    }
+
+    @Test
+    void getTimeTracksSuccess(@Autowired TaskRepository taskRepository) {
+        Project project = projectRepository.save(new Project("MEMBER"));
+        Task task = taskRepository.save(new Task(1, "n", "d", project.getStatuses().get(0), user, 1));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+
+        client.get().uri("/project/{id}/track", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(TimeTrack.class).hasSize(0);
+
+        timeTrackRepository.save(new TimeTrack(user, task));
+
+        client.get().uri("/project/{id}/track", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(TimeTrack.class).hasSize(1);
+    }
+
+    @Test
+    void getTimeTracksUnauthorized() {
+        client.get().uri("/project/1/track").exchange().expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void getTimeTracksNotFound() {
+        client.get().uri("/project/666/track").cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange().expectStatus().isNotFound();
+
+        Project project = projectRepository.save(new Project("MEMBER"));
+        client.get().uri("/project/{id}/track", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
     }
 }

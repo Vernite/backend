@@ -4,6 +4,7 @@ import java.io.Serializable;
 
 import javax.persistence.Embeddable;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.user.User;
 
@@ -13,6 +14,7 @@ import com.workflow.workflow.user.User;
 @Embeddable
 public class TimeTrackKey implements Serializable, Comparable<TimeTrackKey> {
     private long userId;
+    @JsonIgnore
     private long taskId;
 
     public TimeTrackKey() {

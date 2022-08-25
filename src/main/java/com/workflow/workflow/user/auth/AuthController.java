@@ -18,6 +18,8 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotNull;
 
 import com.workflow.workflow.counter.CounterSequence;
+import com.workflow.workflow.task.time.TimeTrack;
+import com.workflow.workflow.task.time.TimeTrackRepository;
 import com.workflow.workflow.user.DeleteAccountRequest;
 import com.workflow.workflow.user.DeleteAccountRequestRepository;
 import com.workflow.workflow.user.PasswordRecovery;
@@ -83,12 +85,23 @@ public class AuthController {
     @Autowired
     private PasswordRecoveryRepository passwordRecoveryRepository;
 
+    @Autowired
+    private TimeTrackRepository timeTrackRepository;
+
     @Operation(summary = "Logged user", description = "This method returns currently logged user.")
     @ApiResponse(responseCode = "200", description = "Logged user.")
     @ApiResponse(responseCode = "401", description = "User is not logged.", content = @Content())
     @GetMapping("/me")
     public User me(@NotNull @Parameter(hidden = true) User loggedUser) {
         return loggedUser;
+    }
+
+    @Operation(summary = "Get time tracks", description = "This method gets time tracks for logged in user.")
+    @ApiResponse(responseCode = "200", description = "Time tracks.")
+    @ApiResponse(responseCode = "401", description = "User is not logged.", content = @Content())
+    @GetMapping("/me/track")
+    public List<TimeTrack> getTimeTracks(@NotNull @Parameter(hidden = true) User loggedUser) {
+        return timeTrackRepository.findByUser(loggedUser);
     }
 
     @Operation(summary = "Delete account", description = "This method deletes currently logged user by sending an e-mail with a confirmation link.")

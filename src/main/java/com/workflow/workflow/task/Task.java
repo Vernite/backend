@@ -114,7 +114,6 @@ public class Task extends SoftDeleteEntity {
     @Column(nullable = false)
     private String priority;
 
-    @JsonIgnore
     @OneToMany(mappedBy = "task")
     @OnDelete(action = OnDeleteAction.CASCADE)
     private List<TimeTrack> timeTracks = new ArrayList<>();

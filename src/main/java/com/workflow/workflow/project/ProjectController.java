@@ -8,6 +8,8 @@ import javax.validation.constraints.NotNull;
 import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
+import com.workflow.workflow.task.time.TimeTrack;
+import com.workflow.workflow.task.time.TimeTrackRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.utils.ErrorType;
@@ -50,6 +52,9 @@ public class ProjectController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private TimeTrackRepository timeTrackRepository;
 
     @Operation(summary = "Create project", description = "Creates new project. Authenticated user is added to project with owner privillages. Project is added to workspace with given id.")
     @ApiResponse(description = "Newly created project.", responseCode = "200")
@@ -121,7 +126,7 @@ public class ProjectController {
     }
 
     @Deprecated
-    @Operation(summary = "Change project workspace", description = "Changes workspace for project with given id to workspace with given id for authenticated user. @Deprecated in favor of ProjectRequest 'workspaceId' field.") 
+    @Operation(summary = "Change project workspace", description = "Changes workspace for project with given id to workspace with given id for authenticated user. @Deprecated in favor of ProjectRequest 'workspaceId' field.")
     @ApiResponse(description = "Project workspace changed", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or workspace with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
@@ -215,5 +220,18 @@ public class ProjectController {
         }
         ProjectWorkspace pw = project.getProjectWorkspaces().get(index);
         projectWorkspaceRepository.delete(pw);
+    }
+
+    @Operation(summary = "List time tracking", description = "Retrieves time tracking of project with given id. Authenticated user must be member of project.")
+    @ApiResponse(description = "List of time tracking.", responseCode = "200")
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @GetMapping("/{id}/track")
+    public List<TimeTrack> getTimeTracks(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+        Project project = projectRepository.findByIdOrThrow(id);
+        if (project.member(user) == -1) {
+            throw new ObjectNotFoundException();
+        }
+        return timeTrackRepository.findByTaskStatusProject(project);
     }
 }
