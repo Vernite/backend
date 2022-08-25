@@ -2,12 +2,11 @@ package com.workflow.workflow.task.time;
 
 import java.util.List;
 
-import org.springframework.data.repository.CrudRepository;
-
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.user.User;
+import com.workflow.workflow.utils.NotFoundRepository;
 
-public interface TimeTrackRepository extends CrudRepository<TimeTrack, TimeTrackKey> {
+public interface TimeTrackRepository extends NotFoundRepository<TimeTrack, TimeTrackKey> {
     /**
      * Finds time tracks for a project.
      * 

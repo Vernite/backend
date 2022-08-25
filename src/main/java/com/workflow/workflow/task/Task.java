@@ -1,7 +1,9 @@
 package com.workflow.workflow.task;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.persistence.Column;
@@ -28,6 +30,7 @@ import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskIssue;
 import com.workflow.workflow.integration.git.github.entity.task.GitHubTaskPull;
 import com.workflow.workflow.sprint.Sprint;
 import com.workflow.workflow.status.Status;
+import com.workflow.workflow.task.time.TimeTrack;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.utils.SoftDeleteEntity;
 
@@ -110,6 +113,11 @@ public class Task extends SoftDeleteEntity {
 
     @Column(nullable = false)
     private String priority;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "task")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private List<TimeTrack> timeTracks = new ArrayList<>();
 
     public Task() {
     }
@@ -324,5 +332,13 @@ public class Task extends SoftDeleteEntity {
 
     public void setPriority(String priority) {
         this.priority = priority;
+    }
+
+    public List<TimeTrack> getTimeTracks() {
+        return timeTracks;
+    }
+
+    public void setTimeTracks(List<TimeTrack> timeTracks) {
+        this.timeTracks = timeTracks;
     }
 }

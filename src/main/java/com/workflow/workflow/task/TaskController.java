@@ -13,6 +13,10 @@ import com.workflow.workflow.sprint.Sprint;
 import com.workflow.workflow.sprint.SprintRepository;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.status.StatusRepository;
+import com.workflow.workflow.task.time.TimeTrack;
+import com.workflow.workflow.task.time.TimeTrackKey;
+import com.workflow.workflow.task.time.TimeTrackRepository;
+import com.workflow.workflow.task.time.TimeTrackRequest;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.utils.ErrorType;
@@ -53,6 +57,8 @@ public class TaskController {
     private SprintRepository sprintRepository;
     @Autowired
     private CounterSequenceRepository counterSequenceRepository;
+    @Autowired
+    private TimeTrackRepository trackRepository;
     @Autowired
     private GitTaskService service;
 
@@ -193,7 +199,8 @@ public class TaskController {
 
     @Operation(summary = "Delete task", description = "This method is used to delete task. On success does not return anything. Throws 404 when task or project does not exist.")
     @ApiResponse(description = "Task with given ID has been deleted.", responseCode = "200")
-    @ApiResponse(description = "Project or task with given ID not found.", responseCode = "404")
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project or task with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @DeleteMapping("/{id}")
     public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long id) {
@@ -204,5 +211,56 @@ public class TaskController {
         Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
         task.softDelete();
         taskRepository.save(task);
+    }
+
+    @Operation(summary = "Toggle task time tracking", description = "This method is toggle time tracking for task for current logged in user. On success returns tracking information.")
+    @ApiResponse(description = "Tracking information.", responseCode = "200")
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project or task with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @PostMapping("/{id}/track")
+    public TimeTrack toggleTracking(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long id) {
+        Project project = projectRepository.findByIdOrThrow(projectId);
+        if (project.member(user) == -1) {
+            throw new ObjectNotFoundException();
+        }
+        Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
+        TimeTrack timeTrack = trackRepository.findById(new TimeTrackKey(user, task)).orElse(new TimeTrack(user, task));
+        timeTrack.toggle();
+        return trackRepository.save(timeTrack);
+    }
+
+    @Operation(summary = "Manually edit time tracking", description = "This method is used to manually edit time tracking for current logged in user. On success returns tracking information. Sets edited flag to true.")
+    @ApiResponse(description = "Tracking information.", responseCode = "200")
+    @ApiResponse(description = "Invalid request.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project or task with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @PutMapping("/{id}/track")
+    public TimeTrack editTracking(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long id, @RequestBody TimeTrackRequest trackRequest) {
+        Project project = projectRepository.findByIdOrThrow(projectId);
+        if (project.member(user) == -1) {
+            throw new ObjectNotFoundException();
+        }
+        Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
+        TimeTrack timeTrack = trackRepository.findById(new TimeTrackKey(user, task)).orElse(new TimeTrack(user, task));
+        timeTrack.update(trackRequest);
+        return trackRepository.save(timeTrack);
+    }
+
+    @Operation(summary = "Delete time tracking", description = "This method is used to delete time tracking for current logged in user. On success does not return anything.")
+    @ApiResponse(description = "Time tracking with given ID has been deleted.", responseCode = "200")
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project or task or time tracking with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @DeleteMapping("/{id}/track")
+    public void deleteTracking(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long id) {
+        Project project = projectRepository.findByIdOrThrow(projectId);
+        if (project.member(user) == -1) {
+            throw new ObjectNotFoundException();
+        }
+        Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
+        TimeTrack timeTrack = trackRepository.findByIdOrThrow(new TimeTrackKey(user, task));
+        trackRepository.delete(timeTrack);
     }
 }
