@@ -1,6 +1,7 @@
 package com.workflow.workflow.task;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import javax.validation.constraints.NotNull;
@@ -14,7 +15,6 @@ import com.workflow.workflow.sprint.SprintRepository;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.status.StatusRepository;
 import com.workflow.workflow.task.time.TimeTrack;
-import com.workflow.workflow.task.time.TimeTrackKey;
 import com.workflow.workflow.task.time.TimeTrackRepository;
 import com.workflow.workflow.task.time.TimeTrackRequest;
 import com.workflow.workflow.user.User;
@@ -24,6 +24,7 @@ import com.workflow.workflow.utils.FieldErrorException;
 import com.workflow.workflow.utils.ObjectNotFoundException;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -33,6 +34,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -213,21 +215,42 @@ public class TaskController {
         taskRepository.save(task);
     }
 
-    @Operation(summary = "Toggle task time tracking", description = "This method is toggle time tracking for task for current logged in user. On success returns tracking information.")
+    @Operation(summary = "Start task time tracking", description = "This method starts time tracking for task for current logged in user. On success returns tracking information.")
     @ApiResponse(description = "Tracking information.", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or task with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @PostMapping("/{id}/track")
-    public TimeTrack toggleTracking(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+    @ApiResponse(description = "Task is tracked already.", responseCode = "409", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @PostMapping("/{id}/track/start")
+    public TimeTrack startTracking(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long id) {
         Project project = projectRepository.findByIdOrThrow(projectId);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
         }
         Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
-        TimeTrack timeTrack = trackRepository.findById(new TimeTrackKey(user, task)).orElse(new TimeTrack(user, task));
-        timeTrack.toggle();
-        return trackRepository.save(timeTrack);
+        if (trackRepository.findByUserAndTaskAndEndDateNull(user, task).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Already tracking");
+        }
+        return trackRepository.save(new TimeTrack(user, task));
+    }
+
+    @Operation(summary = "Stop task time tracking", description = "This method stops time tracking for task for current logged in user. On success returns tracking information.")
+    @ApiResponse(description = "Tracking information.", responseCode = "200")
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project or task with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Task is not currently tracked.", responseCode = "409", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @PostMapping("/{id}/track/stop")
+    public TimeTrack stopTracking(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long id) {
+        Project project = projectRepository.findByIdOrThrow(projectId);
+        if (project.member(user) == -1) {
+            throw new ObjectNotFoundException();
+        }
+        Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
+        TimeTrack track = trackRepository.findByUserAndTaskAndEndDateNull(user, task)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "Not tracking"));
+        track.setEndDate(new Date());
+        return trackRepository.save(track);
     }
 
     @Operation(summary = "Manually edit time tracking", description = "This method is used to manually edit time tracking for current logged in user. On success returns tracking information. Sets edited flag to true.")
@@ -235,15 +258,18 @@ public class TaskController {
     @ApiResponse(description = "Invalid request.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or task with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @PutMapping("/{id}/track")
+    @PutMapping("/{id}/track/{trackId}")
     public TimeTrack editTracking(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @PathVariable long id, @RequestBody TimeTrackRequest trackRequest) {
+            @PathVariable long id, @PathVariable long trackId, @RequestBody TimeTrackRequest trackRequest) {
         Project project = projectRepository.findByIdOrThrow(projectId);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
         }
         Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
-        TimeTrack timeTrack = trackRepository.findById(new TimeTrackKey(user, task)).orElse(new TimeTrack(user, task));
+        TimeTrack timeTrack = trackRepository.findByIdOrThrow(trackId);
+        if (timeTrack.getTask().getId() != task.getId()) {
+            throw new ObjectNotFoundException();
+        }
         timeTrack.update(trackRequest);
         return trackRepository.save(timeTrack);
     }
@@ -252,15 +278,18 @@ public class TaskController {
     @ApiResponse(description = "Time tracking with given ID has been deleted.", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or task or time tracking with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @DeleteMapping("/{id}/track")
+    @DeleteMapping("/{id}/track/{trackId}")
     public void deleteTracking(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @PathVariable long id) {
+            @PathVariable long id, @PathVariable long trackId) {
         Project project = projectRepository.findByIdOrThrow(projectId);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
         }
         Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
-        TimeTrack timeTrack = trackRepository.findByIdOrThrow(new TimeTrackKey(user, task));
+        TimeTrack timeTrack = trackRepository.findByIdOrThrow(trackId);
+        if (timeTrack.getTask().getId() != task.getId()) {
+            throw new ObjectNotFoundException();
+        }
         trackRepository.delete(timeTrack);
     }
 }

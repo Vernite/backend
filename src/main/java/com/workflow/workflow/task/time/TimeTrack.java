@@ -2,15 +2,19 @@ package com.workflow.workflow.task.time;
 
 import java.util.Date;
 
-import javax.persistence.EmbeddedId;
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
 import javax.persistence.ManyToOne;
-import javax.persistence.MapsId;
 import javax.validation.constraints.NotNull;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.user.User;
 
@@ -19,24 +23,22 @@ import com.workflow.workflow.user.User;
  */
 @Entity
 public class TimeTrack {
-    @EmbeddedId
-    @JsonUnwrapped
-    private TimeTrackKey id;
-
-    private long timeSpent = 0;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
 
     private boolean edited = false;
 
-    @JsonIgnore
-    private Date startTime;
+    @Column(nullable = false)
+    private Date startDate;
+
+    private Date endDate;
 
     @JsonIgnore
-    @MapsId("userId")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private User user;
 
     @JsonIgnore
-    @MapsId("taskId")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private Task task;
 
@@ -44,9 +46,9 @@ public class TimeTrack {
     }
 
     public TimeTrack(User user, Task task) {
-        this.id = new TimeTrackKey(user, task);
         this.user = user;
         this.task = task;
+        this.startDate = new Date();
     }
 
     /**
@@ -56,48 +58,44 @@ public class TimeTrack {
      * @param request the request to update the time spent on the task with.
      */
     public void update(@NotNull TimeTrackRequest request) {
-        request.getTimeSpent().ifPresent(newTime -> {
-            if (newTime != timeSpent) {
-                timeSpent = newTime;
-                edited = true;
-            }
-        });
-    }
+        if (endDate == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Time track is not finished.");
+        }
+        
+        edited = true;
+        request.getStartDate().ifPresent(this::setStartDate);
+        request.getEndDate().ifPresent(this::setEndDate);
 
-    /**
-     * Toggles time tracking on the task.
-     */
-    public void toggle() {
-        if (this.getStartTime() == null) {
-            this.setStartTime(new Date());
-        } else {
-            this.timeSpent += (new Date().getTime() - this.getStartTime().getTime()) / 1000;
-            this.setStartTime(null);
+        if (startDate.after(endDate)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start date is after end date.");
+        }
+        if (endDate.after(new Date())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "End date is in the future.");
         }
     }
 
-    public TimeTrackKey getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(TimeTrackKey id) {
+    public void setId(long id) {
         this.id = id;
     }
 
-    public long getTimeSpent() {
-        return timeSpent;
+    public Date getStartDate() {
+        return startDate;
     }
 
-    public void setTimeSpent(long timeSpent) {
-        this.timeSpent = timeSpent;
+    public void setStartDate(Date startTime) {
+        this.startDate = startTime;
     }
 
-    public Date getStartTime() {
-        return startTime;
+    public Date getEndDate() {
+        return endDate;
     }
 
-    public void setStartTime(Date startTime) {
-        this.startTime = startTime;
+    public void setEndDate(Date endTime) {
+        this.endDate = endTime;
     }
 
     public User getUser() {
@@ -124,15 +122,15 @@ public class TimeTrack {
         this.edited = edited;
     }
 
-    public boolean getEnabled() {
-        return startTime != null;
-    }
-
     public long getTaskId() {
         return task.getNumber();
     }
 
     public long getProjectId() {
         return task.getStatus().getProject().getId();
+    }
+
+    public long getUserId() {
+        return user.getId();
     }
 }

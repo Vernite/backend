@@ -1,5 +1,6 @@
 package com.workflow.workflow.task.time;
 
+import java.util.Date;
 import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -10,24 +11,39 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 @JsonInclude(Include.NON_ABSENT)
 public class TimeTrackRequest {
-    @Schema(description = "Amount of seconds spent on the task. Must be greater than 0.")
-    private Optional<Long> timeSpent = Optional.empty();
+    @Schema(description = "New start date for time track. Cant be null.")
+    private Optional<Date> startDate = Optional.empty();
+
+    @Schema(description = "New end date for time track. Cant be null.")
+    private Optional<Date> endDate = Optional.empty();
 
     public TimeTrackRequest() {
     }
 
-    public TimeTrackRequest(Long timeSpent) {
-        this.timeSpent = Optional.ofNullable(timeSpent);
+    public TimeTrackRequest(Date startDate, Date endDate) {
+        this.startDate = Optional.ofNullable(startDate);
+        this.endDate = Optional.ofNullable(endDate);
     }
 
-    public Optional<Long> getTimeSpent() {
-        return timeSpent;
+    public Optional<Date> getStartDate() {
+        return startDate;
     }
 
-    public void setTimeSpent(long timeSpent) {
-        if (timeSpent < 1) {
-            throw new FieldErrorException("timeSpent", "Time spent must be greater than 0.");
+    public void setStartDate(Date startDate) {
+        if (startDate == null) {
+            throw new FieldErrorException("startDate", "null value");
         }
-        this.timeSpent = Optional.of(timeSpent);
+        this.startDate = Optional.of(startDate);
+    }
+
+    public Optional<Date> getEndDate() {
+        return endDate;
+    }
+
+    public void setEndDate(Date endDate) {
+        if (endDate == null) {
+            throw new FieldErrorException("endDate", "null value");
+        }
+        this.endDate = Optional.of(endDate);
     }
 }
