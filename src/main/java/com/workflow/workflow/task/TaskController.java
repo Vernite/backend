@@ -137,11 +137,6 @@ public class TaskController {
         List<Mono<Void>> results = new ArrayList<>();
         taskRequest.getIssue().ifPresent(issue -> results.add(service.handleIssueAction(issue, task).then()));
         taskRequest.getPull().ifPresent(pull -> results.add(service.handlePullAction(pull, task).then()));
-        taskRequest.getCreateIssue().ifPresent(createIssue -> {
-            if (Boolean.TRUE.equals(createIssue) && results.isEmpty()) {
-                results.add(service.createIssue(task).then());
-            }
-        });
         return Flux.concat(results).then(Mono.just(savedTask));
     }
 
@@ -191,11 +186,6 @@ public class TaskController {
         List<Mono<Void>> results = new ArrayList<>();
         taskRequest.getIssue().ifPresent(issue -> results.add(service.handleIssueAction(issue, task).then()));
         taskRequest.getPull().ifPresent(pull -> results.add(service.handlePullAction(pull, task).then()));
-        taskRequest.getCreateIssue().ifPresent(createIssue -> {
-            if (Boolean.TRUE.equals(createIssue) && results.isEmpty()) {
-                results.add(service.createIssue(task).then());
-            }
-        });
         return Flux.concat(results).then(service.patchIssue(task).then()).thenReturn(savedTask);
     }
 

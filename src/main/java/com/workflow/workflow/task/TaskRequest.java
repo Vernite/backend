@@ -48,11 +48,6 @@ public class TaskRequest {
     @Schema(description = "New sprint for the task.")
     private Optional<Optional<Long>> sprintId = Optional.empty();
 
-    /** @deprecated in favor of issue field */
-    @Deprecated
-    @Schema(description = "Deprecated in favor of issue field.")
-    private Optional<Boolean> createIssue = Optional.of(false);
-
     public TaskRequest() {
     }
 
@@ -146,14 +141,6 @@ public class TaskRequest {
 
     public void setDeadline(Date deadline) {
         this.deadline = Optional.ofNullable(deadline);
-    }
-
-    public Optional<Boolean> getCreateIssue() {
-        return createIssue;
-    }
-
-    public void setCreateIssue(boolean createIssue) {
-        this.createIssue = Optional.ofNullable(createIssue);
     }
 
     public Optional<Optional<Long>> getParentTaskId() {

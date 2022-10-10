@@ -106,7 +106,7 @@ public class Status extends SoftDeleteEntity {
         return color;
     }
 
-    public void setColor(int color) {
+    public void setColor(Integer color) {
         this.color = color;
     }
 
@@ -114,7 +114,7 @@ public class Status extends SoftDeleteEntity {
         return isFinal;
     }
 
-    public void setFinal(boolean isFinal) {
+    public void setFinal(Boolean isFinal) {
         this.isFinal = isFinal;
     }
 
@@ -122,7 +122,7 @@ public class Status extends SoftDeleteEntity {
         return isBegin;
     }
 
-    public void setBegin(boolean isBegin) {
+    public void setBegin(Boolean isBegin) {
         this.isBegin = isBegin;
     }
 
@@ -130,7 +130,7 @@ public class Status extends SoftDeleteEntity {
         return ordinal;
     }
 
-    public void setOrdinal(int ordinal) {
+    public void setOrdinal(Integer ordinal) {
         this.ordinal = ordinal;
     }
 

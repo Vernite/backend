@@ -5,6 +5,9 @@ import java.util.List;
 
 import javax.validation.constraints.NotNull;
 
+import com.workflow.workflow.integration.git.GitTaskService;
+import com.workflow.workflow.integration.git.Issue;
+import com.workflow.workflow.integration.git.PullRequest;
 import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
@@ -36,6 +39,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import reactor.core.publisher.Flux;
 
 @RestController
 @RequestMapping("/project")
@@ -55,6 +59,9 @@ public class ProjectController {
 
     @Autowired
     private TimeTrackRepository timeTrackRepository;
+    
+    @Autowired
+    GitTaskService service;
 
     @Operation(summary = "Create project", description = "Creates new project. Authenticated user is added to project with owner privillages. Project is added to workspace with given id.")
     @ApiResponse(description = "Newly created project.", responseCode = "200")
@@ -123,22 +130,6 @@ public class ProjectController {
         }
         project.softDelete();
         projectRepository.save(project);
-    }
-
-    @Deprecated
-    @Operation(summary = "Change project workspace", description = "Changes workspace for project with given id to workspace with given id for authenticated user. @Deprecated in favor of ProjectRequest 'workspaceId' field.")
-    @ApiResponse(description = "Project workspace changed", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project or workspace with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @PutMapping("/{id}/workspace/{newWorkspaceId}")
-    public void moveProjectWorkspace(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
-            @PathVariable long newWorkspaceId) {
-        Project project = projectRepository.findByIdOrThrow(id);
-        int index = project.member(user);
-        if (index == -1) {
-            throw new ObjectNotFoundException();
-        }
-        changeWorkspace(newWorkspaceId, index, project, user);
     }
 
     @Operation(summary = "Retrieve project members", description = "Retrieves members of project with given id. Authenticated user must be member of project.")
@@ -233,5 +224,31 @@ public class ProjectController {
             throw new ObjectNotFoundException();
         }
         return timeTrackRepository.findByTaskStatusProject(project);
+    }
+
+    @Operation(summary = "Retrieve git issues for project", description = "Retrieves all issues from all integrated git services for project.")
+    @ApiResponse(description = "List of issues.", responseCode = "200", content = @Content(schema = @Schema(implementation = Issue.class)))
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @GetMapping("/{id}/integration/git/issue")
+    public Flux<Issue> getIssues(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+        Project project = projectRepository.findByIdOrThrow(id);
+        if (project.member(user) == -1) {
+            throw new ObjectNotFoundException();
+        }
+        return service.getIssues(project);
+    }
+
+    @Operation(summary = "Retrieve git pull requests for project", description = "Retrieves all pull requests from all integrated git services for project.")
+    @ApiResponse(description = "List of pull requests.", responseCode = "200", content = @Content(schema = @Schema(implementation = PullRequest.class)))
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @GetMapping("/{id}/integration/git/pull")
+    public Flux<PullRequest> getPullRequests(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+        Project project = projectRepository.findByIdOrThrow(id);
+        if (project.member(user) == -1) {
+            throw new ObjectNotFoundException();
+        }
+        return service.getPullRequests(project);
     }
 }

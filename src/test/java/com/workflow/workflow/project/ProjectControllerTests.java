@@ -255,65 +255,6 @@ class ProjectControllerTests {
 
     @Test
     @Deprecated
-    void moveProjectWorkspaceSuccess() {
-        Project project = projectRepository.save(new Project("DELETE"));
-        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
-
-        Workspace workspace2 = workspaceRepository.save(new Workspace(2, user, "Project Tests 2"));
-
-        client.put().uri("/project/{id}/workspace/{wId}", project.getId(), workspace2.getId().getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .exchange()
-                .expectStatus().isOk();
-
-        assertEquals(1, workspaceRepository.findByIdOrThrow(workspace2.getId()).getProjectsWithPrivileges().size());
-        assertEquals(0, workspaceRepository.findByIdOrThrow(workspace.getId()).getProjectsWithPrivileges().size());
-
-        Workspace inbox = workspaceRepository.save(new Workspace(0, user, "inbox"));
-
-        Project project2 = projectRepository.save(new Project("DELETE"));
-        Project project3 = projectRepository.save(new Project("DELETE"));
-        projectWorkspaceRepository.save(new ProjectWorkspace(project2, inbox, 1L));
-        projectWorkspaceRepository.save(new ProjectWorkspace(project3, inbox, 1L));
-
-        client.put().uri("/project/{id}/workspace/{wId}", project2.getId(), workspace2.getId().getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .exchange()
-                .expectStatus().isOk();
-
-        assertEquals(1, workspaceRepository.findByIdOrThrow(inbox.getId()).getProjectsWithPrivileges().size());
-
-        client.put().uri("/project/{id}/workspace/{wId}", project3.getId(), workspace2.getId().getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .exchange()
-                .expectStatus().isOk();
-
-        assertEquals(false, workspaceRepository.findById(inbox.getId()).isPresent());
-
-        assertEquals(3, workspaceRepository.findByIdOrThrow(workspace2.getId()).getProjectsWithPrivileges().size());
-    }
-
-    @Test
-    @Deprecated
-    void moveProjectWorkspaceUnauthorized() {
-        client.put().uri("/project/1/workspace/1")
-                .exchange()
-                .expectStatus().isUnauthorized();
-
-        Project project = projectRepository.save(new Project("PUT"));
-        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
-
-        Workspace workspace2 = workspaceRepository.save(new Workspace(2, user, "Project Tests 2"));
-        client.put().uri("/project/{id}/workspace/{wId}", project.getId(), workspace2.getId().getId())
-                .exchange()
-                .expectStatus().isUnauthorized();
-
-        assertEquals(1, workspaceRepository.findByIdOrThrow(workspace.getId()).getProjectsWithPrivileges().size());
-        assertEquals(0, workspaceRepository.findByIdOrThrow(workspace2.getId()).getProjectsWithPrivileges().size());
-    }
-
-    @Test
-    @Deprecated
     void moveProjectWorkspaceNotFound() {
         client.put().uri("/project/{id}/workspace/1", 1024)
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
