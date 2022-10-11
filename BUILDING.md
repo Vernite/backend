@@ -43,6 +43,25 @@ maxmindPassword=...
 - `githubKey` - you need to create [GitHub App](https://docs.github.com/en/developers/apps/building-github-apps) and copy key
 - `maxmindPassword` - it is used to check the user location on the session list screen. You can generate a license key on the official [MaxMind](https://www.maxmind.com/en/accounts/current/license-key) website.
 
+### GitHub Application
+
+To create a GitHub application you need a GitHub account.
+
+Go to your GitHub account `setting` -> `developer settings` -> `new GitHub app`. \
+In the setup and callback URL fields enter `YOUR_URL/pl-PL/github/` and turn on redirect on update in the `post installation` section. \
+In the webhook URL field enter `YOUR_URL/api/webhook/github` and generate and enter the webhook secret to the field and `application.properties` file as `githubkey`. \
+In the permissions section change:
+- `Contents` - read and write
+- `Discussions` - read and write
+- `Issues` - read and write
+- `Pull requests` - read and write
+
+After the app has been created go to `edit` -> `permissions and events` and subscribe to: `Issues`, `Pull request` and `Push`.
+From the `general` section go to `private keys` and `generate private key`. Convert the downloaded pem file to der format:
+```bash
+openssl x509 -in cert.pem -out cert.der -outform DER
+```
+Rename der file to `workflow-2022.private-key.der` and copy it to the working directory.
 
 ## Building
 
