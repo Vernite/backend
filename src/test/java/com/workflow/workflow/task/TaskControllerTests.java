@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -143,11 +144,17 @@ class TaskControllerTests {
         // Prepare some tasks for next test
         List<Task> tasks = List.of(
                 new Task(1, "name 1", "description", project.getStatuses().get(0), user, 0, "low"),
-                new Task(2, "name 3", "description", project.getStatuses().get(1), user, 0, "low"),
-                new Task(3, "name 2", "description", project.getStatuses().get(2), user, 0, "low"));
+                new Task(2, "name 3", "description", project.getStatuses().get(1), user, 3, "low"),
+                new Task(3, "name 2", "description", project.getStatuses().get(2), user, 1, "low"));
         tasks.get(0).setSprint(sprint);
         tasks.get(1).setAssignee(user);
-        taskRepository.saveAll(tasks);
+        ArrayList<Task> tasksList = new ArrayList<>();
+        taskRepository.saveAll(tasks).forEach(tasksList::add);
+        ;
+        tasksList.get(2).setParentTask(tasksList.get(1));
+        taskRepository.saveAll(tasksList);
+        tasks = tasksList;
+
         client.get().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBodyList(Task.class).hasSize(3);
@@ -174,6 +181,22 @@ class TaskControllerTests {
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBodyList(Task.class).hasSize(1).returnResult().getResponseBody();
         taskEquals(tasks.get(1), result.get(0));
+
+        client.get().uri("/project/{pId}/task?type=0", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Task.class).hasSize(1);
+
+        client.get().uri("/project/{pId}/task?type=0&type=1", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Task.class).hasSize(2);
+
+        client.get().uri("/project/{pId}/task?parentId=1", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Task.class).hasSize(0);
+
+        client.get().uri("/project/{pId}/task?parentId=2", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Task.class).hasSize(1);
     }
 
     @Test
