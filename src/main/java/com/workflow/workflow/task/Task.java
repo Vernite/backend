@@ -41,6 +41,11 @@ import org.hibernate.annotations.Where;
 @Entity
 @JsonInclude(Include.NON_NULL)
 public class Task extends SoftDeleteEntity {
+
+    public enum TaskType {
+        TASK, USER_STORY, ISSUE, EPIC, SUBTASK
+    }
+
     @Id
     @JsonIgnore
     @GeneratedValue(strategy = GenerationType.IDENTITY)

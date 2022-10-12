@@ -3,6 +3,7 @@ package com.workflow.workflow.task;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 import javax.validation.constraints.NotNull;
 
@@ -47,6 +48,8 @@ import reactor.core.publisher.Mono;
 @RestController
 @RequestMapping("/project/{projectId}/task")
 public class TaskController {
+    private static final String PARENT_FIELD = "parentTaskId";
+
     @Autowired
     private TaskRepository taskRepository;
     @Autowired
@@ -63,6 +66,62 @@ public class TaskController {
     private TimeTrackRepository trackRepository;
     @Autowired
     private GitTaskService service;
+
+    /**
+     * Handle the request to change sprint of a task.
+     * 
+     * @param sprintId the sprint id (can be null)
+     * @param task     the task
+     * @param project  the project
+     */
+    private void handleSprint(Optional<Long> sprintId, Task task, Project project) {
+        Sprint sprint = null;
+        if (sprintId.isPresent()) {
+            sprint = sprintRepository.findByProjectAndNumberOrThrow(project, sprintId.get());
+        }
+        task.setSprint(sprint);
+    }
+
+    /**
+     * Handle the request to change the assignee of a task.
+     * 
+     * @param assigneeId the assignee id (can be null)
+     * @param task       the task
+     */
+    private void handleAssignee(Optional<Long> assigneeId, Task task) {
+        User assignee = null;
+        if (assigneeId.isPresent()) {
+            assignee = userRepository.findById(assigneeId.get()).orElse(null);
+        }
+        task.setAssignee(assignee);
+    }
+
+    /**
+     * Handle the request to change the parent task of a task.
+     * 
+     * @param parentTaskId the parent task id (can be null)
+     * @param task         the task
+     * @param project      the project
+     */
+    private void handleParent(Optional<Long> parentTaskId, Task task, Project project) {
+        Task parentTask = null;
+        if (parentTaskId.isPresent()) {
+            parentTask = taskRepository.findByProjectAndNumberOrThrow(project, parentTaskId.get());
+            if (task.getType() == Task.TaskType.USER_STORY.ordinal()) {
+                if (parentTask.getType() != Task.TaskType.EPIC.ordinal()) {
+                    throw new FieldErrorException(PARENT_FIELD, "user story can have only epic as parent");
+                }
+            } else if (task.getType() == Task.TaskType.SUBTASK.ordinal()) {
+                if (parentTask.getType() == Task.TaskType.SUBTASK.ordinal()
+                        || parentTask.getType() == Task.TaskType.EPIC.ordinal()) {
+                    throw new FieldErrorException(PARENT_FIELD, "subtask cant have epic or subtask as parent");
+                }
+            } else {
+                throw new FieldErrorException(PARENT_FIELD, "only user story and subtask can have parent");
+            }
+        }
+        task.setParentTask(parentTask);
+    }
 
     @Operation(summary = "Get all tasks", description = "This method returns array of all tasks for project with given ID.")
     @ApiResponse(description = "List of all tasks. Can be empty.", responseCode = "200")
@@ -109,30 +168,14 @@ public class TaskController {
         Task task = taskRequest.createEntity(id, status, user);
         taskRequest.getDeadline().ifPresent(task::setDeadline);
         taskRequest.getEstimatedDate().ifPresent(task::setEstimatedDate);
-        taskRequest.getSprintId().ifPresent(sprintId -> {
-            Sprint sprint = null;
-            if (sprintId.isPresent()) {
-                sprint = sprintRepository.findByProjectAndNumberOrThrow(project, sprintId.get());
-            }
-            task.setSprint(sprint);
-        });
-        taskRequest.getAssigneeId().ifPresent(assigneeId -> {
-            User assignee = null;
-            if (assigneeId.isPresent()) {
-                assignee = userRepository.findById(assigneeId.get()).orElse(null);
-            }
-            task.setAssignee(assignee);
-        });
-        taskRequest.getParentTaskId().ifPresent(parentTaskId -> {
-            Task parentTask = null;
-            if (parentTaskId.isPresent()) {
-                parentTask = taskRepository.findByProjectAndNumberOrThrow(project, parentTaskId.get());
-                if (parentTask.getParentTask() != null) {
-                    throw new FieldErrorException("parentTaskId", "possible circular dependency");
-                }
-            }
-            task.setParentTask(parentTask);
-        });
+        taskRequest.getSprintId().ifPresent(sprintId -> handleSprint(sprintId, task, project));
+        taskRequest.getAssigneeId().ifPresent(assigneeId -> handleAssignee(assigneeId, task));
+        taskRequest.getParentTaskId().ifPresent(parentTaskId -> handleParent(parentTaskId, task, project));
+
+        if (task.getType() == Task.TaskType.SUBTASK.ordinal() && task.getParentTask() == null) {
+            throw new FieldErrorException(PARENT_FIELD, "subtask must have parent");
+        }
+
         Task savedTask = taskRepository.save(task);
         List<Mono<Void>> results = new ArrayList<>();
         taskRequest.getIssue().ifPresent(issue -> results.add(service.handleIssueAction(issue, task).then()));
@@ -154,34 +197,18 @@ public class TaskController {
         }
         Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
         task.update(taskRequest);
-        taskRequest.getSprintId().ifPresent(sprintId -> {
-            Sprint sprint = null;
-            if (sprintId.isPresent()) {
-                sprint = sprintRepository.findByProjectAndNumberOrThrow(project, sprintId.get());
-            }
-            task.setSprint(sprint);
-        });
-        taskRequest.getAssigneeId().ifPresent(assigneeId -> {
-            User assignee = null;
-            if (assigneeId.isPresent()) {
-                assignee = userRepository.findById(assigneeId.get()).orElse(null);
-            }
-            task.setAssignee(assignee);
-        });
-        taskRequest.getParentTaskId().ifPresent(parentTaskId -> {
-            Task parentTask = null;
-            if (parentTaskId.isPresent()) {
-                parentTask = taskRepository.findByProjectAndNumberOrThrow(project, parentTaskId.get());
-                if (parentTask.getParentTask() != null) {
-                    throw new FieldErrorException("parentTaskId", "possible circular dependency");
-                }
-            }
-            task.setParentTask(parentTask);
-        });
+        taskRequest.getSprintId().ifPresent(sprintId -> handleSprint(sprintId, task, project));
+        taskRequest.getAssigneeId().ifPresent(assigneeId -> handleAssignee(assigneeId, task));
+        taskRequest.getParentTaskId().ifPresent(parentTaskId -> handleParent(parentTaskId, task, project));
         taskRequest.getStatusId().ifPresent(statusId -> {
             Status status = statusRepository.findByProjectAndNumberOrThrow(project, statusId);
             task.setStatus(status);
         });
+
+        if (task.getType() == Task.TaskType.SUBTASK.ordinal() && task.getParentTask() == null) {
+            throw new FieldErrorException(PARENT_FIELD, "subtask must have parent");
+        }
+
         Task savedTask = taskRepository.save(task);
         List<Mono<Void>> results = new ArrayList<>();
         taskRequest.getIssue().ifPresent(issue -> results.add(service.handleIssueAction(issue, task).then()));

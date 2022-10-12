@@ -202,6 +202,7 @@ class TaskControllerTests {
         taskEquals(task, request.createEntity(1, project.getStatuses().get(0), user));
 
         request.setParentTaskId(parentTask.getNumber());
+        request.setType(Task.TaskType.SUBTASK.ordinal());
         task = client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
                 .isOk().expectBody(Task.class).returnResult().getResponseBody();
@@ -264,6 +265,13 @@ class TaskControllerTests {
 
         TaskRequest request = new TaskRequest("name", "desc", project.getStatuses().get(0).getNumber(), 0, "low");
         request.setParentTaskId(parentTask.getNumber());
+
+        client.post().uri("/project/{pId}/task", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
+                .isBadRequest();
+
+        request.setParentTaskId(null);
+        request.setType(Task.TaskType.SUBTASK.ordinal());
 
         client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
@@ -361,6 +369,9 @@ class TaskControllerTests {
         request.setParentTaskId(parentTask.getNumber());
         task.setParentTask(parentTask);
 
+        request.setType(Task.TaskType.SUBTASK.ordinal());
+        task.setType(Task.TaskType.SUBTASK.ordinal());
+
         request.setSprintId(sprint.getNumber());
         task.setSprint(sprint);
 
@@ -389,13 +400,27 @@ class TaskControllerTests {
 
     @Test
     void updateBadRequest() {
-        Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
-        Task parentTask = new Task(2, "NAME 2", "DESC", project.getStatuses().get(0), user, 0, "low");
-        Task parentParentTask = taskRepository.save(new Task(3, "2", "D", project.getStatuses().get(0), user, 0, "l"));
+        Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 1, "low"));
+        Task parentTask = new Task(2, "NAME 2", "DESC", project.getStatuses().get(0), user, 1, "low");
+        Task parentParentTask = taskRepository.save(new Task(3, "2", "D", project.getStatuses().get(0), user, 3, "l"));
         parentTask.setParentTask(parentParentTask);
         parentTask = taskRepository.save(parentTask);
         TaskRequest request = new TaskRequest();
         request.setParentTaskId(parentTask.getNumber());
+
+        client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getNumber())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
+                .isBadRequest();
+
+        request.setParentTaskId(parentParentTask.getNumber());
+        request.setType(Task.TaskType.SUBTASK.ordinal());
+
+        client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getNumber())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
+                .isBadRequest();
+
+        request = new TaskRequest();
+        request.setType(Task.TaskType.SUBTASK.ordinal());
 
         client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
