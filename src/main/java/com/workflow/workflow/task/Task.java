@@ -123,6 +123,9 @@ public class Task extends SoftDeleteEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private List<TimeTrack> timeTracks = new ArrayList<>();
 
+    @Column(nullable = false)
+    private long storyPoints;
+
     public Task() {
     }
 
@@ -344,5 +347,13 @@ public class Task extends SoftDeleteEntity {
 
     public void setTimeTracks(List<TimeTrack> timeTracks) {
         this.timeTracks = timeTracks;
+    }
+
+    public long getStoryPoints() {
+        return storyPoints;
+    }
+
+    public void setStoryPoints(long storyPoints) {
+        this.storyPoints = storyPoints;
     }
 }
