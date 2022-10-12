@@ -310,7 +310,7 @@ public class Task extends SoftDeleteEntity {
     }
 
     public Long getParentTaskId() {
-        return this.parentTask != null ? this.parentTask.getId() : null;
+        return this.parentTask != null ? this.parentTask.getNumber() : null;
     }
 
     public User getAssignee() {
