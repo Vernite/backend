@@ -307,7 +307,7 @@ public class Task extends SoftDeleteEntity {
     }
 
     public Set<Task> getSubTasks() {
-        return subTasks;
+        return type == TaskType.EPIC.ordinal() ? Set.of() : subTasks;
     }
 
     public void setSubTasks(Set<Task> subTasks) {

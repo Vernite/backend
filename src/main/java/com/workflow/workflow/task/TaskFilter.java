@@ -13,6 +13,7 @@ import org.springdoc.api.annotations.ParameterObject;
 import org.springframework.data.jpa.domain.Specification;
 
 import com.workflow.workflow.project.Project;
+import com.workflow.workflow.task.Task.TaskType;
 
 import io.swagger.v3.oas.annotations.Parameter;
 
@@ -24,6 +25,8 @@ public class TaskFilter {
     private Optional<Long> assigneeId = Optional.empty();
     @Parameter(description = "Id of status to filter by (filters are combined with 'and'); multiple values are allowed")
     private Optional<List<Long>> statusId = Optional.empty();
+    @Parameter(description = "Type of filtered tasks (filters are combined with 'and'); multiple values are allowed")
+    private Optional<List<Integer>> type = Optional.empty();
 
     public Optional<Long> getSprintId() {
         return sprintId;
@@ -54,10 +57,11 @@ public class TaskFilter {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(builder.equal(root.get("status").get("project"), project));
             predicates.add(builder.isNull(root.get("active")));
-            predicates.add(builder.isNull(root.get("parentTask")));
+            predicates.add(builder.notEqual(root.get("type"), TaskType.SUBTASK.ordinal()));
             sprintId.ifPresent(id -> predicates.add(builder.equal(root.get("sprint").get("number"), id)));
             assigneeId.ifPresent(id -> predicates.add(builder.equal(root.get("assignee").get("id"), id)));
             statusId.ifPresent(ids -> predicates.add(builder.in(root.get("status").get("number")).value(ids)));
+            type.ifPresent(types -> predicates.add(builder.in(root.get("type")).value(types)));
             return builder.and(predicates.toArray(new Predicate[predicates.size()]));
         };
     }
