@@ -73,8 +73,8 @@ public class Status extends SoftDeleteEntity {
     public void update(@NotNull StatusRequest request) {
         request.getName().ifPresent(this::setName);
         request.getColor().ifPresent(this::setColor);
-        request.getIsFinal().ifPresent(this::setFinal);
-        request.getIsBegin().ifPresent(this::setBegin);
+        request.getFinal().ifPresent(this::setFinal);
+        request.getBegin().ifPresent(this::setBegin);
         request.getOrdinal().ifPresent(this::setOrdinal);
     }
 

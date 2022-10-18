@@ -46,20 +46,20 @@ class StatusRequestTests {
     void setIsFinalTests() {
         StatusRequest statusRequest = new StatusRequest();
 
-        statusRequest.setIsFinal(true);
-        assertEquals(true, statusRequest.getIsFinal().get());
+        statusRequest.setFinal(true);
+        assertEquals(true, statusRequest.getFinal().get());
 
-        assertThrows(FieldErrorException.class, () -> statusRequest.setIsFinal(null));
+        assertThrows(FieldErrorException.class, () -> statusRequest.setFinal(null));
     }
 
     @Test
     void setIsBeginTests() {
         StatusRequest statusRequest = new StatusRequest();
 
-        statusRequest.setIsBegin(true);
-        assertEquals(true, statusRequest.getIsBegin().get());
+        statusRequest.setBegin(true);
+        assertEquals(true, statusRequest.getBegin().get());
 
-        assertThrows(FieldErrorException.class, () -> statusRequest.setIsBegin(null));
+        assertThrows(FieldErrorException.class, () -> statusRequest.setBegin(null));
     }
 
     @Test

@@ -46,8 +46,8 @@ public class StatusRequest {
     public Status createEntity(long id, Project project) {
         String nameString = getName().orElseThrow(() -> new FieldErrorException("name", NULL_VALUE));
         Integer colorInt = getColor().orElseThrow(() -> new FieldErrorException("color", NULL_VALUE));
-        Boolean isFinalBoolean = getIsFinal().orElseThrow(() -> new FieldErrorException("isFinal", NULL_VALUE));
-        Boolean isBeginBoolean = getIsBegin().orElseThrow(() -> new FieldErrorException("isBegin", NULL_VALUE));
+        Boolean isFinalBoolean = getFinal().orElseThrow(() -> new FieldErrorException("isFinal", NULL_VALUE));
+        Boolean isBeginBoolean = getBegin().orElseThrow(() -> new FieldErrorException("isBegin", NULL_VALUE));
         Integer ordinalInt = getOrdinal().orElseThrow(() -> new FieldErrorException("ordinal", NULL_VALUE));
         return new Status(id, nameString, colorInt, isFinalBoolean, isBeginBoolean, ordinalInt, project);
     }
@@ -81,22 +81,22 @@ public class StatusRequest {
         this.color = Optional.of(color);
     }
 
-    public Optional<Boolean> getIsFinal() {
+    public Optional<Boolean> getFinal() {
         return isFinal;
     }
 
-    public void setIsFinal(Boolean isFinal) {
+    public void setFinal(Boolean isFinal) {
         if (isFinal == null) {
             throw new FieldErrorException("isFinal", NULL_VALUE);
         }
         this.isFinal = Optional.of(isFinal);
     }
 
-    public Optional<Boolean> getIsBegin() {
+    public Optional<Boolean> getBegin() {
         return isBegin;
     }
 
-    public void setIsBegin(Boolean isBegin) {
+    public void setBegin(Boolean isBegin) {
         if (isBegin == null) {
             throw new FieldErrorException("isBegin", NULL_VALUE);
         }
