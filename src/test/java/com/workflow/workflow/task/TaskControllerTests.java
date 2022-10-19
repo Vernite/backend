@@ -154,6 +154,7 @@ class TaskControllerTests {
         List<Task> result = client.get().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBodyList(Task.class).hasSize(3).returnResult().getResponseBody();
+        assertNotNull(result);
         taskEquals(tasks.get(0), result.get(0));
         taskEquals(tasks.get(1), result.get(2));
         taskEquals(tasks.get(2), result.get(1));
@@ -189,17 +190,20 @@ class TaskControllerTests {
         List<Task> result = client.get().uri("/project/{pId}/task?sprintId={sId}", project.getId(), sprint.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBodyList(Task.class).hasSize(1).returnResult().getResponseBody();
+        assertNotNull(result);
         taskEquals(tasks.get(0), result.get(0));
 
         result = client.get().uri("/project/{pId}/task?assigneeId={iId}", project.getId(), user.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBodyList(Task.class).hasSize(1).returnResult().getResponseBody();
+        assertNotNull(result);
         taskEquals(tasks.get(1), result.get(0));
 
         result = client.get()
                 .uri("/project/{pId}/task?statusId={iId}", project.getId(), project.getStatuses().get(2).getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBodyList(Task.class).hasSize(1).returnResult().getResponseBody();
+        assertNotNull(result);
         taskEquals(tasks.get(2), result.get(0));
 
         result = client.get()
@@ -207,6 +211,7 @@ class TaskControllerTests {
                         project.getStatuses().get(1).getNumber(), user.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBodyList(Task.class).hasSize(1).returnResult().getResponseBody();
+        assertNotNull(result);
         taskEquals(tasks.get(1), result.get(0));
 
         client.get().uri("/project/{pId}/task?type=0", project.getId())
@@ -248,6 +253,7 @@ class TaskControllerTests {
         Task task = client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
                 .isOk().expectBody(Task.class).returnResult().getResponseBody();
+        assertNotNull(task);
         taskEquals(task, taskRepository.findByProjectAndNumberOrThrow(project, task.getNumber()));
         taskEquals(task, request.createEntity(1, project.getStatuses().get(0), user));
 
@@ -256,18 +262,21 @@ class TaskControllerTests {
         task = client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
                 .isOk().expectBody(Task.class).returnResult().getResponseBody();
+        assertNotNull(task);
         taskEquals(task, taskRepository.findByProjectAndNumberOrThrow(project, task.getNumber()));
 
         request.setSprintId(sprint.getNumber());
         task = client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
                 .isOk().expectBody(Task.class).returnResult().getResponseBody();
+        assertNotNull(task);
         taskEquals(task, taskRepository.findByProjectAndNumberOrThrow(project, task.getNumber()));
 
         request.setAssigneeId(user.getId());
         task = client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
                 .isOk().expectBody(Task.class).returnResult().getResponseBody();
+        assertNotNull(task);
         taskEquals(task, taskRepository.findByProjectAndNumberOrThrow(project, task.getNumber()));
     }
 
@@ -566,6 +575,7 @@ class TaskControllerTests {
         TimeTrack track = client.post().uri("/project/{pId}/task/{id}/track/start", project.getId(), task.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBody(TimeTrack.class).returnResult().getResponseBody();
+        assertNotNull(track);
         assertNull(track.getEndDate());
         assertEquals(false, track.getEdited());
         assertNotNull(track.getStartDate());
@@ -610,6 +620,7 @@ class TaskControllerTests {
         TimeTrack track = client.post().uri("/project/{pId}/task/{id}/track/stop", project.getId(), task.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBody(TimeTrack.class).returnResult().getResponseBody();
+        assertNotNull(track);
         assertNotNull(track.getEndDate());
         assertEquals(false, track.getEdited());
         assertNotNull(track.getStartDate());
@@ -655,6 +666,7 @@ class TaskControllerTests {
                 .uri("/project/{pId}/task/{id}/track/{trackId}", project.getId(), task.getNumber(), timeTrack.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new TimeTrackRequest(date, null))
                 .exchange().expectStatus().isOk().expectBody(TimeTrack.class).returnResult().getResponseBody();
+        assertNotNull(track);
         assertEquals(true, track.getEdited());
         assertEquals(date, track.getStartDate());
 
@@ -665,6 +677,7 @@ class TaskControllerTests {
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new TimeTrackRequest(null, date))
                 .exchange().expectStatus().isOk().expectBody(TimeTrack.class).returnResult().getResponseBody();
 
+        assertNotNull(track);
         assertEquals(true, track.getEdited());
         assertEquals(date, track.getEndDate());
     }

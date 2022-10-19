@@ -29,6 +29,7 @@ package com.workflow.workflow.project;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Date;
 import java.util.List;
@@ -119,6 +120,7 @@ class ProjectControllerTests {
                 .bodyValue(request).exchange().expectStatus().isOk().expectBody(Project.class).returnResult()
                 .getResponseBody();
 
+        assertNotNull(result);
         Project project = projectRepository.findByIdOrThrow(result.getId());
 
         assertEquals(result, project);
@@ -349,7 +351,8 @@ class ProjectControllerTests {
         ProjectInvite result = client.post().uri("/project/member")
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(invite).exchange().expectStatus()
                 .isOk().expectBody(ProjectInvite.class).returnResult().getResponseBody();
-
+        
+        assertNotNull(result);
         assertEquals(0, result.getEmails().size());
         assertEquals(0, result.getProjectList().size());
         assertEquals(true, projectWorkspaceRepository
@@ -359,7 +362,7 @@ class ProjectControllerTests {
         result = client.post().uri("/project/member").cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(invite).exchange().expectStatus().isOk().expectBody(ProjectInvite.class).returnResult()
                 .getResponseBody();
-
+        assertNotNull(result);
         assertEquals(true, projectWorkspaceRepository
                 .findById(new ProjectWorkspaceKey(new Workspace(0, user2, "inbox"), project)).isPresent());
         assertEquals(1, result.getEmails().size());
@@ -370,6 +373,7 @@ class ProjectControllerTests {
         result = client.post().uri("/project/member").cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(invite).exchange().expectStatus().isOk().expectBody(ProjectInvite.class).returnResult()
                 .getResponseBody();
+        assertNotNull(result);
 
         assertEquals(true, projectWorkspaceRepository
                 .findById(new ProjectWorkspaceKey(new Workspace(0, user2, "inbox"), project)).isPresent());
@@ -381,6 +385,7 @@ class ProjectControllerTests {
         result = client.post().uri("/project/member").cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(invite).exchange().expectStatus().isOk().expectBody(ProjectInvite.class).returnResult()
                 .getResponseBody();
+        assertNotNull(result);
         assertEquals(0, result.getEmails().size());
         assertEquals(0, result.getProjectList().size());
 
@@ -389,6 +394,7 @@ class ProjectControllerTests {
         result = client.post().uri("/project/member").cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(invite).exchange().expectStatus().isOk().expectBody(ProjectInvite.class).returnResult()
                 .getResponseBody();
+        assertNotNull(result);
         assertEquals(0, result.getEmails().size());
         assertEquals(0, result.getProjectList().size());
     }
@@ -414,6 +420,7 @@ class ProjectControllerTests {
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(List.of(user2.getId(), 666, 54, user.getId())).exchange().expectStatus().isOk()
                 .expectBodyList(User.class).returnResult().getResponseBody();
+        assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals(user2.getName(), result.get(0).getName());
         assertEquals(user2.getId(), result.get(0).getId());

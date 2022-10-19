@@ -29,20 +29,11 @@ package com.workflow.workflow.workspace;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-
-import com.workflow.workflow.project.Project;
-import com.workflow.workflow.project.ProjectRepository;
-import com.workflow.workflow.projectworkspace.ProjectWorkspace;
-import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
-import com.workflow.workflow.user.User;
-import com.workflow.workflow.user.UserRepository;
-import com.workflow.workflow.user.UserSession;
-import com.workflow.workflow.user.UserSessionRepository;
-import com.workflow.workflow.user.auth.AuthController;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,6 +46,16 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
+
+import com.workflow.workflow.project.Project;
+import com.workflow.workflow.project.ProjectRepository;
+import com.workflow.workflow.projectworkspace.ProjectWorkspace;
+import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
+import com.workflow.workflow.user.User;
+import com.workflow.workflow.user.UserRepository;
+import com.workflow.workflow.user.UserSession;
+import com.workflow.workflow.user.UserSessionRepository;
+import com.workflow.workflow.user.auth.AuthController;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -116,6 +117,7 @@ class WorkspaceControllerTests {
         List<Workspace> result = client.get().uri("/workspace").cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange().expectStatus().isOk().expectBodyList(Workspace.class).hasSize(3).returnResult()
                 .getResponseBody();
+        assertNotNull(result);
         workspaceEquals(workspaces.get(0), result.get(0));
         workspaceEquals(workspaces.get(1), result.get(2));
         workspaceEquals(workspaces.get(2), result.get(1));
@@ -138,6 +140,7 @@ class WorkspaceControllerTests {
         Workspace workspace = client.post().uri("/workspace").cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(new WorkspaceRequest("POST")).exchange().expectStatus().isOk().expectBody(Workspace.class)
                 .returnResult().getResponseBody();
+        assertNotNull(workspace);
         Optional<Workspace> optional = workspaceRepository.findById(new WorkspaceKey(workspace.getId().getId(), user));
         assertEquals(true, optional.isPresent());
         Workspace result = optional.get();

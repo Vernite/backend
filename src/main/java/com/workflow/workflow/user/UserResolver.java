@@ -39,6 +39,7 @@ import com.workflow.workflow.user.auth.AuthController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
@@ -53,8 +54,8 @@ public class UserResolver implements HandlerMethodArgumentResolver {
     private UserSessionRepository userSessionRepository;
 
     @Override
-    public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer, NativeWebRequest webRequest,
-            WebDataBinderFactory binderFactory) throws Exception {
+    public Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
+            NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception {
         HttpServletRequest req = webRequest.getNativeRequest(HttpServletRequest.class);
         if (req != null && req.getCookies() != null) {
             for (Cookie c : req.getCookies()) {

@@ -134,6 +134,7 @@ class StatusControllerTests {
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange().expectStatus().isOk().expectBodyList(Status.class).hasSize(3).returnResult()
                 .getResponseBody();
+        assertNotNull(result);
         statusEquals(statuses.get(0), result.get(0));
         statusEquals(statuses.get(0), result.get(0));
         statusEquals(statuses.get(0), result.get(0));
@@ -167,6 +168,7 @@ class StatusControllerTests {
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(new StatusRequest("name", 1, false, true, 0)).exchange().expectStatus().isOk()
                 .expectBody(Status.class).returnResult().getResponseBody();
+        assertNotNull(result);
         Status status = statusRepository.findByProjectAndNumberOrThrow(project, result.getNumber());
         statusEquals(status, result);
     }

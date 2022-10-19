@@ -28,6 +28,7 @@
 package com.workflow.workflow;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.List;
 
@@ -39,6 +40,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
@@ -81,7 +83,7 @@ public class SessionControllerTests {
         req.setPassword("password");
         req.setRemember(true);
 
-        String cookie = client.post()
+        ResponseCookie cookie = client.post()
                 .uri("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(req)
@@ -95,7 +97,8 @@ public class SessionControllerTests {
                     assertEquals(registeredUser.getSurname(), user.getSurname());
                     assertEquals(registeredUser.getEmail(), user.getEmail());
                 })
-                .returnResult().getResponseCookies().getFirst(AuthController.COOKIE_NAME).getValue();
+                .returnResult().getResponseCookies().getFirst(AuthController.COOKIE_NAME);
+        assertNotNull(cookie);
         client.post()
                 .uri("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -110,32 +113,34 @@ public class SessionControllerTests {
                     assertEquals(registeredUser.getSurname(), user.getSurname());
                     assertEquals(registeredUser.getEmail(), user.getEmail());
                 })
-                .returnResult().getResponseCookies().getFirst(AuthController.COOKIE_NAME).getValue();
+                .returnResult().getResponseCookies().getFirst(AuthController.COOKIE_NAME);
         List<UserSession> list = client.get()
                 .uri("/session")
-                .cookie(AuthController.COOKIE_NAME, cookie)
+                .cookie(AuthController.COOKIE_NAME, cookie.getValue())
                 .exchange()
                 .expectStatus().isOk()
                 .expectBodyList(UserSession.class)
                 .returnResult().getResponseBody();
+        assertNotNull(list);
         int revoked = 0;
         for (UserSession us : list) {
             if (!us.isCurrent()) {
                 revoked++;
                 client.delete()
                         .uri("/session/" + us.getId())
-                        .cookie(AuthController.COOKIE_NAME, cookie)
+                        .cookie(AuthController.COOKIE_NAME, cookie.getValue())
                         .exchange()
                         .expectStatus().isOk();
             }
         }
         List<UserSession> list2 = client.get()
                 .uri("/session")
-                .cookie(AuthController.COOKIE_NAME, cookie)
+                .cookie(AuthController.COOKIE_NAME, cookie.getValue())
                 .exchange()
                 .expectStatus().isOk()
                 .expectBodyList(UserSession.class)
                 .returnResult().getResponseBody();
+        assertNotNull(list2);
         assertEquals(revoked + list2.size(), list.size());
     }
 }

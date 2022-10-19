@@ -28,6 +28,7 @@
 package com.workflow.workflow;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
@@ -106,7 +108,7 @@ public class AuthControllerTests {
         req.setPassword("password");
         req.setRemember(true);
 
-        String cookie = client.post()
+        ResponseCookie cookie = client.post()
                 .uri("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(req)
@@ -120,10 +122,11 @@ public class AuthControllerTests {
                     assertEquals(registeredUser.getSurname(), user.getSurname());
                     assertEquals(registeredUser.getEmail(), user.getEmail());
                 })
-                .returnResult().getResponseCookies().getFirst(AuthController.COOKIE_NAME).getValue();
+                .returnResult().getResponseCookies().getFirst(AuthController.COOKIE_NAME);
+        assertNotNull(cookie);
         client.post()
                 .uri("/auth/login")
-                .cookie(AuthController.COOKIE_NAME, cookie)
+                .cookie(AuthController.COOKIE_NAME, cookie.getValue())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(req)
                 .exchange()
@@ -131,7 +134,7 @@ public class AuthControllerTests {
         ChangePasswordRequest changePasswordRequest = new ChangePasswordRequest();
         changePasswordRequest.setOldPassword("badPassword");
         changePasswordRequest.setNewPassword("newPassword");
-        client.post().uri("/auth/password/change").cookie(AuthController.COOKIE_NAME, cookie)
+        client.post().uri("/auth/password/change").cookie(AuthController.COOKIE_NAME, cookie.getValue())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(changePasswordRequest)
                 .exchange()
@@ -139,20 +142,20 @@ public class AuthControllerTests {
         
         changePasswordRequest.setOldPassword("password");
         changePasswordRequest.setNewPassword("");
-        client.post().uri("/auth/password/change").cookie(AuthController.COOKIE_NAME, cookie)
+        client.post().uri("/auth/password/change").cookie(AuthController.COOKIE_NAME, cookie.getValue())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(changePasswordRequest)
                 .exchange()
                 .expectStatus().isBadRequest();
         
         changePasswordRequest.setNewPassword("newPassword");
-        client.post().uri("/auth/password/change").cookie(AuthController.COOKIE_NAME, cookie)
+        client.post().uri("/auth/password/change").cookie(AuthController.COOKIE_NAME, cookie.getValue())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(changePasswordRequest)
                 .exchange()
                 .expectStatus().isOk();
 
-        client.post().uri("/auth/logout").cookie(AuthController.COOKIE_NAME, cookie)
+        client.post().uri("/auth/logout").cookie(AuthController.COOKIE_NAME, cookie.getValue())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(changePasswordRequest)
                 .exchange()

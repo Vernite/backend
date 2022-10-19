@@ -135,6 +135,7 @@ public class SprintControllerTests {
         List<Sprint> result = client.get().uri("/project/{projectId}/sprint", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBodyList(Sprint.class).hasSize(3).returnResult().getResponseBody();
+        assertNotNull(result);
         sprintEquals(result.get(0), sprints.get(0));
         sprintEquals(result.get(1), sprints.get(1));
         sprintEquals(result.get(2), sprints.get(2));
@@ -164,6 +165,7 @@ public class SprintControllerTests {
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(new SprintRequest("Sprint 1", "desc", new Date(), new Date(), "open")).exchange()
                 .expectStatus().isOk().expectBody(Sprint.class).returnResult().getResponseBody();
+        assertNotNull(sprint);
         Sprint result = sprintRepository.findByProjectAndNumberOrThrow(project, sprint.getNumber());
         sprintEquals(sprint, result);
     }
