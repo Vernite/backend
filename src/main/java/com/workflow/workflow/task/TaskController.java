@@ -42,6 +42,7 @@ import com.workflow.workflow.sprint.Sprint;
 import com.workflow.workflow.sprint.SprintRepository;
 import com.workflow.workflow.status.Status;
 import com.workflow.workflow.status.StatusRepository;
+import com.workflow.workflow.task.Task.TaskType;
 import com.workflow.workflow.task.time.TimeTrack;
 import com.workflow.workflow.task.time.TimeTrackRepository;
 import com.workflow.workflow.task.time.TimeTrackRequest;
@@ -134,17 +135,8 @@ public class TaskController {
         Task parentTask = null;
         if (parentTaskId.isPresent()) {
             parentTask = taskRepository.findByProjectAndNumberOrThrow(project, parentTaskId.get());
-            if (task.getType() == Task.TaskType.USER_STORY.ordinal()) {
-                if (parentTask.getType() != Task.TaskType.EPIC.ordinal()) {
-                    throw new FieldErrorException(PARENT_FIELD, "user story can have only epic as parent");
-                }
-            } else if (task.getType() == Task.TaskType.SUBTASK.ordinal()) {
-                if (parentTask.getType() == Task.TaskType.SUBTASK.ordinal()
-                        || parentTask.getType() == Task.TaskType.EPIC.ordinal()) {
-                    throw new FieldErrorException(PARENT_FIELD, "subtask cant have epic or subtask as parent");
-                }
-            } else {
-                throw new FieldErrorException(PARENT_FIELD, "only user story and subtask can have parent");
+            if (!TaskType.values()[task.getType()].isValidParent(TaskType.values()[parentTask.getType()])) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid parent task");
             }
         }
         task.setParentTask(parentTask);

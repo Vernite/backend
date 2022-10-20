@@ -70,7 +70,27 @@ import org.hibernate.annotations.Where;
 public class Task extends SoftDeleteEntity {
 
     public enum TaskType {
-        TASK, USER_STORY, ISSUE, EPIC, SUBTASK
+        TASK, USER_STORY, ISSUE, EPIC, SUBTASK;
+
+        public boolean isValidParent(TaskType parent) {
+            if (this == parent) {
+                return false;
+            }
+            switch(this) {
+                case EPIC:
+                    return false;
+                case TASK:
+                    return parent == EPIC;
+                case USER_STORY:
+                    return parent == EPIC;
+                case ISSUE:
+                    return parent == EPIC || parent == TASK;
+                case SUBTASK:
+                    return parent != EPIC;
+                default:
+                    return false;
+            }
+        }
     }
 
     @Id
