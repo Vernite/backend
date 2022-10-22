@@ -35,7 +35,7 @@ import com.workflow.workflow.utils.NotFoundRepository;
 
 public interface GitHubInstallationRepository extends NotFoundRepository<GitHubInstallation, Long> {
     /**
-     * This method finds all associeted GitHub istallations for given user.
+     * This method finds all associated GitHub installations for given user.
      * 
      * @param user user which GitHub installations will be returned;
      * @return List with all users GitHub installations.

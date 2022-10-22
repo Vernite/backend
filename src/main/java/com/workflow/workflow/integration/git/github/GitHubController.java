@@ -89,7 +89,7 @@ public class GitHubController {
         return service.getRepositories(user);
     }
 
-    @Operation(summary = "Create GitHub account connection", description = "Creates new GitHub appplication installation. Installation id must be retrieved from GitHub.")
+    @Operation(summary = "Create GitHub account connection", description = "Creates new GitHub application installation. Installation id must be retrieved from GitHub.")
     @ApiResponse(description = "GitHub installation created. List with repositories and link. Can be empty.", responseCode = "200", content = @Content(schema = @Schema(implementation = GitHubIntegrationInfo.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PostMapping("/user/integration/github")

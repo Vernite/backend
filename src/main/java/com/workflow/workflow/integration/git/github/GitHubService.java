@@ -114,7 +114,7 @@ public class GitHubService {
     }
 
     /**
-     * Cretaes new installation for user.
+     * Creates new installation for user.
      * 
      * @param user must be entity from database.
      * @param id   must be id of installation retrieved from GitHub.
@@ -149,7 +149,7 @@ public class GitHubService {
     }
 
     /**
-     * Creates issue associeted with task.
+     * Creates issue associated with task.
      * 
      * @param task must be entity from database.
      * @return - Mono with issue.
@@ -179,7 +179,7 @@ public class GitHubService {
     }
 
     /**
-     * Modifies associeted issue using GitHub api.
+     * Modifies associated issue using GitHub api.
      * 
      * @param task must be entity from database.
      * @return Mono with issue.
@@ -305,7 +305,7 @@ public class GitHubService {
     }
 
     /**
-     * Modifies associeted pull request using GitHub api.
+     * Modifies associated pull request using GitHub api.
      * 
      * @param task must be entity from database.
      * @return Mono with pull request.
@@ -386,9 +386,9 @@ public class GitHubService {
         }
         return apiGetRepositoryCollaborators(installation, integration)
                 .any(collaborator -> {
-                    for (GitHubInstallation isnt : installations) {
-                        if (collaborator.getLogin().equals(isnt.getGitHubUsername())) {
-                            issue.setAssignees(List.of(isnt.getGitHubUsername()));
+                    for (GitHubInstallation inst : installations) {
+                        if (collaborator.getLogin().equals(inst.getGitHubUsername())) {
+                            issue.setAssignees(List.of(inst.getGitHubUsername()));
                             return true;
                         }
                     }
@@ -416,7 +416,7 @@ public class GitHubService {
     }
 
     /**
-     * Gets information abount installation from GitHub api.
+     * Gets information about installation from GitHub api.
      * 
      * @param id must be given from GitHub.
      * @return Mono with installation information.
@@ -449,7 +449,7 @@ public class GitHubService {
     }
 
     /**
-     * Retrives repositories for installation from GitHub api.
+     * Retrieves repositories for installation from GitHub api.
      * 
      * @param installation must not be {@literal null}. Must be entity from
      *                     database.
@@ -466,7 +466,7 @@ public class GitHubService {
     }
 
     /**
-     * Retrives issue for repository from GitHub api.
+     * Retrieves issue for repository from GitHub api.
      * 
      * @param installation must not be {@literal null}. Must be entity from
      *                     database.

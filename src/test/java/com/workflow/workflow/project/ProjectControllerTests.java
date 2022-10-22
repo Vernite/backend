@@ -431,7 +431,7 @@ class ProjectControllerTests {
     }
 
     @Test
-    void deleteMemberUnautorized() {
+    void deleteMemberUnauthorized() {
         Project project = projectRepository.save(new Project("MEMBER"));
 
         client.put().uri("/project/{id}/member", project.getId()).bodyValue(List.of()).exchange().expectStatus()

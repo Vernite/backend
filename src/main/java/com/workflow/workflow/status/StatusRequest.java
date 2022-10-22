@@ -40,7 +40,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public class StatusRequest {
     private static final String NULL_VALUE = "null value";
 
-    @Schema(maxLength = 50, minLength = 1, description = "The name of the status. Trailing and leading whitespaces are removed.")
+    @Schema(maxLength = 50, minLength = 1, description = "The name of the status. Trailing and leading whitespace are removed.")
     private Optional<String> name = Optional.empty();
     @Schema(description = "The color of the status.")
     private Optional<Integer> color = Optional.empty();

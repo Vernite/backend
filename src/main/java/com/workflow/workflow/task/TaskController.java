@@ -156,7 +156,7 @@ public class TaskController {
         return taskRepository.findAllOrdered(filter.toSpecification(project));
     }
 
-    @Operation(summary = "Get task information", description = "This method is used to retrive status with given ID. On success returns task with given ID. Throws 404 when project or task does not exist.")
+    @Operation(summary = "Get task information", description = "This method is used to retrieve status with given ID. On success returns task with given ID. Throws 404 when project or task does not exist.")
     @ApiResponse(description = "Task with given ID.", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or/and task with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))

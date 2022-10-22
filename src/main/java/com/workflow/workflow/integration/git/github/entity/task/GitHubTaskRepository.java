@@ -51,7 +51,7 @@ public interface GitHubTaskRepository<T, K> extends JpaRepository<T, K> {
      * This method finds GitHub issues connection for integration.
      * 
      * @param integration which connection is looked for.
-     * @return List of all task associeted with integration.
+     * @return List of all task associated with integration.
      */
     List<T> findByGitHubIntegration(GitHubIntegration integration);
 

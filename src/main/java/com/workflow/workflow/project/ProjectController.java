@@ -90,7 +90,7 @@ public class ProjectController {
     @Autowired
     GitTaskService service;
 
-    @Operation(summary = "Create project", description = "Creates new project. Authenticated user is added to project with owner privillages. Project is added to workspace with given id.")
+    @Operation(summary = "Create project", description = "Creates new project. Authenticated user is added to project with owner privileges. Project is added to workspace with given id.")
     @ApiResponse(description = "Newly created project.", responseCode = "200")
     @ApiResponse(description = "Some fields are missing or failed to satisfy requirements.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
@@ -202,10 +202,10 @@ public class ProjectController {
         return new ProjectInvite(users.stream().map(User::getUsername).toList(), result);
     }
 
-    @Operation(summary = "Remove members from projects", description = "Removes members with given ids from project with given id. Authenticated user must be member of projects and have privillage.")
+    @Operation(summary = "Remove members from projects", description = "Removes members with given ids from project with given id. Authenticated user must be member of projects and have privilege.")
     @ApiResponse(description = "List with actual users removed from project.", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Not enough privillages.", responseCode = "403", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Not enough privileges.", responseCode = "403", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PutMapping("/{id}/member")
     public List<User> deleteMember(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,

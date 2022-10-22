@@ -158,31 +158,31 @@ public class OtherTests {
     }
 
     @Test
-    void projectWithPrivillagesTests() {
+    void projectWithPrivilegesTests() {
         Project project = new Project("name");
         Project other = new Project("other");
 
         ProjectWithPrivileges pwp = new ProjectWithPrivileges(project, 1L);
-        ProjectWithPrivileges opwp = new ProjectWithPrivileges(other, 1L);
+        ProjectWithPrivileges opp = new ProjectWithPrivileges(other, 1L);
 
         assertEquals(false, pwp.equals(null));
         assertEquals(false, pwp.equals((Object) "name"));
-        assertEquals(false, pwp.equals(opwp));
-        assertEquals(true, pwp.compareTo(opwp) < 0);
-        assertNotEquals(pwp.hashCode(), opwp.hashCode());
+        assertEquals(false, pwp.equals(opp));
+        assertEquals(true, pwp.compareTo(opp) < 0);
+        assertNotEquals(pwp.hashCode(), opp.hashCode());
 
         pwp = new ProjectWithPrivileges(null, 1L);
 
-        assertEquals(false, pwp.equals(opwp));
-        assertNotEquals(pwp.hashCode(), opwp.hashCode());
+        assertEquals(false, pwp.equals(opp));
+        assertNotEquals(pwp.hashCode(), opp.hashCode());
 
-        opwp = new ProjectWithPrivileges(null, 1L);
+        opp = new ProjectWithPrivileges(null, 1L);
 
-        assertEquals(true, pwp.equals(opwp));
+        assertEquals(true, pwp.equals(opp));
 
-        opwp = new ProjectWithPrivileges(project, 2L);
+        opp = new ProjectWithPrivileges(project, 2L);
 
-        assertEquals(false, pwp.equals(opwp));
+        assertEquals(false, pwp.equals(opp));
     }
 
     @Test
@@ -192,30 +192,30 @@ public class OtherTests {
         other.setId(333L);
 
         ProjectWorkspace pwp = new ProjectWorkspace(project, workspace, 1L);
-        ProjectWorkspace opwp = new ProjectWorkspace(other, workspace, 1L);
+        ProjectWorkspace opp = new ProjectWorkspace(other, workspace, 1L);
 
         assertEquals(false, pwp.equals(null));
         assertEquals(false, pwp.equals((Object) "name"));
-        assertEquals(false, pwp.equals(opwp));
-        assertNotEquals(pwp.hashCode(), opwp.hashCode());
+        assertEquals(false, pwp.equals(opp));
+        assertNotEquals(pwp.hashCode(), opp.hashCode());
 
         pwp.setId(null);
 
-        assertEquals(false, pwp.equals(opwp));
-        assertNotEquals(pwp.hashCode(), opwp.hashCode());
+        assertEquals(false, pwp.equals(opp));
+        assertNotEquals(pwp.hashCode(), opp.hashCode());
 
-        opwp.setId(null);
+        opp.setId(null);
 
-        assertEquals(true, pwp.equals(opwp));
+        assertEquals(true, pwp.equals(opp));
 
-        opwp.setPrivileges(2L);
+        opp.setPrivileges(2L);
 
-        assertEquals(false, pwp.equals(opwp));
+        assertEquals(false, pwp.equals(opp));
 
-        opwp.setProject(null);
-        opwp.setWorkspace(null);
+        opp.setProject(null);
+        opp.setWorkspace(null);
 
-        assertEquals(false, pwp.equals(opwp));
+        assertEquals(false, pwp.equals(opp));
 
         ProjectWorkspaceKey key = new ProjectWorkspaceKey(workspace, project);
 

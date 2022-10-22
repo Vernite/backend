@@ -48,7 +48,7 @@ public interface SoftDeleteRepository<T extends SoftDeleteEntity, I> extends Not
     Optional<T> findByIdAndActiveNull(I id);
 
     /**
-     * Retrives an entity by its id if its not soft deleted.
+     * Retrieves an entity by its id if its not soft deleted.
      * 
      * @param id must not be {@literal null}
      * @return the entity with the given id.

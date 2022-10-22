@@ -48,9 +48,9 @@ public class TaskRequest {
     private static final String NULL_VALUE = "null value";
     private static final String MISSING = "missing";
 
-    @Schema(maxLength = 50, minLength = 1, description = "The name of the task. Trailing and leading whitespaces are removed.")
+    @Schema(maxLength = 50, minLength = 1, description = "The name of the task. Trailing and leading whitespace are removed.")
     private Optional<String> name = Optional.empty();
-    @Schema(description = "The description of the task. Trailing and leading whitespaces are removed.")
+    @Schema(description = "The description of the task. Trailing and leading whitespace are removed.")
     private Optional<String> description = Optional.empty();
     @Schema(description = "New status of the task.")
     private Optional<Long> statusId = Optional.empty();

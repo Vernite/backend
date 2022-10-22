@@ -43,9 +43,9 @@ public class SprintRequest {
     private static final String START_FIELD = "startDate";
     private static final String FINISH_FIELD = "finishDate";
 
-    @Schema(maxLength = 50, minLength = 1, description = "The name of the sprint. Trailing and leading whitespaces are removed.")
+    @Schema(maxLength = 50, minLength = 1, description = "The name of the sprint. Trailing and leading whitespace are removed.")
     private Optional<String> name = Optional.empty();
-    @Schema(description = "The description of the sprint. Trailing and leading whitespaces are removed.")
+    @Schema(description = "The description of the sprint. Trailing and leading whitespace are removed.")
     private Optional<String> description = Optional.empty();
     @Schema(description = "The start date of the sprint. Must be before the finish date.")
     private Optional<Date> startDate = Optional.empty();

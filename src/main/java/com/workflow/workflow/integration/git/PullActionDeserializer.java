@@ -40,7 +40,7 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 public class PullActionDeserializer extends JsonDeserializer<PullAction> {
 
     @Override
-    public PullAction deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
+    public PullAction deserialize(JsonParser jp, DeserializationContext ctx) throws IOException {
         String action = jp.getText();
         if (action.equalsIgnoreCase("detach")) {
             return PullAction.DETACH;

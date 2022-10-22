@@ -31,7 +31,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Exception throwed when exterananl API returns error.
+ * Exception thrown when external API returns error.
  */
 public class ExternalApiException extends ResponseStatusException {
 

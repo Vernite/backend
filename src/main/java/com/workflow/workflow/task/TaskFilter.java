@@ -71,8 +71,8 @@ public class TaskFilter {
         return assigneeId;
     }
 
-    public void setAssigneeId(long asigneeId) {
-        this.assigneeId = Optional.of(asigneeId);
+    public void setAssigneeId(long assigneeId) {
+        this.assigneeId = Optional.of(assigneeId);
     }
 
     public Optional<List<Long>> getStatusId() {

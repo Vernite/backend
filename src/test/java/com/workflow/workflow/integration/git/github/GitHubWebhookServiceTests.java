@@ -229,15 +229,15 @@ public class GitHubWebhookServiceTests {
     void githubSuccessPush() throws JsonProcessingException {
         GitHubWebhookData data = new GitHubWebhookData();
         data.setRepository(new GitHubRepository(1, integration.getRepositoryFullName(), false));
-        data.setCommits(List.of(new GitHubCommit("1", "messagge without anything intresting")));
+        data.setCommits(List.of(new GitHubCommit("1", "message without anything interesting")));
         client.post().uri("/webhook/github")
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
                 .header("X-GitHub-Event", "push").bodyValue(data).exchange().expectStatus().isOk();
 
         Task task = taskRepository.save(new Task(1, "TEST", "DESC", project.getStatuses().get(0), user, 1));
 
-        data.setCommits(List.of(new GitHubCommit("1", "messagge without anything intresting"),
-                new GitHubCommit("2", "messagge with something intresting !" + task.getNumber())));
+        data.setCommits(List.of(new GitHubCommit("1", "message without anything interesting"),
+                new GitHubCommit("2", "message with something interesting !" + task.getNumber())));
 
         client.post().uri("/webhook/github")
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
@@ -245,14 +245,14 @@ public class GitHubWebhookServiceTests {
         assertEquals(project.getStatuses().get(2).getId(),
                 taskRepository.findById(task.getId()).get().getStatus().getId());
 
-        data.setCommits(List.of(new GitHubCommit("1", "messagge without anything intresting"),
-                new GitHubCommit("2", "messagge with something intresting !666")));
+        data.setCommits(List.of(new GitHubCommit("1", "message without anything interesting"),
+                new GitHubCommit("2", "message with something interesting !666")));
         client.post().uri("/webhook/github")
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
                 .header("X-GitHub-Event", "push").bodyValue(data).exchange().expectStatus().isOk();
 
-        data.setCommits(List.of(new GitHubCommit("1", "messagge without anything intresting"),
-                new GitHubCommit("2", "messagge with something intresting reopen!" + task.getNumber())));
+        data.setCommits(List.of(new GitHubCommit("1", "message without anything interesting"),
+                new GitHubCommit("2", "message with something interesting reopen!" + task.getNumber())));
         client.post().uri("/webhook/github")
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
                 .header("X-GitHub-Event", "push").bodyValue(data).exchange().expectStatus().isOk();

@@ -317,7 +317,7 @@ public class GitHubControllerTests {
             }
         }
 
-        Project newProject = projectRepository.save(new Project("NAMEMEM"));
+        Project newProject = projectRepository.save(new Project("NAME"));
         projectWorkspaceRepository.save(new ProjectWorkspace(newProject, workspace, 1L));
 
         Project result = controller.newIntegration(user, newProject.getId(), "username/repo2").block();

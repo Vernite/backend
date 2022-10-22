@@ -89,7 +89,7 @@ public class StatusController {
         return statusRepository.save(request.createEntity(id, project));
     }
 
-    @Operation(summary = "Get status information", description = "This method is used to retrive status with given ID. On success returns status with given ID. Throws 404 when project or status does not exist.")
+    @Operation(summary = "Get status information", description = "This method is used to retrieve status with given ID. On success returns status with given ID. Throws 404 when project or status does not exist.")
     @ApiResponse(responseCode = "200", description = "Project with given ID.")
     @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
     @GetMapping("/{id}")

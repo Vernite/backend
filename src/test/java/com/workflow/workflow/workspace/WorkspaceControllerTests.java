@@ -179,7 +179,7 @@ class WorkspaceControllerTests {
     }
 
     @Test
-    void getUnathorized() {
+    void getUnauthorized() {
         client.get().uri("/workspace/1").exchange().expectStatus().isUnauthorized();
 
         long id = workspaceRepository.save(new Workspace(1, user, "GET")).getId().getId();
@@ -231,7 +231,7 @@ class WorkspaceControllerTests {
     }
 
     @Test
-    void updateUnathorized() {
+    void updateUnauthorized() {
         client.put().uri("/workspace/1").bodyValue(new WorkspaceRequest("NEW PUT")).exchange().expectStatus()
                 .isUnauthorized();
 

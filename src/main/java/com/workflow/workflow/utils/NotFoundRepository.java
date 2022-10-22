@@ -39,7 +39,7 @@ import org.springframework.web.server.ResponseStatusException;
 public interface NotFoundRepository<T, I> extends CrudRepository<T, I> {
 
     /**
-     * Retrives an entity by its id.
+     * Retrieves an entity by its id.
      * 
      * @param id must not be {@literal null}
      * @return the entity with the given id.

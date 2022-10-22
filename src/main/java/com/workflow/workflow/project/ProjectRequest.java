@@ -37,7 +37,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 @JsonInclude(Include.NON_ABSENT)
 public class ProjectRequest {
-    @Schema(maxLength = 50, minLength = 1, description = "The name of the project. Trailing and leading whitespaces are removed.")
+    @Schema(maxLength = 50, minLength = 1, description = "The name of the project. Trailing and leading whitespace are removed.")
     private Optional<String> name = Optional.empty();
     @Schema(description = "When creating project will be created in this workspace. When updating project will be moved to this workspace.")
     private Optional<Long> workspaceId = Optional.empty();
