@@ -27,6 +27,7 @@
 
 package com.workflow.workflow.status;
 
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -49,6 +50,8 @@ import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
+import com.workflow.workflow.task.Task;
+import com.workflow.workflow.task.TaskRepository;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
 import com.workflow.workflow.user.UserSession;
@@ -353,5 +356,15 @@ class StatusControllerTests {
         client.delete().uri("/project/{projectId}/status/{statusId}", project.getId(), status2.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange().expectStatus().isNotFound();
+    }
+
+    @Test
+    void deleteBadRequest(@Autowired TaskRepository taskRepository) {
+        Status status = statusRepository.save(new Status(1, "name", 1, false, true, 0, project));
+        taskRepository.save(new Task(1, "null", "null", status, user, 0));
+        client.delete().uri("/project/{projectId}/status/{statusId}", project.getId(), status.getNumber())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange().expectStatus().isBadRequest();
+        assertNull(statusRepository.findById(status.getId()).get().getActive());
     }
 }

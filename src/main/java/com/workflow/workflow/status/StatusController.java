@@ -35,6 +35,7 @@ import com.workflow.workflow.counter.CounterSequenceRepository;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.project.ProjectRepository;
 import com.workflow.workflow.user.User;
+import com.workflow.workflow.utils.FieldErrorException;
 import com.workflow.workflow.utils.ObjectNotFoundException;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -119,6 +120,7 @@ public class StatusController {
 
     @Operation(summary = "Delete status", description = "This method is used to delete status. On success does not return anything. Throws 404 when status or project does not exist.")
     @ApiResponse(responseCode = "200", description = "Status with given ID has been deleted.")
+    @ApiResponse(responseCode = "400", description = "Status is not empty.")
     @ApiResponse(responseCode = "404", description = "Project or status with given ID not found.")
     @DeleteMapping("/{id}")
     public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
@@ -128,6 +130,9 @@ public class StatusController {
             throw new ObjectNotFoundException();
         }
         Status status = statusRepository.findByProjectAndNumberOrThrow(project, id);
+        if (!status.getTasks().isEmpty()) {
+            throw new FieldErrorException("tasks", "Status has tasks assigned to it.");
+        }
         status.softDelete();
         statusRepository.save(status);
     }

@@ -27,6 +27,8 @@
 
 package com.workflow.workflow.status;
 
+import java.util.List;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.ForeignKey;
@@ -35,11 +37,13 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.workflow.workflow.project.Project;
+import com.workflow.workflow.task.Task;
 import com.workflow.workflow.utils.SoftDeleteEntity;
 
 import org.hibernate.annotations.OnDelete;
@@ -77,6 +81,11 @@ public class Status extends SoftDeleteEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "project_id", nullable = false, foreignKey = @ForeignKey(name = "fk_column_project"))
     private Project project;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "status")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private List<Task> tasks;
 
     public Status() {
     }
@@ -167,5 +176,13 @@ public class Status extends SoftDeleteEntity {
 
     public void setProject(Project project) {
         this.project = project;
+    }
+
+    public List<Task> getTasks() {
+        return tasks;
+    }
+
+    public void setTasks(List<Task> tasks) {
+        this.tasks = tasks;
     }
 }
