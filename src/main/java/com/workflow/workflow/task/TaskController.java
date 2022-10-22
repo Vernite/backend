@@ -253,6 +253,23 @@ public class TaskController {
         taskRepository.save(task);
     }
 
+    @Operation(summary = "Create new time track", description = "This method is used to create new time track. On success returns time track.")
+    @ApiResponse(description = "Created time track.", responseCode = "200")
+    @ApiResponse(description = "Invalid request.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project or task with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @PostMapping("/{id}/track")
+    public TimeTrack createTracking(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long id, @RequestBody TimeTrackRequest timeTrackRequest) {
+        Project project = projectRepository.findByIdOrThrow(projectId);
+        if (project.member(user) == -1) {
+            throw new ObjectNotFoundException();
+        }
+        Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
+        TimeTrack timeTrack = timeTrackRequest.createEntity(user, task);
+        return trackRepository.save(timeTrack);
+    }
+
     @Operation(summary = "Start task time tracking", description = "This method starts time tracking for task for current logged in user. On success returns tracking information.")
     @ApiResponse(description = "Tracking information.", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))

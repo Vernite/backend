@@ -78,6 +78,14 @@ public class TimeTrack {
         this.startDate = new Date();
     }
 
+    public TimeTrack(User user, Task task, Date startDate, Date endDate) {
+        this.user = user;
+        this.task = task;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.edited = true;
+    }
+
     /**
      * Updates the time spent on the task. If value changes, the edited flag is set
      * to true.
@@ -88,7 +96,7 @@ public class TimeTrack {
         if (endDate == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Time track is not finished.");
         }
-        
+
         edited = true;
         request.getStartDate().ifPresent(this::setStartDate);
         request.getEndDate().ifPresent(this::setEndDate);

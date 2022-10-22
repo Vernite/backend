@@ -181,7 +181,7 @@ class TaskControllerTests {
         tasks.get(1).setAssignee(user);
         ArrayList<Task> tasksList = new ArrayList<>();
         taskRepository.saveAll(tasks).forEach(tasksList::add);
-        
+
         tasksList.get(2).setParentTask(tasksList.get(1));
         taskRepository.saveAll(tasksList);
         tasks = tasksList;
@@ -569,6 +569,70 @@ class TaskControllerTests {
         Task task = taskRepository.save(new Task(1, "N", "D", forbiddenProject.getStatuses().get(0), user, 0, "low"));
         client.delete().uri("/project/{pId}/task/{id}", forbiddenProject.getId(), task.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
+    }
+
+    @Test
+    void createTrackingSuccess() {
+        Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
+
+        Date date = Date.from(Instant.now().minus(1, ChronoUnit.DAYS));
+
+        TimeTrack track = client.post()
+                .uri("/project/{pId}/task/{id}/track", project.getId(), task.getNumber())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .bodyValue(new TimeTrackRequest(date, new Date()))
+                .exchange().expectStatus().isOk().expectBody(TimeTrack.class).returnResult().getResponseBody();
+        assertNotNull(track);
+        assertEquals(true, track.getEdited());
+        assertEquals(date, track.getStartDate());
+    }
+
+    @Test
+    void createTrackingBadRequest() {
+        Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
+
+        client.post()
+                .uri("/project/{pId}/task/{id}/track", project.getId(), task.getNumber())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new TimeTrackRequest())
+                .exchange().expectStatus().isBadRequest();
+
+        client.post()
+                .uri("/project/{pId}/task/{id}/track", project.getId(), task.getNumber())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .bodyValue(new TimeTrackRequest(new Date(), null))
+                .exchange().expectStatus().isBadRequest();
+
+        Date date = Date.from(Instant.now().minus(1, ChronoUnit.DAYS));
+
+        client.post()
+                .uri("/project/{pId}/task/{id}/track", project.getId(), task.getNumber())
+                .cookie(AuthController.COOKIE_NAME, session.getSession())
+                .bodyValue(new TimeTrackRequest(new Date(), date))
+                .exchange().expectStatus().isBadRequest();
+    }
+
+    @Test
+    void createTrackingUnauthorized() {
+        Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
+        client.post().uri("/project/{pId}/task/{id}/track", project.getId(), task.getNumber())
+                .bodyValue(new TimeTrackRequest()).exchange().expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void createTrackingNotFound() {
+        client.post().uri("/project/{pId}/task/1/track", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new TimeTrackRequest())
+                .exchange().expectStatus().isNotFound();
+        Task task = taskRepository
+                .save(new Task(1, "NAME", "DESC", forbiddenProject.getStatuses().get(0), user, 0, "low"));
+        client.post().uri("/project/{pId}/task/{id}/track", forbiddenProject.getId(), task.getNumber())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new TimeTrackRequest())
+                .exchange().expectStatus().isNotFound();
+
+        task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
+        client.post().uri("/project/{pId}/task/{id}/track", forbiddenProject.getId(), task.getNumber())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new TimeTrackRequest())
+                .exchange().expectStatus().isNotFound();
     }
 
     @Test

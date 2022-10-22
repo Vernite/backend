@@ -32,6 +32,8 @@ import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.workflow.workflow.task.Task;
+import com.workflow.workflow.user.User;
 import com.workflow.workflow.utils.FieldErrorException;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -50,6 +52,23 @@ public class TimeTrackRequest {
     public TimeTrackRequest(Date startDate, Date endDate) {
         this.startDate = Optional.ofNullable(startDate);
         this.endDate = Optional.ofNullable(endDate);
+    }
+
+    /**
+     * Creates new TimeTrack object from request.
+     * 
+     * @param user User who created time track.
+     * @param task Task for which time track is created.
+     * @return New TimeTrack object.
+     * @throws FieldErrorException if the task request is invalid.
+     */
+    public TimeTrack createEntity(User user, Task task) {
+        Date start = this.startDate.orElseThrow(() -> new FieldErrorException("startDate", "missing"));
+        Date end = this.endDate.orElseThrow(() -> new FieldErrorException("endDate", "missing"));
+        if (start.after(end)) {
+            throw new FieldErrorException("null", "end must be after start");
+        }
+        return new TimeTrack(user, task, start, end);
     }
 
     public Optional<Date> getStartDate() {
