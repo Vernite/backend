@@ -28,14 +28,17 @@
 package com.workflow.workflow.task;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -174,11 +177,11 @@ class TaskControllerTests {
                 new Task(1, "name 1", "description", project.getStatuses().get(0), user, 0, "low"),
                 new Task(2, "name 3", "description", project.getStatuses().get(1), user, 3, "low"),
                 new Task(3, "name 2", "description", project.getStatuses().get(2), user, 1, "low"));
-        tasks.get(0).setSprint(sprint);
+        tasks.get(0).setSprints(Set.of(sprint));
         tasks.get(1).setAssignee(user);
         ArrayList<Task> tasksList = new ArrayList<>();
         taskRepository.saveAll(tasks).forEach(tasksList::add);
-        ;
+        
         tasksList.get(2).setParentTask(tasksList.get(1));
         taskRepository.saveAll(tasksList);
         tasks = tasksList;
@@ -265,7 +268,7 @@ class TaskControllerTests {
         assertNotNull(task);
         taskEquals(task, taskRepository.findByProjectAndNumberOrThrow(project, task.getNumber()));
 
-        request.setSprintId(sprint.getNumber());
+        request.setSprintIds(List.of(sprint.getNumber()));
         task = client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
                 .isOk().expectBody(Task.class).returnResult().getResponseBody();
@@ -362,7 +365,7 @@ class TaskControllerTests {
         client.post().uri("/project/{pId}/task", -1).cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(request).exchange().expectStatus().isNotFound();
 
-        request.setSprintId(sprint.getNumber() + 1);
+        request.setSprintIds(List.of(sprint.getNumber() + 1));
         client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
                 .isNotFound();
@@ -431,8 +434,8 @@ class TaskControllerTests {
         request.setType(Task.TaskType.SUBTASK.ordinal());
         task.setType(Task.TaskType.SUBTASK.ordinal());
 
-        request.setSprintId(sprint.getNumber());
-        task.setSprint(sprint);
+        request.setSprintIds(List.of(sprint.getNumber()));
+        task.setSprints(Set.of(sprint));
 
         request.setAssigneeId(user.getId());
         task.setAssignee(user);
@@ -441,11 +444,11 @@ class TaskControllerTests {
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
                 .isOk().expectBody(Task.class).returnResult().getResponseBody();
         taskEquals(task, result);
-        assertNotNull(taskRepository.findByIdOrThrow(task.getId()).getSprint());
+        assertFalse(taskRepository.findByIdOrThrow(task.getId()).getSprints().isEmpty());
         assertNotNull(taskRepository.findByIdOrThrow(task.getId()).getAssignee());
 
-        request.setSprintId(null);
-        task.setSprint(null);
+        request.setSprintIds(List.of());
+        task.setSprints(Set.of());
 
         request.setAssigneeId(null);
         task.setAssignee(null);
@@ -453,7 +456,7 @@ class TaskControllerTests {
         client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
                 .isOk().expectBody(Task.class);
-        assertNull(taskRepository.findByIdOrThrow(task.getId()).getSprint());
+        assertTrue(taskRepository.findByIdOrThrow(task.getId()).getSprints().isEmpty());
         assertNull(taskRepository.findByIdOrThrow(task.getId()).getAssignee());
     }
 
@@ -525,7 +528,7 @@ class TaskControllerTests {
                 .isNotFound();
 
         request.setParentTaskId(null);
-        request.setSprintId(2L);
+        request.setSprintIds(List.of(2L));
         client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
                 .isNotFound();

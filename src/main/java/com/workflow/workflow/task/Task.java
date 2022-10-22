@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.ForeignKey;
@@ -41,6 +42,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.Lob;
+import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
@@ -76,7 +78,7 @@ public class Task extends SoftDeleteEntity {
             if (this == parent) {
                 return false;
             }
-            switch(this) {
+            switch (this) {
                 case EPIC:
                     return false;
                 case TASK:
@@ -106,10 +108,10 @@ public class Task extends SoftDeleteEntity {
     private String name;
 
     @JsonIgnore
-    @ManyToOne
+    @ManyToMany(cascade = CascadeType.MERGE)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "sprint_id", foreignKey = @ForeignKey(name = "fk_task_sprint"))
-    private Sprint sprint;
+    private Set<Sprint> sprints = Set.of();
 
     @Lob
     @Column(nullable = false)
@@ -230,12 +232,12 @@ public class Task extends SoftDeleteEntity {
         this.name = name;
     }
 
-    public Sprint getSprint() {
-        return sprint;
+    public Set<Sprint> getSprints() {
+        return sprints;
     }
 
-    public void setSprint(Sprint sprint) {
-        this.sprint = sprint;
+    public void setSprints(Set<Sprint> sprints) {
+        this.sprints = sprints;
     }
 
     public String getDescription() {
@@ -376,8 +378,9 @@ public class Task extends SoftDeleteEntity {
         this.assignee = assignee;
     }
 
-    public Long getSprintId() {
-        return this.getSprint() == null ? null : this.getSprint().getNumber();
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    public List<Long> getSprintIds() {
+        return this.getSprints().stream().map(Sprint::getNumber).toList();
     }
 
     public String getPriority() {

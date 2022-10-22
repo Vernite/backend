@@ -29,6 +29,7 @@ package com.workflow.workflow.task;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -102,12 +103,13 @@ public class TaskController {
      * @param task     the task
      * @param project  the project
      */
-    private void handleSprint(Optional<Long> sprintId, Task task, Project project) {
-        Sprint sprint = null;
-        if (sprintId.isPresent()) {
-            sprint = sprintRepository.findByProjectAndNumberOrThrow(project, sprintId.get());
+    private void handleSprint(List<Long> sprints, Task task, Project project) {
+        HashSet<Sprint> sprintSet = new HashSet<>();
+        for (Long sprintId : sprints) {
+            Sprint sprint = sprintRepository.findByProjectAndNumberOrThrow(project, sprintId);
+            sprintSet.add(sprint);
         }
-        task.setSprint(sprint);
+        task.setSprints(sprintSet);
     }
 
     /**
@@ -187,7 +189,7 @@ public class TaskController {
         Task task = taskRequest.createEntity(id, status, user);
         taskRequest.getDeadline().ifPresent(task::setDeadline);
         taskRequest.getEstimatedDate().ifPresent(task::setEstimatedDate);
-        taskRequest.getSprintId().ifPresent(sprintId -> handleSprint(sprintId, task, project));
+        taskRequest.getSprintIds().ifPresent(sprintId -> handleSprint(sprintId, task, project));
         taskRequest.getAssigneeId().ifPresent(assigneeId -> handleAssignee(assigneeId, task));
         taskRequest.getParentTaskId().ifPresent(parentTaskId -> handleParent(parentTaskId, task, project));
 
@@ -216,7 +218,7 @@ public class TaskController {
         }
         Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
         task.update(taskRequest);
-        taskRequest.getSprintId().ifPresent(sprintId -> handleSprint(sprintId, task, project));
+        taskRequest.getSprintIds().ifPresent(sprintId -> handleSprint(sprintId, task, project));
         taskRequest.getAssigneeId().ifPresent(assigneeId -> handleAssignee(assigneeId, task));
         taskRequest.getParentTaskId().ifPresent(parentTaskId -> handleParent(parentTaskId, task, project));
         taskRequest.getStatusId().ifPresent(statusId -> {

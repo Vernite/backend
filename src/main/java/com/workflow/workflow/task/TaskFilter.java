@@ -105,7 +105,7 @@ public class TaskFilter {
             predicates.add(builder.equal(root.get("status").get("project"), project));
             predicates.add(builder.isNull(root.get("active")));
             predicates.add(builder.notEqual(root.get("type"), TaskType.SUBTASK.ordinal()));
-            sprintId.ifPresent(id -> predicates.add(builder.equal(root.get("sprint").get(NUMBER), id)));
+            sprintId.ifPresent(id -> predicates.add(builder.in(root.join("sprints").get(NUMBER)).value(id)));
             assigneeId.ifPresent(id -> predicates.add(builder.equal(root.get("assignee").get("id"), id)));
             statusId.ifPresent(ids -> predicates.add(builder.in(root.get("status").get(NUMBER)).value(ids)));
             type.ifPresent(types -> predicates.add(builder.in(root.get("type")).value(types)));

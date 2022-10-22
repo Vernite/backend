@@ -28,6 +28,7 @@
 package com.workflow.workflow.task;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -72,8 +73,8 @@ public class TaskRequest {
     @Schema(description = "Instead of word 'attach' send pull request object received from other endpoint: /project/{id}/integration/git/pull")
     @JsonDeserialize(using = PullActionDeserializer.class)
     private Optional<PullAction> pull = Optional.empty();
-    @Schema(description = "New sprint for the task.")
-    private Optional<Optional<Long>> sprintId = Optional.empty();
+    @Schema(description = "List of all sprints for the task.")
+    private Optional<List<Long>> sprintIds = Optional.empty();
 
     public TaskRequest() {
     }
@@ -202,12 +203,12 @@ public class TaskRequest {
         this.pull = Optional.ofNullable(pullAction);
     }
 
-    public Optional<Optional<Long>> getSprintId() {
-        return sprintId;
+    public Optional<List<Long>> getSprintIds() {
+        return sprintIds;
     }
 
-    public void setSprintId(Long sprintId) {
-        this.sprintId = Optional.of(Optional.ofNullable(sprintId));
+    public void setSprintIds(List<Long> sprintIds) {
+        this.sprintIds = Optional.of(sprintIds);
     }
 
     public Optional<String> getPriority() {
