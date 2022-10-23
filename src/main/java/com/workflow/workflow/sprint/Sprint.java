@@ -88,7 +88,7 @@ public class Sprint extends SoftDeleteEntity {
     private Project project;
 
     @OrderBy("name ASC")
-    @ManyToMany(cascade = CascadeType.MERGE)
+    @ManyToMany(mappedBy = "sprints", cascade = CascadeType.MERGE)
     private List<Task> tasks;
 
     public Sprint() {
