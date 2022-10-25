@@ -124,7 +124,7 @@ class ProjectControllerTests {
         Project project = projectRepository.findByIdOrThrow(result.getId());
 
         assertEquals(result, project);
-        assertEquals(3, project.getStatuses().size());
+        assertEquals(0, project.getStatuses().size());
         assertEquals(1, project.getProjectWorkspaces().size());
     }
 
