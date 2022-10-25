@@ -129,9 +129,6 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
         this.statusCounter = new CounterSequence(3);
         this.taskCounter = new CounterSequence();
         this.sprintCounter = new CounterSequence();
-        this.statuses.add(new Status(1, "To Do", 0, false, true, 0, this));
-        this.statuses.add(new Status(2, "In Progress", 0, false, false, 1, this));
-        this.statuses.add(new Status(3, "Done", 0, true, false, 2, this));
     }
 
     /**
