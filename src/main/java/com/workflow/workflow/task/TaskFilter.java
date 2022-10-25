@@ -33,6 +33,7 @@ import java.util.Optional;
 
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.JoinType;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
@@ -47,6 +48,9 @@ import io.swagger.v3.oas.annotations.Parameter;
 @ParameterObject
 public class TaskFilter {
     private static final String NUMBER = "number";
+    private static final String STATUS = "status";
+    private static final String ACTIVE = "active";
+    private static final String SPRINTS = "sprints";
 
     @Parameter(description = "Id of sprint to filter by (filters are combined with 'and')")
     private Optional<Long> sprintId = Optional.empty();
@@ -58,6 +62,8 @@ public class TaskFilter {
     private Optional<List<Integer>> type = Optional.empty();
     @Parameter(description = "Id of parent task to filter by (filters are combined with 'and')")
     private Optional<Long> parentId = Optional.empty();
+    @Parameter(description = "Return only backlog tasks (filters are combined with 'and')")
+    private Optional<Boolean> backlog = Optional.empty();
 
     public Optional<Long> getSprintId() {
         return sprintId;
@@ -99,17 +105,33 @@ public class TaskFilter {
         this.parentId = Optional.of(parentId);
     }
 
+    public Optional<Boolean> getBacklog() {
+        return backlog;
+    }
+
+    public void setBacklog(boolean backlog) {
+        this.backlog = Optional.of(backlog);
+    }
+
     public Specification<Task> toSpecification(Project project) {
         return (Root<Task> root, CriteriaQuery<?> query, CriteriaBuilder builder) -> {
             List<Predicate> predicates = new ArrayList<>();
-            predicates.add(builder.equal(root.get("status").get("project"), project));
-            predicates.add(builder.isNull(root.get("active")));
+            predicates.add(builder.equal(root.get(STATUS).get("project"), project));
+            predicates.add(builder.isNull(root.get(ACTIVE)));
             predicates.add(builder.notEqual(root.get("type"), TaskType.SUBTASK.ordinal()));
-            sprintId.ifPresent(id -> predicates.add(builder.in(root.join("sprints").get(NUMBER)).value(id)));
+            sprintId.ifPresent(id -> predicates.add(builder.in(root.join(SPRINTS).get(NUMBER)).value(id)));
             assigneeId.ifPresent(id -> predicates.add(builder.equal(root.get("assignee").get("id"), id)));
-            statusId.ifPresent(ids -> predicates.add(builder.in(root.get("status").get(NUMBER)).value(ids)));
+            statusId.ifPresent(ids -> predicates.add(builder.in(root.get(STATUS).get(NUMBER)).value(ids)));
             type.ifPresent(types -> predicates.add(builder.in(root.get("type")).value(types)));
             parentId.ifPresent(id -> predicates.add(builder.equal(root.get("parentTask").get(NUMBER), id)));
+            backlog.ifPresent(isBacklog -> {
+                if (Boolean.FALSE.equals(isBacklog)) {
+                    predicates.add(builder.in(root.join(SPRINTS).get(STATUS)).value(ACTIVE));
+                } else {
+                    predicates.add(builder.or(builder.isEmpty(root.get(SPRINTS)),
+                            builder.in(root.join(SPRINTS, JoinType.LEFT).get(STATUS)).value(ACTIVE).not()));
+                }
+            });
             return builder.and(predicates.toArray(new Predicate[predicates.size()]));
         };
     }
