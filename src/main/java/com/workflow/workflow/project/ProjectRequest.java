@@ -39,14 +39,17 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public class ProjectRequest {
     @Schema(maxLength = 50, minLength = 1, description = "The name of the project. Trailing and leading whitespace are removed.")
     private Optional<String> name = Optional.empty();
+    @Schema(maxLength = 1000, description = "The description of the project. Trailing and leading whitespace are removed.")
+    private Optional<String> description = Optional.empty();
     @Schema(description = "When creating project will be created in this workspace. When updating project will be moved to this workspace.")
     private Optional<Long> workspaceId = Optional.empty();
 
     public ProjectRequest() {
     }
 
-    public ProjectRequest(String name, Long workspaceId) {
+    public ProjectRequest(String name, String description, Long workspaceId) {
         this.name = Optional.ofNullable(name);
+        this.description = Optional.ofNullable(description);
         this.workspaceId = Optional.ofNullable(workspaceId);
     }
 
@@ -58,11 +61,16 @@ public class ProjectRequest {
      */
     public Project createEntity() {
         String nameString = getName().orElseThrow(() -> new FieldErrorException("name", "missing"));
-        return new Project(nameString);
+        String descriptionString = getDescription().orElse("");
+        return new Project(nameString, descriptionString);
     }
 
     public Optional<String> getName() {
         return name;
+    }
+
+    public Optional<String> getDescription() {
+        return description;
     }
 
     public Optional<Long> getWorkspaceId() {
@@ -81,6 +89,14 @@ public class ProjectRequest {
             throw new FieldErrorException("name", "too long");
         }
         this.name = Optional.of(name);
+    }
+
+    public void setDescription(String description) {
+        description = description.trim();
+        if (description.length() > 1000) {
+            throw new FieldErrorException("name", "too long");
+        }
+        this.description = Optional.of(description);
     }
 
     public void setWorkspaceId(Long workspaceId) {

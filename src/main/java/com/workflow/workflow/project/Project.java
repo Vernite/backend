@@ -75,6 +75,9 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     @Column(nullable = false, length = 50)
     private String name;
 
+    @Column(nullable = false, length = 1000)
+    private String description;
+
     @JsonIgnore
     @OneToMany(mappedBy = "project")
     @OnDelete(action = OnDeleteAction.CASCADE)
@@ -117,7 +120,12 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     }
 
     public Project(String name) {
+        this(name, "");
+    }
+
+    public Project(String name, String description) {
         this.name = name;
+        this.description = description;
         this.statusCounter = new CounterSequence(3);
         this.taskCounter = new CounterSequence();
         this.sprintCounter = new CounterSequence();
@@ -134,6 +142,7 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
      */
     public void update(@NotNull ProjectRequest request) {
         request.getName().ifPresent(this::setName);
+        request.getDescription().ifPresent(this::setDescription);
     }
 
     /**
@@ -167,6 +176,14 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public List<ProjectWorkspace> getProjectWorkspaces() {
