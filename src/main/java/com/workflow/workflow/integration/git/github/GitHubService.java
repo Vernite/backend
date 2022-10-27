@@ -78,7 +78,7 @@ import reactor.core.publisher.Mono;
 public class GitHubService {
     private static final String APP_ID = "195507";
     private static final String AUTHORIZATION = "Authorization";
-    private static final String INTEGRATION_LINK = "https://github.com/apps/workflow-2022/installations/new";
+    private static final String INTEGRATION_LINK = "https://github.com/apps/vernite/installations/new";
     private static final String ACCEPT = "Accept";
     private static final String BEARER = "Bearer ";
     private static final String APPLICATION_JSON_GITHUB = "application/vnd.github.v3+json";
