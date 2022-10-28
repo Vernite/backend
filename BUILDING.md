@@ -1,11 +1,11 @@
-# Building Workflow backend
+# Building Vernite backend
 
 ## Prerequisites:
 - JDK >= 17
 - Maven 3
 - MySQL Server >= 8.0.26
 - `application.properties` in the working directory
-- `workflow-2022.private-key.der` in the working directory
+- `vernite-2022.private-key.der` in the working directory
 
 ### Java 17
 
@@ -27,7 +27,7 @@ $ sudo apt install maven
 
 ### MySQL
 
-MySQL can be downloaded from [dev.mysql.com](https://dev.mysql.com/downloads/mysql/). Create an empty databases named `workflow` and `workflow_test`.
+MySQL can be downloaded from [dev.mysql.com](https://dev.mysql.com/downloads/mysql/). Create an empty databases named `vernite` and `vernite_test`.
 
 ### `application.properties`
 
@@ -39,7 +39,7 @@ githubKey=...
 maxmindPassword=...
 ```
 - `spring.mail.password` - it's password to SMTP for sending emails. Other SMTP settings can be configured in `./src/main/resources/application.properties`.
-- `spring.datasource.password` - password to connect to the database. The default username when connecting is `workflow` (host `localhost:3306`)
+- `spring.datasource.password` - password to connect to the database. The default username when connecting is `vernite` (host `localhost:3306`)
 - `githubKey` - you need to create [GitHub App](https://docs.github.com/en/developers/apps/building-github-apps) and copy key
 - `maxmindPassword` - it is used to check the user location on the session list screen. You can generate a license key on the official [MaxMind](https://www.maxmind.com/en/accounts/current/license-key) website.
 
@@ -61,7 +61,7 @@ From the `general` section go to `private keys` and `generate private key`. Conv
 ```bash
 openssl x509 -in cert.pem -out cert.der -outform DER
 ```
-Rename der file to `workflow-2022.private-key.der` and copy it to the working directory.
+Rename der file to `vernite-2022.private-key.der` and copy it to the working directory.
 
 ## Building
 
@@ -80,14 +80,14 @@ After build you can generate jacoco report and javadocs:
 ```console
 $ mvn jacoco:report javadoc:javadoc
 ```
-- JaCoCo report is available online at https://sampandonte.github.io/workflow/jacoco/
-- Javadocs: https://sampandonte.github.io/workflow/apidocs/ \
+- JaCoCo report is available online at https://sampandonte.github.io/vernite/jacoco/
+- Javadocs: https://sampandonte.github.io/vernite/apidocs/ \
   Currently, project does not support 3rd plugins, so javadocs are not needed, but this may change in the future.
 
 ## Running
 
 ```console
-$ java -jar target/workflow-VERSION.jar
+$ java -jar target/vernite-VERSION.jar
 ```
 
 Replace `VERSION` with the current version, e.g. `0.0.1-SNAPSHOT`. After the first run, schema database will be automatically created.
