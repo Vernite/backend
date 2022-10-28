@@ -74,7 +74,7 @@ public class AuthControllerTests {
 
     @Test
     void loginByUsername() {
-        User u = new User("name", "surname", "usernameX", "email@127.0.0.1", "password");
+        User u = new User("name", "surname", "usernameX", "email@127.0.0.1", "password", "English", "YYYY-MM-DD");
         User registeredUser = userRepository.save(u);
 
         LoginRequest req = new LoginRequest();
@@ -164,7 +164,7 @@ public class AuthControllerTests {
 
     @Test
     void resetPassword() {
-        User u = new User("name", "surname", "username2", "email@127.0.0.1", "password");
+        User u = new User("name", "surname", "username2", "email@127.0.0.1", "password", "English", "YYYY-MM-DD");
         userRepository.save(u);
 
         PasswordRecoveryRequest req = new PasswordRecoveryRequest();
@@ -184,6 +184,8 @@ public class AuthControllerTests {
         req.setEmail("test@127.0.0.1");
         req.setName("test name");
         req.setSurname("test surname");
+        req.setLanguage("English");
+        req.setDateFormat("YYYY-MM-DD");
 
         client.post().uri("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -195,6 +197,8 @@ public class AuthControllerTests {
                     assertEquals(u.getEmail(), req.getEmail());
                     assertEquals(u.getName(), req.getName());
                     assertEquals(u.getSurname(), req.getSurname());
+                    assertEquals(u.getLanguage(), req.getLanguage());
+                    assertEquals(u.getDateFormat(), req.getDateFormat());
                 });
     }
 }

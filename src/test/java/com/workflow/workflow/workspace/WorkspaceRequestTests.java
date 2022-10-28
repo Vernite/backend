@@ -42,7 +42,7 @@ import com.workflow.workflow.utils.FieldErrorException;
 @AutoConfigureMockMvc
 @TestPropertySource({ "classpath:application.properties", "classpath:application-test.properties" })
 class WorkspaceRequestTests {
-    private static final User user = new User("name", "surname", "username", "email", "password");
+    private static final User user = new User("name", "surname", "username", "email", "password", "English", "YYYY-MM-DD");
 
     @Test
     void setNameTest() {

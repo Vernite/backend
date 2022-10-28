@@ -239,6 +239,12 @@ public class AuthController {
         if (req.getSurname() != null) {
             loggedUser.setSurname(req.getSurname());
         }
+        if (req.getLanguage() != null) {
+            loggedUser.setLanguage(req.getLanguage());
+        }
+        if (req.getDateFormat() != null) {
+            loggedUser.setDateFormat(req.getDateFormat());
+        }
         userRepository.save(loggedUser);
         return loggedUser;
     }
@@ -286,6 +292,8 @@ public class AuthController {
         u.setPassword(req.getPassword());
         u.setSurname(req.getSurname());
         u.setUsername(req.getUsername());
+        u.setLanguage(req.getLanguage());
+        u.setDateFormat(req.getDateFormat());
         u.setCounterSequence(new CounterSequence());
         u = userRepository.save(u);
         createSession(request, response, u, false);

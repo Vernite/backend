@@ -33,6 +33,8 @@ public class RegisterRequest {
     private String name;
     private String surname;
     private String username;
+    private String language;
+    private String dateFormat;
 
     public String getEmail() {
         return email;
@@ -72,5 +74,21 @@ public class RegisterRequest {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(String language) {
+        this.language = language;
+    }
+
+    public String getDateFormat() {
+        return dateFormat;
+    }
+
+    public void setDateFormat(String dateFormat) {
+        this.dateFormat = dateFormat;
     }
 }

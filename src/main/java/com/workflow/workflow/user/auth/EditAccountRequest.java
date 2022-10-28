@@ -31,6 +31,8 @@ public class EditAccountRequest {
     private String avatar;
     private String name;
     private String surname;
+    private String language;
+    private String dateFormat;
 
     public String getAvatar() {
         return avatar;
@@ -54,6 +56,22 @@ public class EditAccountRequest {
 
     public void setSurname(String surname) {
         this.surname = surname;
+    }
+
+    public String getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(String language) {
+        this.language = language;
+    }
+
+    public String getDateFormat() {
+        return dateFormat;
+    }
+
+    public void setDateFormat(String dateFormat) {
+        this.dateFormat = dateFormat;
     }
 
 }

@@ -41,7 +41,7 @@ import com.workflow.workflow.user.User;
 @AutoConfigureMockMvc
 @TestPropertySource({ "classpath:application.properties", "classpath:application-test.properties" })
 class WorkspaceKeyTests {
-    private static final User user = new User("name", "surname", "username", "email", "password");
+    private static final User user = new User("name", "surname", "username", "email", "password", "English", "YYYY-MM-DD");
 
     @Test
     void equalsTest() {

@@ -94,6 +94,9 @@ public class User {
     @Column(nullable = false, unique = true)
     private String username;
 
+    private String language;
+    private String dateFormat;
+
     @JsonIgnore
     @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToOne(cascade = { CascadeType.PERSIST }, optional = false)
@@ -110,11 +113,18 @@ public class User {
     }
 
     public User(String name, String surname, String username, String email, String password) {
+        this(name, surname, username, email, password, null, null);
+    }
+
+    public User(String name, String surname, String username, String email, String password, String language,
+            String dateFormat) {
         this.setName(name);
         this.setSurname(surname);
         this.setUsername(username);
         this.setEmail(email);
         this.setPassword(password);
+        this.setLanguage(language);
+        this.setDateFormat(dateFormat);
         this.setCounterSequence(new CounterSequence());
     }
 
@@ -239,6 +249,22 @@ public class User {
         this.setSalt(salt);
     }
 
+    public String getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(String language) {
+        this.language = language;
+    }
+
+    public String getDateFormat() {
+        return dateFormat;
+    }
+
+    public void setDateFormat(String dateFormat) {
+        this.dateFormat = dateFormat;
+    }
+
     public CounterSequence getCounterSequence() {
         return counterSequence;
     }
@@ -253,7 +279,7 @@ public class User {
         int result = 1;
         result = prime * result + Arrays.hashCode(getHash());
         result = prime * result + Arrays.hashCode(getSalt());
-        result = prime * result + Objects.hash(getAvatar(), getCounterSequence(), getEmail(), getId(), getName(), getSurname(), getUsername(), getWorkspaces(), getDeleted());
+        result = prime * result + Objects.hash(getAvatar(), getCounterSequence(), getEmail(), getId(), getName(), getSurname(), getUsername(), getWorkspaces(), getDeleted(), getLanguage(), getDateFormat());
         return result;
     }
 
@@ -268,6 +294,7 @@ public class User {
                 && Objects.equals(getEmail(), other.getEmail()) && Arrays.equals(getHash(), other.getHash()) && getId() == other.getId()
                 && Objects.equals(getName(), other.getName()) && Arrays.equals(getSalt(), other.getSalt())
                 && Objects.equals(getSurname(), other.getSurname()) && Objects.equals(getUsername(), other.getUsername())
-                && Objects.equals(getWorkspaces(), other.getWorkspaces()) && Objects.equals(getDeleted(), other.getDeleted());
+                && Objects.equals(getWorkspaces(), other.getWorkspaces()) && Objects.equals(getDeleted(), other.getDeleted())
+                && Objects.equals(getLanguage(), other.getLanguage()) && Objects.equals(getDateFormat(), other.getDateFormat());
     }
 }
