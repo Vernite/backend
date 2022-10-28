@@ -35,4 +35,5 @@ build/
 .mvn
 
 workflow-2022.private-key.der
+vernite-2022.private-key.der
 application.properties

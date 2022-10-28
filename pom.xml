@@ -7,11 +7,11 @@
 		<version>2.6.6</version>
 		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.workflow</groupId>
-	<artifactId>workflow</artifactId>
+	<groupId>dev.vernite</groupId>
+	<artifactId>vernite</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>workflow</name>
-	<description>Workflow project</description>
+	<name>vernite</name>
+	<description>Vernite backend</description>
 	<properties>
 		<java.version>17</java.version>
 	</properties>

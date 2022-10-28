@@ -6,7 +6,7 @@ The [Vernite](https://vernite.dev/) application is a product that combines the m
 
 ## Getting Started
 
-For end users, Workflow is available online at https://vernite.dev/.
+For end users, Vernite is available online at https://vernite.dev/.
 
 Build instructions are available [here](BUILDING.md).
 
