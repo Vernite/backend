@@ -44,9 +44,9 @@ jobs:
         echo "${{ secrets.AUTO_DEPLOY_KEY }}" | tr -d '\r' | ssh-add - > /dev/null
         mkdir -p ~/.ssh
         chmod 700 ~/.ssh
-        ssh-keyscan -t rsa -p 2224 51.77.50.209 >> ~/.ssh/known_hosts
-        rsync -a -e 'ssh -p 2224' target/vernite*jar backend@51.77.50.209:~/workflow.jar
-        ssh -p 2224 backend@51.77.50.209 "sudo /usr/bin/systemctl restart workflow.service"
+        ssh-keyscan -t rsa -p 2224 51.83.255.98 >> ~/.ssh/known_hosts
+        rsync -a -e 'ssh -p 2224' target/vernite*jar backend@51.83.255.98:~/workflow.jar
+        ssh -p 2224 backend@51.83.255.98 "sudo /usr/bin/systemctl restart workflow.service"
     - name: Generate Javadoc & Jacoco
       run: mvn jacoco:report javadoc:javadoc
     - name: Deploy
