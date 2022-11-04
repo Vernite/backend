@@ -338,7 +338,9 @@ public class GitHubService {
         if (task.getAssignee() != null) {
             installations.addAll(installationRepository.findByUser(task.getAssignee()));
         }
-        gitHubPullRequest.setState("open");
+        if (!gitHubTask.getMerged()) {
+            gitHubPullRequest.setState("open");
+        }
         gitHubPullRequest.setNumber(gitHubTask.getIssueId());
         return refreshToken(integration.getInstallation())
                 .flatMap(inst -> hasCollaborator(inst, gitHubTask.getGitHubIntegration(), gitHubPullRequest,
