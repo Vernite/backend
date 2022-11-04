@@ -65,10 +65,10 @@ public class StatusController {
     @Autowired
     private CounterSequenceRepository counterSequenceRepository;
 
-    @Operation(summary = "Get information on all statuses", description = "This method returns array of all statuses for project with given ID. Result can be empty array. Throws status 404 when project with given ID does not exist.")
+    @Operation(summary = "Get information on all statuses", description = "This method returns array of all statuses for project with given ID.")
     @ApiResponse(responseCode = "200", description = "List of all project statuses. Can be empty.")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
+    @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping
     public List<Status> getAll(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId) {
         Project project = projectRepository.findByIdOrThrow(projectId);
@@ -78,11 +78,11 @@ public class StatusController {
         return project.getStatuses();
     }
 
-    @Operation(summary = "Create status", description = "This method creates new status for project. On success returns newly created status. Throws status 404 when user with given ID does not exist. Throws status 400 when sent data are incorrect.")
+    @Operation(summary = "Create status", description = "This method creates new status for project.")
     @ApiResponse(responseCode = "200", description = "Newly created status.")
-    @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content())
+    @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(responseCode = "404", description = "User with given ID not found.", content = @Content())
+    @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PostMapping
     public Status create(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @RequestBody StatusRequest request) {
@@ -94,10 +94,10 @@ public class StatusController {
         return statusRepository.save(request.createEntity(id, project));
     }
 
-    @Operation(summary = "Get status information", description = "This method is used to retrieve status with given ID. On success returns status with given ID. Throws 404 when project or status does not exist.")
+    @Operation(summary = "Get status information", description = "This method is used to retrieve status with given ID.")
     @ApiResponse(responseCode = "200", description = "Project with given ID.")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content())
+    @ApiResponse(responseCode = "404", description = "Project or status with given ID not found.", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/{id}")
     public Status get(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long id) {
@@ -108,10 +108,10 @@ public class StatusController {
         return statusRepository.findByProjectAndNumberOrThrow(project, id);
     }
 
-    @Operation(summary = "Alter the status", description = "This method is used to modify existing status information. On success returns modified status. Throws 404 when project or status does not exist or when workspace with given ID is not in relation with given project.")
+    @Operation(summary = "Alter the status", description = "This method is used to modify existing status information.")
     @ApiResponse(responseCode = "200", description = "Modified status information with given ID.")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(responseCode = "404", description = "Status or project with given ID not found.", content = @Content())
+    @ApiResponse(responseCode = "404", description = "Status or project with given ID not found.", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PutMapping("/{id}")
     public Status update(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long id, @RequestBody StatusRequest request) {
@@ -124,11 +124,11 @@ public class StatusController {
         return statusRepository.save(status);
     }
 
-    @Operation(summary = "Delete status", description = "This method is used to delete status. On success does not return anything. Throws 404 when status or project does not exist.")
+    @Operation(summary = "Delete status", description = "This method is used to delete status. On success does not return anything.")
     @ApiResponse(responseCode = "200", description = "Status with given ID has been deleted.")
-    @ApiResponse(responseCode = "400", description = "Status is not empty.")
+    @ApiResponse(responseCode = "400", description = "Status is not empty.", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(responseCode = "404", description = "Project or status with given ID not found.")
+    @ApiResponse(responseCode = "404", description = "Project or status with given ID not found.", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @DeleteMapping("/{id}")
     public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long id) {
