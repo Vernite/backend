@@ -30,17 +30,21 @@ package com.workflow.workflow.meeting;
 import java.util.Date;
 import java.util.Set;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.ManyToMany;
+import javax.persistence.ManyToOne;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.workflow.workflow.project.Project;
 import com.workflow.workflow.user.User;
+import com.workflow.workflow.utils.FieldErrorException;
 import com.workflow.workflow.utils.SoftDeleteEntity;
 
 @Entity
@@ -66,17 +70,38 @@ public class Meeting extends SoftDeleteEntity {
     @Column(nullable = false)
     private Date endDate;
 
-    @ManyToMany
+    @ManyToOne(optional = false)
+    private Project project;
+
+    @ManyToMany(cascade = CascadeType.MERGE)
     private Set<User> participants;
 
     public Meeting() {
     }
 
-    public Meeting(String name, String description, Date startDate, Date endDate) {
+    public Meeting(Project project, String name, String description, Date startDate, Date endDate) {
+        this.project = project;
         this.name = name;
         this.description = description;
         this.startDate = startDate;
         this.endDate = endDate;
+    }
+
+    /**
+     * Update meeting entity with request data.
+     * 
+     * @param request request data
+     */
+    public void update(MeetingRequest request) {
+        request.getName().ifPresent(this::setName);
+        request.getDescription().ifPresent(this::setDescription);
+        request.getLocation().ifPresent(this::setLocation);
+        request.getStartDate().ifPresent(this::setStartDate);
+        request.getEndDate().ifPresent(this::setEndDate);
+
+        if (getStartDate().after(getEndDate())) {
+            throw new FieldErrorException("date", "Start date must be before end date");
+        }
     }
 
     public long getId() {
@@ -125,5 +150,21 @@ public class Meeting extends SoftDeleteEntity {
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public Set<User> getParticipants() {
+        return participants;
+    }
+
+    public void setParticipants(Set<User> participants) {
+        this.participants = participants;
+    }
+
+    public Project getProject() {
+        return project;
+    }
+
+    public void setProject(Project project) {
+        this.project = project;
     }
 }

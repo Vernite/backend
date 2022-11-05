@@ -27,7 +27,17 @@
 
 package com.workflow.workflow.meeting;
 
+import java.util.List;
+
+import com.workflow.workflow.project.Project;
 import com.workflow.workflow.utils.SoftDeleteRepository;
 
 public interface MeetingRepository extends SoftDeleteRepository<Meeting, Long> {
+    /**
+     * Finds a meeting by its id and project.
+     * 
+     * @param project the project.
+     * @return optional of the meeting.
+     */
+    List<Meeting> findAllByProjectAndActiveNull(Project project);
 }

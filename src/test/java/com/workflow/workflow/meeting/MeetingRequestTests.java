@@ -96,7 +96,7 @@ public class MeetingRequestTests {
         meetingRequest.setStartDate(new Date());
         meetingRequest.setEndDate(Date.from(Instant.now().plusSeconds(100)));
 
-        Meeting meeting = meetingRequest.createEntity();
+        Meeting meeting = meetingRequest.createEntity(null);
         assertEquals("Test", meeting.getName());
         assertEquals("Test", meeting.getDescription());
         assertEquals(meetingRequest.getStartDate().get(), meeting.getStartDate());
@@ -104,6 +104,6 @@ public class MeetingRequestTests {
 
         meetingRequest.setEndDate(Date.from(Instant.now().minusSeconds(100)));
 
-        assertThrows(FieldErrorException.class, () -> meetingRequest.createEntity());
+        assertThrows(FieldErrorException.class, () -> meetingRequest.createEntity(null));
     }
 }

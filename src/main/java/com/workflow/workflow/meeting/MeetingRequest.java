@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.workflow.workflow.project.Project;
 import com.workflow.workflow.utils.FieldErrorException;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -45,10 +46,11 @@ public class MeetingRequest {
     /**
      * Creates a new meeting entity from meeting request.
      * 
+     * @param project the project of the meeting
      * @return the meeting entity.
      * @throws FieldErrorException if the request is invalid.
      */
-    public Meeting createEntity() {
+    public Meeting createEntity(Project project) {
         String nameString = getName().orElseThrow(() -> new FieldErrorException("name", MISSING));
         String descriptionString = getDescription().orElse("");
         Date startDateString = getStartDate().orElseThrow(() -> new FieldErrorException("startDate", MISSING));
@@ -58,7 +60,7 @@ public class MeetingRequest {
             throw new FieldErrorException("dates", "must be after startDate");
         }
 
-        return new Meeting(nameString, descriptionString, startDateString, endDateString);
+        return new Meeting(project, nameString, descriptionString, startDateString, endDateString);
     }
 
     public Optional<String> getName() {
