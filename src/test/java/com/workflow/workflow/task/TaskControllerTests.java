@@ -131,7 +131,7 @@ class TaskControllerTests {
             session = sessionRepository.findBySession("session_token_tasks_tests").orElseThrow();
         }
         project = projectRepository.save(new Project("Tasks project"));
-        sprint = sprintRepository.save(new Sprint(1, "name", new Date(), new Date(), "status", "description", project));
+        sprint = sprintRepository.save(new Sprint(1, "name", new Date(), new Date(), "active", "description", project));
         forbiddenProject = projectRepository.save(new Project("Tasks project forbidden"));
         Workspace workspace = workspaceRepository.save(new Workspace(1, user, "tasks test workspace"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));

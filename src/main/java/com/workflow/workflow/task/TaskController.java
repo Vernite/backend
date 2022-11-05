@@ -105,9 +105,21 @@ public class TaskController {
      */
     private void handleSprint(List<Long> sprints, Task task, Project project) {
         HashSet<Sprint> sprintSet = new HashSet<>();
+        HashSet<Long> oldSprintSet = new HashSet<>();
+        for (Sprint sprint : task.getSprints()) {
+            if (!"active".equals(sprint.getStatus())) {
+                oldSprintSet.add(sprint.getNumber());
+            }
+        }
         for (Long sprintId : sprints) {
             Sprint sprint = sprintRepository.findByProjectAndNumberOrThrow(project, sprintId);
             sprintSet.add(sprint);
+            if (!oldSprintSet.remove(sprint.getNumber()) && !sprint.getStatus().equals("active")) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot add task to not active sprint");
+            }
+        }
+        if (!oldSprintSet.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot remove closed sprint from task");
         }
         task.setSprints(sprintSet);
     }
