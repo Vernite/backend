@@ -45,6 +45,8 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotNull;
 
 import com.workflow.workflow.counter.CounterSequence;
+import com.workflow.workflow.event.Event;
+import com.workflow.workflow.event.EventService;
 import com.workflow.workflow.task.time.TimeTrack;
 import com.workflow.workflow.task.time.TimeTrackRepository;
 import com.workflow.workflow.user.DeleteAccountRequest;
@@ -115,6 +117,9 @@ public class AuthController {
     @Autowired
     private TimeTrackRepository timeTrackRepository;
 
+    @Autowired
+    private EventService eventService;
+
     @Operation(summary = "Logged user", description = "This method returns currently logged user.")
     @ApiResponse(responseCode = "200", description = "Logged user.")
     @ApiResponse(responseCode = "401", description = "User is not logged.", content = @Content())
@@ -129,6 +134,14 @@ public class AuthController {
     @GetMapping("/me/track")
     public List<TimeTrack> getTimeTracks(@NotNull @Parameter(hidden = true) User loggedUser) {
         return timeTrackRepository.findByUser(loggedUser);
+    }
+
+    @Operation(summary = "Get user events", description = "This method gets events for logged in user. `From` and `to` are required timestamps.")
+    @ApiResponse(responseCode = "200", description = "List with events for current user. Empty list if no events. Tasks are only displayed if they are not finished and assigned to user.")
+    @ApiResponse(responseCode = "401", description = "User is not logged.", content = @Content())
+    @GetMapping("/me/events")
+    public List<Event> getEvents(@NotNull @Parameter(hidden = true) User loggedUser, long from, long to) {
+        return eventService.getUserEvents(loggedUser, new Date(from), new Date(to));
     }
 
     @Operation(summary = "Delete account", description = "This method deletes currently logged user by sending an e-mail with a confirmation link.")

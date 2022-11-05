@@ -28,10 +28,13 @@
 package com.workflow.workflow.project;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import javax.validation.constraints.NotNull;
 
+import com.workflow.workflow.event.Event;
+import com.workflow.workflow.event.EventService;
 import com.workflow.workflow.integration.git.GitTaskService;
 import com.workflow.workflow.integration.git.Issue;
 import com.workflow.workflow.integration.git.PullRequest;
@@ -86,6 +89,9 @@ public class ProjectController {
 
     @Autowired
     private TimeTrackRepository timeTrackRepository;
+
+    @Autowired
+    private EventService eventService;
     
     @Autowired
     GitTaskService service;
@@ -277,5 +283,18 @@ public class ProjectController {
             throw new ObjectNotFoundException();
         }
         return service.getPullRequests(project);
+    }
+
+    @Operation(summary = "Retrieve events for project", description = "Retrieves events from specified timestamp for project.")
+    @ApiResponse(description = "List of events.", responseCode = "200")
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @GetMapping("/{id}/events")
+    public List<Event> getEvents(@NotNull @Parameter(hidden = true) User user, @PathVariable long id, long from, long to) {
+        Project project = projectRepository.findByIdOrThrow(id);
+        if (project.member(user) == -1) {
+            throw new ObjectNotFoundException();
+        }
+        return eventService.getProjectEvents(project, new Date(from), new Date(to));
     }
 }

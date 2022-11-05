@@ -85,6 +85,7 @@ public interface TaskRepository extends SoftDeleteRepository<Task, Long>, JpaSpe
         return findAll((root, query, cb) -> cb.and(
                 cb.isNotNull(root.get("assignee")),
                 cb.equal(root.get("assignee"), user),
+                cb.equal(root.get("status").get("isFinal"), false),
                 cb.isNull(root.get("active")),
                 cb.or(
                         cb.and(
@@ -106,6 +107,7 @@ public interface TaskRepository extends SoftDeleteRepository<Task, Long>, JpaSpe
     default List<Task> findAllFromProjectAndDate(Project project, Date startDate, Date endDate) {
         return findAll((root, query, cb) -> cb.and(
                 cb.equal(root.get("status").get("project"), project),
+                cb.equal(root.get("status").get("isFinal"), false),
                 cb.isNull(root.get("active")),
                 cb.or(
                         cb.and(

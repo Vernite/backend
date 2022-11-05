@@ -31,6 +31,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.springframework.data.annotation.ReadOnlyProperty;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.workflow.workflow.sprint.Sprint;
 import com.workflow.workflow.task.Task;
@@ -109,7 +111,7 @@ public class Event implements Comparable<Event> {
         return type;
     }
 
-    @JsonIgnore
+    @ReadOnlyProperty
     public void setType(EventType type) {
         this.type = type;
     }
@@ -164,6 +166,52 @@ public class Event implements Comparable<Event> {
 
     @Override
     public int compareTo(Event o) {
-        return startDate.compareTo(o.startDate) == 0 ? endDate.compareTo(o.endDate) : startDate.compareTo(o.startDate);
+        int result;
+        if (startDate != null && o.startDate != null) {
+            result = startDate.compareTo(o.startDate);
+            if (result != 0) {
+                return result;
+            }
+            result = endDate.compareTo(o.endDate);
+            if (result != 0) {
+                return result;
+            }
+        } else if (startDate != null) {
+            result = startDate.compareTo(o.endDate);
+            if (result != 0) {
+                return result;
+            }
+            result = endDate.compareTo(o.endDate);
+            if (result != 0) {
+                return result;
+            }
+        } else if (o.startDate != null) {
+            result = endDate.compareTo(o.startDate);
+            if (result != 0) {
+                return result;
+            }
+            result = endDate.compareTo(o.endDate);
+            if (result != 0) {
+                return result;
+            }
+        } else {
+            result = endDate.compareTo(o.endDate);
+            if (result != 0) {
+                return result;
+            }
+        }
+        result = Integer.compare(type.ordinal(), o.type.ordinal());
+        if (result != 0) {
+            return result;
+        }
+        result = name.compareTo(o.name);
+        if (result != 0) {
+            return result;
+        }
+        result = Long.compare(projectId, o.projectId);
+        if (result != 0) {
+            return result;
+        }
+        return Long.compare(relatedId, o.relatedId);
     }
 }
