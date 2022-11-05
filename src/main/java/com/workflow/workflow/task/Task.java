@@ -206,6 +206,7 @@ public class Task extends SoftDeleteEntity {
         request.getName().ifPresent(this::setName);
         request.getDescription().ifPresent(this::setDescription);
         request.getType().ifPresent(this::setType);
+        request.getStoryPoints().ifPresent(this::setStoryPoints);
     }
 
     public long getId() {
@@ -403,7 +404,7 @@ public class Task extends SoftDeleteEntity {
         return storyPoints;
     }
 
-    public void setStoryPoints(long storyPoints) {
+    public void setStoryPoints(Long storyPoints) {
         this.storyPoints = storyPoints;
     }
 }

@@ -75,6 +75,8 @@ public class TaskRequest {
     private Optional<PullAction> pull = Optional.empty();
     @Schema(description = "List of all sprints for the task.")
     private Optional<List<Long>> sprintIds = Optional.empty();
+    @Schema(description = "Amount of story points for the task.")
+    private Optional<Long> storyPoints = Optional.empty();
 
     public TaskRequest() {
     }
@@ -220,5 +222,16 @@ public class TaskRequest {
             throw new FieldErrorException("priority", NULL_VALUE);
         }
         this.priority = Optional.of(priority);
+    }
+
+    public Optional<Long> getStoryPoints() {
+        return storyPoints;
+    }
+
+    public void setStoryPoints(Long storyPoints) {
+        if (storyPoints == null) {
+            throw new FieldErrorException("storyPoints", NULL_VALUE);
+        }
+        this.storyPoints = Optional.of(storyPoints);
     }
 }

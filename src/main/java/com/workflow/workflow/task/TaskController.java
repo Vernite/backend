@@ -192,6 +192,7 @@ public class TaskController {
         taskRequest.getSprintIds().ifPresent(sprintId -> handleSprint(sprintId, task, project));
         taskRequest.getAssigneeId().ifPresent(assigneeId -> handleAssignee(assigneeId, task));
         taskRequest.getParentTaskId().ifPresent(parentTaskId -> handleParent(parentTaskId, task, project));
+        taskRequest.getStoryPoints().ifPresent(task::setStoryPoints);
 
         if (task.getType() == Task.TaskType.SUBTASK.ordinal() && task.getParentTask() == null) {
             throw new FieldErrorException(PARENT_FIELD, "subtask must have parent");

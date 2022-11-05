@@ -109,6 +109,7 @@ class TaskControllerTests {
         assertEquals(expected.getIssue(), actual.getIssue());
         assertEquals(expected.getPriority(), actual.getPriority());
         assertEquals(expected.getPull(), actual.getPull());
+        assertEquals(expected.getStoryPoints(), actual.getStoryPoints());
     }
 
     @BeforeAll
@@ -411,11 +412,13 @@ class TaskControllerTests {
         taskEquals(task, result);
 
         TaskRequest request = new TaskRequest("new", "new", project.getStatuses().get(1).getNumber(), 1, "medium");
+        request.setStoryPoints(10L);
         task.setType(1);
         task.setPriority("medium");
         task.setName(request.getName().get());
         task.setDescription(request.getDescription().get());
         task.setStatus(project.getStatuses().get(1));
+        task.setStoryPoints(10L);
 
         result = client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
