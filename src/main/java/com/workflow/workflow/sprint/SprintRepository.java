@@ -27,13 +27,18 @@
 
 package com.workflow.workflow.sprint;
 
+import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
 import com.workflow.workflow.project.Project;
+import com.workflow.workflow.user.User;
 import com.workflow.workflow.utils.ObjectNotFoundException;
 import com.workflow.workflow.utils.SoftDeleteRepository;
 
-public interface SprintRepository extends SoftDeleteRepository<Sprint, Long> {
+public interface SprintRepository extends SoftDeleteRepository<Sprint, Long>, JpaSpecificationExecutor<Sprint> {
     /**
      * Finds a sprint by its number and project.
      * 
@@ -53,5 +58,39 @@ public interface SprintRepository extends SoftDeleteRepository<Sprint, Long> {
      */
     default Sprint findByProjectAndNumberOrThrow(Project project, long number) {
         return findByProjectAndNumberAndActiveNull(project, number).orElseThrow(ObjectNotFoundException::new);
+    }
+
+    /**
+     * Finds sprints in user projects and between dates.
+     * 
+     * @param user      the user.
+     * @param startDate the start date.
+     * @param endDate   the end date.
+     * @return the sprints.
+     */
+    default List<Sprint> findAllFromUserAndDate(User user, Date startDate, Date endDate) {
+        return findAll((root, query, cb) -> cb.and(
+                cb.or(
+                        cb.between(root.get("startDate"), startDate, endDate),
+                        cb.between(root.get("finishDate"), startDate, endDate)),
+                cb.equal(root.join("project").join("projectWorkspaces").join("workspace").join("user"), user),
+                cb.isNull(root.get("active"))));
+    }
+
+    /**
+     * Finds sprints in projects and between dates.
+     * 
+     * @param projects  the projects.
+     * @param startDate the start date.
+     * @param endDate   the end date.
+     * @return the sprints.
+     */
+    default List<Sprint> findAllFromProjectAndDate(Project project, Date startDate, Date endDate) {
+        return findAll((root, query, cb) -> cb.and(
+                cb.or(
+                        cb.between(root.get("startDate"), startDate, endDate),
+                        cb.between(root.get("finishDate"), startDate, endDate)),
+                cb.equal(root.get("project"), project),
+                cb.isNull(root.get("active"))));
     }
 }
