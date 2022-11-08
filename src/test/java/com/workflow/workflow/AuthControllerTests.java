@@ -30,6 +30,8 @@ package com.workflow.workflow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.util.Date;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -37,13 +39,16 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
+import com.workflow.workflow.event.Event;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.user.UserRepository;
+import com.workflow.workflow.user.UserSession;
 import com.workflow.workflow.user.UserSessionRepository;
 import com.workflow.workflow.user.auth.AuthController;
 import com.workflow.workflow.user.auth.ChangePasswordRequest;
@@ -200,5 +205,28 @@ public class AuthControllerTests {
                     assertEquals(u.getLanguage(), req.getLanguage());
                     assertEquals(u.getDateFormat(), req.getDateFormat());
                 });
+    }
+
+    @Test
+    void getUserEventsSuccess() {
+        User u = new User("name", "surname", "usernameX", "email@127.0.0.1", "password", "English", "YYYY-MM-DD");
+        User registeredUser = userRepository.save(u);
+
+        UserSession session = new UserSession();
+        session.setIp("127.0.0.1");
+        session.setSession("session_token_events_tests");
+        session.setLastUsed(new Date());
+        session.setRemembered(true);
+        session.setUserAgent("userAgent");
+        session.setUser(registeredUser);
+        try {
+            session = userSessionRepository.save(session);
+        } catch (DataIntegrityViolationException e) {
+            session = userSessionRepository.findBySession("session_token_projects_tests").orElseThrow();
+        }
+
+        client.get().uri("/auth/me/events?from=1&to=1000")
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Event.class).hasSize(0);
     }
 }

@@ -27,6 +27,7 @@
 
 package com.workflow.workflow.task;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,6 +37,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import com.workflow.workflow.project.Project;
+import com.workflow.workflow.user.User;
 import com.workflow.workflow.utils.ObjectNotFoundException;
 import com.workflow.workflow.utils.SoftDeleteRepository;
 
@@ -69,5 +71,50 @@ public interface TaskRepository extends SoftDeleteRepository<Task, Long>, JpaSpe
      */
     default List<Task> findAllOrdered(Specification<Task> spec) {
         return findAll(spec, Sort.by(Direction.ASC, "name", "number"));
+    }
+
+    /**
+     * Finds tasks by user assigned and between dates.
+     * 
+     * @param user      the user.
+     * @param startDate the start date.
+     * @param endDate   the end date.
+     * @return the tasks.
+     */
+    default List<Task> findAllFromUserAndDate(User user, Date startDate, Date endDate) {
+        return findAll((root, query, cb) -> cb.and(
+                cb.isNotNull(root.get("assignee")),
+                cb.equal(root.get("assignee"), user),
+                cb.equal(root.get("status").get("isFinal"), false),
+                cb.isNull(root.get("active")),
+                cb.or(
+                        cb.and(
+                                cb.isNotNull(root.get("deadline")),
+                                cb.between(root.get("deadline"), startDate, endDate)),
+                        cb.and(
+                                cb.isNull(root.get("estimatedDate")),
+                                cb.between(root.get("estimatedDate"), startDate, endDate)))));
+    }
+
+    /**
+     * Finds tasks by project and between dates.
+     * 
+     * @param project   the project.
+     * @param startDate the start date.
+     * @param endDate   the end date.
+     * @return the tasks.
+     */
+    default List<Task> findAllFromProjectAndDate(Project project, Date startDate, Date endDate) {
+        return findAll((root, query, cb) -> cb.and(
+                cb.equal(root.get("status").get("project"), project),
+                cb.equal(root.get("status").get("isFinal"), false),
+                cb.isNull(root.get("active")),
+                cb.or(
+                        cb.and(
+                                cb.isNotNull(root.get("deadline")),
+                                cb.between(root.get("deadline"), startDate, endDate)),
+                        cb.and(
+                                cb.isNull(root.get("estimatedDate")),
+                                cb.between(root.get("estimatedDate"), startDate, endDate)))));
     }
 }
