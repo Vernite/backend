@@ -46,6 +46,7 @@ import javax.validation.constraints.NotNull;
 
 import com.workflow.workflow.counter.CounterSequence;
 import com.workflow.workflow.event.Event;
+import com.workflow.workflow.event.EventFilter;
 import com.workflow.workflow.event.EventService;
 import com.workflow.workflow.task.time.TimeTrack;
 import com.workflow.workflow.task.time.TimeTrackRepository;
@@ -68,6 +69,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -140,8 +142,8 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "List with events for current user. Empty list if no events. Tasks are only displayed if they are not finished and assigned to user.")
     @ApiResponse(responseCode = "401", description = "User is not logged.", content = @Content())
     @GetMapping("/me/events")
-    public List<Event> getEvents(@NotNull @Parameter(hidden = true) User loggedUser, long from, long to) {
-        return eventService.getUserEvents(loggedUser, new Date(from), new Date(to));
+    public List<Event> getEvents(@NotNull @Parameter(hidden = true) User loggedUser, long from, long to, @ModelAttribute EventFilter filter) {
+        return eventService.getUserEvents(loggedUser, new Date(from), new Date(to), filter);
     }
 
     @Operation(summary = "Delete account", description = "This method deletes currently logged user by sending an e-mail with a confirmation link.")

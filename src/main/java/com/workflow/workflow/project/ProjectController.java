@@ -34,6 +34,7 @@ import java.util.List;
 import javax.validation.constraints.NotNull;
 
 import com.workflow.workflow.event.Event;
+import com.workflow.workflow.event.EventFilter;
 import com.workflow.workflow.event.EventService;
 import com.workflow.workflow.integration.git.GitTaskService;
 import com.workflow.workflow.integration.git.Issue;
@@ -56,6 +57,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -290,11 +292,11 @@ public class ProjectController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/{id}/events")
-    public List<Event> getEvents(@NotNull @Parameter(hidden = true) User user, @PathVariable long id, long from, long to) {
+    public List<Event> getEvents(@NotNull @Parameter(hidden = true) User user, @PathVariable long id, long from, long to, @ModelAttribute EventFilter filter) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
         }
-        return eventService.getProjectEvents(project, new Date(from), new Date(to));
+        return eventService.getProjectEvents(project, new Date(from), new Date(to), filter);
     }
 }

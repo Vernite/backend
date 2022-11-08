@@ -27,15 +27,19 @@
 
 package com.workflow.workflow.task;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+
+import javax.persistence.criteria.Predicate;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
+import com.workflow.workflow.event.EventFilter;
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.user.User;
 import com.workflow.workflow.utils.ObjectNotFoundException;
@@ -81,19 +85,24 @@ public interface TaskRepository extends SoftDeleteRepository<Task, Long>, JpaSpe
      * @param endDate   the end date.
      * @return the tasks.
      */
-    default List<Task> findAllFromUserAndDate(User user, Date startDate, Date endDate) {
-        return findAll((root, query, cb) -> cb.and(
-                cb.isNotNull(root.get("assignee")),
-                cb.equal(root.get("assignee"), user),
-                cb.equal(root.get("status").get("isFinal"), false),
-                cb.isNull(root.get("active")),
-                cb.or(
-                        cb.and(
-                                cb.isNotNull(root.get("deadline")),
-                                cb.between(root.get("deadline"), startDate, endDate)),
-                        cb.and(
-                                cb.isNull(root.get("estimatedDate")),
-                                cb.between(root.get("estimatedDate"), startDate, endDate)))));
+    default List<Task> findAllFromUserAndDate(User user, Date startDate, Date endDate, EventFilter filter) {
+        return findAll((root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.isNotNull(root.get("assignee")));
+            predicates.add(cb.equal(root.get("assignee"), user));
+            if (filter.getShowEnded()) {
+                predicates.add(cb.equal(root.get("status").get("isFinal"), false));
+            }
+            predicates.add(cb.isNull(root.get("active")));
+            predicates.add(cb.or(
+                    cb.and(
+                            cb.isNotNull(root.get("deadline")),
+                            cb.between(root.get("deadline"), startDate, endDate)),
+                    cb.and(
+                            cb.isNotNull(root.get("estimatedDate")),
+                            cb.between(root.get("estimatedDate"), startDate, endDate))));
+            return cb.and(predicates.toArray(new Predicate[0]));
+        });
     }
 
     /**
@@ -104,17 +113,22 @@ public interface TaskRepository extends SoftDeleteRepository<Task, Long>, JpaSpe
      * @param endDate   the end date.
      * @return the tasks.
      */
-    default List<Task> findAllFromProjectAndDate(Project project, Date startDate, Date endDate) {
-        return findAll((root, query, cb) -> cb.and(
-                cb.equal(root.get("status").get("project"), project),
-                cb.equal(root.get("status").get("isFinal"), false),
-                cb.isNull(root.get("active")),
-                cb.or(
-                        cb.and(
-                                cb.isNotNull(root.get("deadline")),
-                                cb.between(root.get("deadline"), startDate, endDate)),
-                        cb.and(
-                                cb.isNull(root.get("estimatedDate")),
-                                cb.between(root.get("estimatedDate"), startDate, endDate)))));
+    default List<Task> findAllFromProjectAndDate(Project project, Date startDate, Date endDate, EventFilter filter) {
+        return findAll((root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("status").get("project"), project));
+            if (filter.getShowEnded()) {
+                predicates.add(cb.equal(root.get("status").get("isFinal"), false));
+            }
+            predicates.add(cb.isNull(root.get("active")));
+            predicates.add(cb.or(
+                    cb.and(
+                            cb.isNotNull(root.get("deadline")),
+                            cb.between(root.get("deadline"), startDate, endDate)),
+                    cb.and(
+                            cb.isNotNull(root.get("estimatedDate")),
+                            cb.between(root.get("estimatedDate"), startDate, endDate))));
+            return cb.and(predicates.toArray(new Predicate[0]));
+        });
     }
 }

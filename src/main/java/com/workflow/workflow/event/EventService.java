@@ -31,16 +31,23 @@ public class EventService {
      * @param user      the user
      * @param startDate the start date
      * @param endDate   the end date
+     * @param filter    the filter
      * @return a list of events
      */
-    public List<Event> getUserEvents(User user, Date startDate, Date endDate) {
+    public List<Event> getUserEvents(User user, Date startDate, Date endDate, EventFilter filter) {
         TreeSet<Event> result = new TreeSet<>();
-        taskRepository.findAllFromUserAndDate(user, startDate, endDate)
-                .forEach(task -> result.addAll(Event.from(task)));
-        sprintRepository.findAllFromUserAndDate(user, startDate, endDate)
-                .forEach(sprint -> result.add(Event.from(sprint)));
-        meetingRepository.findMeetingsByUserAndDate(user, startDate, endDate)
-                .forEach(meeting -> result.add(Event.from(meeting)));
+        if (filter.showTasks()) {
+            taskRepository.findAllFromUserAndDate(user, startDate, endDate, filter)
+                    .forEach(task -> result.addAll(Event.from(task)));
+        }
+        if (filter.showSprints()) {
+            sprintRepository.findAllFromUserAndDate(user, startDate, endDate)
+                    .forEach(sprint -> result.add(Event.from(sprint)));
+        }
+        if (filter.showMeetings()) {
+            meetingRepository.findMeetingsByUserAndDate(user, startDate, endDate)
+                    .forEach(meeting -> result.add(Event.from(meeting)));
+        }
         return new ArrayList<>(result);
     }
 
@@ -50,16 +57,23 @@ public class EventService {
      * @param project   the project
      * @param startDate the start date
      * @param endDate   the end date
+     * @param filter    the filter
      * @return a list of events
      */
-    public List<Event> getProjectEvents(Project project, Date startDate, Date endDate) {
+    public List<Event> getProjectEvents(Project project, Date startDate, Date endDate, EventFilter filter) {
         TreeSet<Event> result = new TreeSet<>();
-        taskRepository.findAllFromProjectAndDate(project, startDate, endDate)
-                .forEach(task -> result.addAll(Event.from(task)));
-        sprintRepository.findAllFromProjectAndDate(project, startDate, endDate)
-                .forEach(sprint -> result.add(Event.from(sprint)));
-        meetingRepository.findMeetingsByProjectAndDate(project, startDate, endDate)
-                .forEach(meeting -> result.add(Event.from(meeting)));
+        if (filter.showTasks()) {
+            taskRepository.findAllFromProjectAndDate(project, startDate, endDate, filter)
+                    .forEach(task -> result.addAll(Event.from(task)));
+        }
+        if (filter.showSprints()) {
+            sprintRepository.findAllFromProjectAndDate(project, startDate, endDate)
+                    .forEach(sprint -> result.add(Event.from(sprint)));
+        }
+        if (filter.showMeetings()) {
+            meetingRepository.findMeetingsByProjectAndDate(project, startDate, endDate)
+                    .forEach(meeting -> result.add(Event.from(meeting)));
+        }
         return new ArrayList<>(result);
     }
 }
