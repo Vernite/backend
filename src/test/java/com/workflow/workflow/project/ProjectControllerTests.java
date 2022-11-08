@@ -34,10 +34,15 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.util.Date;
 import java.util.List;
 
+import com.workflow.workflow.event.Event;
+import com.workflow.workflow.meeting.Meeting;
+import com.workflow.workflow.meeting.MeetingRepository;
 import com.workflow.workflow.projectworkspace.ProjectMember;
 import com.workflow.workflow.projectworkspace.ProjectWorkspace;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceKey;
 import com.workflow.workflow.projectworkspace.ProjectWorkspaceRepository;
+import com.workflow.workflow.sprint.Sprint;
+import com.workflow.workflow.sprint.SprintRepository;
 import com.workflow.workflow.task.Task;
 import com.workflow.workflow.task.TaskRepository;
 import com.workflow.workflow.task.time.TimeTrack;
@@ -520,6 +525,66 @@ class ProjectControllerTests {
 
         Project project = projectRepository.save(new Project("MEMBER"));
         client.get().uri("/project/{id}/track", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
+    }
+
+    @Test
+    void getEventsSuccess(@Autowired TaskRepository taskRepository, @Autowired MeetingRepository meetingRepository,
+            @Autowired SprintRepository sprintRepository) {
+        Project project = projectRepository.save(new Project("MEMBER"));
+        Task task = taskRepository.save(new Task(1, "n", "d", project.getStatuses().get(0), user, 1));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+
+        client.get().uri("/project/{id}/events?from=1&to=1000", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Event.class).hasSize(0);
+
+        task.setDeadline(new Date(2));
+        taskRepository.save(task);
+
+        client.get().uri("/project/{id}/events?from=1&to=1000", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Event.class).hasSize(1);
+
+        meetingRepository.save(new Meeting(project, "1", "1", new Date(3), new Date(1001)));
+
+        client.get().uri("/project/{id}/events?from=1&to=1000", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Event.class).hasSize(2);
+
+        meetingRepository.save(new Meeting(project, "1", "1", new Date(2001), new Date(3032)));
+
+        client.get().uri("/project/{id}/events?from=1&to=1000", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Event.class).hasSize(2);
+
+        task.setDeadline(new Date(3000));
+        taskRepository.save(task);
+
+        client.get().uri("/project/{id}/events?from=1&to=1000", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Event.class).hasSize(1);
+
+        sprintRepository.save(new Sprint(1, "n", new Date(1), new Date(1000), "open", "d", project));
+        sprintRepository.save(new Sprint(2, "n", new Date(2000), new Date(3000), "open", "d", project));
+
+        client.get().uri("/project/{id}/events?from=1&to=1000", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Event.class).hasSize(2);
+    }
+
+    @Test
+    void getEventsUnauthorized() {
+        client.get().uri("/project/1/events?from=1&to=1000").exchange().expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void getTEventsNotFound() {
+        client.get().uri("/project/666/events?from=1&to=1000").cookie(AuthController.COOKIE_NAME, session.getSession())
+                .exchange().expectStatus().isNotFound();
+
+        Project project = projectRepository.save(new Project("MEMBER"));
+        client.get().uri("/project/{id}/events?from=1&to=1000", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
     }
 }
