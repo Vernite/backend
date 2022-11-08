@@ -29,15 +29,23 @@ package com.workflow.workflow.meeting;
 
 import java.util.List;
 
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
 import com.workflow.workflow.project.Project;
 import com.workflow.workflow.utils.SoftDeleteRepository;
 
-public interface MeetingRepository extends SoftDeleteRepository<Meeting, Long> {
+public interface MeetingRepository extends SoftDeleteRepository<Meeting, Long>, JpaSpecificationExecutor<Meeting> {
     /**
-     * Finds a meeting by its id and project.
+     * Finds a meeting by its id and project sorted by date.
      * 
      * @param project the project.
-     * @return optional of the meeting.
+     * @return list of meetings.
      */
-    List<Meeting> findAllByProjectAndActiveNull(Project project);
+    default List<Meeting> findAllByProjectAndActiveNullSorted(Project project) {
+        return findAll((root, query, cb) -> {
+            return cb.equal(root.get("project"), project);
+        }, Sort.by(Direction.ASC, "startDate", "endDate", "name"));
+    }
 }

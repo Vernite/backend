@@ -77,7 +77,7 @@ public class MeetingController {
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
         }
-        return meetingRepository.findAllByProjectAndActiveNull(project);
+        return meetingRepository.findAllByProjectAndActiveNullSorted(project);
     }
 
     @Operation(summary = "Create a meeting", description = "Create a meeting. The user must be a member of the project.")
@@ -86,7 +86,8 @@ public class MeetingController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "The project does not exist.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PostMapping
-    public Meeting create(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @RequestBody MeetingRequest request) {
+    public Meeting create(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @RequestBody MeetingRequest request) {
         Project project = projectRepository.findByIdOrThrow(projectId);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
@@ -109,7 +110,8 @@ public class MeetingController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "The project or the meeting does not exist.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/{meetingId}")
-    public Meeting get(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long meetingId) {
+    public Meeting get(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long meetingId) {
         Project project = projectRepository.findByIdOrThrow(projectId);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
@@ -127,7 +129,8 @@ public class MeetingController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "The project or the meeting does not exist.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PutMapping("/{meetingId}")
-    public Meeting update(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long meetingId, @RequestBody MeetingRequest request) {
+    public Meeting update(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long meetingId, @RequestBody MeetingRequest request) {
         Project project = projectRepository.findByIdOrThrow(projectId);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
@@ -154,7 +157,8 @@ public class MeetingController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "The project or the meeting does not exist.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @DeleteMapping("/{meetingId}")
-    public Meeting delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long meetingId) {
+    public Meeting delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long meetingId) {
         Project project = projectRepository.findByIdOrThrow(projectId);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
