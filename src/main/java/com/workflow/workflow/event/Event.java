@@ -34,6 +34,7 @@ import java.util.List;
 import org.springframework.data.annotation.ReadOnlyProperty;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.workflow.workflow.meeting.Meeting;
 import com.workflow.workflow.sprint.Sprint;
 import com.workflow.workflow.task.Task;
 
@@ -81,6 +82,19 @@ public class Event implements Comparable<Event> {
     public static Event from(Sprint sprint) {
         return new Event(sprint.getProject().getId(), EventType.SPRINT, sprint.getNumber(), sprint.getName(),
                 sprint.getDescription(), sprint.getStartDate(), sprint.getFinishDate());
+    }
+
+    /**
+     * Creates a new event from a meeting. The event will be of type MEETING.
+     * 
+     * @param meeting the meeting to create the event from
+     * @return the event
+     */
+    public static Event from(Meeting meeting) {
+        Event e = new Event(meeting.getProject().getId(), EventType.MEETING, meeting.getId(), meeting.getName(),
+                meeting.getDescription(), meeting.getStartDate(), meeting.getEndDate());
+        e.setLocation(meeting.getLocation());
+        return e;
     }
 
     private Event(long projectId, EventType type, long relatedId, String name, String description, Date startDate,
