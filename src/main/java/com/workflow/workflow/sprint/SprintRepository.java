@@ -80,7 +80,7 @@ public interface SprintRepository extends SoftDeleteRepository<Sprint, Long>, Jp
     /**
      * Finds sprints in projects and between dates.
      * 
-     * @param projects  the projects.
+     * @param project  the project.
      * @param startDate the start date.
      * @param endDate   the end date.
      * @return the sprints.
