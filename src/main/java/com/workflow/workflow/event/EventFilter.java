@@ -3,10 +3,13 @@ package com.workflow.workflow.event;
 import java.util.List;
 import java.util.Optional;
 
+import org.springdoc.api.annotations.ParameterObject;
+
 import com.workflow.workflow.event.Event.EventType;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+@ParameterObject
 public class EventFilter {
     @Schema(description = "Whether to include events that have already ended. It only affects tasks.", defaultValue = "true")
     private boolean showEnded = true;
