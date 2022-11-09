@@ -668,7 +668,7 @@ public class GitHubService {
     private static String createJWT() {
         try {
             PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(
-                    Files.readAllBytes(Path.of("workflow-2022.private-key.der")));
+                    Files.readAllBytes(Path.of("vernite-2022.private-key.der")));
             Key signingKey = KeyFactory.getInstance("RSA").generatePrivate(spec);
             long now = System.currentTimeMillis();
             return Jwts.builder()

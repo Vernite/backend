@@ -19,10 +19,10 @@ jobs:
     - name: Install and configure MySQL
       run: |
         sudo systemctl start mysql.service
-        mysql -h 127.0.0.1 -uroot -proot -e 'create database workflow charset utf8mb4'
-        mysql -h 127.0.0.1 -uroot -proot -e 'create database workflow_test charset utf8mb4'
-        mysql -h 127.0.0.1 -uroot -proot -e 'create user "workflow"@"localhost" identified by "${{ secrets.MYSQL_PASSWORD }}"'
-        mysql -h 127.0.0.1 -uroot -proot -e 'grant all on *.* to "workflow"@"localhost" with grant option'
+        mysql -h 127.0.0.1 -uroot -proot -e 'create database vernite charset utf8mb4'
+        mysql -h 127.0.0.1 -uroot -proot -e 'create database vernite_test charset utf8mb4'
+        mysql -h 127.0.0.1 -uroot -proot -e 'create user "vernite"@"localhost" identified by "${{ secrets.MYSQL_PASSWORD }}"'
+        mysql -h 127.0.0.1 -uroot -proot -e 'grant all on *.* to "vernite"@"localhost" with grant option'
     - name: Install properties
       run: 'echo "$SPRING_APPLICATION_PROPERTIES" > application.properties'
       env:
@@ -30,7 +30,7 @@ jobs:
     - name: Prepare secret
       run: |
         echo "${{ secrets.WORKFLOW_2022_PRIVATE_KEY_PEM }}" > key.pem
-        openssl pkcs8 -topk8 -inform pem -in key.pem -out "workflow-2022.private-key.der" -outform der -nocrypt
+        openssl pkcs8 -topk8 -inform pem -in key.pem -out "vernite-2022.private-key.der" -outform der -nocrypt
     - name: Build with Maven
       run: mvn -B package --file pom.xml
     - name: Generate code coverage
@@ -45,8 +45,8 @@ jobs:
         mkdir -p ~/.ssh
         chmod 700 ~/.ssh
         ssh-keyscan -t rsa -p 2224 51.83.255.98 >> ~/.ssh/known_hosts
-        rsync -a -e 'ssh -p 2224' target/vernite*jar backend@51.83.255.98:~/workflow.jar
-        ssh -p 2224 backend@51.83.255.98 "sudo /usr/bin/systemctl restart workflow.service"
+        rsync -a -e 'ssh -p 2224' target/vernite*jar backend@51.83.255.98:~/vernite.jar
+        ssh -p 2224 backend@51.83.255.98 "sudo /usr/bin/systemctl restart vernite.service"
     - name: Generate Javadoc & Jacoco
       run: mvn jacoco:report javadoc:javadoc
     - name: Deploy

@@ -167,7 +167,7 @@ public class AuthController {
         message.setTo(loggedUser.getEmail());
         message.setSubject("Potwierdzenie usunięcia Twojego konta");
         message.setText("Aby potwierdzić usuwanie Twojego konta, kliknij w poniższy link:\n" +
-            "https://workflow.adiantek.ovh/pl-PL/auth/delete-account?token=" + d.getToken() + "\n" +
+            "https://vernite.dev/pl-PL/auth/delete-account?token=" + d.getToken() + "\n" +
             "Link wygaśnie po 30 minutach");
         javaMailSender.send(message);
     }
@@ -389,7 +389,7 @@ public class AuthController {
         msg.setFrom("wflow1337@gmail.com");
         msg.setSubject("Zapomniałeś hasła?");
         msg.setText("Cześć, " + u.getName()
-                + "!\nJeśli zapomniałeś hasła to wejdź w link: https://workflow.adiantek.ovh/pl-PL/auth/set-new-password?token="
+                + "!\nJeśli zapomniałeś hasła to wejdź w link: https://vernite.dev/pl-PL/auth/set-new-password?token="
                 + p.getToken() + "\nLink wygaśnie po 30 minutach");
         javaMailSender.send(msg);
     }

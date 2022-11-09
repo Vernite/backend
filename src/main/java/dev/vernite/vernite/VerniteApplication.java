@@ -37,8 +37,8 @@ import io.swagger.v3.oas.annotations.servers.Server;
 @SpringBootApplication
 @EnableScheduling
 @OpenAPIDefinition(servers = @Server(url = "/api"))
-public class WorkflowApplication {
+public class VerniteApplication {
 	public static void main(String[] args) {
-		SpringApplication.run(WorkflowApplication.class, args);
+		SpringApplication.run(VerniteApplication.class, args);
 	}
 }
