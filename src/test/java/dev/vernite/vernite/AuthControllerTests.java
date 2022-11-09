@@ -74,12 +74,12 @@ public class AuthControllerTests {
     @BeforeEach
     void reset() {
         userSessionRepository.deleteAll();
-        userRepository.deleteAllByEmailNot("wflow1337@gmail.com");
+        userRepository.deleteAllByEmailNot("contact@vernite.dev");
     }
 
     @Test
     void loginByUsername() {
-        User u = new User("name", "surname", "usernameX", "email@127.0.0.1", "password", "English", "YYYY-MM-DD");
+        User u = new User("name", "surname", "usernameX", "contact+7@vernite.dev", "password", "English", "YYYY-MM-DD");
         User registeredUser = userRepository.save(u);
 
         LoginRequest req = new LoginRequest();
@@ -105,7 +105,7 @@ public class AuthControllerTests {
 
     @Test
     void loginByEmailAndChangePassword() {
-        User u = new User("name", "surname", "username2", "email@127.0.0.1", "password");
+        User u = new User("name", "surname", "username2", "contact+6@vernite.dev", "password");
         User registeredUser = userRepository.save(u);
 
         LoginRequest req = new LoginRequest();
@@ -169,11 +169,11 @@ public class AuthControllerTests {
 
     @Test
     void resetPassword() {
-        User u = new User("name", "surname", "username2", "email@127.0.0.1", "password", "English", "YYYY-MM-DD");
+        User u = new User("name", "surname", "username2", "contact+4@vernite.dev", "password", "English", "YYYY-MM-DD");
         userRepository.save(u);
 
         PasswordRecoveryRequest req = new PasswordRecoveryRequest();
-        req.setEmail("email@127.0.0.1");
+        req.setEmail("contact@vernite.dev");
         client.post().uri("/auth/password/recover")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(req)
@@ -186,7 +186,7 @@ public class AuthControllerTests {
         RegisterRequest req = new RegisterRequest();
         req.setUsername("test");
         req.setPassword("test");
-        req.setEmail("test@127.0.0.1");
+        req.setEmail("contact+5@vernite.dev");
         req.setName("test name");
         req.setSurname("test surname");
         req.setLanguage("English");
@@ -209,7 +209,7 @@ public class AuthControllerTests {
 
     @Test
     void getUserEventsSuccess() {
-        User u = new User("name", "surname", "usernameX", "email@127.0.0.1", "password", "English", "YYYY-MM-DD");
+        User u = new User("name", "surname", "usernameX", "contact+3@vernite.dev", "password", "English", "YYYY-MM-DD");
         User registeredUser = userRepository.save(u);
 
         UserSession session = new UserSession();

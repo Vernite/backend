@@ -314,7 +314,7 @@ public class AuthController {
         createSession(request, response, u, false);
         SimpleMailMessage msg = new SimpleMailMessage();
         msg.setTo(req.getEmail());
-        msg.setFrom("wflow1337@gmail.com");
+        msg.setFrom("contact@vernite.dev");
         // TODO activation link
         msg.setSubject("Dziękujemy za rejestrację");
         msg.setText("Cześć, " + req.getName() + "!\nDziękujemy za zarejestrowanie się w naszym serwisie");
@@ -386,7 +386,7 @@ public class AuthController {
         }
         SimpleMailMessage msg = new SimpleMailMessage();
         msg.setTo(req.getEmail());
-        msg.setFrom("wflow1337@gmail.com");
+        msg.setFrom("contact@vernite.dev");
         msg.setSubject("Zapomniałeś hasła?");
         msg.setText("Cześć, " + u.getName()
                 + "!\nJeśli zapomniałeś hasła to wejdź w link: https://vernite.dev/pl-PL/auth/set-new-password?token="

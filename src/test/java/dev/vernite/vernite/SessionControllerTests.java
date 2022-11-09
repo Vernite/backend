@@ -69,13 +69,13 @@ public class SessionControllerTests {
     @BeforeEach
     void reset() {
         userSessionRepository.deleteAll();
-        userRepository.deleteAllByEmailNot("wflow1337@gmail.com");
+        userRepository.deleteAllByEmailNot("contact@vernite.dev");
     }
 
     
     @Test
     void loginAndRevokeSession() {
-        User u = new User("name", "surname", "username2", "email@127.0.0.1", "password");
+        User u = new User("name", "surname", "username2", "contact+2@vernite.dev", "password");
         User registeredUser = userRepository.save(u);
 
         LoginRequest req = new LoginRequest();

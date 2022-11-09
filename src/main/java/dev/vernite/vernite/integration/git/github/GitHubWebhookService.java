@@ -93,7 +93,7 @@ public class GitHubWebhookService {
     public void setSystemUser(UserRepository userRepository) {
         systemUser = userRepository.findByUsername("Username"); // TODO change system user
         if (systemUser == null) {
-            systemUser = userRepository.save(new User("Name", "Surname", "Username", "wflow1337@gmail.com", "1"));
+            systemUser = userRepository.save(new User("Name", "Surname", "Username", "contact@vernite.dev", "1"));
         }
     }
 

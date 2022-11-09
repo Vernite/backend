@@ -110,7 +110,7 @@ public class GitHubWebhookServiceTests {
         installationRepository.deleteAll();
         this.user = userRepository.findByUsername("Username");
         if (this.user == null) {
-            this.user = userRepository.save(new User("Name", "Surname", "Username", "wflow1337@gmail.com", "1"));
+            this.user = userRepository.save(new User("Name", "Surname", "Username", "contact@vernite.dev", "1"));
         }
         project = projectRepository.save(new Project("NAME"));
         installation = installationRepository.save(new GitHubInstallation(1, user, "username"));
@@ -121,7 +121,7 @@ public class GitHubWebhookServiceTests {
     void ensureUser() {
         User systemUser = userRepository.findByUsername("Username"); // TODO change system user
         if (systemUser == null) {
-            systemUser = userRepository.save(new User("Name", "Surname", "Username", "wflow1337@gmail.com", "1"));
+            systemUser = userRepository.save(new User("Name", "Surname", "Username", "contact@vernite.dev", "1"));
         }
 
     }
