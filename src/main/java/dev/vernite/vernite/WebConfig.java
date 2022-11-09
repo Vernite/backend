@@ -53,7 +53,8 @@ public class WebConfig implements WebMvcConfigurer, WebSocketConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:4200", "http://localhost:4201", "https://vernite.dev", "tauri://localhost")
+                .allowedOrigins("http://localhost:4200", "http://localhost:4201", "https://vernite.dev",
+                        "tauri://localhost")
                 .allowedMethods("GET", "POST", "PUT", "DELETE");
     }
 
@@ -65,6 +66,7 @@ public class WebConfig implements WebMvcConfigurer, WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(new SocketHandler(), "/ws");
+        registry.addHandler(new SocketHandler(), "/ws").setAllowedOrigins("http://localhost:4200",
+                "http://localhost:4201", "https://vernite.dev", "tauri://localhost");
     }
 }
