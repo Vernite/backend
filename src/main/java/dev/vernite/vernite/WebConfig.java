@@ -35,12 +35,17 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.socket.config.annotation.EnableWebSocket;
+import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 
 import dev.vernite.vernite.user.UserResolver;
+import dev.vernite.vernite.ws.SocketHandler;
 
 @EnableWebMvc
 @Configuration
-public class WebConfig implements WebMvcConfigurer {
+@EnableWebSocket
+public class WebConfig implements WebMvcConfigurer, WebSocketConfigurer {
 
     @Autowired
     private UserResolver userResolver;
@@ -56,5 +61,10 @@ public class WebConfig implements WebMvcConfigurer {
     public void addArgumentResolvers(
             List<HandlerMethodArgumentResolver> resolvers) {
         resolvers.add(userResolver);
+    }
+
+    @Override
+    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+        registry.addHandler(new SocketHandler(), "/ws");
     }
 }
