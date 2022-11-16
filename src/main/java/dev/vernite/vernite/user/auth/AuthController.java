@@ -27,7 +27,6 @@
 
 package dev.vernite.vernite.user.auth;
 
-import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -59,6 +58,7 @@ import dev.vernite.vernite.user.UserRepository;
 import dev.vernite.vernite.user.UserSession;
 import dev.vernite.vernite.user.UserSessionRepository;
 import dev.vernite.vernite.utils.ObjectNotFoundException;
+import dev.vernite.vernite.utils.SecureStringUtils;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -87,19 +87,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 @RequestMapping("/auth")
 public class AuthController {
 
-    private static final char[] CHARS = "0123456789qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM".toCharArray();
     public static final String COOKIE_NAME = "session";
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final Random RANDOM = new Random();
     private static final ScheduledExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadScheduledExecutor();
-
-    private static String generateRandomSecureString() {
-        char[] b = new char[128];
-        for (int i = 0; i < b.length; i++) {
-            b[i] = CHARS[SECURE_RANDOM.nextInt(CHARS.length)];
-        }
-        return new String(b);
-    }
 
     @Autowired
     private UserRepository userRepository;
@@ -142,7 +132,8 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "List with events for current user. Empty list if no events. Tasks are only displayed if they are not finished and assigned to user.")
     @ApiResponse(responseCode = "401", description = "User is not logged.", content = @Content())
     @GetMapping("/me/events")
-    public List<Event> getEvents(@NotNull @Parameter(hidden = true) User loggedUser, long from, long to, @ModelAttribute EventFilter filter) {
+    public List<Event> getEvents(@NotNull @Parameter(hidden = true) User loggedUser, long from, long to,
+            @ModelAttribute EventFilter filter) {
         return eventService.getUserEvents(loggedUser, new Date(from), new Date(to), filter);
     }
 
@@ -153,13 +144,13 @@ public class AuthController {
         DeleteAccountRequest d = new DeleteAccountRequest();
         d.setUser(loggedUser);
         d.setActive(Date.from(Instant.now().plus(30, ChronoUnit.MINUTES)));
-        d.setToken(generateRandomSecureString());
+        d.setToken(SecureStringUtils.generateRandomSecureString());
         while (true) {
             try {
                 d = deleteAccountRepository.save(d);
                 break;
             } catch (DataIntegrityViolationException ex) {
-                d.setToken(generateRandomSecureString());
+                d.setToken(SecureStringUtils.generateRandomSecureString());
             }
         }
 
@@ -167,8 +158,8 @@ public class AuthController {
         message.setTo(loggedUser.getEmail());
         message.setSubject("Potwierdzenie usunięcia Twojego konta");
         message.setText("Aby potwierdzić usuwanie Twojego konta, kliknij w poniższy link:\n" +
-            "https://vernite.dev/pl-PL/auth/delete-account?token=" + d.getToken() + "\n" +
-            "Link wygaśnie po 30 minutach");
+                "https://vernite.dev/pl-PL/auth/delete-account?token=" + d.getToken() + "\n" +
+                "Link wygaśnie po 30 minutach");
         javaMailSender.send(message);
     }
 
@@ -325,7 +316,8 @@ public class AuthController {
     @Operation(summary = "Log out", description = "This method log outs the user.")
     @ApiResponse(responseCode = "200", description = "User logged out")
     @PostMapping("/logout")
-    public void destroySession(HttpServletRequest req, HttpServletResponse resp, @Parameter(hidden = true) @CookieValue(AuthController.COOKIE_NAME) String session) {
+    public void destroySession(HttpServletRequest req, HttpServletResponse resp,
+            @Parameter(hidden = true) @CookieValue(AuthController.COOKIE_NAME) String session) {
         if (session != null) {
             this.userSessionRepository.deleteBySession(session);
             Cookie cookie = new Cookie(COOKIE_NAME, null);
@@ -339,7 +331,8 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "Password changed")
     @ApiResponse(responseCode = "404", description = "Old password is incorrect.", content = @Content())
     @PostMapping("/password/change")
-    public void changePassword(@NotNull @Parameter(hidden = true) User loggedUser, @RequestBody ChangePasswordRequest req) {
+    public void changePassword(@NotNull @Parameter(hidden = true) User loggedUser,
+            @RequestBody ChangePasswordRequest req) {
         if (req.getOldPassword() == null || req.getOldPassword().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing old password");
         }
@@ -375,13 +368,13 @@ public class AuthController {
         PasswordRecovery p = new PasswordRecovery();
         p.setUser(u);
         p.setActive(Date.from(Instant.now().plus(30, ChronoUnit.MINUTES)));
-        p.setToken(generateRandomSecureString());
+        p.setToken(SecureStringUtils.generateRandomSecureString());
         while (true) {
             try {
                 p = passwordRecoveryRepository.save(p);
                 break;
             } catch (DataIntegrityViolationException ex) {
-                p.setToken(generateRandomSecureString());
+                p.setToken(SecureStringUtils.generateRandomSecureString());
             }
         }
         SimpleMailMessage msg = new SimpleMailMessage();
@@ -425,7 +418,7 @@ public class AuthController {
 
     private void createSession(HttpServletRequest req, HttpServletResponse resp, User user, boolean remembered) {
         UserSession us = new UserSession();
-        us.setSession(generateRandomSecureString());
+        us.setSession(SecureStringUtils.generateRandomSecureString());
         us.setIp(req.getHeader("X-Forwarded-For"));
         if (us.getIp() == null) {
             us.setIp(req.getRemoteAddr());
@@ -439,7 +432,7 @@ public class AuthController {
                 us = userSessionRepository.save(us);
                 break;
             } catch (DataIntegrityViolationException ex) {
-                us.setSession(generateRandomSecureString());
+                us.setSession(SecureStringUtils.generateRandomSecureString());
             }
         }
         Cookie c = new Cookie(COOKIE_NAME, us.getSession());
@@ -451,15 +444,15 @@ public class AuthController {
         }
         resp.addCookie(c);
     }
-    
+
     @Scheduled(cron = "0 * * * * *")
     public void deleteOldAccount() {
         Date d = Date.from(Instant.now().minus(7, ChronoUnit.DAYS));
         List<User> users = this.userRepository.findByDeletedPermanentlyFalseAndDeletedLessThan(d);
         for (User u : users) {
             u.setDeletedPermanently(true);
-            u.setUsername("(deleted) " + generateRandomSecureString());
-            u.setEmail("(deleted) " + generateRandomSecureString());
+            u.setUsername("(deleted) " + SecureStringUtils.generateRandomSecureString());
+            u.setEmail("(deleted) " + SecureStringUtils.generateRandomSecureString());
         }
         this.userRepository.saveAll(users);
     }
