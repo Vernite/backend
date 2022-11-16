@@ -59,8 +59,12 @@ public class CalendarSyncService {
             }
             calEvent.getProperties().add(new Uid(String.format("project_%d_event_%d_%d", event.getProjectId(),
                     event.getEventType().ordinal(), event.getRelatedId())));
-            calEvent.getProperties().add(new Description(event.getDescription()));
-            calEvent.getProperties().add(new Location(event.getLocation()));
+            if (event.getDescription() != null) {
+                calEvent.getProperties().add(new Description(event.getDescription()));
+            }
+            if (event.getLocation() != null) {
+                calEvent.getProperties().add(new Location(event.getLocation()));
+            }
             calendar.getComponents().add(calEvent);
         }
         CalendarOutputter calendarOutputter = new CalendarOutputter();
