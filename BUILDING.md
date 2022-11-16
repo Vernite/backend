@@ -80,8 +80,8 @@ After build you can generate jacoco report and javadocs:
 ```console
 $ mvn jacoco:report javadoc:javadoc
 ```
-- JaCoCo report is available online at https://sampandonte.github.io/vernite/jacoco/
-- Javadocs: https://sampandonte.github.io/vernite/apidocs/ \
+- JaCoCo report is available online at https://vernite.github.io/backend/jacoco/
+- Javadocs: https://vernite.github.io/backend/apidocs/ \
   Currently, project does not support 3rd plugins, so javadocs are not needed, but this may change in the future.
 
 ## Running
