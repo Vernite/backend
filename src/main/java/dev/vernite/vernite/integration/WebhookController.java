@@ -76,7 +76,7 @@ public class WebhookController {
         return gitHubService.handleWebhook(event, data);
     }
 
-    @GetMapping("/calendar")
+    @GetMapping(value = "/calendar", produces = "text/calendar")
     byte[] calendar(String key) {
         return calendarSyncService.handleCalendar(key);
     }
