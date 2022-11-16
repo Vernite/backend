@@ -47,6 +47,8 @@ import dev.vernite.vernite.counter.CounterSequence;
 import dev.vernite.vernite.event.Event;
 import dev.vernite.vernite.event.EventFilter;
 import dev.vernite.vernite.event.EventService;
+import dev.vernite.vernite.integration.calendar.CalendarIntegration;
+import dev.vernite.vernite.integration.calendar.CalendarIntegrationRepository;
 import dev.vernite.vernite.task.time.TimeTrack;
 import dev.vernite.vernite.task.time.TimeTrackRepository;
 import dev.vernite.vernite.user.DeleteAccountRequest;
@@ -57,6 +59,7 @@ import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.user.UserRepository;
 import dev.vernite.vernite.user.UserSession;
 import dev.vernite.vernite.user.UserSessionRepository;
+import dev.vernite.vernite.utils.ErrorType;
 import dev.vernite.vernite.utils.ObjectNotFoundException;
 import dev.vernite.vernite.utils.SecureStringUtils;
 
@@ -112,6 +115,9 @@ public class AuthController {
     @Autowired
     private EventService eventService;
 
+    @Autowired
+    private CalendarIntegrationRepository calendarRepository;
+
     @Operation(summary = "Logged user", description = "This method returns currently logged user.")
     @ApiResponse(responseCode = "200", description = "Logged user.")
     @ApiResponse(responseCode = "401", description = "User is not logged.", content = @Content())
@@ -135,6 +141,19 @@ public class AuthController {
     public List<Event> getEvents(@NotNull @Parameter(hidden = true) User loggedUser, long from, long to,
             @ModelAttribute EventFilter filter) {
         return eventService.getUserEvents(loggedUser, new Date(from), new Date(to), filter);
+    }
+
+    @Operation(summary = "Create synchronization link", description = "Creates synchronization link for user events calendar")
+    @ApiResponse(description = "Link.", responseCode = "200")
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @PostMapping("/me/events/sync")
+    public String createCalendarSync(@NotNull @Parameter(hidden = true) User loggedUser) {
+        String key = SecureStringUtils.generateRandomSecureString();
+        while (calendarRepository.findByKey(key).isPresent()) {
+            key = SecureStringUtils.generateRandomSecureString();
+        }
+        calendarRepository.save(new CalendarIntegration(loggedUser, key));
+        return "https://vernite.dev/api/webhook/calendar?key=" + key;
     }
 
     @Operation(summary = "Delete account", description = "This method deletes currently logged user by sending an e-mail with a confirmation link.")
