@@ -33,5 +33,5 @@ import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.utils.SoftDeleteRepository;
 
 public interface ReleaseRepository extends SoftDeleteRepository<Release, Long> {
-    List<Release> findAllByProjectAndActiveNull(Project project);
+    List<Release> findAllByProjectAndActiveNullOrderByDeadlineDesc(Project project);
 }
