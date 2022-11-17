@@ -29,11 +29,14 @@ package dev.vernite.vernite.integration;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import dev.vernite.vernite.integration.calendar.CalendarSyncService;
 import dev.vernite.vernite.integration.git.github.GitHubWebhookService;
 import dev.vernite.vernite.integration.git.github.data.GitHubWebhookData;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -55,6 +58,8 @@ public class WebhookController {
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     @Autowired
     private GitHubWebhookService gitHubService;
+    @Autowired
+    private CalendarSyncService calendarSyncService;
 
     @PostMapping("/github")
     Mono<Void> github(@RequestHeader("X-Hub-Signature-256") String token, @RequestHeader("X-GitHub-Event") String event,
@@ -69,5 +74,10 @@ public class WebhookController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         }
         return gitHubService.handleWebhook(event, data);
+    }
+
+    @GetMapping(value = "/calendar", produces = "text/calendar")
+    byte[] calendar(String key) {
+        return calendarSyncService.handleCalendar(key);
     }
 }
