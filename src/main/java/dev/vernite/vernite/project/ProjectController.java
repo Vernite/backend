@@ -30,6 +30,7 @@ package dev.vernite.vernite.project;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 import javax.validation.constraints.NotNull;
 
@@ -100,7 +101,7 @@ public class ProjectController {
 
     @Autowired
     private CalendarIntegrationRepository calendarRepository;
-    
+
     @Autowired
     GitTaskService service;
 
@@ -298,7 +299,8 @@ public class ProjectController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/{id}/events")
-    public List<Event> getEvents(@NotNull @Parameter(hidden = true) User user, @PathVariable long id, long from, long to, @ModelAttribute EventFilter filter) {
+    public List<Event> getEvents(@NotNull @Parameter(hidden = true) User user, @PathVariable long id, long from,
+            long to, @ModelAttribute EventFilter filter) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
@@ -320,7 +322,12 @@ public class ProjectController {
         while (calendarRepository.findByKey(key).isPresent()) {
             key = SecureStringUtils.generateRandomSecureString();
         }
-        calendarRepository.save(new CalendarIntegration(user, project, key));
+        Optional<CalendarIntegration> integration = calendarRepository.findByUserAndProject(user, project);
+        if (integration.isPresent()) {
+            key = integration.get().getKey();
+        } else {
+            calendarRepository.save(new CalendarIntegration(user, project, key));
+        }
         return "https://vernite.dev/api/webhook/calendar?key=" + key;
     }
 }

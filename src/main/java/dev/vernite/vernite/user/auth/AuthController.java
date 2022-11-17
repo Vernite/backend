@@ -31,6 +31,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -152,7 +153,12 @@ public class AuthController {
         while (calendarRepository.findByKey(key).isPresent()) {
             key = SecureStringUtils.generateRandomSecureString();
         }
-        calendarRepository.save(new CalendarIntegration(loggedUser, key));
+        Optional<CalendarIntegration> integration = calendarRepository.findByUserAndProjectNull(loggedUser);
+        if (integration.isPresent()) {
+            key = integration.get().getKey();
+        } else {
+            calendarRepository.save(new CalendarIntegration(loggedUser, key));
+        }
         return "https://vernite.dev/api/webhook/calendar?key=" + key;
     }
 
