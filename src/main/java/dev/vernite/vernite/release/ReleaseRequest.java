@@ -59,7 +59,6 @@ public class ReleaseRequest {
     /**
      * Creates a new release entity from sprint request.
      * 
-     * @param id      the id of the sprint.
      * @param project the project of the sprint.
      * @return the sprint entity.
      * @throws FieldErrorException if the request is invalid.
