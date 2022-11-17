@@ -23,6 +23,7 @@ import net.fortuna.ical4j.model.component.VEvent;
 import net.fortuna.ical4j.model.property.CalScale;
 import net.fortuna.ical4j.model.property.Description;
 import net.fortuna.ical4j.model.property.Location;
+import net.fortuna.ical4j.model.property.Name;
 import net.fortuna.ical4j.model.property.ProdId;
 import net.fortuna.ical4j.model.property.Uid;
 import net.fortuna.ical4j.model.property.Version;
@@ -41,12 +42,16 @@ public class CalendarSyncService {
         java.util.Date to = java.util.Date.from(Instant.now().plus(1000, ChronoUnit.DAYS));
         CalendarIntegration integration = repository.findByKey(key).orElseThrow(ObjectNotFoundException::new);
         List<Event> events;
+        Calendar calendar = new Calendar();
         if (integration.getProject() == null) {
             events = eventService.getUserEvents(integration.getUser(), FROM, to, new EventFilter());
+            calendar.getProperties()
+                    .add(new Name("Vernite - " + integration.getUser().getUsername() + " user calendar"));
         } else {
             events = eventService.getProjectEvents(integration.getProject(), FROM, to, new EventFilter());
+            calendar.getProperties()
+                    .add(new Name("Vernite - " + integration.getProject().getName() + " project calendar"));
         }
-        Calendar calendar = new Calendar();
         calendar.getProperties().add(new ProdId("-//Vernite//EN"));
         calendar.getProperties().add(Version.VERSION_2_0);
         calendar.getProperties().add(CalScale.GREGORIAN);
