@@ -70,7 +70,7 @@ public class ReleaseController {
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
         }
-        return releaseRepository.findAllByProjectAndActiveNullOrderByDeadlineDesc(project);
+        return releaseRepository.findAllByProjectAndActiveNullOrderByDeadlineDescName(project);
     }
 
     @Operation(summary = "Create a new release", description = "Create a new release for a given project.")

@@ -95,10 +95,10 @@ public class ReleaseRequest {
     }
 
     public void setDescription(String description) {
-        if (description == null) {
-            throw new FieldErrorException("description", NULL_VALUE);
+        if (description != null) {
+            description = description.trim();
         }
-        this.description = Optional.of(description.trim());
+        this.description = Optional.ofNullable(description);
     }
 
     public Optional<Date> getDeadline() {
@@ -106,7 +106,7 @@ public class ReleaseRequest {
     }
 
     public void setDeadline(Date deadline) {
-        this.deadline = Optional.of(deadline);
+        this.deadline = Optional.ofNullable(deadline);
     }
 
     public Optional<Boolean> getReleased() {
