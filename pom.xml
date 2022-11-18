@@ -104,6 +104,12 @@
 			<artifactId>mockwebserver</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>org.mnode.ical4j</groupId>
+			<artifactId>ical4j</artifactId>
+			<version>3.2.7</version>
+		</dependency>
 	</dependencies>
 
 	<build>

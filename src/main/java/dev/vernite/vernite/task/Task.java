@@ -57,6 +57,7 @@ import dev.vernite.vernite.integration.git.Issue;
 import dev.vernite.vernite.integration.git.PullRequest;
 import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskIssue;
 import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskPull;
+import dev.vernite.vernite.release.Release;
 import dev.vernite.vernite.sprint.Sprint;
 import dev.vernite.vernite.status.Status;
 import dev.vernite.vernite.task.time.TimeTrack;
@@ -174,6 +175,10 @@ public class Task extends SoftDeleteEntity {
 
     @Column(nullable = false)
     private long storyPoints;
+
+    @ManyToOne
+    @JsonIgnore
+    private Release release;
 
     public Task() {
     }
@@ -406,5 +411,17 @@ public class Task extends SoftDeleteEntity {
 
     public void setStoryPoints(Long storyPoints) {
         this.storyPoints = storyPoints;
+    }
+
+    public Release getRelease() {
+        return release;
+    }
+
+    public void setRelease(Release release) {
+        this.release = release;
+    }
+
+    public Long getReleaseId() {
+        return this.release != null ? this.release.getId() : null;
     }
 }

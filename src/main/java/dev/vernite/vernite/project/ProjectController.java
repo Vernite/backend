@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 import javax.validation.constraints.NotNull;
 
@@ -55,6 +56,8 @@ import dev.vernite.vernite.cdn.FileManager;
 import dev.vernite.vernite.event.Event;
 import dev.vernite.vernite.event.EventFilter;
 import dev.vernite.vernite.event.EventService;
+import dev.vernite.vernite.integration.calendar.CalendarIntegration;
+import dev.vernite.vernite.integration.calendar.CalendarIntegrationRepository;
 import dev.vernite.vernite.integration.git.GitTaskService;
 import dev.vernite.vernite.integration.git.Issue;
 import dev.vernite.vernite.integration.git.PullRequest;
@@ -69,6 +72,7 @@ import dev.vernite.vernite.utils.ErrorType;
 import dev.vernite.vernite.utils.FieldErrorException;
 import dev.vernite.vernite.utils.ImageConverter;
 import dev.vernite.vernite.utils.ObjectNotFoundException;
+import dev.vernite.vernite.utils.SecureStringUtils;
 import dev.vernite.vernite.workspace.Workspace;
 import dev.vernite.vernite.workspace.WorkspaceKey;
 import dev.vernite.vernite.workspace.WorkspaceRepository;
@@ -104,6 +108,9 @@ public class ProjectController {
     @Autowired
     private FileManager fileManager;
     
+    @Autowired
+    private CalendarIntegrationRepository calendarRepository;
+
     @Autowired
     GitTaskService service;
 
@@ -301,7 +308,8 @@ public class ProjectController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/{id}/events")
-    public List<Event> getEvents(@NotNull @Parameter(hidden = true) User user, @PathVariable long id, long from, long to, @ModelAttribute EventFilter filter) {
+    public List<Event> getEvents(@NotNull @Parameter(hidden = true) User user, @PathVariable long id, long from,
+            long to, @ModelAttribute EventFilter filter) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
@@ -330,5 +338,28 @@ public class ProjectController {
         project.setLogo(f);
         project = projectRepository.save(project);
         return f;
+    }
+
+    @Operation(summary = "Create synchronization link", description = "Creates synchronization link for project events calendar")
+    @ApiResponse(description = "Link.", responseCode = "200")
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @PostMapping("/{id}/events/sync")
+    public String createCalendarSync(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+        Project project = projectRepository.findByIdOrThrow(id);
+        if (project.member(user) == -1) {
+            throw new ObjectNotFoundException();
+        }
+        String key = SecureStringUtils.generateRandomSecureString();
+        while (calendarRepository.findByKey(key).isPresent()) {
+            key = SecureStringUtils.generateRandomSecureString();
+        }
+        Optional<CalendarIntegration> integration = calendarRepository.findByUserAndProject(user, project);
+        if (integration.isPresent()) {
+            key = integration.get().getKey();
+        } else {
+            calendarRepository.save(new CalendarIntegration(user, project, key));
+        }
+        return "https://vernite.dev/api/webhook/calendar?key=" + key;
     }
 }
