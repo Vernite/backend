@@ -21,7 +21,8 @@ import org.bytedeco.javacpp.Pointer;
 public class ImageConverter {
 
     /**
-     * converts any video/image/picture to webp. Default settings: 75% quality, lossy, YUVA420P
+     * converts any video/image/picture to webp. Default settings: 75% quality,
+     * lossy, YUVA420P
      * 
      * @param b
      * @return byte array
@@ -38,17 +39,27 @@ public class ImageConverter {
         AVCodecContext encCtx = null;
         BytePointer data = null;
         try {
-            mem = avutil.av_malloc(b.length);
+            mem = avutil.av_malloc(b.length + 16);
             if (mem == null || mem.address() == 0) {
                 throw new IOException("Could not allocate memory");
             }
-            mem.capacity(b.length);
+            mem.capacity(b.length + 16);
             data = new BytePointer(mem);
+            // 0: cursor
+            // 8: capacity
+            // 16: data
+            data.position(16);
             data.put(b);
-            pb = avformat.avio_alloc_context(data, b.length, 0, null, null, null, null);
+            data.putLong(-16, 0); // cursor
+            data.putLong(-8, b.length); // capacity
+            pb = avformat.avio_alloc_context((BytePointer) null, 0, 0, mem, null, null, null);
             if (pb == null) {
                 throw new IOException("Could not allocate AVIOContext");
             }
+            pb.direct(1);
+            pb.seekable(1);
+            pb.read_packet(ReadPointer.INSTANCE);
+            pb.seek(SeekPointer.INSTANCE);
             ifCtx = avformat.avformat_alloc_context();
             if (ifCtx == null) {
                 throw new IOException("Could not allocate AVFormatContext");
@@ -78,19 +89,34 @@ public class ImageConverter {
                 throw new IOException("Could not allocate frame");
             }
             pkt = avcodec.av_packet_alloc();
-            boolean done = false;
-            while (!done && avformat.av_read_frame(ifCtx, pkt) >= 0) {
-                if (pkt.stream_index() != stream) {
-                    continue;
-                }
-                if (avcodec.avcodec_send_packet(decCtx, pkt) < 0) {
-                    throw new IOException("Error while sending a packet to the decoder");
-                }
-                avcodec.av_packet_unref(pkt);
-                while (avcodec.avcodec_receive_frame(decCtx, src) >= 0) {
-                    done = true;
+            boolean gotFrame = false;
+            while (!gotFrame) {
+                int ret2 = avformat.av_read_frame(ifCtx, pkt);
+                if (ret2 < 0) {
                     break;
                 }
+                if (pkt.stream_index() != stream) {
+                    avcodec.av_packet_unref(pkt);
+                    continue;
+                }
+                int ret = avcodec.avcodec_send_packet(decCtx, pkt);
+                if (ret < 0) {
+                    throw new IOException("Could not send packet to decoder");
+                }
+                avcodec.av_packet_unref(pkt);
+                while (ret >= 0) {
+                    ret = avcodec.avcodec_receive_frame(decCtx, src);
+                    if (ret == avutil.AVERROR_EAGAIN() || ret == avutil.AVERROR_EOF()) {
+                        break;
+                    } else if (ret < 0) {
+                        throw new IOException("Could not receive frame from decoder");
+                    }
+                    gotFrame = true;
+                    break;
+                }
+            }
+            if (!gotFrame) {
+                throw new IOException("Could not read frame");
             }
             dst.width(400);
             dst.height(400);
@@ -172,14 +198,68 @@ public class ImageConverter {
                 avutil.av_free(pb.buffer());
                 pb.buffer(null);
                 avformat.avio_context_free(pb);
-            } else if (mem != null) {
-                avutil.av_free(mem);
             }
             if (mem != null) {
+                avutil.av_free(mem);
                 mem.close();
             }
             if (data != null) {
                 data.close();
+            }
+        }
+    }
+
+    private static final class ReadPointer extends AVIOContext.Read_packet_Pointer_BytePointer_int {
+        public static final ReadPointer INSTANCE = new ReadPointer();
+
+        @Override
+        public int call(Pointer opaque, BytePointer buf, int buf_size) {
+            BytePointer p = new BytePointer(opaque);
+            try {
+                long pos = p.getLong(0);
+                long count = p.getLong(8);
+                if (pos >= count) {
+                    return avutil.AVERROR_EOF();
+                }
+                long avail = count - pos;
+                if (buf_size > avail) {
+                    buf_size = (int) avail;
+                }
+                if (buf_size <= 0) {
+                    return 0;
+                }
+                Pointer.memcpy(buf, p.getPointer(16 + pos), buf_size);
+                p.putLong(0, pos + buf_size);
+                return buf_size;
+            } finally {
+                p.close();
+            }
+        }
+    }
+
+    private static final class SeekPointer extends AVIOContext.Seek_Pointer_long_int {
+        public static final SeekPointer INSTANCE = new SeekPointer();
+
+        public long call(Pointer opaque, long offset, int whence) {
+            BytePointer p = new BytePointer(opaque);
+            try {
+                long pos = p.getLong(0);
+                long size = p.getLong(8);
+                if ((whence & avformat.AVSEEK_SIZE) != 0) {
+                    return size;
+                }
+                switch (whence) {
+                    case 0 -> pos = offset; // SEEK_SET
+                    case 1 -> pos = pos + offset; // SEEK_CUR
+                    case 2 -> pos = capacity + offset; // SEEK_END
+                }
+                if (offset < 0 || offset > size) {
+                    return avutil.AVERROR_EOF();
+                }
+                p.putLong(0, pos);
+                return 0;
+            } finally {
+                p.close();
             }
         }
     }
