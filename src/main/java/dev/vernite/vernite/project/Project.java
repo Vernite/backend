@@ -35,18 +35,27 @@ import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
+import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.OrderBy;
 import javax.validation.constraints.NotNull;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.annotations.Where;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+
+import dev.vernite.vernite.cdn.File;
 import dev.vernite.vernite.counter.CounterSequence;
 import dev.vernite.vernite.integration.git.github.entity.GitHubIntegration;
 import dev.vernite.vernite.projectworkspace.ProjectWorkspace;
@@ -54,10 +63,6 @@ import dev.vernite.vernite.sprint.Sprint;
 import dev.vernite.vernite.status.Status;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.utils.SoftDeleteEntity;
-
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-import org.hibernate.annotations.Where;
 
 /**
  * Entity for representing project. Project name cant be longer than 50
@@ -115,6 +120,10 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "project")
     private List<Sprint> sprints = new ArrayList<>();
+
+    @ManyToOne
+    @JoinColumn(name = "file_id", foreignKey = @ForeignKey(name = "fk_project_file"))
+    private File logo;
 
     public Project() {
     }
@@ -242,6 +251,14 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
 
     public void setSprints(List<Sprint> sprints) {
         this.sprints = sprints;
+    }
+
+    public File getLogo() {
+        return logo;
+    }
+
+    public void setLogo(File logo) {
+        this.logo = logo;
     }
 
     @Override

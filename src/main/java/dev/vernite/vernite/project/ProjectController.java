@@ -27,6 +27,7 @@
 
 package dev.vernite.vernite.project;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -34,6 +35,24 @@ import java.util.Optional;
 
 import javax.validation.constraints.NotNull;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+
+import dev.vernite.vernite.cdn.File;
+import dev.vernite.vernite.cdn.FileManager;
 import dev.vernite.vernite.event.Event;
 import dev.vernite.vernite.event.EventFilter;
 import dev.vernite.vernite.event.EventService;
@@ -51,25 +70,12 @@ import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.user.UserRepository;
 import dev.vernite.vernite.utils.ErrorType;
 import dev.vernite.vernite.utils.FieldErrorException;
+import dev.vernite.vernite.utils.ImageConverter;
 import dev.vernite.vernite.utils.ObjectNotFoundException;
 import dev.vernite.vernite.utils.SecureStringUtils;
 import dev.vernite.vernite.workspace.Workspace;
 import dev.vernite.vernite.workspace.WorkspaceKey;
 import dev.vernite.vernite.workspace.WorkspaceRepository;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -99,6 +105,9 @@ public class ProjectController {
     @Autowired
     private EventService eventService;
 
+    @Autowired
+    private FileManager fileManager;
+    
     @Autowired
     private CalendarIntegrationRepository calendarRepository;
 
@@ -306,6 +315,29 @@ public class ProjectController {
             throw new ObjectNotFoundException();
         }
         return eventService.getProjectEvents(project, new Date(from), new Date(to), filter);
+    }
+
+    @Operation(summary = "Changes project logo", description = "Changes project logo. It will be converted to image/webp format with resolution 400x400. Alpha channel is supported.")
+    @ApiResponse(description = "Project logo changed.", responseCode = "200")
+    @ApiResponse(description = "Cannot convert image.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @PostMapping(path = "/{id}/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public File uploadImage(@NotNull @Parameter(hidden = true) User user, @PathVariable long id, @RequestParam("file") MultipartFile file) {
+        Project project = projectRepository.findByIdOrThrow(id);
+        if (project.member(user) == -1) {
+            throw new ObjectNotFoundException();
+        }
+        byte[] converted;
+        try {
+            converted = ImageConverter.convertImage(file.getOriginalFilename(), file.getBytes());
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
+        File f = fileManager.uploadFile("image/webp", converted);
+        project.setLogo(f);
+        project = projectRepository.save(project);
+        return f;
     }
 
     @Operation(summary = "Create synchronization link", description = "Creates synchronization link for project events calendar")

@@ -111,7 +111,7 @@ public class Task extends SoftDeleteEntity {
     @JsonIgnore
     @ManyToMany(cascade = CascadeType.MERGE)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "sprint_id", foreignKey = @ForeignKey(name = "fk_task_sprint"))
+    @JoinColumn(name = "sprint_id")
     private Set<Sprint> sprints = Set.of();
 
     @Lob

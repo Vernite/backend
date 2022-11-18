@@ -31,7 +31,10 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.servlet.config.annotation.AsyncSupportConfigurer;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -45,6 +48,7 @@ import dev.vernite.vernite.ws.SocketHandler;
 @EnableWebMvc
 @Configuration
 @EnableWebSocket
+@EnableAsync
 public class WebConfig implements WebMvcConfigurer, WebSocketConfigurer {
 
     @Autowired
@@ -68,5 +72,15 @@ public class WebConfig implements WebMvcConfigurer, WebSocketConfigurer {
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(new SocketHandler(), "/ws").setAllowedOrigins("http://localhost:4200",
                 "http://localhost:4201", "https://vernite.dev", "tauri://localhost");
+    }
+
+    @Override
+    public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
+        final ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(16);
+        executor.setThreadNamePrefix("mvc-task-executor-");
+        executor.initialize();
+        configurer.setTaskExecutor(executor);
     }
 }
