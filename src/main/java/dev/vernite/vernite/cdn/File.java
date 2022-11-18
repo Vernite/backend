@@ -16,6 +16,7 @@ public class File {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @JsonIgnore
     private long id;
 
     @Column(nullable = false)
@@ -71,4 +72,7 @@ public class File {
         this.file = file;
     }
 
+    public String getURL() {
+        return "/api/cdn/" + hash;
+    }
 }
