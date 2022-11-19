@@ -56,6 +56,10 @@ import org.hibernate.annotations.OnDeleteAction;
 @Entity
 public class Sprint extends SoftDeleteEntity {
 
+    public enum Status {
+        CREATED, ACTIVE, CLOSED
+    }
+
     @Id
     @JsonIgnore
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -74,8 +78,7 @@ public class Sprint extends SoftDeleteEntity {
     @Column(nullable = false)
     private Date finishDate;
 
-    @Column(nullable = false)
-    private String status;
+    private int status;
 
     @Lob
     @Column(nullable = false)
@@ -94,12 +97,12 @@ public class Sprint extends SoftDeleteEntity {
     public Sprint() {
     }
 
-    public Sprint(long id, String name, Date start, Date finish, String status, String description, Project project) {
+    public Sprint(long id, String name, Date start, Date finish, Status status, String description, Project project) {
         this.number = id;
         this.name = name;
         this.startDate = start;
         this.finishDate = finish;
-        this.status = status;
+        this.status = status.ordinal();
         this.description = description;
         this.project = project;
     }
@@ -166,11 +169,16 @@ public class Sprint extends SoftDeleteEntity {
         this.project = project;
     }
 
-    public String getStatus() {
+    public int getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    @JsonIgnore
+    public Status getStatusEnum() {
+        return Status.values()[status];
+    }
+
+    public void setStatus(Integer status) {
         this.status = status;
     }
 

@@ -109,9 +109,12 @@ public class SprintRequestTests {
     void setStatusTests() {
         SprintRequest sprintRequest = new SprintRequest();
 
-        sprintRequest.setStatus("Test");
-        assertEquals("Test", sprintRequest.getStatus().get());
+        sprintRequest.setStatus(0);
+        assertEquals(0, sprintRequest.getStatus().get());
 
         assertThrows(FieldErrorException.class, () -> sprintRequest.setStatus(null));
+
+        assertThrows(FieldErrorException.class, () -> sprintRequest.setStatus(-1));
+        assertThrows(FieldErrorException.class, () -> sprintRequest.setStatus(7));
     }
 }

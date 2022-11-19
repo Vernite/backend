@@ -42,6 +42,7 @@ public class SprintRequest {
     private static final String NULL_VALUE = "null value";
     private static final String START_FIELD = "startDate";
     private static final String FINISH_FIELD = "finishDate";
+    private static final String STATUS_FIELD = "status";
 
     @Schema(maxLength = 50, minLength = 1, description = "The name of the sprint. Trailing and leading whitespace are removed.")
     private Optional<String> name = Optional.empty();
@@ -51,18 +52,18 @@ public class SprintRequest {
     private Optional<Date> startDate = Optional.empty();
     @Schema(description = "The finish date of the sprint. Must be after the start date.")
     private Optional<Date> finishDate = Optional.empty();
-    @Schema(description = "The status of the sprint. Must be one of the following: [\"planned\", \"in progress\", \"finished\", \"cancelled\"].")
-    private Optional<String> status = Optional.empty();
+    @Schema(description = "The status of the sprint. Must be one of the following: [\"0 (created)\", \"1 (active)\", \"2 (closed)\"].")
+    private Optional<Integer> status = Optional.empty();
 
     public SprintRequest() {
     }
 
-    public SprintRequest(String name, String description, Date startDate, Date finishDate, String status) {
+    public SprintRequest(String name, String description, Date startDate, Date finishDate, Sprint.Status status) {
         this.name = Optional.ofNullable(name);
         this.description = Optional.ofNullable(description);
         this.startDate = Optional.ofNullable(startDate);
         this.finishDate = Optional.ofNullable(finishDate);
-        this.status = Optional.ofNullable(status);
+        this.status = Optional.ofNullable(status == null ? null : status.ordinal());
     }
 
     /**
@@ -78,8 +79,8 @@ public class SprintRequest {
         String descString = getDescription().orElseThrow(() -> new FieldErrorException("description", NULL_VALUE));
         Date start = getStartDate().orElseThrow(() -> new FieldErrorException(START_FIELD, NULL_VALUE));
         Date finish = getFinishDate().orElseThrow(() -> new FieldErrorException(FINISH_FIELD, NULL_VALUE));
-        String statusString = getStatus().orElseThrow(() -> new FieldErrorException("status", NULL_VALUE));
-        return new Sprint(id, nameString, start, finish, statusString, descString, project);
+        Integer statusInt = getStatus().orElseThrow(() -> new FieldErrorException(STATUS_FIELD, NULL_VALUE));
+        return new Sprint(id, nameString, start, finish, Sprint.Status.values()[statusInt], descString, project);
     }
 
     public Optional<String> getName() {
@@ -139,13 +140,16 @@ public class SprintRequest {
         this.finishDate = Optional.ofNullable(finishDate);
     }
 
-    public Optional<String> getStatus() {
+    public Optional<Integer> getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(Integer status) {
         if (status == null) {
-            throw new FieldErrorException("status", NULL_VALUE);
+            throw new FieldErrorException(STATUS_FIELD, NULL_VALUE);
+        }
+        if (status < 0 || status >= Sprint.Status.values().length) {
+            throw new FieldErrorException(STATUS_FIELD, "invalid");
         }
         this.status = Optional.of(status);
     }

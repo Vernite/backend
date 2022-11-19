@@ -49,7 +49,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 public class TaskFilter {
     private static final String NUMBER = "number";
     private static final String STATUS = "status";
-    private static final String ACTIVE = "active";
     private static final String SPRINTS = "sprints";
 
     @Parameter(description = "Id of sprint to filter by (filters are combined with 'and')")
@@ -117,7 +116,7 @@ public class TaskFilter {
         return (Root<Task> root, CriteriaQuery<?> query, CriteriaBuilder builder) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(builder.equal(root.get(STATUS).get("project"), project));
-            predicates.add(builder.isNull(root.get(ACTIVE)));
+            predicates.add(builder.isNull(root.get("active")));
             predicates.add(builder.notEqual(root.get("type"), TaskType.SUBTASK.ordinal()));
             sprintId.ifPresent(id -> predicates.add(builder.in(root.join(SPRINTS).get(NUMBER)).value(id)));
             assigneeId.ifPresent(id -> predicates.add(builder.equal(root.get("assignee").get("id"), id)));
@@ -126,10 +125,14 @@ public class TaskFilter {
             parentId.ifPresent(id -> predicates.add(builder.equal(root.get("parentTask").get(NUMBER), id)));
             backlog.ifPresent(isBacklog -> {
                 if (Boolean.FALSE.equals(isBacklog)) {
-                    predicates.add(builder.in(root.join(SPRINTS).get(STATUS)).value(ACTIVE));
+                    predicates.add(builder.in(root.join(SPRINTS).get(STATUS)).value(1));
                 } else {
-                    predicates.add(builder.or(builder.isEmpty(root.get(SPRINTS)),
-                            builder.in(root.join(SPRINTS, JoinType.LEFT).get(STATUS)).value(ACTIVE).not()));
+                    predicates.add(
+                            builder.or(
+                                    builder.isEmpty(root.get(SPRINTS)),
+                                    builder.and(
+                                            builder.in(root.join(SPRINTS, JoinType.LEFT).get(STATUS)).value(1).not(),
+                                            builder.in(root.join(SPRINTS, JoinType.LEFT).get(STATUS)).value(2).not())));
                 }
             });
             return builder.and(predicates.toArray(new Predicate[predicates.size()]));

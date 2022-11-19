@@ -106,16 +106,24 @@ public class TaskController {
     private void handleSprint(List<Long> sprints, Task task, Project project) {
         HashSet<Sprint> sprintSet = new HashSet<>();
         HashSet<Long> oldSprintSet = new HashSet<>();
+        boolean added = false;
         for (Sprint sprint : task.getSprints()) {
-            if (!"active".equals(sprint.getStatus())) {
+            if (sprint.getStatusEnum() == Sprint.Status.CLOSED) {
                 oldSprintSet.add(sprint.getNumber());
             }
         }
         for (Long sprintId : sprints) {
             Sprint sprint = sprintRepository.findByProjectAndNumberOrThrow(project, sprintId);
             sprintSet.add(sprint);
-            if (!oldSprintSet.remove(sprint.getNumber()) && !sprint.getStatus().equals("active")) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot add task to not active sprint");
+            if (sprint.getStatusEnum() == Sprint.Status.CLOSED) {
+                if (!oldSprintSet.remove(sprint.getNumber())) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot add task to not active sprint");
+                }
+            } else {
+                if (added) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot add task to multiple non closed sprints");
+                }
+                added = true;
             }
         }
         if (!oldSprintSet.isEmpty()) {
