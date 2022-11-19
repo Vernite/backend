@@ -323,7 +323,7 @@ public class ProjectController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PostMapping(path = "/{id}/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public File uploadImage(@NotNull @Parameter(hidden = true) User user, @PathVariable long id, @RequestParam("file") MultipartFile file) {
+    public File uploadLogo(@NotNull @Parameter(hidden = true) User user, @PathVariable long id, @RequestParam("file") MultipartFile file) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
@@ -338,6 +338,20 @@ public class ProjectController {
         project.setLogo(f);
         project = projectRepository.save(project);
         return f;
+    }
+
+    @Operation(summary = "Deletes project logo", description = "Deletes project logo. Logo will be null.")
+    @ApiResponse(description = "Project logo changed.", responseCode = "200")
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @DeleteMapping(path = "/{id}/logo")
+    public void uploadImage(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+        Project project = projectRepository.findByIdOrThrow(id);
+        if (project.member(user) == -1) {
+            throw new ObjectNotFoundException();
+        }
+        project.setLogo(null);
+        project = projectRepository.save(project);
     }
 
     @Operation(summary = "Create synchronization link", description = "Creates synchronization link for project events calendar")
