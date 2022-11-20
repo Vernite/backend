@@ -46,6 +46,7 @@ import org.springframework.web.server.ResponseStatusException;
 import dev.vernite.vernite.integration.git.GitTaskService;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.project.ProjectRepository;
+import dev.vernite.vernite.task.Task;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.utils.ErrorType;
 import dev.vernite.vernite.utils.ObjectNotFoundException;
@@ -153,6 +154,11 @@ public class ReleaseController {
         }
         if (release.getReleased() && release.getGitReleaseId() > 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Release already published");
+        }
+        for (Task task : release.getTasks()) {
+            if (!task.getStatus().isFinal()) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Release contains tasks not done");
+            }
         }
         release.setReleased(true);
         Release finalRelease = releaseRepository.save(release);
