@@ -43,6 +43,8 @@ import javax.validation.constraints.NotNull;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.task.Task;
 import dev.vernite.vernite.utils.SoftDeleteEntity;
@@ -69,6 +71,9 @@ public class Release extends SoftDeleteEntity {
 
     @OneToMany(mappedBy = "release")
     private List<Task> tasks;
+
+    @JsonIgnore
+    private long gitReleaseId = 0;
 
     public Release() {
     }
@@ -144,5 +149,13 @@ public class Release extends SoftDeleteEntity {
 
     public void setTasks(List<Task> tasks) {
         this.tasks = tasks;
+    }
+
+    public long getGitReleaseId() {
+        return gitReleaseId;
+    }
+
+    public void setGitReleaseId(long gitReleaseI) {
+        this.gitReleaseId = gitReleaseI;
     }
 }

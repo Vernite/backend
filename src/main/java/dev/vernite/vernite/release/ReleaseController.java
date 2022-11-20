@@ -129,6 +129,9 @@ public class ReleaseController {
         if (release.getProject().getId() != projectId) {
             throw new ObjectNotFoundException();
         }
+        if (release.getReleased()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot update a released release.");
+        }
         release.update(request);
         return releaseRepository.save(release);
     }
@@ -148,15 +151,18 @@ public class ReleaseController {
         if (release.getProject().getId() != projectId) {
             throw new ObjectNotFoundException();
         }
-        if (release.getReleased()) {
+        if (release.getReleased() && release.getGitReleaseId() > 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Release already published");
         }
         release.setReleased(true);
-        release = releaseRepository.save(release);
+        Release finalRelease = releaseRepository.save(release);
         if (publishGitService) {
-            return gitTaskService.publishRelease(release, branch).thenReturn(release);
+            return gitTaskService.publishRelease(finalRelease, branch).map(gitId -> {
+                finalRelease.setGitReleaseId(gitId);
+                return releaseRepository.save(finalRelease);
+            });
         } else {
-            return Mono.just(release);
+            return Mono.just(finalRelease);
         }
     }
 

@@ -173,7 +173,7 @@ public class GitTaskService {
         gitHubService.deletePullRequest(task);
     }
 
-    public Mono<Void> publishRelease(Release release, String branch) {
+    public Mono<Long> publishRelease(Release release, String branch) {
         return gitHubService.publishRelease(release, branch);
     }
 

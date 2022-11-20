@@ -8,6 +8,8 @@ import dev.vernite.vernite.release.Release;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GitHubRelease {
 
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private Long id;
     @JsonProperty("tag_name")
     private String tagName;
     private String body;
@@ -15,6 +17,9 @@ public class GitHubRelease {
     private boolean generateReleaseNotes;
     @JsonProperty("target_commitish")
     private String targetCommitish;
+
+    public GitHubRelease() {
+    }
 
     public GitHubRelease(Release release) {
         this.tagName = release.getName().replace(" ", "-");
@@ -52,5 +57,13 @@ public class GitHubRelease {
 
     public void setTargetCommitish(String targetCommitish) {
         this.targetCommitish = targetCommitish;
+    }
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
     }
 }

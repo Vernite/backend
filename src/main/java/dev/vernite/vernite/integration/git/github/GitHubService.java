@@ -663,7 +663,7 @@ public class GitHubService {
                 .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
     }
 
-    private Mono<Void> apiCreateRelease(GitHubInstallation installation,
+    private Mono<Long> apiCreateRelease(GitHubInstallation installation,
             GitHubIntegration integration, GitHubRelease release) {
         return client.post()
                 .uri("/repos/{owner}/{repo}/releases", integration.getRepositoryOwner(),
@@ -672,8 +672,9 @@ public class GitHubService {
                 .header(ACCEPT, APPLICATION_JSON_GITHUB)
                 .bodyValue(release)
                 .retrieve()
-                .bodyToMono(GitHubPullRequest.class)
-                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage())).then();
+                .bodyToMono(GitHubRelease.class)
+                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()))
+                .map(GitHubRelease::getId);
     }
 
     private Flux<GitHubBranchRead> apiGetBranches(GitHubInstallation installation,
@@ -711,7 +712,7 @@ public class GitHubService {
         }
     }
 
-    public Mono<Void> publishRelease(Release release, String branch) {
+    public Mono<Long> publishRelease(Release release, String branch) {
         GitHubIntegration integration = release.getProject().getGitHubIntegrationEntity();
         if (integration == null) {
             return Mono.empty();
