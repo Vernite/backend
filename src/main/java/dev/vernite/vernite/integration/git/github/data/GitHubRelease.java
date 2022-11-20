@@ -13,7 +13,7 @@ public class GitHubRelease {
     private boolean generateReleaseNotes;
 
     public GitHubRelease(Release release) {
-        this.tagName = release.getName();
+        this.tagName = release.getName().replace(" ", "-");
         this.body = release.getDescription();
         this.generateReleaseNotes = true;
     }
