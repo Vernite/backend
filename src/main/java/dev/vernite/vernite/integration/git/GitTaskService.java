@@ -31,6 +31,7 @@ import java.util.List;
 
 import dev.vernite.vernite.integration.git.github.GitHubService;
 import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.release.Release;
 import dev.vernite.vernite.task.Task;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -170,5 +171,9 @@ public class GitTaskService {
      */
     public void deletePullRequest(Task task) {
         gitHubService.deletePullRequest(task);
+    }
+
+    public Mono<Void> publishRelease(Release release) {
+        return gitHubService.publishRelease(release);
     }
 }

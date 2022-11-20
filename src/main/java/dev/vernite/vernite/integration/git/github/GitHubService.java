@@ -44,6 +44,7 @@ import dev.vernite.vernite.integration.git.github.data.GitHubInstallationApi;
 import dev.vernite.vernite.integration.git.github.data.GitHubIssue;
 import dev.vernite.vernite.integration.git.github.data.GitHubMergeInfo;
 import dev.vernite.vernite.integration.git.github.data.GitHubPullRequest;
+import dev.vernite.vernite.integration.git.github.data.GitHubRelease;
 import dev.vernite.vernite.integration.git.github.data.GitHubRepository;
 import dev.vernite.vernite.integration.git.github.data.GitHubUser;
 import dev.vernite.vernite.integration.git.github.data.GitHubInstallationRepositories;
@@ -58,6 +59,7 @@ import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskIssueRep
 import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskPull;
 import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskPullRepository;
 import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.release.Release;
 import dev.vernite.vernite.task.Task;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.utils.ExternalApiException;
@@ -659,6 +661,19 @@ public class GitHubService {
                 .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
     }
 
+    private Mono<Void> apiCreateRelease(GitHubInstallation installation,
+            GitHubIntegration integration, GitHubRelease release) {
+        return client.post()
+                .uri("/repos/{owner}/{repo}/releases", integration.getRepositoryOwner(),
+                        integration.getRepositoryName())
+                .header(AUTHORIZATION, BEARER + installation.getToken())
+                .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                .bodyValue(release)
+                .retrieve()
+                .bodyToMono(GitHubPullRequest.class)
+                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage())).then();
+    }
+
     /**
      * Creates Json Web Token from file with private key. Token created with this
      * method lasts 10 minutes.
@@ -680,5 +695,15 @@ public class GitHubService {
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to create JWT");
         }
+    }
+
+    public Mono<Void> publishRelease(Release release) {
+        GitHubIntegration integration = release.getProject().getGitHubIntegrationEntity();
+        if (integration == null) {
+            return Mono.empty();
+        }
+        GitHubRelease gitHubRelease = new GitHubRelease(release);
+        return refreshToken(integration.getInstallation())
+                .flatMap(installation -> apiCreateRelease(installation, integration, gitHubRelease));
     }
 }
