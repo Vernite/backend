@@ -134,7 +134,7 @@ public class ReleaseControllerTests {
     void createSuccess() {
         Release release = client.post().uri("/project/{projectId}/release", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ReleaseRequest("Name", null, null, false)).exchange()
+                .bodyValue(new ReleaseRequest("Name", null, null)).exchange()
                 .expectStatus().isOk().expectBody(Release.class).returnResult().getResponseBody();
         assertNotNull(release);
 
@@ -145,31 +145,31 @@ public class ReleaseControllerTests {
     @Test
     void createBadRequest() {
         client.post().uri("/project/{projectId}/release", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new ReleaseRequest(null, null, null, false))
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new ReleaseRequest(null, null, null))
                 .exchange().expectStatus().isBadRequest();
 
         client.post().uri("/project/{projectId}/release", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new ReleaseRequest("", null, null, false))
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new ReleaseRequest("", null, null))
                 .exchange().expectStatus().isBadRequest();
 
         client.post().uri("/project/{projectId}/release", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new ReleaseRequest(" ", null, null, false))
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new ReleaseRequest(" ", null, null))
                 .exchange().expectStatus().isBadRequest();
 
         client.post().uri("/project/{projectId}/release", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new ReleaseRequest("a".repeat(51), null, null, false))
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new ReleaseRequest("a".repeat(51), null, null))
                 .exchange().expectStatus().isBadRequest();
     }
 
     @Test
     void createUnauthorized() {
         client.post().uri("/project/{projectId}/release", project.getId())
-                .bodyValue(new ReleaseRequest("Name", null, null, false)).exchange()
+                .bodyValue(new ReleaseRequest("Name", null, null)).exchange()
                 .expectStatus().isUnauthorized();
 
         client.post().uri("/project/{projectId}/release", project.getId())
                 .cookie(AuthController.COOKIE_NAME, "invalid")
-                .bodyValue(new ReleaseRequest("Name", null, null, false)).exchange()
+                .bodyValue(new ReleaseRequest("Name", null, null)).exchange()
                 .expectStatus().isUnauthorized();
     }
 
@@ -177,13 +177,13 @@ public class ReleaseControllerTests {
     void createNotFound() {
         client.post().uri("/project/{projectId}/release", 0)
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ReleaseRequest("Name", null, null, false)).exchange()
+                .bodyValue(new ReleaseRequest("Name", null, null)).exchange()
                 .expectStatus().isNotFound();
 
         Project project2 = projectRepository.save(new Project("Sprint Tests 2"));
         client.post().uri("/project/{projectId}/release", project2.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ReleaseRequest("Name", null, null, false)).exchange()
+                .bodyValue(new ReleaseRequest("Name", null, null)).exchange()
                 .expectStatus().isNotFound();
     }
 
@@ -227,7 +227,7 @@ public class ReleaseControllerTests {
         Release release = releaseRepository.save(new Release("Name", project));
         Release result = client.put().uri("/project/{projectId}/release/{releaseId}", project.getId(), release.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ReleaseRequest("Name 2", "null", null, false)).exchange().expectStatus().isOk()
+                .bodyValue(new ReleaseRequest("Name 2", "null", null)).exchange().expectStatus().isOk()
                 .expectBody(Release.class).returnResult().getResponseBody();
         release.setName("Name 2");
         release.setDescription("null");
@@ -240,19 +240,19 @@ public class ReleaseControllerTests {
     void updateBadRequest() {
         Release release = releaseRepository.save(new Release("Name", project));
         client.put().uri("/project/{projectId}/release/{releaseId}", project.getId(), release.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new ReleaseRequest(null, null, null, false))
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new ReleaseRequest(null, null, null))
                 .exchange().expectStatus().isBadRequest();
 
         client.put().uri("/project/{projectId}/release/{releaseId}", project.getId(), release.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new ReleaseRequest("", null, null, false))
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new ReleaseRequest("", null, null))
                 .exchange().expectStatus().isBadRequest();
 
         client.put().uri("/project/{projectId}/release/{releaseId}", project.getId(), release.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new ReleaseRequest(" ", null, null, false))
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new ReleaseRequest(" ", null, null))
                 .exchange().expectStatus().isBadRequest();
 
         client.put().uri("/project/{projectId}/release/{releaseId}", project.getId(), release.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new ReleaseRequest("a".repeat(51), null, null, false))
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new ReleaseRequest("a".repeat(51), null, null))
                 .exchange().expectStatus().isBadRequest();
     }
 
@@ -260,12 +260,12 @@ public class ReleaseControllerTests {
     void updateUnauthorized() {
         Release release = releaseRepository.save(new Release("Name", project));
         client.put().uri("/project/{projectId}/release/{releaseId}", project.getId(), release.getId())
-                .bodyValue(new ReleaseRequest("Name 2", null, null, false)).exchange()
+                .bodyValue(new ReleaseRequest("Name 2", null, null)).exchange()
                 .expectStatus().isUnauthorized();
 
         client.put().uri("/project/{projectId}/release/{releaseId}", project.getId(), release.getId())
                 .cookie(AuthController.COOKIE_NAME, "invalid")
-                .bodyValue(new ReleaseRequest("Name 2", null, null, false)).exchange()
+                .bodyValue(new ReleaseRequest("Name 2", null, null)).exchange()
                 .expectStatus().isUnauthorized();
     }
 
@@ -274,19 +274,19 @@ public class ReleaseControllerTests {
         Release release = releaseRepository.save(new Release("Name", project));
         client.put().uri("/project/{projectId}/release/{releaseId}", project.getId(), 0)
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ReleaseRequest("Name 2", null, null, false)).exchange()
+                .bodyValue(new ReleaseRequest("Name 2", null, null)).exchange()
                 .expectStatus().isNotFound();
 
         client.put().uri("/project/{projectId}/release/{releaseId}", 0, release.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ReleaseRequest("Name 2", null, null, false)).exchange()
+                .bodyValue(new ReleaseRequest("Name 2", null, null)).exchange()
                 .expectStatus().isNotFound();
 
         Project project2 = projectRepository.save(new Project("Sprint Tests 2"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project2, workspace, 1L));
         client.put().uri("/project/{projectId}/release/{releaseId}", project2.getId(), release.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ReleaseRequest("Name 2", null, null, false)).exchange()
+                .bodyValue(new ReleaseRequest("Name 2", null, null)).exchange()
                 .expectStatus().isNotFound();
     }
 

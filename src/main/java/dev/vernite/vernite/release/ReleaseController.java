@@ -32,6 +32,7 @@ import java.util.List;
 import javax.validation.constraints.NotNull;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -40,17 +41,22 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
+import dev.vernite.vernite.integration.git.GitTaskService;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.project.ProjectRepository;
+import dev.vernite.vernite.task.Task;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.utils.ErrorType;
 import dev.vernite.vernite.utils.ObjectNotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/project/{projectId}/release")
@@ -59,6 +65,8 @@ public class ReleaseController {
     private ProjectRepository projectRepository;
     @Autowired
     private ReleaseRepository releaseRepository;
+    @Autowired
+    private GitTaskService gitTaskService;
 
     @Operation(summary = "Retrieve all releases", description = "Retrieve all releases for a given project. Results are sorted by deadline.")
     @ApiResponse(description = "List of releases", responseCode = "200")
@@ -122,8 +130,46 @@ public class ReleaseController {
         if (release.getProject().getId() != projectId) {
             throw new ObjectNotFoundException();
         }
+        if (release.getReleased()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot update a released release.");
+        }
         release.update(request);
         return releaseRepository.save(release);
+    }
+
+    @Operation(summary = "Publish a release", description = "Publish a release for a given project.")
+    @ApiResponse(description = "Release published", responseCode = "200", content = @Content(schema = @Schema(implementation = Release.class)))
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project or release not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @PutMapping("/{id}/publish")
+    public Mono<Release> publish(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long id, boolean publishGitService, @Parameter(required = false, in = ParameterIn.QUERY, description = "Not required") String branch) {
+        Project project = projectRepository.findByIdOrThrow(projectId);
+        if (project.member(user) == -1) {
+            throw new ObjectNotFoundException();
+        }
+        Release release = releaseRepository.findByIdOrThrow(id);
+        if (release.getProject().getId() != projectId) {
+            throw new ObjectNotFoundException();
+        }
+        if (release.getReleased() && release.getGitReleaseId() > 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Release already published");
+        }
+        for (Task task : release.getTasks()) {
+            if (!task.getStatus().isFinal()) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Release contains tasks not done");
+            }
+        }
+        release.setReleased(true);
+        Release finalRelease = releaseRepository.save(release);
+        if (publishGitService) {
+            return gitTaskService.publishRelease(finalRelease, branch).map(gitId -> {
+                finalRelease.setGitReleaseId(gitId);
+                return releaseRepository.save(finalRelease);
+            });
+        } else {
+            return Mono.just(finalRelease);
+        }
     }
 
     @Operation(summary = "Delete a release", description = "Delete a release for a given project.")

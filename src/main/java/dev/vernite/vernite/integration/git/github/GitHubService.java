@@ -38,12 +38,15 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import dev.vernite.vernite.integration.git.Branch;
 import dev.vernite.vernite.integration.git.Issue;
 import dev.vernite.vernite.integration.git.PullRequest;
+import dev.vernite.vernite.integration.git.github.data.GitHubBranchRead;
 import dev.vernite.vernite.integration.git.github.data.GitHubInstallationApi;
 import dev.vernite.vernite.integration.git.github.data.GitHubIssue;
 import dev.vernite.vernite.integration.git.github.data.GitHubMergeInfo;
 import dev.vernite.vernite.integration.git.github.data.GitHubPullRequest;
+import dev.vernite.vernite.integration.git.github.data.GitHubRelease;
 import dev.vernite.vernite.integration.git.github.data.GitHubRepository;
 import dev.vernite.vernite.integration.git.github.data.GitHubUser;
 import dev.vernite.vernite.integration.git.github.data.GitHubInstallationRepositories;
@@ -58,6 +61,7 @@ import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskIssueRep
 import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskPull;
 import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskPullRepository;
 import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.release.Release;
 import dev.vernite.vernite.task.Task;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.utils.ExternalApiException;
@@ -659,6 +663,32 @@ public class GitHubService {
                 .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
     }
 
+    private Mono<Long> apiCreateRelease(GitHubInstallation installation,
+            GitHubIntegration integration, GitHubRelease release) {
+        return client.post()
+                .uri("/repos/{owner}/{repo}/releases", integration.getRepositoryOwner(),
+                        integration.getRepositoryName())
+                .header(AUTHORIZATION, BEARER + installation.getToken())
+                .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                .bodyValue(release)
+                .retrieve()
+                .bodyToMono(GitHubRelease.class)
+                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()))
+                .map(GitHubRelease::getId);
+    }
+
+    private Flux<GitHubBranchRead> apiGetBranches(GitHubInstallation installation,
+            GitHubIntegration integration) {
+        return client.get()
+                .uri("/repos/{owner}/{repo}/branches", integration.getRepositoryOwner(),
+                        integration.getRepositoryName())
+                .header(AUTHORIZATION, BEARER + installation.getToken())
+                .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                .retrieve()
+                .bodyToFlux(GitHubBranchRead.class)
+                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
+    }
+
     /**
      * Creates Json Web Token from file with private key. Token created with this
      * method lasts 10 minutes.
@@ -680,5 +710,28 @@ public class GitHubService {
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to create JWT");
         }
+    }
+
+    public Mono<Long> publishRelease(Release release, String branch) {
+        GitHubIntegration integration = release.getProject().getGitHubIntegrationEntity();
+        if (integration == null) {
+            return Mono.empty();
+        }
+        GitHubRelease gitHubRelease = new GitHubRelease(release);
+        if (branch != null) {
+            gitHubRelease.setTargetCommitish(branch);
+        }
+        return refreshToken(integration.getInstallation())
+                .flatMap(installation -> apiCreateRelease(installation, integration, gitHubRelease));
+    }
+
+    public Flux<Branch> getBranches(Project project) {
+        GitHubIntegration integration = project.getGitHubIntegrationEntity();
+        if (integration == null) {
+            return Flux.empty();
+        }
+        return refreshToken(integration.getInstallation())
+                .flatMapMany(installation -> apiGetBranches(installation, integration))
+                .map(branch -> new Branch(branch.getName()));
     }
 }

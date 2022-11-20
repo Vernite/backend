@@ -42,8 +42,8 @@ import javax.validation.constraints.NotNull;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.task.Task;
@@ -72,6 +72,9 @@ public class Release extends SoftDeleteEntity {
     @OneToMany(mappedBy = "release")
     private List<Task> tasks;
 
+    @JsonIgnore
+    private long gitReleaseId = 0;
+
     public Release() {
     }
 
@@ -90,19 +93,6 @@ public class Release extends SoftDeleteEntity {
         request.getName().ifPresent(this::setName);
         request.getDescription().ifPresent(this::setDescription);
         request.getDeadline().ifPresent(this::setDeadline);
-        request.getReleased().ifPresent(aReleased -> {
-            if (Boolean.TRUE.equals(aReleased)) {
-                for (Task task : getTasks()) {
-                    if (!task.getStatus().isFinal()) {
-                        throw new ResponseStatusException(HttpStatus.CONFLICT,
-                                "Cannot release release with non-final tasks");
-                    }
-                }
-                this.setReleased(true);
-            } else {
-                this.setReleased(false);
-            }
-        });
     }
 
     public long getId() {
@@ -159,5 +149,13 @@ public class Release extends SoftDeleteEntity {
 
     public void setTasks(List<Task> tasks) {
         this.tasks = tasks;
+    }
+
+    public long getGitReleaseId() {
+        return gitReleaseId;
+    }
+
+    public void setGitReleaseId(long gitReleaseI) {
+        this.gitReleaseId = gitReleaseI;
     }
 }

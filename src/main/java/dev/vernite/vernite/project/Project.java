@@ -241,6 +241,11 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
                 : null;
     }
 
+    @JsonIgnore
+    public GitHubIntegration getGitHubIntegrationEntity() {
+        return gitHubIntegration;
+    }
+
     public void setGitHubIntegration(GitHubIntegration gitHubIntegration) {
         this.gitHubIntegration = gitHubIntegration;
     }
