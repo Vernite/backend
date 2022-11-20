@@ -173,7 +173,11 @@ public class GitTaskService {
         gitHubService.deletePullRequest(task);
     }
 
-    public Mono<Void> publishRelease(Release release) {
-        return gitHubService.publishRelease(release);
+    public Mono<Void> publishRelease(Release release, String branch) {
+        return gitHubService.publishRelease(release, branch);
+    }
+
+    public Flux<Branch> getBranches(Project project) {
+        return Flux.concat(List.of(gitHubService.getBranches(project)));
     }
 }

@@ -58,6 +58,7 @@ import dev.vernite.vernite.event.EventFilter;
 import dev.vernite.vernite.event.EventService;
 import dev.vernite.vernite.integration.calendar.CalendarIntegration;
 import dev.vernite.vernite.integration.calendar.CalendarIntegrationRepository;
+import dev.vernite.vernite.integration.git.Branch;
 import dev.vernite.vernite.integration.git.GitTaskService;
 import dev.vernite.vernite.integration.git.Issue;
 import dev.vernite.vernite.integration.git.PullRequest;
@@ -301,6 +302,19 @@ public class ProjectController {
             throw new ObjectNotFoundException();
         }
         return service.getPullRequests(project);
+    }
+
+    @Operation(summary = "Retrieve git branches for project", description = "Retrieves all branches from all integrated git services for project.")
+    @ApiResponse(description = "List of branches.", responseCode = "200", content = @Content(schema = @Schema(implementation = Branch.class)))
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @GetMapping("/{id}/integration/git/branch")
+    public Flux<Branch> getBranches(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+        Project project = projectRepository.findByIdOrThrow(id);
+        if (project.member(user) == -1) {
+            throw new ObjectNotFoundException();
+        }
+        return service.getBranches(project);
     }
 
     @Operation(summary = "Retrieve events for project", description = "Retrieves events from specified timestamp for project.")

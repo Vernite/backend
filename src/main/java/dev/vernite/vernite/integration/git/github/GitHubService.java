@@ -38,8 +38,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import dev.vernite.vernite.integration.git.Branch;
 import dev.vernite.vernite.integration.git.Issue;
 import dev.vernite.vernite.integration.git.PullRequest;
+import dev.vernite.vernite.integration.git.github.data.GitHubBranchRead;
 import dev.vernite.vernite.integration.git.github.data.GitHubInstallationApi;
 import dev.vernite.vernite.integration.git.github.data.GitHubIssue;
 import dev.vernite.vernite.integration.git.github.data.GitHubMergeInfo;
@@ -674,6 +676,18 @@ public class GitHubService {
                 .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage())).then();
     }
 
+    private Flux<GitHubBranchRead> apiGetBranches(GitHubInstallation installation,
+            GitHubIntegration integration) {
+        return client.get()
+                .uri("/repos/{owner}/{repo}/branches", integration.getRepositoryOwner(),
+                        integration.getRepositoryName())
+                .header(AUTHORIZATION, BEARER + installation.getToken())
+                .header(ACCEPT, APPLICATION_JSON_GITHUB)
+                .retrieve()
+                .bodyToFlux(GitHubBranchRead.class)
+                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
+    }
+
     /**
      * Creates Json Web Token from file with private key. Token created with this
      * method lasts 10 minutes.
@@ -697,13 +711,26 @@ public class GitHubService {
         }
     }
 
-    public Mono<Void> publishRelease(Release release) {
+    public Mono<Void> publishRelease(Release release, String branch) {
         GitHubIntegration integration = release.getProject().getGitHubIntegrationEntity();
         if (integration == null) {
             return Mono.empty();
         }
         GitHubRelease gitHubRelease = new GitHubRelease(release);
+        if (branch != null) {
+            gitHubRelease.setTargetCommitish(branch);
+        }
         return refreshToken(integration.getInstallation())
                 .flatMap(installation -> apiCreateRelease(installation, integration, gitHubRelease));
+    }
+
+    public Flux<Branch> getBranches(Project project) {
+        GitHubIntegration integration = project.getGitHubIntegrationEntity();
+        if (integration == null) {
+            return Flux.empty();
+        }
+        return refreshToken(integration.getInstallation())
+                .flatMapMany(installation -> apiGetBranches(installation, integration))
+                .map(branch -> new Branch(branch.getName()));
     }
 }

@@ -51,6 +51,7 @@ import dev.vernite.vernite.utils.ErrorType;
 import dev.vernite.vernite.utils.ObjectNotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -137,7 +138,8 @@ public class ReleaseController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project or release not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PutMapping("/{id}/publish")
-    public Mono<Release> publish(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long id, boolean publishGitService) {
+    public Mono<Release> publish(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long id, boolean publishGitService, @Parameter(required = false, in = ParameterIn.QUERY, description = "Not required") String branch) {
         Project project = projectRepository.findByIdOrThrow(projectId);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
@@ -152,7 +154,7 @@ public class ReleaseController {
         release.setReleased(true);
         release = releaseRepository.save(release);
         if (publishGitService) {
-            return gitTaskService.publishRelease(release).thenReturn(release);
+            return gitTaskService.publishRelease(release, branch).thenReturn(release);
         } else {
             return Mono.just(release);
         }
