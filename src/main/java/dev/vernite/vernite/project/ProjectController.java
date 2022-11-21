@@ -108,7 +108,7 @@ public class ProjectController {
 
     @Autowired
     private FileManager fileManager;
-    
+
     @Autowired
     private CalendarIntegrationRepository calendarRepository;
 
@@ -196,6 +196,22 @@ public class ProjectController {
         }
         return projectWorkspaceRepository.findByProjectOrderByWorkspaceUserUsernameAscWorkspaceUserIdAsc(project)
                 .stream().map(ProjectWorkspace::getProjectMember).toList();
+    }
+
+    @Operation(summary = "Retrieve project member", description = "Retrieves member of project with given id. Authenticated user must be member of project.")
+    @ApiResponse(description = "Project member.", responseCode = "200")
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Project or member with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @GetMapping("/{id}/member/{memberId}")
+    public ProjectMember getProjectMember(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+            @PathVariable long memberId) {
+        Project project = projectRepository.findByIdOrThrow(id);
+        if (project.member(user) == -1) {
+            throw new ObjectNotFoundException();
+        }
+        return projectWorkspaceRepository.findByProjectOrderByWorkspaceUserUsernameAscWorkspaceUserIdAsc(project)
+                .stream().map(ProjectWorkspace::getProjectMember).filter(member -> member.user().getId() == memberId)
+                .findFirst().orElseThrow(ObjectNotFoundException::new);
     }
 
     @Operation(summary = "Add members to projects", description = "Adds members with given emails or usernames to projects with given ids. Authenticated user must be member of projects. If authenticated user is not member of project invited users will not be added to this project but will be added to correct projects (no error will be returned). If user with given email or username is already member of project, nothing will happen. If user with given email or username does not exists nothing will happen.")
@@ -337,7 +353,8 @@ public class ProjectController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PostMapping(path = "/{id}/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public File uploadLogo(@NotNull @Parameter(hidden = true) User user, @PathVariable long id, @RequestParam("file") MultipartFile file) {
+    public File uploadLogo(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+            @RequestParam("file") MultipartFile file) {
         Project project = projectRepository.findByIdOrThrow(id);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
@@ -390,4 +407,5 @@ public class ProjectController {
         }
         return "https://vernite.dev/api/webhook/calendar?key=" + key;
     }
+
 }

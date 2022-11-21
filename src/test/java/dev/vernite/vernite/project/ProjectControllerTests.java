@@ -346,6 +346,46 @@ class ProjectControllerTests {
     }
 
     @Test
+    void getProjectMemberSuccess() {
+        Project project = projectRepository.save(new Project("PROJECT"));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+
+        ProjectMember pm = client.get().uri("/project/{id}/member/{memberId}", project.getId(), user.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBody(ProjectMember.class).returnResult().getResponseBody();
+
+        assertNotNull(pm);
+        assertEquals(pm.user().getId(), user.getId());
+        assertEquals(pm.user().getUsername(), user.getUsername());
+    }
+
+    @Test
+    void getProjectMemberUnauthorized() {
+        client.get().uri("/project/1/member/{memberId}", user.getId()).exchange().expectStatus().isUnauthorized();
+
+        Project project = projectRepository.save(new Project("PROJECT"));
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+
+        client.get().uri("/project/{id}/member/{memberId}", project.getId(), user.getId()).exchange().expectStatus()
+                .isUnauthorized();
+    }
+
+    @Test
+    void getProjectMemberNotFound() {
+        client.get().uri("/project/1/member/{memberId}", user.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange()
+                .expectStatus().isNotFound();
+
+        Project project = projectRepository.save(new Project("MEMBER"));
+        client.get().uri("/project/{id}/member/{memberId}", project.getId(), user.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
+
+        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
+        client.get().uri("/project/{id}/member/{memberId}", project.getId(), 0)
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
+    }
+
+    @Test
     void addProjectMemberSuccess() {
         Project project = projectRepository.save(new Project("MEMBER"));
 
