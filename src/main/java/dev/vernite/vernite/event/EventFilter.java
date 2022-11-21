@@ -44,4 +44,8 @@ public class EventFilter {
     public boolean showMeetings() {
         return !type.isPresent() || type.get().contains(EventType.MEETING.ordinal());
     }
+
+    public boolean showReleases() {
+        return !type.isPresent() || type.get().contains(EventType.RELEASE.ordinal());
+    }
 }

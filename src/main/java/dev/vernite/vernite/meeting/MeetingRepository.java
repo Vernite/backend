@@ -47,7 +47,8 @@ public interface MeetingRepository extends SoftDeleteRepository<Meeting, Long>, 
      */
     default List<Meeting> findAllByProjectAndActiveNullSorted(Project project) {
         return findAll((root, query, cb) -> {
-            return cb.equal(root.get("project"), project);
+            return cb.and(cb.equal(root.get("project"), project),
+                    cb.isNull(root.get("active")));
         }, Sort.by(Direction.ASC, "startDate", "endDate", "name"));
     }
 
@@ -62,7 +63,8 @@ public interface MeetingRepository extends SoftDeleteRepository<Meeting, Long>, 
     default List<Meeting> findMeetingsByProjectAndDate(Project project, Date startDate, Date endDate) {
         return findAll((root, query, cb) -> {
             return cb.and(cb.equal(root.get("project"), project),
-                    cb.between(root.get("startDate"), startDate, endDate));
+                    cb.between(root.get("startDate"), startDate, endDate),
+                    cb.isNull(root.get("active")));
         });
     }
 
@@ -77,7 +79,8 @@ public interface MeetingRepository extends SoftDeleteRepository<Meeting, Long>, 
     default List<Meeting> findMeetingsByUserAndDate(User user, Date startDate, Date endDate) {
         return findAll((root, query, cb) -> {
             return cb.and(cb.equal(root.join("participants"), user),
-                    cb.between(root.get("startDate"), startDate, endDate));
+                    cb.between(root.get("startDate"), startDate, endDate),
+                    cb.isNull(root.get("active")));
         });
     }
 }

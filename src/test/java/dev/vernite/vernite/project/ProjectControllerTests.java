@@ -41,6 +41,8 @@ import dev.vernite.vernite.projectworkspace.ProjectMember;
 import dev.vernite.vernite.projectworkspace.ProjectWorkspace;
 import dev.vernite.vernite.projectworkspace.ProjectWorkspaceKey;
 import dev.vernite.vernite.projectworkspace.ProjectWorkspaceRepository;
+import dev.vernite.vernite.release.Release;
+import dev.vernite.vernite.release.ReleaseRepository;
 import dev.vernite.vernite.sprint.Sprint;
 import dev.vernite.vernite.sprint.SprintRepository;
 import dev.vernite.vernite.task.Task;
@@ -530,7 +532,7 @@ class ProjectControllerTests {
 
     @Test
     void getEventsSuccess(@Autowired TaskRepository taskRepository, @Autowired MeetingRepository meetingRepository,
-            @Autowired SprintRepository sprintRepository) {
+            @Autowired SprintRepository sprintRepository, @Autowired ReleaseRepository releaseRepository) {
         Project project = projectRepository.save(new Project("MEMBER"));
         Task task = taskRepository.save(new Task(1, "n", "d", project.getStatuses().get(0), user, 1));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
@@ -571,6 +573,14 @@ class ProjectControllerTests {
         client.get().uri("/project/{id}/events?from=1&to=1000", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBodyList(Event.class).hasSize(2);
+
+        Release release = new Release("Name", project);
+        release.setDeadline(new Date(500));
+        releaseRepository.save(release);
+
+        client.get().uri("/project/{id}/events?from=1&to=1000", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Event.class).hasSize(3);
     }
 
     @Test

@@ -35,12 +35,13 @@ import org.springframework.data.annotation.ReadOnlyProperty;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import dev.vernite.vernite.meeting.Meeting;
+import dev.vernite.vernite.release.Release;
 import dev.vernite.vernite.sprint.Sprint;
 import dev.vernite.vernite.task.Task;
 
 public class Event implements Comparable<Event> {
     public enum EventType {
-        MEETING, SPRINT, TASK_ESTIMATE, TASK_DEADLINE
+        MEETING, SPRINT, TASK_ESTIMATE, TASK_DEADLINE, RELEASE
     }
 
     private long projectId;
@@ -95,6 +96,17 @@ public class Event implements Comparable<Event> {
                 meeting.getDescription(), meeting.getStartDate(), meeting.getEndDate());
         e.setLocation(meeting.getLocation());
         return e;
+    }
+
+    /**
+     * Creates a new event from a release. The event will be of type RELEASE.
+     * 
+     * @param release the release to create the event from
+     * @return the event
+     */
+    public static Event from(Release release) {
+        return new Event(release.getProject().getId(), EventType.RELEASE, release.getId(), release.getName(),
+                release.getDescription(), null, release.getDeadline());
     }
 
     private Event(long projectId, EventType type, long relatedId, String name, String description, Date startDate,
