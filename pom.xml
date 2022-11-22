@@ -130,6 +130,11 @@
 			<artifactId>slf4j-simple</artifactId>
 			<version>1.7.36</version>
 		</dependency>
+		<dependency>
+			<groupId>com.slack.api</groupId>
+			<artifactId>slack-api-client</artifactId>
+			<version>1.27.1</version>
+		</dependency>
 	</dependencies>
 
 	<build>
