@@ -29,13 +29,15 @@ package dev.vernite.vernite;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.web.servlet.ServletComponentScan;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.servers.Server;
 
-@SpringBootApplication
 @EnableScheduling
+@SpringBootApplication
+@ServletComponentScan
 @OpenAPIDefinition(servers = @Server(url = "/api"))
 public class VerniteApplication {
 	public static void main(String[] args) {
