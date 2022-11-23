@@ -71,12 +71,15 @@ public class SprintController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping
-    public List<Sprint> getAll(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId) {
+    public List<Sprint> getAll(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @Parameter(allowEmptyValue = true) Integer status) {
         Project project = projectRepository.findByIdOrThrow(projectId);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
         }
-        return project.getSprints();
+        if (status == null) {
+            return project.getSprints();
+        }
+        return sprintRepository.findAllByProjectAndStatus(project, status.intValue());
     }
 
     @Operation(summary = "Create a sprint", description = "Creates a new sprint for project.")
