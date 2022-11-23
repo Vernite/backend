@@ -18,11 +18,7 @@ public class SlackConfiguration {
             .signingSecret(env.getProperty("slack.signingSecret"))
             .clientId(env.getProperty("slack.clientId"))
             .clientSecret(env.getProperty("slack.clientSecret"))
-            .userScope(env.getProperty("slack.userScope"))
-            .oauthInstallPath(env.getProperty("slack.oauthInstallPath"))
-            .oauthRedirectUriPath(env.getProperty("slack.oauthRedirectUri"))
-            .oauthCompletionUrl(env.getProperty("slack.oauthCompletionUrl"))
-            .oauthCancellationUrl(env.getProperty("slack.oauthCancellationUrl"));
+            .userScope(env.getProperty("slack.userScope"));
         return new App(builder.build()).asOAuthApp(true).service(service)
                 .enableTokenRevocationHandlers();
     }

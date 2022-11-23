@@ -42,7 +42,6 @@ public class VerniteInstallationService implements InstallationService {
         } else {
             return DefaultInstaller.builder()
                     .installerUserAccessToken(installation.getToken())
-                    .installedAt(installation.getInstalledAt())
                     .installerUserId(userId)
                     .teamId(teamId)
                     .appId("A04BU7X5J69")
@@ -57,12 +56,7 @@ public class VerniteInstallationService implements InstallationService {
 
     @Override
     public void saveInstallerAndBot(Installer installer) throws Exception {
-        SlackInstallation installation = new SlackInstallation(
-                installer.getInstallerUserAccessToken(),
-                installer.getInstalledAt(),
-                installer.getInstallerUserId(),
-                installer.getTeamId());
-        repository.save(installation);
+        throw new UnsupportedOperationException();
     }
 
     @Override

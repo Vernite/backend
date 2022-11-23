@@ -5,6 +5,9 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.ManyToOne;
+
+import dev.vernite.vernite.user.User;
 
 @Entity
 public class SlackInstallation {
@@ -15,20 +18,24 @@ public class SlackInstallation {
     @Column(unique = true, nullable = false, length = 100)
     private String token;
 
-    private long installedAt;
-
     private String installerUserId;
 
     private String teamId;
 
+    private String teamName;
+
+    @ManyToOne(optional = false)
+    private User user;
+
     public SlackInstallation() {
     }
 
-    public SlackInstallation(String token, long installedAt, String installerUserId, String teamId) {
+    public SlackInstallation(String token, String installerUserId, String teamId, String teamName, User user) {
         this.token = token;
-        this.installedAt = installedAt;
         this.installerUserId = installerUserId;
         this.teamId = teamId;
+        this.teamName = teamName;
+        this.user = user;
     }
 
     public long getId() {
@@ -47,14 +54,6 @@ public class SlackInstallation {
         this.token = token;
     }
 
-    public long getInstalledAt() {
-        return installedAt;
-    }
-
-    public void setInstalledAt(long installedAt) {
-        this.installedAt = installedAt;
-    }
-
     public String getInstallerUserId() {
         return installerUserId;
     }
@@ -69,5 +68,21 @@ public class SlackInstallation {
 
     public void setTeamId(String teamId) {
         this.teamId = teamId;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public String getTeamName() {
+        return teamName;
+    }
+
+    public void setTeamName(String teamName) {
+        this.teamName = teamName;
     }
 }
