@@ -3,33 +3,41 @@ package dev.vernite.vernite.integration.communicator.slack;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotNull;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.slack.api.bolt.App;
 import com.slack.api.methods.SlackApiException;
+import com.slack.api.methods.request.auth.AuthRevokeRequest;
 import com.slack.api.methods.request.oauth.OAuthV2AccessRequest;
+import com.slack.api.methods.response.auth.AuthRevokeResponse;
 import com.slack.api.methods.response.oauth.OAuthV2AccessResponse;
 
 import dev.vernite.vernite.integration.communicator.slack.entity.SlackInstallation;
 import dev.vernite.vernite.integration.communicator.slack.entity.SlackInstallationRepository;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.user.UserRepository;
+import dev.vernite.vernite.utils.ErrorType;
+import dev.vernite.vernite.utils.ObjectNotFoundException;
 import dev.vernite.vernite.utils.SecureStringUtils;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
-@RequestMapping("/integration/slack")
 public class SlackAuthController {
     private static final StateManager states = new StateManager();
     private static final String FORMAT_URL = "https://vernite.slack.com/oauth?client_id=%s&scope=&user_scope=%s&state=%s&redirect_uri=&granular_bot_scope=1";
@@ -44,7 +52,7 @@ public class SlackAuthController {
     private SlackInstallationRepository installationRepository;
 
     @Operation(summary = "Install slack", description = "This link redirects user to slack. After installation user will be redirected to https://vernite.dev/slack")
-    @GetMapping("/install")
+    @GetMapping("/integration/slack/install")
     public void install(@NotNull @Parameter(hidden = true) User user, HttpServletResponse httpServletResponse)
             throws IOException {
         String userScope = app.config().getUserScope();
@@ -56,7 +64,7 @@ public class SlackAuthController {
     }
 
     @Hidden
-    @GetMapping("/oauth_redirect")
+    @GetMapping("/integration/slack/oauth_redirect")
     public void confirm(String code, String state, HttpServletResponse httpServletResponse)
             throws IOException, SlackApiException {
         Long userId = states.remove(state);
@@ -77,5 +85,28 @@ public class SlackAuthController {
             // TODO: log this or something
         }
         httpServletResponse.sendRedirect("https://vernite.dev/slack");
+    }
+
+    @Operation(summary = "Get slack integrations", description = "Gets all slack integrations for given user")
+    @GetMapping("/user/integration/slack")
+    public List<SlackInstallation> getInstallation(@NotNull @Parameter(hidden = true) User user) {
+        return installationRepository.findByUser(user);
+    }
+
+    @Operation(summary = "Delete slack integration", description = "Delete slack integration with given id")
+    @ApiResponse(description = "Integration with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @DeleteMapping("/user/integration/slack/{id}")
+    public void deleteInstallation(@NotNull @Parameter(hidden = true) User user, @PathVariable long id)
+            throws IOException, SlackApiException {
+        SlackInstallation installation = installationRepository.findById(id).orElseThrow(ObjectNotFoundException::new);
+        if (installation.getUser().getId() != user.getId()) {
+            throw new ObjectNotFoundException();
+        }
+        AuthRevokeResponse response = app.client()
+                .authRevoke(AuthRevokeRequest.builder().token(installation.getToken()).build());
+        if (!response.isOk()) {
+            // TODO: log this
+        }
+        installationRepository.delete(installation);
     }
 }

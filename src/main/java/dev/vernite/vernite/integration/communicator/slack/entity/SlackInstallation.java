@@ -7,6 +7,8 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import dev.vernite.vernite.user.User;
 
 @Entity
@@ -15,15 +17,18 @@ public class SlackInstallation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
+    @JsonIgnore
     @Column(unique = true, nullable = false, length = 100)
     private String token;
 
     private String installerUserId;
 
+    @JsonIgnore
     private String teamId;
 
     private String teamName;
 
+    @JsonIgnore
     @ManyToOne(optional = false)
     private User user;
 
