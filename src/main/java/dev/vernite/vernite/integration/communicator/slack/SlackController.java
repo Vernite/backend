@@ -19,18 +19,23 @@ import org.springframework.web.server.ResponseStatusException;
 import com.slack.api.bolt.App;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.auth.AuthRevokeRequest;
+import com.slack.api.methods.request.conversations.ConversationsListRequest;
 import com.slack.api.methods.request.oauth.OAuthV2AccessRequest;
 import com.slack.api.methods.response.auth.AuthRevokeResponse;
+import com.slack.api.methods.response.conversations.ConversationsListResponse;
 import com.slack.api.methods.response.oauth.OAuthV2AccessResponse;
+import com.slack.api.model.Conversation;
 
 import dev.vernite.vernite.integration.communicator.slack.entity.SlackInstallation;
 import dev.vernite.vernite.integration.communicator.slack.entity.SlackInstallationRepository;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.user.UserRepository;
 import dev.vernite.vernite.utils.ErrorType;
+import dev.vernite.vernite.utils.ExternalApiException;
 import dev.vernite.vernite.utils.ObjectNotFoundException;
 import dev.vernite.vernite.utils.SecureStringUtils;
 import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -38,7 +43,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
-public class SlackAuthController {
+public class SlackController {
     private static final StateManager states = new StateManager();
     private static final String FORMAT_URL = "https://vernite.slack.com/oauth?client_id=%s&scope=&user_scope=%s&state=%s&redirect_uri=&granular_bot_scope=1";
 
@@ -52,6 +57,7 @@ public class SlackAuthController {
     private SlackInstallationRepository installationRepository;
 
     @Operation(summary = "Install slack", description = "This link redirects user to slack. After installation user will be redirected to https://vernite.dev/slack")
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/integration/slack/install")
     public void install(@NotNull @Parameter(hidden = true) User user, HttpServletResponse httpServletResponse)
             throws IOException {
@@ -94,6 +100,7 @@ public class SlackAuthController {
     }
 
     @Operation(summary = "Delete slack integration", description = "Delete slack integration with given id")
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Integration with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @DeleteMapping("/user/integration/slack/{id}")
     public void deleteInstallation(@NotNull @Parameter(hidden = true) User user, @PathVariable long id)
@@ -108,5 +115,24 @@ public class SlackAuthController {
             // TODO: log this
         }
         installationRepository.delete(installation);
+    }
+
+    @Operation(summary = "Get channels", description = "Get channels for slack integration")
+    @ApiResponse(description = "Slack channels", responseCode = "200", content = @Content(array = @ArraySchema(schema = @Schema(implementation = Conversation.class))))
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Integration with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @GetMapping("/user/integration/slack/{id}/channels")
+    public List<Conversation> channels(@NotNull @Parameter(hidden = true) User user, @PathVariable long id)
+            throws IOException, SlackApiException {
+        SlackInstallation installation = installationRepository.findById(id).orElseThrow(ObjectNotFoundException::new);
+        if (installation.getUser().getId() != user.getId()) {
+            throw new ObjectNotFoundException();
+        }
+        ConversationsListResponse response = app.client()
+                .conversationsList(ConversationsListRequest.builder().token(installation.getToken()).build());
+        if (!response.isOk()) {
+            throw new ExternalApiException("slack", "Cannot get list of channels");
+        }
+        return response.getChannels();
     }
 }
