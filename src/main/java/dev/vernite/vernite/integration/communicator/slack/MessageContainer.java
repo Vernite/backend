@@ -25,19 +25,41 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.communicator.slack.entity;
+package dev.vernite.vernite.integration.communicator.slack;
 
 import java.util.List;
-import java.util.Optional;
 
-import org.springframework.data.repository.CrudRepository;
+import com.slack.api.methods.response.conversations.ConversationsHistoryResponse;
+import com.slack.api.model.Message;
 
-import dev.vernite.vernite.user.User;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-public interface SlackInstallationRepository extends CrudRepository<SlackInstallation, Long> {
-    Optional<SlackInstallation> findByToken(String token);
+public class MessageContainer {
+    @Schema(description = "Null means there is no more messages to load.")
+    private String cursor;
 
-    Optional<SlackInstallation> findByTeamIdAndInstallerUserId(String teamId, String installerUserId);
+    private List<Message> messages;
 
-    List<SlackInstallation> findByUser(User user);
+    public MessageContainer(ConversationsHistoryResponse response) {
+        if (response.isHasMore()) {
+            this.setCursor(response.getResponseMetadata().getNextCursor());
+        }
+        this.setMessages(response.getMessages());
+    }
+
+    public String getCursor() {
+        return cursor;
+    }
+
+    public void setCursor(String cursor) {
+        this.cursor = cursor;
+    }
+
+    public List<Message> getMessages() {
+        return messages;
+    }
+
+    public void setMessages(List<Message> messages) {
+        this.messages = messages;
+    }
 }
