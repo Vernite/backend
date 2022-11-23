@@ -21,9 +21,11 @@ import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.auth.AuthRevokeRequest;
 import com.slack.api.methods.request.conversations.ConversationsListRequest;
 import com.slack.api.methods.request.oauth.OAuthV2AccessRequest;
+import com.slack.api.methods.request.users.UsersInfoRequest;
 import com.slack.api.methods.response.auth.AuthRevokeResponse;
 import com.slack.api.methods.response.conversations.ConversationsListResponse;
 import com.slack.api.methods.response.oauth.OAuthV2AccessResponse;
+import com.slack.api.methods.response.users.UsersInfoResponse;
 import com.slack.api.model.Conversation;
 import com.slack.api.model.ConversationType;
 
@@ -138,5 +140,22 @@ public class SlackController {
             throw new ExternalApiException("slack", "Cannot get list of channels");
         }
         return response.getChannels();
+    }
+
+    @Operation(summary = "Get user", description = "Get user info")
+    @ApiResponse(description = "Slack user", responseCode = "200", content = @Content(schema = @Schema(implementation = com.slack.api.model.User.class)))
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Integration with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @GetMapping("/user/integration/slack/{id}/user/{userId}")
+    public com.slack.api.model.User getUser(@NotNull @Parameter(hidden = true) User user, @PathVariable long id, @PathVariable String userId) throws IOException, SlackApiException {
+        SlackInstallation installation = installationRepository.findById(id).orElseThrow(ObjectNotFoundException::new);
+        if (installation.getUser().getId() != user.getId()) {
+            throw new ObjectNotFoundException();
+        }
+        UsersInfoResponse response = app.client().usersInfo(UsersInfoRequest.builder().token(installation.getToken()).user(userId).build());
+        if (!response.isOk()) {
+            throw new ExternalApiException("slack", "Cannot get user details");
+        }
+        return response.getUser();
     }
 }
