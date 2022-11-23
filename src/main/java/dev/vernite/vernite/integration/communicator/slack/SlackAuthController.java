@@ -7,12 +7,11 @@ import java.nio.charset.StandardCharsets;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotNull;
 
-import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.slack.api.bolt.App;
@@ -25,9 +24,11 @@ import dev.vernite.vernite.integration.communicator.slack.entity.SlackInstallati
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.user.UserRepository;
 import dev.vernite.vernite.utils.SecureStringUtils;
+import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 
-@Controller
+@RestController
 @RequestMapping("/integration/slack")
 public class SlackAuthController {
     private static final StateManager states = new StateManager();
@@ -42,6 +43,7 @@ public class SlackAuthController {
     @Autowired
     private SlackInstallationRepository installationRepository;
 
+    @Operation(summary = "Install slack", description = "This link redirects user to slack. After installation user will be redirected to https://vernite.dev/slack")
     @GetMapping("/install")
     public void install(@NotNull @Parameter(hidden = true) User user, HttpServletResponse httpServletResponse)
             throws IOException {
@@ -53,6 +55,7 @@ public class SlackAuthController {
                 String.format(FORMAT_URL, clientId, URLEncoder.encode(userScope, StandardCharsets.UTF_8), state));
     }
 
+    @Hidden
     @GetMapping("/oauth_redirect")
     public void confirm(String code, String state, HttpServletResponse httpServletResponse)
             throws IOException, SlackApiException {
@@ -68,11 +71,11 @@ public class SlackAuthController {
                 .build();
         OAuthV2AccessResponse response = app.client().oauthV2Access(request);
         try {
-        installationRepository.save(new SlackInstallation(response.getAuthedUser().getAccessToken(),
-                response.getAuthedUser().getId(), response.getTeam().getId(), response.getTeam().getName(), user));
-        } catch (ConstraintViolationException ex) {
+            installationRepository.save(new SlackInstallation(response.getAuthedUser().getAccessToken(),
+                    response.getAuthedUser().getId(), response.getTeam().getId(), response.getTeam().getName(), user));
+        } catch (Exception ex) {
             // TODO: log this or something
         }
-        httpServletResponse.sendRedirect("https://vernite.dev");
+        httpServletResponse.sendRedirect("https://vernite.dev/slack");
     }
 }
