@@ -25,6 +25,7 @@ import com.slack.api.methods.response.auth.AuthRevokeResponse;
 import com.slack.api.methods.response.conversations.ConversationsListResponse;
 import com.slack.api.methods.response.oauth.OAuthV2AccessResponse;
 import com.slack.api.model.Conversation;
+import com.slack.api.model.ConversationType;
 
 import dev.vernite.vernite.integration.communicator.slack.entity.SlackInstallation;
 import dev.vernite.vernite.integration.communicator.slack.entity.SlackInstallationRepository;
@@ -129,7 +130,10 @@ public class SlackController {
             throw new ObjectNotFoundException();
         }
         ConversationsListResponse response = app.client()
-                .conversationsList(ConversationsListRequest.builder().token(installation.getToken()).build());
+                .conversationsList(ConversationsListRequest.builder().token(installation.getToken())
+                        .types(List.of(ConversationType.PRIVATE_CHANNEL, ConversationType.PUBLIC_CHANNEL,
+                                ConversationType.IM, ConversationType.MPIM))
+                        .build());
         if (!response.isOk()) {
             throw new ExternalApiException("slack", "Cannot get list of channels");
         }
