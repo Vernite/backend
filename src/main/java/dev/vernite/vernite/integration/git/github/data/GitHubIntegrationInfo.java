@@ -33,6 +33,7 @@ import java.util.List;
  * Object to represent repositories an installation link.
  */
 public class GitHubIntegrationInfo {
+    @Deprecated
     private String link;
     private List<GitHubRepository> gitRepositories;
 

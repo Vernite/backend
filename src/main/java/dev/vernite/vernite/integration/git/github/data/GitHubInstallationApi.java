@@ -27,12 +27,16 @@
 
 package dev.vernite.vernite.integration.git.github.data;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 /**
  * Object to represent a GitHub Rest api installation.
  */
 public class GitHubInstallationApi {
     private long id;
     private GitHubUser account;
+    @JsonAlias("target_type")
+    private String targetType;
 
     public GitHubInstallationApi() {
     }
@@ -56,5 +60,13 @@ public class GitHubInstallationApi {
 
     public void setId(long id) {
         this.id = id;
+    }
+
+    public String getTargetType() {
+        return targetType;
+    }
+
+    public void setTargetType(String targetType) {
+        this.targetType = targetType;
     }
 }

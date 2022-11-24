@@ -283,13 +283,13 @@ public class GitHubWebhookServiceTests {
         client.post().uri("/webhook/github")
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
                 .header("X-GitHub-Event", "installation").bodyValue(data).exchange().expectStatus().isOk();
-        assertEquals(true, installationRepository.findByInstallationId(1L).get().getSuspended());
+        assertEquals(true, installationRepository.findByInstallationId(1L).get(0).getSuspended());
 
         data.setAction("unsuspend");
         client.post().uri("/webhook/github")
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
                 .header("X-GitHub-Event", "installation").bodyValue(data).exchange().expectStatus().isOk();
-        assertEquals(false, installationRepository.findByInstallationId(1L).get().getSuspended());
+        assertEquals(false, installationRepository.findByInstallationId(1L).get(0).getSuspended());
 
         data.setAction("deleted");
         client.post().uri("/webhook/github")
