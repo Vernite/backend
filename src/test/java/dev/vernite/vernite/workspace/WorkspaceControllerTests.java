@@ -141,7 +141,7 @@ class WorkspaceControllerTests {
                 .bodyValue(new WorkspaceRequest("POST")).exchange().expectStatus().isOk().expectBody(Workspace.class)
                 .returnResult().getResponseBody();
         assertNotNull(workspace);
-        Optional<Workspace> optional = workspaceRepository.findById(new WorkspaceKey(workspace.getId().getId(), user));
+        Optional<Workspace> optional = workspaceRepository.findById(new WorkspaceId(workspace.getId().getId(), user));
         assertEquals(true, optional.isPresent());
         Workspace result = optional.get();
         workspaceEquals(result, workspace);

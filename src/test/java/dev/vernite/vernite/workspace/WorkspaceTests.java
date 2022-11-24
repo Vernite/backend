@@ -74,7 +74,7 @@ class WorkspaceTests {
 
         Workspace other2 = new Workspace(3, user, "Name");
 
-        WorkspaceKey key = new WorkspaceKey(1, user);
+        WorkspaceId key = new WorkspaceId(1, user);
         key.setUserId(0);
         other2.setId(key);
 
@@ -109,7 +109,7 @@ class WorkspaceTests {
 
         Workspace other2 = new Workspace(3, user, "Name");
 
-        WorkspaceKey key = new WorkspaceKey(1, user);
+        WorkspaceId key = new WorkspaceId(1, user);
         key.setUserId(0);
         other2.setId(key);
 
@@ -129,7 +129,7 @@ class WorkspaceTests {
 
         Workspace other2 = new Workspace(3, user, "Name");
 
-        WorkspaceKey key = new WorkspaceKey(1, user);
+        WorkspaceId key = new WorkspaceId(1, user);
         key.setUserId(0);
         other2.setId(key);
 

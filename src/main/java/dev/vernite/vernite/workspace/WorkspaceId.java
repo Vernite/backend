@@ -27,10 +27,55 @@
 
 package dev.vernite.vernite.workspace;
 
-import org.springframework.stereotype.Repository;
+import java.io.Serializable;
 
-import dev.vernite.vernite.utils.SoftDeleteRepository;
+import javax.persistence.Embeddable;
+import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 
-@Repository
-public interface WorkspaceRepository extends SoftDeleteRepository<Workspace, WorkspaceId> {
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import dev.vernite.vernite.user.User;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
+/**
+ * Composite id for workspace.
+ * 
+ * It contains connected user id and id which is unique
+ * among user workspaces and for each user starts on one.
+ */
+@ToString
+@Embeddable
+@NoArgsConstructor
+@EqualsAndHashCode
+@AllArgsConstructor
+public class WorkspaceId implements Serializable, Comparable<WorkspaceId> {
+    private static final long serialVersionUID = 1;
+
+    @Setter
+    @Getter
+    @PositiveOrZero(message = "workspace unique number must be non negative number")
+    private long id;
+
+    @Setter
+    @Getter
+    @JsonIgnore
+    @Positive(message = "user id must be positive number")
+    private long userId;
+
+    @Deprecated
+    public WorkspaceId(long id, User user) {
+        this.id = id;
+        this.userId = user.getId();
+    }
+
+    @Override
+    public int compareTo(WorkspaceId other) {
+        return getUserId() == other.getUserId() ? Long.compare(getId(), other.getId())
+                : Long.compare(getUserId(), other.getUserId());
+    }
 }

@@ -27,10 +27,33 @@
 
 package dev.vernite.vernite.workspace;
 
-import org.springframework.stereotype.Repository;
+import javax.validation.constraints.Size;
 
-import dev.vernite.vernite.utils.SoftDeleteRepository;
+import dev.vernite.vernite.common.constraints.NullOrNotBlank;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
-@Repository
-public interface WorkspaceRepository extends SoftDeleteRepository<Workspace, WorkspaceId> {
+/**
+ * Class containing information needed to update workspace object.
+ * Has required constraints annotated using Java Bean Validation.
+ * It performs partial update using only present fields.
+ */
+@ToString
+@NoArgsConstructor
+@EqualsAndHashCode
+@AllArgsConstructor
+public class UpdateWorkspace {
+
+    @Setter
+    @Getter
+    @Size(min = 1, max = 50, message = "workspace name must be shorter than 50 characters")
+    @NullOrNotBlank(message = "workspace name must contain at least one non-whitespace character")
+    @Schema(description = "If set updates name of workspace. Must contain at least one non-whitespace character.")
+    private String name;
+
 }

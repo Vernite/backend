@@ -27,67 +27,32 @@
 
 package dev.vernite.vernite.workspace;
 
-import java.io.Serializable;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Size;
 
-import javax.persistence.Embeddable;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import dev.vernite.vernite.user.User;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 /**
- * Composite key for workspace. Composed of of id and user id.
+ * Class containing information needed to create new workspace object.
+ * Has required constraints annotated using Java Bean Validation.
  */
-@Embeddable
-public class WorkspaceKey implements Serializable, Comparable<WorkspaceKey> {
-    private long id;
+@ToString
+@NoArgsConstructor
+@EqualsAndHashCode
+@AllArgsConstructor
+public class CreateWorkspace {
 
-    @JsonIgnore
-    private long userId;
+    @Setter
+    @Getter
+    @Size(max = 50, message = "workspace name must be shorter than 50 characters")
+    @NotBlank(message = "workspace name must contain at least one non-whitespace character")
+    @Schema(description = "Name for new workspace. Must contain at least one non-whitespace character.")
+    private String name;
 
-    public WorkspaceKey() {
-    }
-
-    public WorkspaceKey(long id, User user) {
-        this.id = id;
-        this.userId = user.getId();
-    }
-
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(long userId) {
-        this.userId = userId;
-    }
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int hash = prime + Long.hashCode(id);
-        hash = prime * hash + Long.hashCode(userId);
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null || getClass() != obj.getClass())
-            return false;
-        WorkspaceKey other = (WorkspaceKey) obj;
-        return id == other.id && userId == other.userId;
-    }
-
-    @Override
-    public int compareTo(WorkspaceKey other) {
-        return userId == other.userId ? Long.compare(id, other.id) : Long.compare(userId, other.userId);
-    }
 }
