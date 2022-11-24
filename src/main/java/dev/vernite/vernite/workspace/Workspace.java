@@ -29,11 +29,15 @@ package dev.vernite.vernite.workspace;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.MapsId;
 import javax.persistence.OneToMany;
@@ -42,6 +46,8 @@ import javax.validation.constraints.NotNull;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
+
+import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.projectworkspace.ProjectWithPrivileges;
 import dev.vernite.vernite.projectworkspace.ProjectWorkspace;
 import dev.vernite.vernite.user.User;
@@ -69,6 +75,17 @@ public class Workspace extends SoftDeleteEntity implements Comparable<Workspace>
     @MapsId("userId")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private User user;
+
+    @ManyToMany
+    @JoinTable(
+        name = "project_workspace",
+        joinColumns = {
+            @JoinColumn(name = "workspace_user_id", referencedColumnName = "user_id"),
+            @JoinColumn(name = "workspace_id", referencedColumnName = "id")
+        },
+        inverseJoinColumns = @JoinColumn(name = "project_id", referencedColumnName = "id")
+    )
+    private Set<Project> projects = Set.of();
 
     @JsonIgnore
     @OnDelete(action = OnDeleteAction.CASCADE)
@@ -136,11 +153,20 @@ public class Workspace extends SoftDeleteEntity implements Comparable<Workspace>
         this.projectWorkspaces = projectWorkspaces;
     }
 
+    @Deprecated
     public List<ProjectWithPrivileges> getProjectsWithPrivileges() {
         return getProjectWorkspaces().stream()
                 .filter(pw -> pw.getProject().getActive() == null)
                 .map(ProjectWorkspace::getProjectWithPrivileges)
                 .sorted((f, s) -> f.compareTo(s)).toList();
+    }
+
+    public Set<Project> getProjects() {
+        return projects;
+    }
+
+    public void setProjects(Set<Project> projects) {
+        this.projects = projects;
     }
 
     @Override
