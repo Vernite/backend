@@ -131,25 +131,26 @@ public class GitHubWebhookService {
 
     private void handleInstallation(GitHubWebhookData data) {
         GitHubInstallationApi installationApi = data.getInstallation();
-        Optional<GitHubInstallation> optional = installationRepository.findByInstallationId(installationApi.getId());
+        List<GitHubInstallation> optional = installationRepository.findByInstallationId(installationApi.getId());
         if (optional.isEmpty()) {
             return;
         }
-        GitHubInstallation installation = optional.get();
-        switch (data.getAction()) {
-            case "suspend":
-                installation.setSuspended(true);
-                installationRepository.save(installation);
-                break;
-            case "unsuspend":
-                installation.setSuspended(false);
-                installationRepository.save(installation);
-                break;
-            case "deleted":
-                installationRepository.delete(installation);
-                break;
-            default:
-                break;
+        for (GitHubInstallation installation : optional) {
+            switch (data.getAction()) {
+                case "suspend":
+                    installation.setSuspended(true);
+                    installationRepository.save(installation);
+                    break;
+                case "unsuspend":
+                    installation.setSuspended(false);
+                    installationRepository.save(installation);
+                    break;
+                case "deleted":
+                    installationRepository.delete(installation);
+                    break;
+                default:
+                    break;
+            }
         }
     }
 

@@ -93,4 +93,6 @@ public interface SprintRepository extends SoftDeleteRepository<Sprint, Long>, Jp
                 cb.equal(root.get("project"), project),
                 cb.isNull(root.get("active"))));
     }
+
+    List<Sprint> findAllByProjectAndStatus(Project project, int status);
 }

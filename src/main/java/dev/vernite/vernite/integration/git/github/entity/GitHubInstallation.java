@@ -40,6 +40,8 @@ import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import dev.vernite.vernite.integration.git.github.data.GitHubInstallationApi;
 import dev.vernite.vernite.integration.git.github.data.InstallationToken;
 import dev.vernite.vernite.user.User;
 
@@ -53,7 +55,7 @@ public class GitHubInstallation {
     long id;
 
     @JsonIgnore
-    @Column(unique = true, length = 40)
+    @Column(length = 40)
     private String token;
 
     @JsonIgnore
@@ -65,22 +67,34 @@ public class GitHubInstallation {
     private User user;
 
     @JsonIgnore
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     private long installationId;
 
-    @Column(unique = true, nullable = false, length = 40)
+    @Column(nullable = false, length = 40)
     private String gitHubUsername;
+
+    private String type;
 
     private boolean suspended = false;
 
     public GitHubInstallation() {
     }
 
-    public GitHubInstallation(long installationId, User user, String gitHubUsername) {
+    @Deprecated
+    public GitHubInstallation(long installationId, User user, String username) {
         this.installationId = installationId;
         this.user = user;
         this.expiresAt = Date.from(Instant.now().minus(1, ChronoUnit.DAYS));
-        this.gitHubUsername = gitHubUsername;
+        this.gitHubUsername = username;
+        this.type = "None";
+    }
+
+    public GitHubInstallation(long installationId, User user, GitHubInstallationApi installation) {
+        this.installationId = installationId;
+        this.user = user;
+        this.expiresAt = Date.from(Instant.now().minus(1, ChronoUnit.DAYS));
+        this.gitHubUsername = installation.getAccount().getLogin();
+        this.type = installation.getTargetType();
     }
 
     public void updateToken(InstallationToken token) {
@@ -142,5 +156,13 @@ public class GitHubInstallation {
 
     public void setSuspended(boolean suspended) {
         this.suspended = suspended;
+    }
+
+    public String getType() {
+        return type;
+    }
+    
+    public void setType(String type) {
+        this.type = type;
     }
 }

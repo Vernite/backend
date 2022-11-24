@@ -82,7 +82,7 @@ import reactor.core.publisher.Mono;
 public class GitHubService {
     private static final String APP_ID = "195507";
     private static final String AUTHORIZATION = "Authorization";
-    private static final String INTEGRATION_LINK = "https://github.com/apps/vernite/installations/new";
+    public static final String INTEGRATION_LINK = "https://github.com/apps/vernite/installations/new";
     private static final String ACCEPT = "Accept";
     private static final String BEARER = "Bearer ";
     private static final String APPLICATION_JSON_GITHUB = "application/vnd.github.v3+json";
@@ -126,8 +126,7 @@ public class GitHubService {
      */
     public Mono<GitHubIntegrationInfo> newInstallation(User user, long id) {
         return apiGetInstallation(id)
-                .map(GitHubInstallationApi::getAccount)
-                .map(gitUser -> installationRepository.save(new GitHubInstallation(id, user, gitUser.getLogin())))
+                .map(installation -> installationRepository.save(new GitHubInstallation(id, user, installation)))
                 .flatMap(this::refreshToken)
                 .flatMap(this::apiGetInstallationRepositories)
                 .map(GitHubInstallationRepositories::getRepositories)
