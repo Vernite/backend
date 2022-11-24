@@ -29,8 +29,8 @@ package dev.vernite.vernite.workspace;
 
 import org.springframework.stereotype.Repository;
 
-import dev.vernite.vernite.utils.SoftDeleteRepository;
+import dev.vernite.vernite.utils.NotFoundRepository;
 
 @Repository
-public interface WorkspaceRepository extends SoftDeleteRepository<Workspace, WorkspaceId> {
+public interface WorkspaceRepository extends NotFoundRepository<Workspace, WorkspaceId> {
 }

@@ -28,7 +28,7 @@
 package dev.vernite.vernite.workspace;
 
 import java.util.List;
-import java.util.function.Predicate;
+import java.util.Set;
 
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
@@ -48,10 +48,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
 import dev.vernite.vernite.project.Project;
-import dev.vernite.vernite.projectworkspace.ProjectWithPrivileges;
 import dev.vernite.vernite.projectworkspace.ProjectWorkspace;
 import dev.vernite.vernite.user.User;
-import dev.vernite.vernite.utils.SoftDeleteEntity;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -60,6 +58,7 @@ import lombok.ToString;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.annotations.Where;
 
 /**
  * Entity for representing collection of projects.
@@ -68,10 +67,8 @@ import org.hibernate.annotations.OnDeleteAction;
 @Entity
 @ToString
 @NoArgsConstructor
-@EqualsAndHashCode(callSuper = false)
-public class Workspace extends SoftDeleteEntity implements Comparable<Workspace> {
-
-    private static final Predicate<ProjectWorkspace> activeProject = p -> p.getProject().getActive() == null;
+@EqualsAndHashCode
+public class Workspace {
 
     @Valid
     @Setter
@@ -99,6 +96,7 @@ public class Workspace extends SoftDeleteEntity implements Comparable<Workspace>
 
     @Setter
     @Getter
+    @Deprecated
     @JsonIgnore
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
@@ -112,16 +110,13 @@ public class Workspace extends SoftDeleteEntity implements Comparable<Workspace>
     @ManyToMany
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
+    @Where(clause = "active is null")
     @NotNull(message = "projects connection must be set")
-    @JoinTable(
-        name = "project_workspace",
-        joinColumns = {
+    @JoinTable(name = "project_workspace", joinColumns = {
             @JoinColumn(name = "workspace_user_id", referencedColumnName = "user_id"),
             @JoinColumn(name = "workspace_id", referencedColumnName = "id"),
-        },
-        inverseJoinColumns = @JoinColumn(name = "project_id", referencedColumnName = "id")
-    )
-    private List<Project> projects = List.of();
+    }, inverseJoinColumns = @JoinColumn(name = "project_id", referencedColumnName = "id"))
+    private Set<Project> projects = Set.of();
 
     /**
      * Base constructor for workspace.
@@ -133,7 +128,7 @@ public class Workspace extends SoftDeleteEntity implements Comparable<Workspace>
     public Workspace(long id, String name, User user) {
         this.setId(new WorkspaceId(id, user.getId()));
         this.setName(name);
-        this.setProjectWorkspaces(List.of());
+        this.setUser(user);
     }
 
     /**
@@ -154,30 +149,8 @@ public class Workspace extends SoftDeleteEntity implements Comparable<Workspace>
      */
     public void update(UpdateWorkspace update) {
         if (update.getName() != null) {
-            setName(name);
+            setName(update.getName());
         }
-    }
-
-    /**
-     * Checks if workspace contains any active project.
-     * 
-     * @return {@literal true} if there is at least one active project in workspace,
-     *         {@literal false} otherwise
-     */
-    public boolean hasActiveProject() {
-        return getProjectWorkspaces().stream().anyMatch(activeProject);
-    }
-
-    /**
-     * Computes projects with privileges from project workspaces.
-     * 
-     * @return all projects connected to workspace with user privileges in
-     *         respective project
-     */
-    @Deprecated
-    public List<ProjectWithPrivileges> getProjectsWithPrivileges() {
-        return getProjectWorkspaces().stream().filter(activeProject).map(ProjectWorkspace::getProjectWithPrivileges)
-                .sorted().toList();
     }
 
     /**
@@ -186,32 +159,8 @@ public class Workspace extends SoftDeleteEntity implements Comparable<Workspace>
      * @param name must not be {@literal null} and have at least one non-whitespace
      *             character and less than 50 characters
      */
-    public void setName(@NotNull(message = "name cannot be null") String name) {
+    public void setName(String name) {
         this.name = name.trim();
-    }
-
-    @Override
-    public int compareTo(Workspace other) {
-        int result = getName().compareTo(other.getName());
-        return result == 0 ? getId().compareTo(other.getId()) : result;
-    }
-
-    /**
-     * Updates workspace with non-empty request fields.
-     * 
-     * @param request must not be {@literal null}. When fields are not present in
-     *                request, they are not updated.
-     */
-    @Deprecated
-    public void update(@NotNull WorkspaceRequest request) {
-        request.getName().ifPresent(this::setName);
-    }
-
-    @Deprecated
-    public Workspace(long id, User user, String name) {
-        this.id = new WorkspaceId(id, user);
-        this.user = user;
-        this.name = name;
     }
 
 }

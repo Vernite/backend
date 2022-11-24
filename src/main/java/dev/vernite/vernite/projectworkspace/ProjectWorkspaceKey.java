@@ -89,6 +89,6 @@ public class ProjectWorkspaceKey implements Serializable, Comparable<ProjectWork
 
     @Override
     public int compareTo(ProjectWorkspaceKey o) {
-        return projectId == o.projectId ? workspaceId.compareTo(o.workspaceId) : Long.compare(projectId, o.projectId);
+        return projectId == o.projectId ? 0 /*workspaceId.compareTo(o.workspaceId)*/ : Long.compare(projectId, o.projectId);
     }
 }

@@ -112,7 +112,7 @@ class ProjectControllerTests {
         } catch (DataIntegrityViolationException e) {
             session = userSessionRepository.findBySession("session_token_projects_tests").orElseThrow();
         }
-        workspace = workspaceRepository.save(new Workspace(1, user, "Project Tests"));
+        workspace = workspaceRepository.save(new Workspace(1, "Project Tests", user));
     }
 
     @BeforeEach
@@ -213,7 +213,7 @@ class ProjectControllerTests {
                 .expectBody(Project.class).isEqualTo(project);
         assertEquals(project, projectRepository.findByIdOrThrow(project.getId()));
 
-        Workspace newWorkspace = workspaceRepository.save(new Workspace(2, user, "New Workspace"));
+        Workspace newWorkspace = workspaceRepository.save(new Workspace(2, "New Workspace", user));
         client.put().uri("/project/{id}", project.getId()).cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(new ProjectRequest(null, "", 2L)).exchange().expectStatus().isOk()
                 .expectBody(Project.class).isEqualTo(project);
@@ -406,7 +406,7 @@ class ProjectControllerTests {
         assertEquals(0, result.getEmails().size());
         assertEquals(0, result.getProjectList().size());
         assertEquals(true, projectWorkspaceRepository
-                .findById(new ProjectWorkspaceKey(new Workspace(0, user2, "inbox"), project)).isEmpty());
+                .findById(new ProjectWorkspaceKey(new Workspace(0, "inbox", user2), project)).isEmpty());
 
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
         result = client.post().uri("/project/member").cookie(AuthController.COOKIE_NAME, session.getSession())
@@ -414,7 +414,7 @@ class ProjectControllerTests {
                 .getResponseBody();
         assertNotNull(result);
         assertEquals(true, projectWorkspaceRepository
-                .findById(new ProjectWorkspaceKey(new Workspace(0, user2, "inbox"), project)).isPresent());
+                .findById(new ProjectWorkspaceKey(new Workspace(0, "inbox", user2), project)).isPresent());
         assertEquals(1, result.getEmails().size());
         assertEquals(1, result.getProjectList().size());
         assertEquals("member_add_test_name", result.getEmails().get(0));
@@ -426,7 +426,7 @@ class ProjectControllerTests {
         assertNotNull(result);
 
         assertEquals(true, projectWorkspaceRepository
-                .findById(new ProjectWorkspaceKey(new Workspace(0, user2, "inbox"), project)).isPresent());
+                .findById(new ProjectWorkspaceKey(new Workspace(0, "inbox", user2), project)).isPresent());
         assertEquals(1, result.getEmails().size());
         assertEquals(1, result.getProjectList().size());
 
@@ -463,7 +463,7 @@ class ProjectControllerTests {
         if (user2 == null) {
             user2 = userRepository.save(new User("1", "2", "member_add_test_name", "member_add_test@Dname", "1"));
         }
-        Workspace workspace2 = workspaceRepository.save(new Workspace(1, user2, "test"));
+        Workspace workspace2 = workspaceRepository.save(new Workspace(1, "test", user2));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace2, 2L));
 
         List<User> result = client.put().uri("/project/{id}/member", project.getId())

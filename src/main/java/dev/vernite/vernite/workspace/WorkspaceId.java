@@ -34,7 +34,6 @@ import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import dev.vernite.vernite.user.User;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -53,7 +52,7 @@ import lombok.ToString;
 @NoArgsConstructor
 @EqualsAndHashCode
 @AllArgsConstructor
-public class WorkspaceId implements Serializable, Comparable<WorkspaceId> {
+public class WorkspaceId implements Serializable {
     private static final long serialVersionUID = 1;
 
     @Setter
@@ -67,15 +66,4 @@ public class WorkspaceId implements Serializable, Comparable<WorkspaceId> {
     @Positive(message = "user id must be positive number")
     private long userId;
 
-    @Deprecated
-    public WorkspaceId(long id, User user) {
-        this.id = id;
-        this.userId = user.getId();
-    }
-
-    @Override
-    public int compareTo(WorkspaceId other) {
-        return getUserId() == other.getUserId() ? Long.compare(getId(), other.getId())
-                : Long.compare(getUserId(), other.getUserId());
-    }
 }

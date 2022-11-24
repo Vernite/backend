@@ -58,7 +58,7 @@ public class WorkspaceRequest {
      */
     public Workspace createEntity(long id, User user) {
         String nameString = getName().orElseThrow(() -> new FieldErrorException("name", "missing"));
-        return new Workspace(id, user, nameString);
+        return new Workspace(id, nameString, user);
     }
 
     public Optional<String> getName() {

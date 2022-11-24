@@ -50,7 +50,7 @@ public class CreateWorkspace {
 
     @Setter
     @Getter
-    @Size(max = 50, message = "workspace name must be shorter than 50 characters")
+    @Size(min = 1, max = 50, message = "workspace name must be shorter than 50 characters")
     @NotBlank(message = "workspace name must contain at least one non-whitespace character")
     @Schema(description = "Name for new workspace. Must contain at least one non-whitespace character.")
     private String name;

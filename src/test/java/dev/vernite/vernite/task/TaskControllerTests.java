@@ -137,7 +137,7 @@ class TaskControllerTests {
         closedSprint = sprintRepository.save(new Sprint(10, "name", new Date(), new Date(), Sprint.Status.CLOSED, "description", project));
         createdSprint = sprintRepository.save(new Sprint(11, "name", new Date(), new Date(), Sprint.Status.CREATED, "description", project));
         forbiddenProject = projectRepository.save(new Project("Tasks project forbidden"));
-        Workspace workspace = workspaceRepository.save(new Workspace(1, user, "tasks test workspace"));
+        Workspace workspace = workspaceRepository.save(new Workspace(1, "tasks test workspace", user));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
     }
 

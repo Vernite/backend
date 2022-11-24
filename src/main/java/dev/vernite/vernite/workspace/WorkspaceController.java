@@ -29,6 +29,7 @@ package dev.vernite.vernite.workspace;
 
 import java.util.List;
 
+import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
 import dev.vernite.vernite.counter.CounterSequenceRepository;
@@ -74,9 +75,9 @@ public class WorkspaceController {
     @ApiResponse(description = "Some fields are missing or failed to satisfy requirements.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PostMapping
-    public Workspace create(@NotNull @Parameter(hidden = true) User user, @RequestBody WorkspaceRequest request) {
+    public Workspace create(@NotNull @Parameter(hidden = true) User user, @RequestBody @Valid CreateWorkspace create) {
         long id = counterRepository.getIncrementCounter(user.getCounterSequence().getId());
-        return workspaceRepository.save(request.createEntity(id, user));
+        return workspaceRepository.save(new Workspace(id, user, create));
     }
 
     @Operation(summary = "Retrieve workspace", description = "Retrieves workspace with given id for authenticated user.")
@@ -85,7 +86,7 @@ public class WorkspaceController {
     @ApiResponse(description = "Workspace with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/{id}")
     public Workspace get(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
-        return workspaceRepository.findByIdOrThrow(new WorkspaceId(id, user));
+        return workspaceRepository.findByIdOrThrow(new WorkspaceId(id, user.getId()));
     }
 
     @Operation(summary = "Modify workspace", description = "Applies changes from request body to workspace with given id for authenticated user. If field from body is missing it wont be changed.")
@@ -95,9 +96,9 @@ public class WorkspaceController {
     @ApiResponse(description = "Workspace with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PutMapping("/{id}")
     public Workspace update(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
-            @RequestBody WorkspaceRequest request) {
-        Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceId(id, user));
-        workspace.update(request);
+            @RequestBody @Valid UpdateWorkspace update) {
+        Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceId(id, user.getId()));
+        workspace.update(update);
         return workspaceRepository.save(workspace);
     }
 
@@ -108,11 +109,10 @@ public class WorkspaceController {
     @ApiResponse(description = "Workspace with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @DeleteMapping("/{id}")
     public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
-        Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceId(id, user));
-        if (workspace.hasActiveProject()) {
+        Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceId(id, user.getId()));
+        if (!workspace.getProjects().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "workspace not empty");
         }
-        workspace.softDelete();
-        workspaceRepository.save(workspace);
+        workspaceRepository.delete(workspace);
     }
 }

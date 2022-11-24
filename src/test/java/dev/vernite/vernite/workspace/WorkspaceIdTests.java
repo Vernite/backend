@@ -34,48 +34,28 @@ import javax.validation.Validation;
 import javax.validation.Validator;
 import javax.validation.ValidatorFactory;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 class WorkspaceIdTests {
 
-    @Test
-    void compareToTest() {
-        WorkspaceId firstId = new WorkspaceId(1, 1);
-        WorkspaceId secondId = new WorkspaceId(1, 1);
+    private static Validator validator;
 
-        assertEquals(0, firstId.compareTo(secondId));
-        assertEquals(0, secondId.compareTo(firstId));
-
-        firstId.setId(4);
-
-        assertEquals(1, firstId.compareTo(secondId));
-        assertEquals(-1, secondId.compareTo(firstId));
-
-        secondId.setUserId(3);
-
-        assertEquals(-1, firstId.compareTo(secondId));
-        assertEquals(1, secondId.compareTo(firstId));
-
-        firstId.setId(1);
-
-        assertEquals(-1, firstId.compareTo(secondId));
-        assertEquals(1, secondId.compareTo(firstId));
-
-        secondId.setId(2);
-
-        assertEquals(-1, firstId.compareTo(secondId));
-        assertEquals(1, secondId.compareTo(firstId));
+    @BeforeAll
+    static void init() {
+        final ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        validator = factory.getValidator();
     }
 
     @Test
-    void validationTest() {
-        final ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        final Validator validator = factory.getValidator();
-        // Test valid workspace id
+    void validationValidTest() {
         assertTrue(validator.validate(new WorkspaceId(1, 1)).isEmpty());
         assertTrue(validator.validate(new WorkspaceId(3, 7)).isEmpty());
         assertTrue(validator.validate(new WorkspaceId(0, 4)).isEmpty());
-        // Test invalid workspace id
+    }
+
+    @Test
+    void validationInvalidTest() {
         assertEquals(1, validator.validate(new WorkspaceId(-1, 4)).size());
         assertEquals(1, validator.validate(new WorkspaceId(0, 0)).size());
         assertEquals(2, validator.validate(new WorkspaceId(-3, 0)).size());
