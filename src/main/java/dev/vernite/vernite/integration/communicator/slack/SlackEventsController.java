@@ -25,22 +25,16 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite;
+package dev.vernite.vernite.integration.communicator.slack;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.web.servlet.ServletComponentScan;
-import org.springframework.scheduling.annotation.EnableScheduling;
+import javax.servlet.annotation.WebServlet;
 
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
-import io.swagger.v3.oas.annotations.servers.Server;
+import com.slack.api.bolt.App;
+import com.slack.api.bolt.servlet.SlackAppServlet;
 
-@EnableScheduling
-@SpringBootApplication
-@ServletComponentScan
-@OpenAPIDefinition(servers = @Server(url = "/api"))
-public class VerniteApplication {
-	public static void main(String[] args) {
-		SpringApplication.run(VerniteApplication.class, args);
-	}
+@WebServlet("/integration/slack/events")
+public class SlackEventsController extends SlackAppServlet {
+    public SlackEventsController(App app) {
+        super(app);
+    }
 }

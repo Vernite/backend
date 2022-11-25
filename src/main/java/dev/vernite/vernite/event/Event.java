@@ -109,6 +109,9 @@ public class Event implements Comparable<Event> {
                 release.getDescription(), null, release.getDeadline());
     }
 
+    public Event() {
+    }
+
     private Event(long projectId, EventType type, long relatedId, String name, String description, Date startDate,
             Date endDate) {
         this.projectId = projectId;

@@ -25,22 +25,41 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite;
+package dev.vernite.vernite.integration.communicator.slack;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.web.servlet.ServletComponentScan;
-import org.springframework.scheduling.annotation.EnableScheduling;
+import java.util.List;
 
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
-import io.swagger.v3.oas.annotations.servers.Server;
+import com.slack.api.methods.response.conversations.ConversationsHistoryResponse;
+import com.slack.api.model.Message;
 
-@EnableScheduling
-@SpringBootApplication
-@ServletComponentScan
-@OpenAPIDefinition(servers = @Server(url = "/api"))
-public class VerniteApplication {
-	public static void main(String[] args) {
-		SpringApplication.run(VerniteApplication.class, args);
-	}
+import io.swagger.v3.oas.annotations.media.Schema;
+
+public class MessageContainer {
+    @Schema(description = "Null means there is no more messages to load.")
+    private String cursor;
+
+    private List<Message> messages;
+
+    public MessageContainer(ConversationsHistoryResponse response) {
+        if (response.isHasMore()) {
+            this.setCursor(response.getResponseMetadata().getNextCursor());
+        }
+        this.setMessages(response.getMessages());
+    }
+
+    public String getCursor() {
+        return cursor;
+    }
+
+    public void setCursor(String cursor) {
+        this.cursor = cursor;
+    }
+
+    public List<Message> getMessages() {
+        return messages;
+    }
+
+    public void setMessages(List<Message> messages) {
+        this.messages = messages;
+    }
 }
