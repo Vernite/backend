@@ -25,27 +25,39 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.workspace;
+package dev.vernite.vernite.common.exception.error;
 
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.stereotype.Repository;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Positive;
 
-import dev.vernite.vernite.common.exception.EntityNotFoundException;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
-/*
- * CRUD repository for workspace entity.
+/**
+ * Model for representing generic error returned by api.
+ * Its returned from endpoints when java bean validation fails.
  */
-@Repository
-public interface WorkspaceRepository extends CrudRepository<Workspace, WorkspaceId> {
+@AllArgsConstructor
+public abstract class AbstractError {
 
     /**
-     * Retrieves an entity by its id.
+     * Creates error with timestamp value of current moment.
+     * Uses {@link System#currentTimeMillis()}.
      * 
-     * @param id must not be null
-     * @return the entity with the given id
-     * @throws EntityNotFoundException if entity is not found
+     * @param message custom global error message
      */
-    default Workspace findByIdOrThrow(WorkspaceId id) throws EntityNotFoundException {
-        return findById(id).orElseThrow(() -> new EntityNotFoundException("workspace", id.getId()));
+    protected AbstractError(String message) {
+        this(System.currentTimeMillis(), message);
     }
+
+    @Getter
+    @NotNull
+    @Positive
+    private final long timestamp;
+
+    @Getter
+    @NotBlank
+    private final String message;
+
 }

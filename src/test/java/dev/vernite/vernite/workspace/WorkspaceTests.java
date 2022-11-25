@@ -41,8 +41,7 @@ import dev.vernite.vernite.user.User;
 
 class WorkspaceTests {
 
-    private static final User user = new User("name", "surname", "username", "email", "password", "English",
-            "YYYY-MM-DD");
+    private static final User user = new User("name", "surname", "username", "email", "password");
     private static Validator validator;
 
     @BeforeAll

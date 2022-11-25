@@ -39,6 +39,7 @@ import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.MapsId;
 import javax.persistence.OneToMany;
+import javax.persistence.OrderBy;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -97,7 +98,6 @@ public class Workspace {
     @Setter
     @Getter
     @Deprecated
-    @JsonIgnore
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "workspace")
@@ -109,6 +109,7 @@ public class Workspace {
     @Getter
     @ManyToMany
     @ToString.Exclude
+    @OrderBy("name, id")
     @EqualsAndHashCode.Exclude
     @Where(clause = "active is null")
     @NotNull(message = "projects connection must be set")

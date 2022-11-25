@@ -57,6 +57,9 @@ import dev.vernite.vernite.user.UserSession;
 import dev.vernite.vernite.user.UserSessionRepository;
 import dev.vernite.vernite.user.auth.AuthController;
 
+/**
+ * TODO: refactor this class
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestInstance(Lifecycle.PER_CLASS)
@@ -137,7 +140,7 @@ class WorkspaceControllerTests {
     @Test
     void createSuccess() {
         Workspace workspace = client.post().uri("/workspace").cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new WorkspaceRequest("POST")).exchange().expectStatus().isOk().expectBody(Workspace.class)
+                .bodyValue(new CreateWorkspace("POST")).exchange().expectStatus().isOk().expectBody(Workspace.class)
                 .returnResult().getResponseBody();
         assertNotNull(workspace);
         Optional<Workspace> optional = workspaceRepository.findById(new WorkspaceId(workspace.getId().getId(), user.getId()));
@@ -150,13 +153,13 @@ class WorkspaceControllerTests {
     void createBadRequest() {
         // Test null name
         client.post().uri("/workspace").cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new WorkspaceRequest(null)).exchange().expectStatus().isBadRequest();
+                .bodyValue(new CreateWorkspace(null)).exchange().expectStatus().isBadRequest();
         // Test empty name
         client.post().uri("/workspace").cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new WorkspaceRequest("")).exchange().expectStatus().isBadRequest();
+                .bodyValue(new CreateWorkspace("")).exchange().expectStatus().isBadRequest();
         // Test too long name
         client.post().uri("/workspace").cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new WorkspaceRequest("a".repeat(51))).exchange().expectStatus().isBadRequest();
+                .bodyValue(new CreateWorkspace("a".repeat(51))).exchange().expectStatus().isBadRequest();
     }
 
     @Test
@@ -203,11 +206,11 @@ class WorkspaceControllerTests {
         Workspace workspace = workspaceRepository.save(new Workspace(1, "PUT", user));
 
         client.put().uri("/workspace/{id}", workspace.getId().getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new WorkspaceRequest()).exchange()
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new UpdateWorkspace()).exchange()
                 .expectStatus().isOk();
 
         Workspace result = client.put().uri("/workspace/{id}", workspace.getId().getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new WorkspaceRequest("NEW PUT"))
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new UpdateWorkspace("NEW PUT"))
                 .exchange().expectStatus().isOk().expectBody(Workspace.class).returnResult().getResponseBody();
         workspace.setName("NEW PUT");
         workspaceEquals(workspace, result);
@@ -219,31 +222,31 @@ class WorkspaceControllerTests {
         long id = workspaceRepository.save(new Workspace(1, "PUT", user)).getId().getId();
 
         client.put().uri("/workspace/{id}", id)
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new WorkspaceRequest("")).exchange()
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new UpdateWorkspace("")).exchange()
                 .expectStatus().isBadRequest();
 
         client.put().uri("/workspace/{id}", id)
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new WorkspaceRequest("a".repeat(51))).exchange()
+                .bodyValue(new UpdateWorkspace("a".repeat(51))).exchange()
                 .expectStatus().isBadRequest();
     }
 
     @Test
     void updateUnauthorized() {
-        client.put().uri("/workspace/1").bodyValue(new WorkspaceRequest("NEW PUT")).exchange().expectStatus()
+        client.put().uri("/workspace/1").bodyValue(new UpdateWorkspace("NEW PUT")).exchange().expectStatus()
                 .isUnauthorized();
 
         long id = workspaceRepository.save(new Workspace(1, "PUT", user)).getId().getId();
-        client.put().uri("/workspace/{id}", id).bodyValue(new WorkspaceRequest("NEW PUT")).exchange().expectStatus()
+        client.put().uri("/workspace/{id}", id).bodyValue(new UpdateWorkspace("NEW PUT")).exchange().expectStatus()
                 .isUnauthorized();
         client.put().uri("/workspace/{id}", id).cookie(AuthController.COOKIE_NAME, "invalid_token")
-                .bodyValue(new WorkspaceRequest("NEW PUT")).exchange().expectStatus().isUnauthorized();
+                .bodyValue(new UpdateWorkspace("NEW PUT")).exchange().expectStatus().isUnauthorized();
     }
 
     @Test
     void updateNotFound() {
         client.put().uri("/workspace/1").cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new WorkspaceRequest("NEW PUT")).exchange().expectStatus().isNotFound();
+                .bodyValue(new UpdateWorkspace("NEW PUT")).exchange().expectStatus().isNotFound();
     }
 
     @Test
@@ -265,13 +268,13 @@ class WorkspaceControllerTests {
     }
 
     @Test
-    void deleteBadRequest(@Autowired ProjectRepository pRepo, @Autowired ProjectWorkspaceRepository pwRepo) {
+    void deleteConflict(@Autowired ProjectRepository pRepo, @Autowired ProjectWorkspaceRepository pwRepo) {
         Project project = pRepo.save(new Project("DELETE"));
         Workspace workspace = workspaceRepository.save(new Workspace(1, "DELETE", user));
         pwRepo.save(new ProjectWorkspace(project, workspace, 1L));
 
         client.delete().uri("/workspace/{id}", workspace.getId().getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isBadRequest();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().is4xxClientError();
     }
 
     @Test
