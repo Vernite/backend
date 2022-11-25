@@ -33,14 +33,14 @@ import javax.persistence.Embeddable;
 
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.workspace.Workspace;
-import dev.vernite.vernite.workspace.WorkspaceKey;
+import dev.vernite.vernite.workspace.WorkspaceId;
 
 /**
  * Composite key for pivot table. Composed of workspace id and project id.
  */
 @Embeddable
 public class ProjectWorkspaceKey implements Serializable, Comparable<ProjectWorkspaceKey> {
-    WorkspaceKey workspaceId;
+    WorkspaceId workspaceId;
     long projectId;
 
     public ProjectWorkspaceKey() {
@@ -51,11 +51,11 @@ public class ProjectWorkspaceKey implements Serializable, Comparable<ProjectWork
         this.projectId = project.getId();
     }
 
-    public WorkspaceKey getWorkspaceId() {
+    public WorkspaceId getWorkspaceId() {
         return workspaceId;
     }
 
-    public void setWorkspaceId(WorkspaceKey workspaceId) {
+    public void setWorkspaceId(WorkspaceId workspaceId) {
         this.workspaceId = workspaceId;
     }
 
@@ -89,6 +89,6 @@ public class ProjectWorkspaceKey implements Serializable, Comparable<ProjectWork
 
     @Override
     public int compareTo(ProjectWorkspaceKey o) {
-        return projectId == o.projectId ? workspaceId.compareTo(o.workspaceId) : Long.compare(projectId, o.projectId);
+        return projectId == o.projectId ? 0 /*workspaceId.compareTo(o.workspaceId)*/ : Long.compare(projectId, o.projectId);
     }
 }

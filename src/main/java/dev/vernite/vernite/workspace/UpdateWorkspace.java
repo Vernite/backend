@@ -27,25 +27,33 @@
 
 package dev.vernite.vernite.workspace;
 
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.stereotype.Repository;
+import javax.validation.constraints.Size;
 
-import dev.vernite.vernite.common.exception.EntityNotFoundException;
+import dev.vernite.vernite.common.constraints.NullOrNotBlank;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
-/*
- * CRUD repository for workspace entity.
+/**
+ * Class containing information needed to update workspace object.
+ * Has required constraints annotated using Java Bean Validation.
+ * It performs partial update using only present fields.
  */
-@Repository
-public interface WorkspaceRepository extends CrudRepository<Workspace, WorkspaceId> {
+@ToString
+@NoArgsConstructor
+@EqualsAndHashCode
+@AllArgsConstructor
+public class UpdateWorkspace {
 
-    /**
-     * Retrieves an entity by its id.
-     * 
-     * @param id must not be null
-     * @return the entity with the given id
-     * @throws EntityNotFoundException if entity is not found
-     */
-    default Workspace findByIdOrThrow(WorkspaceId id) throws EntityNotFoundException {
-        return findById(id).orElseThrow(() -> new EntityNotFoundException("workspace", id.getId()));
-    }
+    @Setter
+    @Getter
+    @Size(min = 1, max = 50, message = "workspace name must be shorter than 50 characters")
+    @NullOrNotBlank(message = "workspace name must contain at least one non-whitespace character")
+    @Schema(description = "If set updates name of workspace. Must contain at least one non-whitespace character.")
+    private String name;
+
 }

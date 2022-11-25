@@ -25,27 +25,33 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.workspace;
+package dev.vernite.vernite.common.validators;
 
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.stereotype.Repository;
+import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import dev.vernite.vernite.common.exception.EntityNotFoundException;
+import org.junit.jupiter.api.Test;
 
-/*
- * CRUD repository for workspace entity.
- */
-@Repository
-public interface WorkspaceRepository extends CrudRepository<Workspace, WorkspaceId> {
+class NullOrNotBlankValidatorTests {
 
-    /**
-     * Retrieves an entity by its id.
-     * 
-     * @param id must not be null
-     * @return the entity with the given id
-     * @throws EntityNotFoundException if entity is not found
-     */
-    default Workspace findByIdOrThrow(WorkspaceId id) throws EntityNotFoundException {
-        return findById(id).orElseThrow(() -> new EntityNotFoundException("workspace", id.getId()));
+    @Test
+    void isValidTrueTest() {
+        NullOrNotBlankValidator validator = new NullOrNotBlankValidator();
+
+        assertTrue(validator.isValid(null, null));
+        assertTrue(validator.isValid("value", null));
+        assertTrue(validator.isValid("   value  ", null));
+        assertTrue(validator.isValid("value   value", null));
     }
+
+    @Test
+    void isValidFalseTest() {
+        NullOrNotBlankValidator validator = new NullOrNotBlankValidator();
+
+        assertFalse(validator.isValid("", null));
+        assertFalse(validator.isValid(" ", null));
+        assertFalse(validator.isValid("     ", null));
+        assertFalse(validator.isValid("\n\n \n\n", null));
+    }
+
 }

@@ -73,7 +73,7 @@ public class ReleaseControllerTests {
         } catch (DataIntegrityViolationException e) {
             session = userSessionRepository.findBySession("session_token_release_tests").orElseThrow();
         }
-        workspace = workspaceRepository.save(new Workspace(1, user, "Project Tests"));
+        workspace = workspaceRepository.save(new Workspace(1, "Project Tests", user));
         project = projectRepository.save(new Project("Sprint Tests"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
     }

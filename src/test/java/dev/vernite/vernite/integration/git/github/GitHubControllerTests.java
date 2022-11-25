@@ -172,7 +172,7 @@ public class GitHubControllerTests {
         } catch (DataIntegrityViolationException e) {
             session = sessionRepository.findBySession("session_token_github_tests").orElseThrow();
         }
-        workspace = workspaceRepository.save(new Workspace(1, user, "Project Tests"));
+        workspace = workspaceRepository.save(new Workspace(1, "Project Tests", user));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
         GitHubService service = (GitHubService) ReflectionTestUtils.getField(controller, "service");

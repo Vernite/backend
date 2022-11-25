@@ -25,27 +25,53 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.workspace;
+package dev.vernite.vernite.common.exception.error;
 
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.stereotype.Repository;
+import java.util.List;
 
-import dev.vernite.vernite.common.exception.EntityNotFoundException;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotEmpty;
 
-/*
- * CRUD repository for workspace entity.
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+/**
+ * Model for representing validation error.
+ * Its returned from endpoints when java bean validation fails.
+ * Contains list of {@link FieldError} objects for each constraint violation.
  */
-@Repository
-public interface WorkspaceRepository extends CrudRepository<Workspace, WorkspaceId> {
+public class ValidationError extends AbstractError {
 
     /**
-     * Retrieves an entity by its id.
-     * 
-     * @param id must not be null
-     * @return the entity with the given id
-     * @throws EntityNotFoundException if entity is not found
+     * Model for representing validation field error.
+     * It represents one constraint violation.
      */
-    default Workspace findByIdOrThrow(WorkspaceId id) throws EntityNotFoundException {
-        return findById(id).orElseThrow(() -> new EntityNotFoundException("workspace", id.getId()));
+    @AllArgsConstructor
+    public static class FieldError {
+
+        @Getter
+        @NotBlank
+        private final String field;
+
+        @Getter
+        @NotBlank
+        private final String message;
+
     }
+
+    /**
+     * Default constructor for {@link ValidationError}.
+     * 
+     * @param message custom global error message
+     * @param errors  list of all violation error on fields
+     */
+    public ValidationError(String message, List<FieldError> errors) {
+        super(message);
+        this.errors = errors;
+    }
+
+    @Getter
+    @NotEmpty
+    private final List<FieldError> errors;
+
 }

@@ -75,7 +75,7 @@ import dev.vernite.vernite.utils.ImageConverter;
 import dev.vernite.vernite.utils.ObjectNotFoundException;
 import dev.vernite.vernite.utils.SecureStringUtils;
 import dev.vernite.vernite.workspace.Workspace;
-import dev.vernite.vernite.workspace.WorkspaceKey;
+import dev.vernite.vernite.workspace.WorkspaceId;
 import dev.vernite.vernite.workspace.WorkspaceRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -123,7 +123,7 @@ public class ProjectController {
     @PostMapping
     public Project create(@NotNull @Parameter(hidden = true) User user, @RequestBody ProjectRequest request) {
         long id = request.getWorkspaceId().orElseThrow(() -> new FieldErrorException("workspaceId", "missing"));
-        Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceKey(id, user));
+        Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceId(id, user.getId()));
         Project project = projectRepository.save(request.createEntity());
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
         return project;
@@ -161,7 +161,7 @@ public class ProjectController {
     }
 
     private void changeWorkspace(long workspaceId, int member, Project project, User user) {
-        Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceKey(workspaceId, user));
+        Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceId(workspaceId, user.getId()));
         ProjectWorkspace pw = project.getProjectWorkspaces().remove(member);
         projectWorkspaceRepository.delete(pw);
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, pw.getPrivileges()));
@@ -230,8 +230,8 @@ public class ProjectController {
                     if (project.member(invitedUser) != -1) {
                         continue;
                     }
-                    Workspace workspace = workspaceRepository.findById(new WorkspaceKey(0, invitedUser))
-                            .orElseGet(() -> workspaceRepository.save(new Workspace(0, invitedUser, "inbox")));
+                    Workspace workspace = workspaceRepository.findById(new WorkspaceId(0, invitedUser.getId()))
+                            .orElseGet(() -> workspaceRepository.save(new Workspace(0, "inbox", invitedUser)));
                     projectWorkspaceRepository
                             .save(new ProjectWorkspace(project, workspace, 2L));
                 }

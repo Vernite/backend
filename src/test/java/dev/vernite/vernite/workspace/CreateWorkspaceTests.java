@@ -27,67 +27,40 @@
 
 package dev.vernite.vernite.workspace;
 
-import java.io.Serializable;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import javax.persistence.Embeddable;
+import javax.validation.Validation;
+import javax.validation.Validator;
+import javax.validation.ValidatorFactory;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import dev.vernite.vernite.user.User;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
-/**
- * Composite key for workspace. Composed of of id and user id.
- */
-@Embeddable
-public class WorkspaceKey implements Serializable, Comparable<WorkspaceKey> {
-    private long id;
+class CreateWorkspaceTests {
 
-    @JsonIgnore
-    private long userId;
+    private static Validator validator;
 
-    public WorkspaceKey() {
+    @BeforeAll
+    static void init() {
+        final ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        validator = factory.getValidator();
     }
 
-    public WorkspaceKey(long id, User user) {
-        this.id = id;
-        this.userId = user.getId();
+    @Test
+    void validationValidTest() {
+        assertTrue(validator.validate(new CreateWorkspace("Name")).isEmpty());
+        assertTrue(validator.validate(new CreateWorkspace("  Name ")).isEmpty());
+        assertTrue(validator.validate(new CreateWorkspace("New name")).isEmpty());
     }
 
-    public long getId() {
-        return id;
+    @Test
+    void validationInvalidTest() {
+        assertEquals(1, validator.validate(new CreateWorkspace(null)).size());
+        assertEquals(2, validator.validate(new CreateWorkspace("")).size());
+        assertEquals(1, validator.validate(new CreateWorkspace("  ")).size());
+        assertEquals(1, validator.validate(new CreateWorkspace("   ")).size());
+        assertEquals(1, validator.validate(new CreateWorkspace("a".repeat(51))).size());
     }
 
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(long userId) {
-        this.userId = userId;
-    }
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int hash = prime + Long.hashCode(id);
-        hash = prime * hash + Long.hashCode(userId);
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null || getClass() != obj.getClass())
-            return false;
-        WorkspaceKey other = (WorkspaceKey) obj;
-        return id == other.id && userId == other.userId;
-    }
-
-    @Override
-    public int compareTo(WorkspaceKey other) {
-        return userId == other.userId ? Long.compare(id, other.id) : Long.compare(userId, other.userId);
-    }
 }

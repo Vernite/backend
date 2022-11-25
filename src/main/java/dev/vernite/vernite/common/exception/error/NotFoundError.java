@@ -25,27 +25,31 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.workspace;
+package dev.vernite.vernite.common.exception.error;
 
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.stereotype.Repository;
+import javax.validation.constraints.NotNull;
 
-import dev.vernite.vernite.common.exception.EntityNotFoundException;
+import lombok.Getter;
 
-/*
- * CRUD repository for workspace entity.
+/**
+ * Model for representing error when entity with given id is not found.
+ * Its returned from endpoints when database query returns no results.
  */
-@Repository
-public interface WorkspaceRepository extends CrudRepository<Workspace, WorkspaceId> {
+public class NotFoundError extends AbstractError {
 
     /**
-     * Retrieves an entity by its id.
+     * Default constructor for {@link NotFoundError}.
      * 
-     * @param id must not be null
-     * @return the entity with the given id
-     * @throws EntityNotFoundException if entity is not found
+     * @param entityName name of entity class
+     * @param id         id for entity which were not found
      */
-    default Workspace findByIdOrThrow(WorkspaceId id) throws EntityNotFoundException {
-        return findById(id).orElseThrow(() -> new EntityNotFoundException("workspace", id.getId()));
+    public NotFoundError(String entityName, long id) {
+        super(entityName + " not found");
+        this.id = id;
     }
+
+    @Getter
+    @NotNull
+    private final long id;
+
 }

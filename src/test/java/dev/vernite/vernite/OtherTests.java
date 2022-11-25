@@ -96,7 +96,7 @@ public class OtherTests {
         } catch (DataIntegrityViolationException e) {
             session = userSessionRepository.findBySession("session_token_projects_tests").orElseThrow();
         }
-        workspace = workspaceRepository.save(new Workspace(1, user, "Project Tests"));
+        workspace = workspaceRepository.save(new Workspace(1, "Project Tests", user));
     }
 
     @BeforeEach

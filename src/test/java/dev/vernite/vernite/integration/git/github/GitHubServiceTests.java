@@ -150,7 +150,7 @@ public class GitHubServiceTests {
         statuses[1] = project.getStatuses().get(2);
         installation = installationRepository.save(new GitHubInstallation(1, user, "username"));
         integration = integrationRepository.save(new GitHubIntegration(project, installation, "username/repo"));
-        workspace = workspaceRepository.save(new Workspace(1, user, "Project Tests"));
+        workspace = workspaceRepository.save(new Workspace(1, "Project Tests", user));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
         ReflectionTestUtils.setField(service, "client", WebClient.create("http://localhost:" + mockBackEnd.getPort()));

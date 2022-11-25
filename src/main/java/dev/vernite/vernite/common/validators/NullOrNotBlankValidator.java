@@ -25,27 +25,29 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.workspace;
+package dev.vernite.vernite.common.validators;
 
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.stereotype.Repository;
+import javax.validation.ConstraintValidator;
+import javax.validation.ConstraintValidatorContext;
 
-import dev.vernite.vernite.common.exception.EntityNotFoundException;
+import dev.vernite.vernite.common.constraints.NullOrNotBlank;
 
-/*
- * CRUD repository for workspace entity.
+/**
+ * Validator for {@code NullOrNotBlank} constraint.
  */
-@Repository
-public interface WorkspaceRepository extends CrudRepository<Workspace, WorkspaceId> {
+public class NullOrNotBlankValidator implements ConstraintValidator<NullOrNotBlank, CharSequence> {
 
-    /**
-     * Retrieves an entity by its id.
-     * 
-     * @param id must not be null
-     * @return the entity with the given id
-     * @throws EntityNotFoundException if entity is not found
-     */
-    default Workspace findByIdOrThrow(WorkspaceId id) throws EntityNotFoundException {
-        return findById(id).orElseThrow(() -> new EntityNotFoundException("workspace", id.getId()));
+    @Override
+    public boolean isValid(CharSequence value, ConstraintValidatorContext context) {
+        if (value == null) {
+            return true;
+        }
+        for (int i = 0; i < value.length(); i++) {
+            if (!Character.isWhitespace(value.charAt(i))) {
+                return true;
+            }
+        }
+        return false;
     }
+
 }

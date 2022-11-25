@@ -27,25 +27,43 @@
 
 package dev.vernite.vernite.workspace;
 
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.stereotype.Repository;
+import java.io.Serializable;
 
-import dev.vernite.vernite.common.exception.EntityNotFoundException;
+import javax.persistence.Embeddable;
+import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 
-/*
- * CRUD repository for workspace entity.
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
+/**
+ * Composite id for workspace.
+ * 
+ * It contains connected user id and id which is unique
+ * among user workspaces and for each user starts on one.
  */
-@Repository
-public interface WorkspaceRepository extends CrudRepository<Workspace, WorkspaceId> {
+@ToString
+@Embeddable
+@NoArgsConstructor
+@EqualsAndHashCode
+@AllArgsConstructor
+public class WorkspaceId implements Serializable {
+    private static final long serialVersionUID = 1;
 
-    /**
-     * Retrieves an entity by its id.
-     * 
-     * @param id must not be null
-     * @return the entity with the given id
-     * @throws EntityNotFoundException if entity is not found
-     */
-    default Workspace findByIdOrThrow(WorkspaceId id) throws EntityNotFoundException {
-        return findById(id).orElseThrow(() -> new EntityNotFoundException("workspace", id.getId()));
-    }
+    @Setter
+    @Getter
+    @PositiveOrZero(message = "workspace unique number must be non negative number")
+    private long id;
+
+    @Setter
+    @Getter
+    @JsonIgnore
+    @Positive(message = "user id must be positive number")
+    private long userId;
+
 }

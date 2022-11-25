@@ -103,7 +103,7 @@ public class MeetingControllerTests {
         } catch (DataIntegrityViolationException e) {
             session = userSessionRepository.findBySession("session_token_meeting_tests").orElseThrow();
         }
-        workspace = workspaceRepository.save(new Workspace(1, user, "Project Tests"));
+        workspace = workspaceRepository.save(new Workspace(1, "Project Tests", user));
         project = projectRepository.save(new Project("Meeting Tests"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
         user2 = userRepository.findByUsername("Username2Meetings");
@@ -111,7 +111,7 @@ public class MeetingControllerTests {
             user2 = userRepository.save(new User("Name2", "Surname2", "Username2Meetings", "Username2Meetings", "1"));
         }
         projectWorkspaceRepository.save(
-                new ProjectWorkspace(project, workspaceRepository.save(new Workspace(1, user2, "Project Tests")), 1L));
+                new ProjectWorkspace(project, workspaceRepository.save(new Workspace(1, "Project Tests", user2)), 1L));
         user3 = userRepository.findByUsername("Username3Meetings");
         if (user3 == null) {
             user3 = userRepository.save(new User("Name2", "Surname2", "Username3Meetings", "Username3Meetings", "1"));

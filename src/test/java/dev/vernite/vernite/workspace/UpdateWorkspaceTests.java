@@ -27,25 +27,40 @@
 
 package dev.vernite.vernite.workspace;
 
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.stereotype.Repository;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import dev.vernite.vernite.common.exception.EntityNotFoundException;
+import javax.validation.Validation;
+import javax.validation.Validator;
+import javax.validation.ValidatorFactory;
 
-/*
- * CRUD repository for workspace entity.
- */
-@Repository
-public interface WorkspaceRepository extends CrudRepository<Workspace, WorkspaceId> {
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
-    /**
-     * Retrieves an entity by its id.
-     * 
-     * @param id must not be null
-     * @return the entity with the given id
-     * @throws EntityNotFoundException if entity is not found
-     */
-    default Workspace findByIdOrThrow(WorkspaceId id) throws EntityNotFoundException {
-        return findById(id).orElseThrow(() -> new EntityNotFoundException("workspace", id.getId()));
+public class UpdateWorkspaceTests {
+
+    private static Validator validator;
+
+    @BeforeAll
+    static void init() {
+        final ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        validator = factory.getValidator();
     }
+
+    @Test
+    void validationValidTest() {
+        assertTrue(validator.validate(new UpdateWorkspace(null)).isEmpty());
+        assertTrue(validator.validate(new UpdateWorkspace("Name")).isEmpty());
+        assertTrue(validator.validate(new UpdateWorkspace("  Name ")).isEmpty());
+        assertTrue(validator.validate(new UpdateWorkspace("New name")).isEmpty());
+    }
+
+    @Test
+    void validationInvalidTest() {
+        assertEquals(2, validator.validate(new UpdateWorkspace("")).size());
+        assertEquals(1, validator.validate(new UpdateWorkspace("  ")).size());
+        assertEquals(1, validator.validate(new UpdateWorkspace("   ")).size());
+        assertEquals(1, validator.validate(new UpdateWorkspace("a".repeat(51))).size());
+    }
+
 }

@@ -68,7 +68,6 @@ public class User {
 
     private Date deleted;
 
-    @NotNull
     private boolean deletedPermanently;
 
     @Column(nullable = false, unique = true)

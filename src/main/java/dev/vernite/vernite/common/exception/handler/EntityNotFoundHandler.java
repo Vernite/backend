@@ -25,27 +25,37 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.workspace;
+package dev.vernite.vernite.common.exception.handler;
 
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.stereotype.Repository;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 import dev.vernite.vernite.common.exception.EntityNotFoundException;
+import dev.vernite.vernite.common.exception.error.NotFoundError;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
-/*
- * CRUD repository for workspace entity.
+/**
+ * This class contains exception handler for {@link EntityNotFoundException}.
  */
-@Repository
-public interface WorkspaceRepository extends CrudRepository<Workspace, WorkspaceId> {
+@ControllerAdvice
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public final class EntityNotFoundHandler {
 
     /**
-     * Retrieves an entity by its id.
+     * Exception handler for {@link EntityNotFoundException}.
+     * Maps exception to {@link NotFoundError}.
      * 
-     * @param id must not be null
-     * @return the entity with the given id
-     * @throws EntityNotFoundException if entity is not found
+     * @param ex exception thrown during request processing
+     * @return {@link NotFoundError} created from exception
      */
-    default Workspace findByIdOrThrow(WorkspaceId id) throws EntityNotFoundException {
-        return findById(id).orElseThrow(() -> new EntityNotFoundException("workspace", id.getId()));
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(EntityNotFoundException.class)
+    public static @ResponseBody NotFoundError handleException(EntityNotFoundException ex) {
+        return new NotFoundError(ex.getEntityName(), ex.getId());
     }
+
 }
