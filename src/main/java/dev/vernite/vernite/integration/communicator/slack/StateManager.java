@@ -25,22 +25,58 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite;
+package dev.vernite.vernite.integration.communicator.slack;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.web.servlet.ServletComponentScan;
-import org.springframework.scheduling.annotation.EnableScheduling;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map.Entry;
 
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
-import io.swagger.v3.oas.annotations.servers.Server;
+public class StateManager {
+    private record Container(long userId, Date time) {
+    }
 
-@EnableScheduling
-@SpringBootApplication
-@ServletComponentScan
-@OpenAPIDefinition(servers = @Server(url = "/api"))
-public class VerniteApplication {
-	public static void main(String[] args) {
-		SpringApplication.run(VerniteApplication.class, args);
-	}
+    private final HashMap<String, Container> inner = new HashMap<>();
+
+    private void update() {
+        for (Entry<String, Container> entry : inner.entrySet()) {
+            if (new Date().getTime() - entry.getValue().time.getTime() > 300000) {
+                inner.remove(entry.getKey());
+            }
+        }
+    }
+
+    public int size() {
+        update();
+        return inner.size();
+    }
+
+    public boolean isEmpty() {
+        update();
+        return inner.isEmpty();
+    }
+
+    public boolean containsKey(Object key) {
+        update();
+        return inner.containsKey(key);
+    }
+
+    public boolean containsValue(Object value) {
+        update();
+        return inner.containsValue(value);
+    }
+
+    public Long get(Object key) {
+        update();
+        return inner.get(key).userId;
+    }
+
+    public Long put(String key, Long value) {
+        update();
+        Container old = inner.put(key, new Container(value, new Date()));
+        return old == null ? null : old.userId;
+    }
+
+    public Long remove(Object key) {
+        return inner.remove(key).userId;
+    }
 }

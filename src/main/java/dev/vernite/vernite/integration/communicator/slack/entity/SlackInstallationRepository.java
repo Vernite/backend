@@ -25,22 +25,19 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite;
+package dev.vernite.vernite.integration.communicator.slack.entity;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.web.servlet.ServletComponentScan;
-import org.springframework.scheduling.annotation.EnableScheduling;
+import java.util.List;
+import java.util.Optional;
 
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
-import io.swagger.v3.oas.annotations.servers.Server;
+import org.springframework.data.repository.CrudRepository;
 
-@EnableScheduling
-@SpringBootApplication
-@ServletComponentScan
-@OpenAPIDefinition(servers = @Server(url = "/api"))
-public class VerniteApplication {
-	public static void main(String[] args) {
-		SpringApplication.run(VerniteApplication.class, args);
-	}
+import dev.vernite.vernite.user.User;
+
+public interface SlackInstallationRepository extends CrudRepository<SlackInstallation, Long> {
+    Optional<SlackInstallation> findByToken(String token);
+
+    Optional<SlackInstallation> findByTeamIdAndInstallerUserId(String teamId, String installerUserId);
+
+    List<SlackInstallation> findByUser(User user);
 }
