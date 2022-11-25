@@ -104,7 +104,6 @@ public class User {
     @JsonIgnore
     @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
-    @Where(clause = "active is null")
     @OrderBy("name, id")
     private List<Workspace> workspaces = new ArrayList<>();
 
