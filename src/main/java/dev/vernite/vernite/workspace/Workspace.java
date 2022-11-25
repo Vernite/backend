@@ -49,6 +49,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
 import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.projectworkspace.ProjectWithPrivileges;
 import dev.vernite.vernite.projectworkspace.ProjectWorkspace;
 import dev.vernite.vernite.user.User;
 import lombok.EqualsAndHashCode;
@@ -97,6 +98,7 @@ public class Workspace {
 
     @Setter
     @Getter
+    @JsonIgnore
     @Deprecated
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
@@ -162,6 +164,11 @@ public class Workspace {
      */
     public void setName(String name) {
         this.name = name.trim();
+    }
+
+    @Deprecated
+    public List<ProjectWithPrivileges> getProjectsWithPrivileges() {
+        return getProjects().stream().map(p -> new ProjectWithPrivileges(p, 69L)).toList();
     }
 
 }
