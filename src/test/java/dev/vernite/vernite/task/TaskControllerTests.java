@@ -183,9 +183,10 @@ class TaskControllerTests {
                 new Task(2, "name 3", "description", project.getStatuses().get(1), user, 3, "low"),
                 new Task(3, "name 2", "description", project.getStatuses().get(2), user, 1, "low"));
 
-        tasks.get(0).setSprints(Set.of(sprint, closedSprint));
-        tasks.get(1).setSprints(Set.of(closedSprint));
-        tasks.get(2).setSprints(Set.of(createdSprint));
+        tasks.get(0).setSprint(sprint);
+        tasks.get(0).setArchiveSprints(Set.of(closedSprint));
+        tasks.get(1).setArchiveSprints(Set.of(closedSprint));
+        tasks.get(2).setSprint(createdSprint);
         tasks.get(1).setAssignee(user);
         ArrayList<Task> tasksList = new ArrayList<>();
         taskRepository.saveAll(tasks).forEach(tasksList::add);
@@ -243,11 +244,11 @@ class TaskControllerTests {
 
         client.get().uri("/project/{pId}/task?backlog=true", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
-                .expectBodyList(Task.class).hasSize(2);
+                .expectBodyList(Task.class).hasSize(1);
 
         client.get().uri("/project/{pId}/task?backlog=false", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
-                .expectBodyList(Task.class).hasSize(1);
+                .expectBodyList(Task.class).hasSize(2);
     }
 
     @Test

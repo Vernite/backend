@@ -27,8 +27,11 @@
 
 package dev.vernite.vernite.sprint;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -41,6 +44,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.Lob;
 import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import javax.persistence.OrderBy;
 import javax.validation.constraints.NotNull;
 
@@ -49,6 +53,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.task.Task;
 import dev.vernite.vernite.utils.SoftDeleteEntity;
+import lombok.Getter;
+import lombok.Setter;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
@@ -91,8 +97,14 @@ public class Sprint extends SoftDeleteEntity {
     private Project project;
 
     @OrderBy("name ASC")
-    @ManyToMany(mappedBy = "sprints", cascade = CascadeType.MERGE)
-    private List<Task> tasks;
+    @OneToMany(mappedBy = "sprint", cascade = CascadeType.PERSIST)
+    private List<Task> tasks = new ArrayList<>();
+
+    @Getter
+    @Setter
+    @OrderBy("name ASC")
+    @ManyToMany(mappedBy = "archiveSprints", cascade = CascadeType.PERSIST)
+    private List<Task> archiveTasks = new ArrayList<>();
 
     public Sprint() {
     }
@@ -180,6 +192,16 @@ public class Sprint extends SoftDeleteEntity {
 
     public void setStatus(Integer status) {
         this.status = status;
+        if (status == 2) {
+            this.setArchiveTasks(new ArrayList<>(this.getTasks().stream().map(t -> {
+                t.setSprint(null);
+                Set<Sprint> newArchive = new HashSet<>(t.getArchiveSprints());
+                newArchive.add(this);
+                t.setArchiveSprints(newArchive);
+                return t;
+            }).toList()));
+            this.setTasks(new ArrayList<>());
+        }
     }
 
     public String getDescription() {

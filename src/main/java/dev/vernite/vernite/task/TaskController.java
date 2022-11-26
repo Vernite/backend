@@ -103,6 +103,7 @@ public class TaskController {
      * @param task     the task
      * @param project  the project
      */
+    @Deprecated
     private void handleSprint(List<Long> sprints, Task task, Project project) {
         HashSet<Sprint> sprintSet = new HashSet<>();
         HashSet<Long> oldSprintSet = new HashSet<>();
@@ -121,7 +122,8 @@ public class TaskController {
                 }
             } else {
                 if (added) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot add task to multiple non closed sprints");
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Cannot add task to multiple non closed sprints");
                 }
                 added = true;
             }
@@ -130,6 +132,25 @@ public class TaskController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot remove closed sprint from task");
         }
         task.setSprints(sprintSet);
+    }
+
+    /**
+     * Handle the request to change sprint of a task.
+     * 
+     * @param sprintId the sprint id (can be null)
+     * @param task     the task
+     * @param project  the project
+     */
+    private void handleSprint2(Long sprintId, Task task, Project project) {
+        Sprint sprint = null;
+        if (sprintId != null) {
+            sprint = sprintRepository.findByProjectAndNumberAndActiveNull(project, sprintId)
+                    .orElseThrow(() -> new ObjectNotFoundException());
+            if (sprint.getStatusEnum() == Sprint.Status.CLOSED) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "cannot assign task to closed sprint");
+            }
+        }
+        task.setSprint(sprint);
     }
 
     /**
@@ -210,6 +231,7 @@ public class TaskController {
         taskRequest.getDeadline().ifPresent(task::setDeadline);
         taskRequest.getEstimatedDate().ifPresent(task::setEstimatedDate);
         taskRequest.getSprintIds().ifPresent(sprintId -> handleSprint(sprintId, task, project));
+        taskRequest.getSprintId().ifPresent(sprintId -> handleSprint2(sprintId.orElse(null), task, project));
         taskRequest.getAssigneeId().ifPresent(assigneeId -> handleAssignee(assigneeId, task));
         taskRequest.getParentTaskId().ifPresent(parentTaskId -> handleParent(parentTaskId, task, project));
         taskRequest.getStoryPoints().ifPresent(task::setStoryPoints);
@@ -240,6 +262,7 @@ public class TaskController {
         Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
         task.update(taskRequest);
         taskRequest.getSprintIds().ifPresent(sprintId -> handleSprint(sprintId, task, project));
+        taskRequest.getSprintId().ifPresent(sprintId -> handleSprint2(sprintId.orElse(null), task, project));
         taskRequest.getAssigneeId().ifPresent(assigneeId -> handleAssignee(assigneeId, task));
         taskRequest.getParentTaskId().ifPresent(parentTaskId -> handleParent(parentTaskId, task, project));
         taskRequest.getStatusId().ifPresent(statusId -> {

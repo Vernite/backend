@@ -53,6 +53,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonProperty.Access;
+
 import dev.vernite.vernite.integration.git.Issue;
 import dev.vernite.vernite.integration.git.PullRequest;
 import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskIssue;
@@ -63,6 +65,8 @@ import dev.vernite.vernite.status.Status;
 import dev.vernite.vernite.task.time.TimeTrack;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.utils.SoftDeleteEntity;
+import lombok.Getter;
+import lombok.Setter;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
@@ -109,10 +113,24 @@ public class Task extends SoftDeleteEntity {
     private String name;
 
     @JsonIgnore
+    @Deprecated
     @ManyToMany(cascade = CascadeType.MERGE)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "sprint_id")
-    private Set<Sprint> sprints = Set.of();
+    private Set<Sprint> sprints = new HashSet<>();
+
+    @Setter
+    @Getter
+    @ManyToOne
+    @JsonIgnore
+    private Sprint sprint;
+
+    @Setter
+    @Getter
+    @JsonIgnore
+    @ManyToMany(cascade = CascadeType.MERGE)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private Set<Sprint> archiveSprints = new HashSet<>();
 
     @Lob
     @Column(nullable = false)
@@ -385,6 +403,7 @@ public class Task extends SoftDeleteEntity {
     }
 
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    @Deprecated
     public List<Long> getSprintIds() {
         return this.getSprints().stream().map(Sprint::getNumber).toList();
     }
@@ -423,5 +442,14 @@ public class Task extends SoftDeleteEntity {
 
     public Long getReleaseId() {
         return this.release != null ? this.release.getId() : null;
+    }
+
+    public Long getSprintId() {
+        return this.getSprint() == null ? null : this.getSprint().getNumber();
+    }
+
+    @JsonProperty(access = Access.READ_ONLY)
+    public List<Long> getArchivedSprintIds() {
+        return this.getArchiveSprints().stream().map(Sprint::getNumber).toList();
     }
 }
