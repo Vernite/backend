@@ -112,13 +112,6 @@ public class Task extends SoftDeleteEntity {
     @Column(nullable = false, length = 50)
     private String name;
 
-    @JsonIgnore
-    @Deprecated
-    @ManyToMany(cascade = CascadeType.MERGE)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "sprint_id")
-    private Set<Sprint> sprints = new HashSet<>();
-
     @Setter
     @Getter
     @ManyToOne
@@ -254,14 +247,6 @@ public class Task extends SoftDeleteEntity {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public Set<Sprint> getSprints() {
-        return sprints;
-    }
-
-    public void setSprints(Set<Sprint> sprints) {
-        this.sprints = sprints;
     }
 
     public String getDescription() {
@@ -400,12 +385,6 @@ public class Task extends SoftDeleteEntity {
 
     public void setAssignee(User assignee) {
         this.assignee = assignee;
-    }
-
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    @Deprecated
-    public List<Long> getSprintIds() {
-        return this.getSprints().stream().map(Sprint::getNumber).toList();
     }
 
     public String getPriority() {

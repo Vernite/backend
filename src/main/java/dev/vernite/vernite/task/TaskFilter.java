@@ -48,7 +48,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 public class TaskFilter {
     private static final String NUMBER = "number";
     private static final String STATUS = "status";
-    private static final String SPRINTS = "sprints";
 
     @Parameter(description = "Id of sprint to filter by (filters are combined with 'and')")
     private Optional<Long> sprintId = Optional.empty();
