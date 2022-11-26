@@ -74,7 +74,7 @@ public final class ValidationExceptionHandler {
      * Maps exception to {@link ValidationError}.
      * 
      * @param ex exception thrown during request processing
-     * @return {@link ValidationError} created from exception
+     * @return error message with all violation of constraints in received data
      */
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -86,8 +86,8 @@ public final class ValidationExceptionHandler {
      * Exception handler for {@link ConstraintViolationException}.
      * Maps exception to {@link ValidationError}.
      * 
-     * @param ex exception thrown during request processing
-     * @return {@link ValidationError} created from exception
+     * @param ex exception thrown during entity processing
+     * @return error message with all violations of constraints in entity
      */
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(ConstraintViolationException.class)
