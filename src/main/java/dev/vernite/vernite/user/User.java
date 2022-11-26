@@ -56,7 +56,6 @@ import dev.vernite.vernite.workspace.Workspace;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-import org.hibernate.annotations.Where;
 
 @Entity
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
@@ -271,16 +270,18 @@ public class User {
         this.counterSequence = counterSequence;
     }
 
+    // TODO: lombok auto generate
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + Arrays.hashCode(getHash());
-        result = prime * result + Arrays.hashCode(getSalt());
-        result = prime * result + Objects.hash(getAvatar(), getCounterSequence(), getEmail(), getId(), getName(), getSurname(), getUsername(), getWorkspaces(), getDeleted(), getLanguage(), getDateFormat());
-        return result;
+        // final int prime = 31;
+        // int result = 1;
+        // result = prime * result + Arrays.hashCode(getHash());
+        // result = prime * result + Arrays.hashCode(getSalt());
+        // result = prime * result + Objects.hash(getAvatar(), getCounterSequence(), getEmail(), getId(), getName(), getSurname(), getUsername(), getWorkspaces(), getDeleted(), getLanguage(), getDateFormat());
+        return (int) getId();
     }
 
+    // TODO: lombok auto generate
     @Override
     public boolean equals(Object obj) {
         if (this == obj)
@@ -288,11 +289,12 @@ public class User {
         if (!(obj instanceof User))
             return false;
         User other = (User) obj;
-        return Objects.equals(getAvatar(), other.getAvatar()) && Objects.equals(getCounterSequence(), other.getCounterSequence())
-                && Objects.equals(getEmail(), other.getEmail()) && Arrays.equals(getHash(), other.getHash()) && getId() == other.getId()
-                && Objects.equals(getName(), other.getName()) && Arrays.equals(getSalt(), other.getSalt())
-                && Objects.equals(getSurname(), other.getSurname()) && Objects.equals(getUsername(), other.getUsername())
-                && Objects.equals(getWorkspaces(), other.getWorkspaces()) && Objects.equals(getDeleted(), other.getDeleted())
-                && Objects.equals(getLanguage(), other.getLanguage()) && Objects.equals(getDateFormat(), other.getDateFormat());
+        return getId() == other.getId();
+        // return Objects.equals(getAvatar(), other.getAvatar()) && Objects.equals(getCounterSequence(), other.getCounterSequence())
+        //         && Objects.equals(getEmail(), other.getEmail()) && Arrays.equals(getHash(), other.getHash()) && getId() == other.getId()
+        //         && Objects.equals(getName(), other.getName()) && Arrays.equals(getSalt(), other.getSalt())
+        //         && Objects.equals(getSurname(), other.getSurname()) && Objects.equals(getUsername(), other.getUsername())
+        //         && Objects.equals(getWorkspaces(), other.getWorkspaces()) && Objects.equals(getDeleted(), other.getDeleted())
+        //         && Objects.equals(getLanguage(), other.getLanguage()) && Objects.equals(getDateFormat(), other.getDateFormat());
     }
 }

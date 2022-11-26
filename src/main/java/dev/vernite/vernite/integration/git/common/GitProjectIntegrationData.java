@@ -25,34 +25,27 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.workspace;
+package dev.vernite.vernite.integration.git.common;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Size;
+import javax.validation.constraints.NotNull;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
 /**
- * Class containing information needed to create new workspace entity.
- * Has required constraints annotated using Java Bean Validation.
+ * Model for additional git integration data.
  */
 @ToString
-@NoArgsConstructor
 @EqualsAndHashCode
 @AllArgsConstructor
-public class CreateWorkspace {
+public class GitProjectIntegrationData {
 
     @Setter
     @Getter
-    @Size(min = 1, max = 50, message = "workspace name must be shorter than 50 characters")
-    @NotBlank(message = "workspace name must contain at least one non-whitespace character")
-    @Schema(description = "Name for new workspace. Must contain at least one non-whitespace character.")
-    private String name;
+    @NotNull
+    private String repositoryLink;
 
 }

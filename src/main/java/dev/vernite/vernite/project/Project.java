@@ -28,130 +28,241 @@
 package dev.vernite.vernite.project;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Set;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.OrderBy;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.PositiveOrZero;
+import javax.validation.constraints.Size;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.annotations.Where;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 import dev.vernite.vernite.cdn.File;
 import dev.vernite.vernite.counter.CounterSequence;
+import dev.vernite.vernite.integration.common.Integration;
 import dev.vernite.vernite.integration.git.github.entity.GitHubIntegration;
 import dev.vernite.vernite.projectworkspace.ProjectWorkspace;
 import dev.vernite.vernite.sprint.Sprint;
 import dev.vernite.vernite.status.Status;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.utils.SoftDeleteEntity;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 /**
- * Entity for representing project. Project name cant be longer than 50
- * characters.
+ * Entity for representing project.
  */
 @Entity
-@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
-@JsonInclude(Include.NON_NULL)
+@ToString
+@NoArgsConstructor
+@EqualsAndHashCode(callSuper = true)
 public class Project extends SoftDeleteEntity implements Comparable<Project> {
 
     @Id
+    @Setter
+    @Getter
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @PositiveOrZero(message = "project id must be non negative number")
     private long id;
 
+    @Getter
     @Column(nullable = false, length = 50)
+    @Size(min = 1, max = 50, message = "project name must be shorter than 50 characters")
+    @NotBlank(message = "project name must contain at least one non-whitespace character")
     private String name;
 
+    @Getter
     @Column(nullable = false, length = 1000)
+    @NotNull(message = "project description cannot be null")
+    @Size(max = 1000, message = "project description must be shorter than 1000 characters")
     private String description;
 
+    @Setter
+    @Getter
     @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "project")
     @OnDelete(action = OnDeleteAction.CASCADE)
+    @NotNull(message = "project workspaces connection must be set")
     private List<ProjectWorkspace> projectWorkspaces = new ArrayList<>();
 
+    @Setter
+    @Getter
+    @ManyToMany
     @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @NotNull(message = "users connection must be set")
+    @JoinTable(name = "project_workspace", joinColumns = @JoinColumn(name = "project_id", referencedColumnName = "id"), inverseJoinColumns = @JoinColumn(name = "workspace_user_id", referencedColumnName = "id"))
+    private Set<User> users = new HashSet<>();
+
+    @Setter
+    @Getter
+    @JsonIgnore
+    @ToString.Exclude
     @OrderBy("ordinal")
+    @EqualsAndHashCode.Exclude
     @Where(clause = "active is null")
     @OnDelete(action = OnDeleteAction.CASCADE)
+    @NotNull(message = "project workspaces connection must be set")
     @OneToMany(cascade = CascadeType.PERSIST, mappedBy = "project")
     private List<Status> statuses = new ArrayList<>();
 
+    @Setter
+    @Getter
     @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @NotNull(message = "counter must be set")
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @OneToOne(cascade = CascadeType.PERSIST, fetch = FetchType.LAZY, optional = false)
+    @OneToOne(cascade = CascadeType.PERSIST, optional = false)
     private CounterSequence statusCounter;
 
+    @Setter
+    @Getter
     @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @NotNull(message = "counter must be set")
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @OneToOne(cascade = CascadeType.PERSIST, fetch = FetchType.LAZY, optional = false)
+    @OneToOne(cascade = CascadeType.PERSIST, optional = false)
     private CounterSequence taskCounter;
 
+    @Setter
+    @Getter
     @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @NotNull(message = "counter must be set")
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @OneToOne(cascade = CascadeType.PERSIST, fetch = FetchType.LAZY, optional = false)
+    @OneToOne(cascade = CascadeType.PERSIST, optional = false)
     private CounterSequence sprintCounter;
 
+    @Setter
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @OneToOne(mappedBy = "project")
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @OneToOne(fetch = FetchType.LAZY, mappedBy = "project")
     private GitHubIntegration gitHubIntegration;
 
+    @Setter
+    @Getter
     @JsonIgnore
+    @ToString.Exclude
     @OrderBy("number")
+    @EqualsAndHashCode.Exclude
+    @OneToMany(mappedBy = "project")
     @Where(clause = "active is null")
+    @NotNull(message = "counter must be set")
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @OneToMany(fetch = FetchType.LAZY, mappedBy = "project")
     private List<Sprint> sprints = new ArrayList<>();
 
+    @Setter
+    @Getter
     @ManyToOne
-    @JoinColumn(name = "file_id", foreignKey = @ForeignKey(name = "fk_project_file"))
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private File logo;
 
-    public Project() {
-    }
-
-    public Project(String name) {
-        this(name, "");
-        this.statuses.add(new Status(1, "To Do", 0, false, true, 0, this));
-        this.statuses.add(new Status(2, "In Progress", 0, false, false, 1, this));
-        this.statuses.add(new Status(3, "Done", 0, true, false, 2, this));
-    }
-
+    /**
+     * Default constructor for project.
+     * 
+     * @param name        must not be {@literal null} and have size between 1 and 50
+     * @param description must not be {@literal null} and must be shorter than 1000
+     *                    characters.
+     */
     public Project(String name, String description) {
-        this.name = name;
-        this.description = description;
-        this.statusCounter = new CounterSequence(3);
+        setName(name);
+        setDescription(description);
+        this.statusCounter = new CounterSequence();
         this.taskCounter = new CounterSequence();
         this.sprintCounter = new CounterSequence();
     }
 
     /**
-     * Updates project with non-empty request fields.
+     * Constructor for project from create request.
      * 
-     * @param request must not be {@literal null}. When fields are not present in
-     *                request, they are not updated.
+     * @param create must not be {@literal null} and must be valid
      */
-    public void update(@NotNull ProjectRequest request) {
-        request.getName().ifPresent(this::setName);
-        request.getDescription().ifPresent(this::setDescription);
+    public Project(CreateProject create) {
+        this(create.getName(), create.getDescription());
+    }
+
+    /**
+     * Updates project entity with data from update.
+     * 
+     * @param update must not be {@literal null} and be valid
+     */
+    public void update(UpdateProject update) {
+        if (update.getName() != null) {
+            setName(update.getName());
+        }
+        if (update.getDescription() != null) {
+            setDescription(update.getDescription());
+        }
+    }
+
+    /**
+     * Checks whether user is member of project.
+     * 
+     * @param user potential project member
+     * @return {@literal true} if given user is member of project; {@literal false}
+     *         otherwise
+     */
+    public boolean isMember(User user) {
+        return getUsers().contains(user);
+    }
+
+    /**
+     * Remove user from project members.
+     * 
+     * @param user must not be {@literal null}
+     * @return removed connection; can be null if user wasn't member
+     */
+    public ProjectWorkspace removeMember(User user) {
+        ProjectWorkspace removed = getProjectWorkspaces().stream()
+                .filter(pw -> pw.getId().getWorkspaceId().getUserId() == user.getId()).findFirst().orElse(null);
+        getProjectWorkspaces().remove(removed);
+        return removed;
+    }
+
+    /**
+     * Return all integrations for project.
+     * 
+     * @return list of integrations for project
+     */
+    public List<Integration> getIntegrations() {
+        if (getGitHubIntegrationEntity() == null) {
+            return List.of();
+        }
+        return List.of(new dev.vernite.vernite.integration.git.github.integration.GitHubProjectIntegration(
+                getGitHubIntegrationEntity().getId(),
+                getGitHubIntegrationEntity().getActive() == null,
+                getGitHubIntegrationEntity().getRepositoryFullName()));
     }
 
     /**
@@ -161,6 +272,7 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
      *             repository.
      * @return index in project workspaces with given user or -1 when not found.
      */
+    @Deprecated
     public int member(User user) {
         ListIterator<ProjectWorkspace> iterator = projectWorkspaces.listIterator();
         while (iterator.hasNext()) {
@@ -171,70 +283,28 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
         return -1;
     }
 
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
+    /**
+     * Setter for name value. It performs {@link String#trim()} on its argument.
+     * 
+     * @param name must not be {@literal null} and have at least one non-whitespace
+     *             character and less than 50 characters
+     */
     public void setName(String name) {
-        this.name = name;
+        this.name = name.trim();
     }
 
-    public String getDescription() {
-        return description;
-    }
-
+    /**
+     * Setter for description value. It performs {@link String#trim()} on its
+     * argument.
+     * 
+     * @param description must not be {@literal null} and have at least one
+     *                    non-whitespace character and less than 50 characters
+     */
     public void setDescription(String description) {
-        this.description = description;
+        this.description = description.trim();
     }
 
-    public List<ProjectWorkspace> getProjectWorkspaces() {
-        return projectWorkspaces;
-    }
-
-    public void setProjectWorkspaces(List<ProjectWorkspace> projectWorkspaces) {
-        this.projectWorkspaces = projectWorkspaces;
-    }
-
-    public List<Status> getStatuses() {
-        return statuses;
-    }
-
-    public void setStatuses(List<Status> statuses) {
-        this.statuses = statuses;
-    }
-
-    public CounterSequence getStatusCounter() {
-        return statusCounter;
-    }
-
-    public void setStatusCounter(CounterSequence statusCounter) {
-        this.statusCounter = statusCounter;
-    }
-
-    public CounterSequence getTaskCounter() {
-        return taskCounter;
-    }
-
-    public void setTaskCounter(CounterSequence taskCounter) {
-        this.taskCounter = taskCounter;
-    }
-
-    public CounterSequence getSprintCounter() {
-        return sprintCounter;
-    }
-
-    public void setSprintCounter(CounterSequence sprintCounter) {
-        this.sprintCounter = sprintCounter;
-    }
-
+    @Deprecated
     public String getGitHubIntegration() {
         return gitHubIntegration != null && gitHubIntegration.getActive() == null
                 ? gitHubIntegration.getRepositoryFullName()
@@ -246,49 +316,18 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
         return gitHubIntegration;
     }
 
-    public void setGitHubIntegration(GitHubIntegration gitHubIntegration) {
-        this.gitHubIntegration = gitHubIntegration;
-    }
-
-    public List<Sprint> getSprints() {
-        return sprints;
-    }
-
-    public void setSprints(List<Sprint> sprints) {
-        this.sprints = sprints;
-    }
-
-    public File getLogo() {
-        return logo;
-    }
-
-    public void setLogo(File logo) {
-        this.logo = logo;
-    }
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int hash = prime + Long.hashCode(getId());
-        hash = prime * hash + (getName() == null ? 0 : getName().hashCode());
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null || getClass() != obj.getClass())
-            return false;
-        Project other = (Project) obj;
-        if (getId() != other.getId())
-            return false;
-        if (getName() == null)
-            return other.name == null;
-        return getName().equals(other.getName());
-    }
-
     @Override
     public int compareTo(Project other) {
         return getName().equals(other.getName()) ? Long.compare(getId(), other.getId())
                 : getName().compareTo(other.getName());
     }
+
+    @Deprecated
+    public Project(String name) {
+        this(name, "");
+        this.statuses.add(new Status(1, "To Do", 0, false, true, 0, this));
+        this.statuses.add(new Status(2, "In Progress", 0, false, false, 1, this));
+        this.statuses.add(new Status(3, "Done", 0, true, false, 2, this));
+    }
+
 }

@@ -36,7 +36,6 @@ import lombok.Getter;
 
 /**
  * Model for representing generic error returned by api.
- * Its returned from endpoints when java bean validation fails.
  */
 @AllArgsConstructor
 public abstract class AbstractError {

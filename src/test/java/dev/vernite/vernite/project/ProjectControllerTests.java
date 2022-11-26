@@ -122,7 +122,7 @@ class ProjectControllerTests {
 
     @Test
     void createSuccess() {
-        ProjectRequest request = new ProjectRequest("POST", "", workspace.getId().getId());
+        CreateProject request = new CreateProject("POST", "", workspace.getId().getId());
         Project result = client.post().uri("/project").cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(request).exchange().expectStatus().isOk().expectBody(Project.class).returnResult()
                 .getResponseBody();
@@ -138,23 +138,23 @@ class ProjectControllerTests {
     @Test
     void createBadRequest() {
         client.post().uri("/project").cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ProjectRequest()).exchange().expectStatus().isBadRequest();
+                .bodyValue(new CreateProject()).exchange().expectStatus().isBadRequest();
 
         client.post().uri("/project").cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ProjectRequest("NAME", "", null)).exchange().expectStatus().isBadRequest();
+                .bodyValue(new CreateProject("NAME", "", null)).exchange().expectStatus().isBadRequest();
 
         client.post().uri("/project").cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ProjectRequest(null, "", workspace.getId().getId())).exchange().expectStatus()
+                .bodyValue(new CreateProject(null, "", workspace.getId().getId())).exchange().expectStatus()
                 .isBadRequest();
 
         client.post().uri("/project").cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ProjectRequest("", "", null)).exchange().expectStatus().isBadRequest();
+                .bodyValue(new CreateProject("", "", null)).exchange().expectStatus().isBadRequest();
 
         client.post().uri("/project").cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ProjectRequest("a".repeat(51), "", null)).exchange().expectStatus().isBadRequest();
+                .bodyValue(new CreateProject("a".repeat(51), "", null)).exchange().expectStatus().isBadRequest();
 
         client.post().uri("/project").cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ProjectRequest("a", "a".repeat(1001), null)).exchange().expectStatus().isBadRequest();
+                .bodyValue(new CreateProject("a", "a".repeat(1001), null)).exchange().expectStatus().isBadRequest();
     }
 
     @Test
@@ -165,7 +165,7 @@ class ProjectControllerTests {
     @Test
     void createNotFound() {
         client.post().uri("/project").cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ProjectRequest("POST", "", -1L)).exchange().expectStatus().isNotFound();
+                .bodyValue(new CreateProject("POST", "", 1000L)).exchange().expectStatus().isNotFound();
     }
 
     @Test
@@ -203,19 +203,19 @@ class ProjectControllerTests {
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
         client.put().uri("/project/{id}", project.getId()).cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ProjectRequest()).exchange().expectStatus().isOk().expectBody(Project.class)
+                .bodyValue(new UpdateProject()).exchange().expectStatus().isOk().expectBody(Project.class)
                 .isEqualTo(project);
         assertEquals(project, projectRepository.findByIdOrThrow(project.getId()));
 
         project.setName("NEW PUT");
         client.put().uri("/project/{id}", project.getId()).cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ProjectRequest("NEW PUT", "", null)).exchange().expectStatus().isOk()
+                .bodyValue(new UpdateProject("NEW PUT", "", null)).exchange().expectStatus().isOk()
                 .expectBody(Project.class).isEqualTo(project);
         assertEquals(project, projectRepository.findByIdOrThrow(project.getId()));
 
         Workspace newWorkspace = workspaceRepository.save(new Workspace(2, "New Workspace", user));
         client.put().uri("/project/{id}", project.getId()).cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ProjectRequest(null, "", 2L)).exchange().expectStatus().isOk()
+                .bodyValue(new UpdateProject(null, "", 2L)).exchange().expectStatus().isOk()
                 .expectBody(Project.class).isEqualTo(project);
         assertEquals(project, projectRepository.findByIdOrThrow(project.getId()));
         assertEquals(1, workspaceRepository.findByIdOrThrow(newWorkspace.getId()).getProjectWorkspaces().size());
@@ -228,15 +228,15 @@ class ProjectControllerTests {
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
         client.put().uri("/project/{id}", project.getId()).cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ProjectRequest("  ", "", null)).exchange().expectStatus().isBadRequest();
+                .bodyValue(new UpdateProject("  ", "", null)).exchange().expectStatus().isBadRequest();
 
         client.put().uri("/project/{id}", project.getId()).cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ProjectRequest("a".repeat(51), "", null)).exchange().expectStatus().isBadRequest();
+                .bodyValue(new UpdateProject("a".repeat(51), "", null)).exchange().expectStatus().isBadRequest();
     }
 
     @Test
     void updateUnauthorized() {
-        ProjectRequest request = new ProjectRequest("PUT", "", 1L);
+        UpdateProject request = new UpdateProject("PUT", "", 1L);
         client.put().uri("/project/1").bodyValue(request).exchange().expectStatus().isUnauthorized();
 
         Project project = projectRepository.save(new Project("PUT"));
@@ -251,15 +251,15 @@ class ProjectControllerTests {
         Project project = projectRepository.save(new Project("PUT"));
 
         client.put().uri("/project/1").cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ProjectRequest("PUT", "", 1L)).exchange().expectStatus().isNotFound();
+                .bodyValue(new UpdateProject("PUT", "", 1L)).exchange().expectStatus().isNotFound();
 
         client.put().uri("/project/{id}", project.getId()).cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ProjectRequest("PUT", "", 1L)).exchange().expectStatus().isNotFound();
+                .bodyValue(new UpdateProject("PUT", "", 1L)).exchange().expectStatus().isNotFound();
 
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
         client.put().uri("/project/{id}", project.getId()).cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new ProjectRequest("PUT", "", -1L)).exchange().expectStatus().isNotFound();
+                .bodyValue(new UpdateProject("PUT", "", 2L)).exchange().expectStatus().isNotFound();
     }
 
     @Test

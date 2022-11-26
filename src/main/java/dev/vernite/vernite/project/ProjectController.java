@@ -33,6 +33,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -121,10 +122,10 @@ public class ProjectController {
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Workspace with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PostMapping
-    public Project create(@NotNull @Parameter(hidden = true) User user, @RequestBody ProjectRequest request) {
-        long id = request.getWorkspaceId().orElseThrow(() -> new FieldErrorException("workspaceId", "missing"));
+    public Project create(@NotNull @Parameter(hidden = true) User user, @RequestBody @Valid CreateProject create) {
+        long id = create.getWorkspaceId();
         Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceId(id, user.getId()));
-        Project project = projectRepository.save(request.createEntity());
+        Project project = projectRepository.save(new Project(create));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
         return project;
     }
@@ -135,11 +136,7 @@ public class ProjectController {
     @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/{id}")
     public Project get(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
-        Project project = projectRepository.findByIdOrThrow(id);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        return project;
+        return projectRepository.findByIdAndMemberOrThrow(id, user);
     }
 
     @Operation(summary = "Modify project", description = "Applies changes from request body to project with given id if authenticated user is member of project. If field from body is missing it wont be changed. Workspace id field is ignored.")
@@ -149,20 +146,18 @@ public class ProjectController {
     @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PutMapping("/{id}")
     public Project update(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
-            @RequestBody ProjectRequest request) {
-        Project project = projectRepository.findByIdOrThrow(id);
-        int index = project.member(user);
-        if (index == -1) {
-            throw new ObjectNotFoundException();
+            @RequestBody @Valid UpdateProject update) {
+        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
+        if (update.getWorkspaceId() != null) {
+            changeWorkspace(update.getWorkspaceId(), project, user);
         }
-        request.getWorkspaceId().ifPresent(workspaceId -> changeWorkspace(workspaceId, index, project, user));
-        project.update(request);
+        project.update(update);
         return projectRepository.save(project);
     }
 
-    private void changeWorkspace(long workspaceId, int member, Project project, User user) {
+    private void changeWorkspace(long workspaceId, Project project, User user) {
         Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceId(workspaceId, user.getId()));
-        ProjectWorkspace pw = project.getProjectWorkspaces().remove(member);
+        ProjectWorkspace pw = project.removeMember(user);
         projectWorkspaceRepository.delete(pw);
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, pw.getPrivileges()));
         if (pw.getWorkspace().getId().getId() == 0 && pw.getWorkspace().getProjectWorkspaces().isEmpty()) {
@@ -176,10 +171,7 @@ public class ProjectController {
     @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @DeleteMapping("/{id}")
     public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
-        Project project = projectRepository.findByIdOrThrow(id);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
+        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
         project.softDelete();
         projectRepository.save(project);
     }
@@ -190,10 +182,7 @@ public class ProjectController {
     @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/{id}/member")
     public List<ProjectMember> getProjectMembers(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
-        Project project = projectRepository.findByIdOrThrow(id);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
+        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
         return projectWorkspaceRepository.findByProjectOrderByWorkspaceUserUsernameAscWorkspaceUserIdAsc(project)
                 .stream().map(ProjectWorkspace::getProjectMember).toList();
     }
@@ -205,10 +194,7 @@ public class ProjectController {
     @GetMapping("/{id}/member/{memberId}")
     public ProjectMember getProjectMember(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @PathVariable long memberId) {
-        Project project = projectRepository.findByIdOrThrow(id);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
+        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
         return projectWorkspaceRepository.findByProjectOrderByWorkspaceUserUsernameAscWorkspaceUserIdAsc(project)
                 .stream().map(ProjectWorkspace::getProjectMember).filter(member -> member.user().getId() == memberId)
                 .findFirst().orElseThrow(ObjectNotFoundException::new);
@@ -224,10 +210,10 @@ public class ProjectController {
         Iterable<Project> projects = projectRepository.findAllById(invite.getProjects());
         List<Project> result = new ArrayList<>();
         for (Project project : projects) {
-            if (project.member(user) != -1) {
+            if (project.isMember(user)) {
                 result.add(project);
                 for (User invitedUser : users) {
-                    if (project.member(invitedUser) != -1) {
+                    if (project.isMember(invitedUser)) {
                         continue;
                     }
                     Workspace workspace = workspaceRepository.findById(new WorkspaceId(0, invitedUser.getId()))
@@ -287,10 +273,7 @@ public class ProjectController {
     @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/{id}/track")
     public List<TimeTrack> getTimeTracks(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
-        Project project = projectRepository.findByIdOrThrow(id);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
+        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
         return timeTrackRepository.findByTaskStatusProject(project);
     }
 
@@ -300,10 +283,7 @@ public class ProjectController {
     @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/{id}/integration/git/issue")
     public Flux<Issue> getIssues(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
-        Project project = projectRepository.findByIdOrThrow(id);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
+        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
         return service.getIssues(project);
     }
 
@@ -313,10 +293,7 @@ public class ProjectController {
     @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/{id}/integration/git/pull")
     public Flux<PullRequest> getPullRequests(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
-        Project project = projectRepository.findByIdOrThrow(id);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
+        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
         return service.getPullRequests(project);
     }
 
@@ -326,10 +303,7 @@ public class ProjectController {
     @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/{id}/integration/git/branch")
     public Flux<Branch> getBranches(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
-        Project project = projectRepository.findByIdOrThrow(id);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
+        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
         return service.getBranches(project);
     }
 
@@ -340,10 +314,7 @@ public class ProjectController {
     @GetMapping("/{id}/events")
     public List<Event> getEvents(@NotNull @Parameter(hidden = true) User user, @PathVariable long id, long from,
             long to, @ModelAttribute EventFilter filter) {
-        Project project = projectRepository.findByIdOrThrow(id);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
+        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
         return eventService.getProjectEvents(project, new Date(from), new Date(to), filter);
     }
 
@@ -355,10 +326,7 @@ public class ProjectController {
     @PostMapping(path = "/{id}/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public File uploadLogo(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @RequestParam("file") MultipartFile file) {
-        Project project = projectRepository.findByIdOrThrow(id);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
+        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
         byte[] converted;
         try {
             converted = ImageConverter.convertImage(file.getOriginalFilename(), file.getBytes());
@@ -377,10 +345,7 @@ public class ProjectController {
     @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @DeleteMapping(path = "/{id}/logo")
     public void uploadImage(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
-        Project project = projectRepository.findByIdOrThrow(id);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
+        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
         project.setLogo(null);
         project = projectRepository.save(project);
     }
@@ -391,10 +356,7 @@ public class ProjectController {
     @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PostMapping("/{id}/events/sync")
     public String createCalendarSync(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
-        Project project = projectRepository.findByIdOrThrow(id);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
+        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
         String key = SecureStringUtils.generateRandomSecureString();
         while (calendarRepository.findByKey(key).isPresent()) {
             key = SecureStringUtils.generateRandomSecureString();

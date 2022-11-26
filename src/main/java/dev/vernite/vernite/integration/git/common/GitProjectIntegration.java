@@ -25,34 +25,29 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.workspace;
+package dev.vernite.vernite.integration.git.common;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Size;
-
-import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
+import dev.vernite.vernite.integration.common.Integration;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.ToString;
 
 /**
- * Class containing information needed to create new workspace entity.
- * Has required constraints annotated using Java Bean Validation.
+ * Model for representing git integration.
  */
 @ToString
-@NoArgsConstructor
-@EqualsAndHashCode
-@AllArgsConstructor
-public class CreateWorkspace {
+@EqualsAndHashCode(callSuper = true)
+public abstract class GitProjectIntegration extends Integration {
 
-    @Setter
-    @Getter
-    @Size(min = 1, max = 50, message = "workspace name must be shorter than 50 characters")
-    @NotBlank(message = "workspace name must contain at least one non-whitespace character")
-    @Schema(description = "Name for new workspace. Must contain at least one non-whitespace character.")
-    private String name;
+    /**
+     * Default constructor for git integration.
+     * 
+     * @param id       unique id within provider
+     * @param provider service provider name
+     * @param active   whether integration is active
+     * @param data     custom data for git integration
+     */
+    protected GitProjectIntegration(long id, String provider, boolean active, GitProjectIntegrationData data) {
+        super(id, "git", provider, active, data);
+    }
 
 }
