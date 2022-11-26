@@ -79,7 +79,7 @@ public class SprintController {
         if (status == null) {
             return project.getSprints();
         }
-        return sprintRepository.findAllByProjectAndStatus(project, status.intValue());
+        return sprintRepository.findAllByProjectAndStatusAndActiveNull(project, status.intValue());
     }
 
     @Operation(summary = "Create a sprint", description = "Creates a new sprint for project.")
