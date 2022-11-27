@@ -70,7 +70,6 @@ public class WorkspaceController {
      * @return list with workspaces ordered by name and id
      */
     @GetMapping
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     public List<Workspace> getAll(@NotNull @Parameter(hidden = true) User user) {
         return user.getWorkspaces();
     }
@@ -84,7 +83,6 @@ public class WorkspaceController {
      * @return newly created workspace
      */
     @PostMapping
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     public Workspace create(@NotNull @Parameter(hidden = true) User user, @RequestBody @Valid CreateWorkspace create) {
         long id = counterRepository.getIncrementCounter(user.getCounterSequence().getId());
         return workspaceRepository.save(new Workspace(id, user, create));
@@ -98,7 +96,6 @@ public class WorkspaceController {
      * @return workspace with given id
      */
     @GetMapping("/{id}")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     public Workspace get(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         return workspaceRepository.findByIdOrThrow(new WorkspaceId(id, user.getId()));
     }
@@ -113,7 +110,6 @@ public class WorkspaceController {
      * @return workspace after update
      */
     @PutMapping("/{id}")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     public Workspace update(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @RequestBody @Valid UpdateWorkspace update) {
         Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceId(id, user.getId()));
@@ -128,7 +124,6 @@ public class WorkspaceController {
      * @param id   id of workspace
      */
     @DeleteMapping("/{id}")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Workspace with given id not empty.", responseCode = "409", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceId(id, user.getId()));

@@ -36,7 +36,6 @@ import java.util.Optional;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -71,56 +70,50 @@ import dev.vernite.vernite.task.time.TimeTrackRepository;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.user.UserRepository;
 import dev.vernite.vernite.utils.ErrorType;
-import dev.vernite.vernite.utils.FieldErrorException;
 import dev.vernite.vernite.utils.ImageConverter;
 import dev.vernite.vernite.utils.ObjectNotFoundException;
 import dev.vernite.vernite.utils.SecureStringUtils;
 import dev.vernite.vernite.workspace.Workspace;
 import dev.vernite.vernite.workspace.WorkspaceId;
 import dev.vernite.vernite.workspace.WorkspaceRepository;
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import lombok.AllArgsConstructor;
 import reactor.core.publisher.Flux;
 
 @RestController
+@AllArgsConstructor
 @RequestMapping("/project")
 public class ProjectController {
 
-    @Autowired
     private ProjectRepository projectRepository;
 
-    @Autowired
     private WorkspaceRepository workspaceRepository;
 
-    @Autowired
     private ProjectWorkspaceRepository projectWorkspaceRepository;
 
-    @Autowired
     private UserRepository userRepository;
 
-    @Autowired
     private TimeTrackRepository timeTrackRepository;
 
-    @Autowired
     private EventService eventService;
 
-    @Autowired
     private FileManager fileManager;
 
-    @Autowired
     private CalendarIntegrationRepository calendarRepository;
 
-    @Autowired
-    GitTaskService service;
+    private GitTaskService service;
 
-    @Operation(summary = "Create project", description = "Creates new project. Authenticated user is added to project with owner privileges. Project is added to workspace with given id.")
-    @ApiResponse(description = "Newly created project.", responseCode = "200")
-    @ApiResponse(description = "Some fields are missing or failed to satisfy requirements.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Workspace with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Create new project. Creating user will be automatically added to that
+     * project.
+     * 
+     * @param user   logged in user
+     * @param create data for new project
+     * @return newly created project
+     */
     @PostMapping
     public Project create(@NotNull @Parameter(hidden = true) User user, @RequestBody @Valid CreateProject create) {
         long id = create.getWorkspaceId();
@@ -130,20 +123,28 @@ public class ProjectController {
         return project;
     }
 
-    @Operation(summary = "Retrieve project", description = "Retrieves project with given id if authenticated user is member of this project.")
-    @ApiResponse(description = "Project with given id.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Retrieve project. If user is not member of project with given id this method
+     * returns not found error.
+     * 
+     * @param user logged in user
+     * @param id   id of project
+     * @return project with given id
+     */
     @GetMapping("/{id}")
     public Project get(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         return projectRepository.findByIdAndMemberOrThrow(id, user);
     }
 
-    @Operation(summary = "Modify project", description = "Applies changes from request body to project with given id if authenticated user is member of project. If field from body is missing it wont be changed. Workspace id field is ignored.")
-    @ApiResponse(description = "Project after changes.", responseCode = "200")
-    @ApiResponse(description = "Some fields failed to satisfy requirements.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Update project with given id. Performs partial update using only supplied
+     * fields from request body. Authenticated user must be member of project.
+     * 
+     * @param user   logged in user
+     * @param id     id of project
+     * @param update data to update
+     * @return project after update
+     */
     @PutMapping("/{id}")
     public Project update(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @RequestBody @Valid UpdateProject update) {
@@ -165,10 +166,13 @@ public class ProjectController {
         }
     }
 
-    @Operation(summary = "Delete project", description = "Deletes project with given id. Authenticated user must be member of project.")
-    @ApiResponse(description = "Project deleted.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Delete project with given id. Project will be soft deleted and full delete
+     * wil happen after a week. Authenticated user must be member of project.
+     * 
+     * @param user logged in user
+     * @param id   id of project
+     */
     @DeleteMapping("/{id}")
     public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
@@ -176,10 +180,13 @@ public class ProjectController {
         projectRepository.save(project);
     }
 
-    @Operation(summary = "Retrieve project members", description = "Retrieves members of project with given id. Authenticated user must be member of project.")
-    @ApiResponse(description = "List of project members.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Retrieve project members. Authenticated user must be member of project.
+     * 
+     * @param user logged in user
+     * @param id   id of project
+     * @return list of project members
+     */
     @GetMapping("/{id}/member")
     public List<ProjectMember> getProjectMembers(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
@@ -187,10 +194,14 @@ public class ProjectController {
                 .stream().map(ProjectWorkspace::getProjectMember).toList();
     }
 
-    @Operation(summary = "Retrieve project member", description = "Retrieves member of project with given id. Authenticated user must be member of project.")
-    @ApiResponse(description = "Project member.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project or member with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Retrieve project member. Authenticated user must be member of project.
+     * 
+     * @param user     logged in user
+     * @param id       id of project
+     * @param memberId id of searched user
+     * @return project member
+     */
     @GetMapping("/{id}/member/{memberId}")
     public ProjectMember getProjectMember(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @PathVariable long memberId) {
@@ -200,9 +211,17 @@ public class ProjectController {
                 .findFirst().orElseThrow(ObjectNotFoundException::new);
     }
 
-    @Operation(summary = "Add members to projects", description = "Adds members with given emails or usernames to projects with given ids. Authenticated user must be member of projects. If authenticated user is not member of project invited users will not be added to this project but will be added to correct projects (no error will be returned). If user with given email or username is already member of project, nothing will happen. If user with given email or username does not exists nothing will happen.")
-    @ApiResponse(description = "List with actual user usernames and list of actual projects.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Adds members to projects. Adds every given user to every given project. In
+     * order to add users to project authenticated user must be member of every
+     * project. If authenticated user is not member of project no one will be added
+     * to this project. If user with given email / username does not exists no error
+     * will be thrown.
+     * 
+     * @param user   logged in user
+     * @param invite list of project and user to add.
+     * @return list with project and users which were added to projects
+     */
     @PostMapping("/member")
     public ProjectInvite addProjectMembers(@NotNull @Parameter(hidden = true) User user,
             @RequestBody ProjectInvite invite) {
@@ -229,12 +248,18 @@ public class ProjectController {
         return new ProjectInvite(users.stream().map(User::getUsername).toList(), result);
     }
 
-    @Operation(summary = "Remove members from projects", description = "Removes members with given ids from project with given id. Authenticated user must be member of projects and have privilege.")
-    @ApiResponse(description = "List with actual users removed from project.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Not enough privileges.", responseCode = "403", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Remove members from project. Authenticated user must be member of project and
+     * have sufficient privileges.
+     * 
+     * @param user logged in user
+     * @param id   id of project
+     * @param ids  ids of users to remove
+     * @return removed users
+     */
     @PutMapping("/{id}/member")
+    @ApiResponse(description = "List with actual users removed from project.", responseCode = "200")
+    @ApiResponse(description = "Not enough privileges.", responseCode = "403", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     public List<User> deleteMember(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @RequestBody List<Long> ids) {
         Project project = projectRepository.findByIdOrThrow(id);
@@ -252,10 +277,12 @@ public class ProjectController {
         return projectWorkspaces.stream().map(ps -> ps.getWorkspace().getUser()).toList();
     }
 
-    @Operation(summary = "Leave project", description = "Authorized user leaves project with given id. Authenticated user must be member of project.")
-    @ApiResponse(description = "Project member left.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Leave project. Authenticated user leaves project with given id.
+     * 
+     * @param user logged in user
+     * @param id   id of project
+     */
     @DeleteMapping("/{id}/member")
     public void leaveProject(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdOrThrow(id);
@@ -267,50 +294,73 @@ public class ProjectController {
         projectWorkspaceRepository.delete(pw);
     }
 
-    @Operation(summary = "List time tracking", description = "Retrieves time tracking of project with given id. Authenticated user must be member of project.")
-    @ApiResponse(description = "List of time tracking.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Retrieve project time tracks. Authenticated user must be member of project.
+     * 
+     * @param user logged in user
+     * @param id   id of project
+     * @return list with all time tracks from given project
+     */
     @GetMapping("/{id}/track")
     public List<TimeTrack> getTimeTracks(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
         return timeTrackRepository.findByTaskStatusProject(project);
     }
 
-    @Operation(summary = "Retrieve git issues for project", description = "Retrieves all issues from all integrated git services for project.")
-    @ApiResponse(description = "List of issues.", responseCode = "200", content = @Content(schema = @Schema(implementation = Issue.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    // @ApiResponse(description = "List of issues.", responseCode = "200", content =
+    // @Content(schema = @Schema(implementation = Issue.class)))
+    /**
+     * Retrieve git issues for project. Retrieve all issues from integrated git
+     * providers.
+     * 
+     * @param user logged in user
+     * @param id   id of project
+     * @return list with issues
+     */
     @GetMapping("/{id}/integration/git/issue")
     public Flux<Issue> getIssues(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
         return service.getIssues(project);
     }
 
-    @Operation(summary = "Retrieve git pull requests for project", description = "Retrieves all pull requests from all integrated git services for project.")
-    @ApiResponse(description = "List of pull requests.", responseCode = "200", content = @Content(schema = @Schema(implementation = PullRequest.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Retrieve git pull requests for project. Retrieve all pull requests from
+     * integrated git providers.
+     * 
+     * @param user logged in user
+     * @param id   id of project
+     * @return list with pull requests
+     */
     @GetMapping("/{id}/integration/git/pull")
     public Flux<PullRequest> getPullRequests(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
         return service.getPullRequests(project);
     }
 
-    @Operation(summary = "Retrieve git branches for project", description = "Retrieves all branches from all integrated git services for project.")
-    @ApiResponse(description = "List of branches.", responseCode = "200", content = @Content(schema = @Schema(implementation = Branch.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Retrieve git branches for project. Retrieve all branches from integrated git
+     * providers.
+     * 
+     * @param user logged in user
+     * @param id   id of project
+     * @return list with branches
+     */
     @GetMapping("/{id}/integration/git/branch")
     public Flux<Branch> getBranches(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
         return service.getBranches(project);
     }
 
-    @Operation(summary = "Retrieve events for project", description = "Retrieves events from specified timestamp for project.")
-    @ApiResponse(description = "List of events.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Retrieve events for project.
+     * 
+     * @param user   logged in user
+     * @param id     id of project
+     * @param from   timestamp after events happen
+     * @param to     timestamp before events happen
+     * @param filter filter for events
+     * @return list with events after 'from' and before 'to' filtered by 'filter'
+     */
     @GetMapping("/{id}/events")
     public List<Event> getEvents(@NotNull @Parameter(hidden = true) User user, @PathVariable long id, long from,
             long to, @ModelAttribute EventFilter filter) {
@@ -318,12 +368,18 @@ public class ProjectController {
         return eventService.getProjectEvents(project, new Date(from), new Date(to), filter);
     }
 
-    @Operation(summary = "Changes project logo", description = "Changes project logo. It will be converted to image/webp format with resolution 400x400. Alpha channel is supported.")
+    /**
+     * Update project logo. Given file will be converted to image/webp format with
+     * resolution 400x400. Alpha channel is supported.
+     * 
+     * @param user logged in user
+     * @param id   id of project
+     * @param file new logo image
+     * @return new logo file information
+     */
+    @PostMapping(path = "/{id}/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ApiResponse(description = "Project logo changed.", responseCode = "200")
     @ApiResponse(description = "Cannot convert image.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @PostMapping(path = "/{id}/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public File uploadLogo(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @RequestParam("file") MultipartFile file) {
         Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
@@ -339,10 +395,12 @@ public class ProjectController {
         return f;
     }
 
-    @Operation(summary = "Deletes project logo", description = "Deletes project logo. Logo will be null.")
-    @ApiResponse(description = "Project logo changed.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Delete project logo. After that logo will be empty.
+     * 
+     * @param user logged in user
+     * @param id   id of project
+     */
     @DeleteMapping(path = "/{id}/logo")
     public void uploadImage(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
@@ -350,10 +408,14 @@ public class ProjectController {
         project = projectRepository.save(project);
     }
 
-    @Operation(summary = "Create synchronization link", description = "Creates synchronization link for project events calendar")
-    @ApiResponse(description = "Link.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Create calendar synchronization link. Creates link for iCalendar format
+     * synchronization of project calendar.
+     * 
+     * @param user logged in user
+     * @param id   id of project
+     * @return link to project calendar in iCalendar format
+     */
     @PostMapping("/{id}/events/sync")
     public String createCalendarSync(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
