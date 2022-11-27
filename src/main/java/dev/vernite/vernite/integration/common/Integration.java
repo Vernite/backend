@@ -25,34 +25,61 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.workspace;
+package dev.vernite.vernite.integration.common;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Size;
+import javax.validation.constraints.NotNull;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
 /**
- * Class containing information needed to create new workspace entity.
- * Has required constraints annotated using Java Bean Validation.
+ * Model for representing integration.
  */
 @ToString
-@NoArgsConstructor
 @EqualsAndHashCode
-@AllArgsConstructor
-public class CreateWorkspace {
+public abstract class Integration {
+
+    /**
+     * Default constructor for integration.
+     * 
+     * @param id       unique number of id within service and provider
+     * @param service  name of provided service by integration
+     * @param provider provider of service for integration
+     * @param active   whether integration is active
+     * @param data     custom data for integration
+     */
+    protected Integration(long id, String service, String provider, boolean active, Object data) {
+        this.id = String.format("%s_%s_%d", service, provider, id);
+        this.service = service;
+        this.provider = provider;
+        this.active = active;
+        this.data = data;
+    }
+
+    @Getter
+    @Setter
+    @NotNull
+    private String id;
 
     @Setter
     @Getter
-    @Size(min = 1, max = 50, message = "workspace name must be shorter than 50 characters")
-    @NotBlank(message = "workspace name must contain at least one non-whitespace character")
-    @Schema(description = "Name for new workspace. Must contain at least one non-whitespace character.")
-    private String name;
+    @NotNull
+    private String service;
+
+    @Setter
+    @Getter
+    @NotNull
+    private String provider;
+
+    @Setter
+    @Getter
+    private boolean active;
+
+    @Setter
+    @Getter
+    @NotNull
+    private Object data;
 
 }

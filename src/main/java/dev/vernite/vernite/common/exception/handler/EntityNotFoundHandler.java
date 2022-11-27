@@ -50,7 +50,7 @@ public final class EntityNotFoundHandler {
      * Maps exception to {@link NotFoundError}.
      * 
      * @param ex exception thrown during request processing
-     * @return {@link NotFoundError} created from exception
+     * @return error message with entity name and id
      */
     @ResponseStatus(HttpStatus.NOT_FOUND)
     @ExceptionHandler(EntityNotFoundException.class)

@@ -27,33 +27,41 @@
 
 package dev.vernite.vernite.project;
 
-import org.springframework.stereotype.Repository;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import dev.vernite.vernite.common.exception.EntityNotFoundException;
-import dev.vernite.vernite.user.User;
-import dev.vernite.vernite.utils.SoftDeleteRepository;
+import javax.validation.Validation;
+import javax.validation.Validator;
+import javax.validation.ValidatorFactory;
 
-/**
- * CRUD repository for project entity.
- */
-@Repository
-public interface ProjectRepository extends SoftDeleteRepository<Project, Long> {
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
-    /**
-     * Finds active project by id and checks if user is member of project.
-     * 
-     * @param id   project id
-     * @param user potential project member
-     * @return project with given id and user is its member
-     * @throws EntityNotFoundException thrown when project is not found or user is
-     *                                 not member of found project
-     */
-    default Project findByIdAndMemberOrThrow(long id, User user) throws EntityNotFoundException {
-        Project project = findByIdAndActiveNull(id).orElseThrow(() -> new EntityNotFoundException("project", id));
-        if (!project.isMember(user)) {
-            throw new EntityNotFoundException("project", id);
-        }
-        return project;
+class CreateProjectTests {
+
+    private static Validator validator;
+
+    @BeforeAll
+    static void init() {
+        final ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        validator = factory.getValidator();
+    }
+
+    @Test
+    void validationValidTest() {
+        assertTrue(validator.validate(new CreateProject("Name", "Description", 1L)).isEmpty());
+        assertTrue(validator.validate(new CreateProject("  Name ", " ", 4L)).isEmpty());
+        assertTrue(validator.validate(new CreateProject("  Name ", " Description", 73L)).isEmpty());
+    }
+
+    @Test
+    void validationInvalidTest() {
+        assertEquals(3, validator.validate(new CreateProject()).size());
+        assertEquals(1, validator.validate(new CreateProject("Name", null, 1L)).size());
+        assertEquals(1, validator.validate(new CreateProject("Name", "", -1L)).size());
+        assertEquals(3, validator.validate(new CreateProject("", null, 1L)).size());
+        assertEquals(1, validator.validate(new CreateProject("a".repeat(51), "", 1L)).size());
+        assertEquals(1, validator.validate(new CreateProject("Name", "a".repeat(1001), 1L)).size());
     }
 
 }

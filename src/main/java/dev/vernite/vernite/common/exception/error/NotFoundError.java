@@ -27,6 +27,7 @@
 
 package dev.vernite.vernite.common.exception.error;
 
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
 import lombok.Getter;
@@ -44,12 +45,17 @@ public class NotFoundError extends AbstractError {
      * @param id         id for entity which were not found
      */
     public NotFoundError(String entityName, long id) {
-        super(entityName + " not found");
+        super("entity not found");
         this.id = id;
+        this.name = entityName;
     }
 
     @Getter
     @NotNull
     private final long id;
+
+    @Getter
+    @NotBlank
+    private final String name;
 
 }

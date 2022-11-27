@@ -29,11 +29,9 @@ package dev.vernite.vernite.workspace;
 
 import java.util.List;
 
-import javax.validation.ConstraintViolationException;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
-import dev.vernite.vernite.common.exception.EntityNotFoundException;
 import dev.vernite.vernite.counter.CounterSequenceRepository;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.utils.ErrorType;
@@ -49,7 +47,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -65,56 +62,70 @@ public class WorkspaceController {
 
     private WorkspaceRepository workspaceRepository;
 
-    @Operation(summary = "Retrieve all workspaces", description = "Retrieves all workspaces for authenticated user. Results are ordered by name and id.")
-    @ApiResponse(description = "List with workspaces. Can be empty.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Retrieves all workspaces for authenticated user. There might be extra virtual
+     * workspace with id 0 for projects that aren't contained in any workspace.
+     * 
+     * @param user logged in user
+     * @return list with workspaces ordered by name and id
+     */
     @GetMapping
     public List<Workspace> getAll(@NotNull @Parameter(hidden = true) User user) {
         return user.getWorkspaces();
     }
 
-    @Operation(summary = "Create workspace", description = "Creates new workspace for authenticated user.")
-    @ApiResponse(description = "Newly created workspace.", responseCode = "200")
-    @ApiResponse(description = "Some fields failed to meet constraints.", responseCode = "400")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Create new workspace for authenticated user. New workspace will have next
+     * unused id unique for user.
+     * 
+     * @param user   logged in user
+     * @param create data for new workspace
+     * @return newly created workspace
+     */
     @PostMapping
-    public Workspace create(@NotNull @Parameter(hidden = true) User user, @RequestBody @Valid CreateWorkspace create)
-            throws ConstraintViolationException {
+    public Workspace create(@NotNull @Parameter(hidden = true) User user, @RequestBody @Valid CreateWorkspace create) {
         long id = counterRepository.getIncrementCounter(user.getCounterSequence().getId());
         return workspaceRepository.save(new Workspace(id, user, create));
     }
 
-    @Operation(summary = "Retrieve workspace", description = "Retrieves workspace with given id for authenticated user.")
-    @ApiResponse(description = "Workspace with given id.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Workspace with given id not found.", responseCode = "404")
+    /**
+     * Retrieve workspace for authenticated user.
+     * 
+     * @param user logged in user
+     * @param id   id of workspace
+     * @return workspace with given id
+     */
     @GetMapping("/{id}")
-    public Workspace get(@NotNull @Parameter(hidden = true) User user, @PathVariable long id)
-            throws EntityNotFoundException {
+    public Workspace get(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         return workspaceRepository.findByIdOrThrow(new WorkspaceId(id, user.getId()));
     }
 
-    @Operation(summary = "Modify workspace", description = "Applies changes from request body to workspace with given id for authenticated user. If field from body is missing it wont be changed.")
-    @ApiResponse(description = "Workspace after changes.", responseCode = "200")
-    @ApiResponse(description = "Some fields failed to meet constraints.", responseCode = "400")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Workspace with given id not found.", responseCode = "404")
+    /**
+     * Update workspace with given id. Performs partial update using only supplied
+     * fields from request body.
+     * 
+     * @param user   logged in user
+     * @param id     id of workspace
+     * @param update data to update
+     * @return workspace after update
+     */
     @PutMapping("/{id}")
     public Workspace update(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
-            @RequestBody @Valid UpdateWorkspace update) throws ConstraintViolationException, EntityNotFoundException {
+            @RequestBody @Valid UpdateWorkspace update) {
         Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceId(id, user.getId()));
         workspace.update(update);
         return workspaceRepository.save(workspace);
     }
 
-    @Operation(summary = "Delete workspace", description = "Deletes workspace with given id. Workspace to delete must be empty.")
-    @ApiResponse(description = "Workspace deleted.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Workspace with given id not found.", responseCode = "404")
-    @ApiResponse(description = "Workspace with given id not empty.", responseCode = "409", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Delete workspace with given id. Workspace to delete must be empty.
+     * 
+     * @param user logged in user
+     * @param id   id of workspace
+     */
     @DeleteMapping("/{id}")
-    public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long id)
-            throws EntityNotFoundException {
+    @ApiResponse(description = "Workspace with given id not empty.", responseCode = "409", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceId(id, user.getId()));
         if (!workspace.getProjects().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "workspace not empty");

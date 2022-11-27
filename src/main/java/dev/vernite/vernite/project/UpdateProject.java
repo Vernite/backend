@@ -25,11 +25,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.workspace;
+package dev.vernite.vernite.project;
 
-import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
 
+import dev.vernite.vernite.common.constraints.NullOrNotBlank;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -39,20 +40,33 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * Class containing information needed to create new workspace entity.
+ * Class containing information needed to update new project entity.
  * Has required constraints annotated using Java Bean Validation.
+ * It performs partial update using only present fields.
  */
 @ToString
 @NoArgsConstructor
 @EqualsAndHashCode
 @AllArgsConstructor
-public class CreateWorkspace {
+public class UpdateProject {
 
     @Setter
     @Getter
-    @Size(min = 1, max = 50, message = "workspace name must be shorter than 50 characters")
-    @NotBlank(message = "workspace name must contain at least one non-whitespace character")
-    @Schema(description = "Name for new workspace. Must contain at least one non-whitespace character.")
+    @Size(min = 1, max = 50, message = "project name must be shorter than 50 characters")
+    @NullOrNotBlank(message = "project name must contain at least one non-whitespace character")
+    @Schema(description = "Name for new project. Must contain at least one non-whitespace character.")
     private String name;
+
+    @Setter
+    @Getter
+    @Schema(description = "Description for new workspace.")
+    @Size(max = 1000, message = "project description must be shorter than 1000 characters")
+    private String description;
+
+    @Setter
+    @Getter
+    @Positive(message = "workspace id must be positive")
+    @Schema(description = "Workspace id for new workspace.")
+    private Long workspaceId;
 
 }

@@ -122,7 +122,7 @@ public class Workspace {
     private Set<Project> projects = Set.of();
 
     /**
-     * Base constructor for workspace.
+     * Default constructor for workspace.
      * 
      * @param id   unique to user positive number for new workspace
      * @param name must not be {@literal null} and have size between 1 and 50

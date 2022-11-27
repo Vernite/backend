@@ -39,7 +39,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * Class containing information needed to update workspace object.
+ * Class containing information needed to update workspace entity.
  * Has required constraints annotated using Java Bean Validation.
  * It performs partial update using only present fields.
  */

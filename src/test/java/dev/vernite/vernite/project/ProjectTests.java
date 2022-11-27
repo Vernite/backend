@@ -27,64 +27,157 @@
 
 package dev.vernite.vernite.project;
 
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
+import javax.validation.Validation;
+import javax.validation.Validator;
+import javax.validation.ValidatorFactory;
+
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@TestInstance(Lifecycle.PER_CLASS)
-@TestPropertySource({ "classpath:application.properties", "classpath:application-test.properties" })
+import dev.vernite.vernite.projectworkspace.ProjectWorkspace;
+import dev.vernite.vernite.user.User;
+import dev.vernite.vernite.workspace.Workspace;
+
 class ProjectTests {
-    @Test
-    void equalsTest() {
-        Project project = new Project("name");
-        Project other = new Project("other");
 
-        assertEquals(false, project.equals(null));
-        assertNotEquals(new Object(), project);
-        assertNotEquals(other, project);
+    private static final User user = new User("name", "surname", "username", "email", "password");
+    private static Validator validator;
 
-        other.setName("name");
-        other.setId(1);
+    @BeforeAll
+    static void init() {
+        user.setId(1);
 
-        assertNotEquals(other, project);
-
-        other.setId(project.getId());
-        assertEquals(other, project);
-
-        project.setName(null);
-        assertNotEquals(other, project);
-
-        other.setName(null);
-        assertEquals(other, project);
-
-        project.setName("name");
-        assertNotEquals(other, project);
+        final ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        validator = factory.getValidator();
     }
 
     @Test
-    void hashCodeTest() {
-        Project project = new Project("name");
-        Project other = new Project("name");
+    void constructorBaseTest() {
+        Project project = new Project("Name", "Description");
 
-        other.setId(1);
-        assertNotEquals(other.hashCode(), project.hashCode());
+        assertEquals("Name", project.getName());
+        assertEquals("Description", project.getDescription());
+        assertNotNull(project.getStatusCounter());
+        assertNotNull(project.getTaskCounter());
+        assertNotNull(project.getSprintCounter());
 
-        other.setId(project.getId());
-        assertEquals(other.hashCode(), project.hashCode());
+        project = new Project("  Name ", "   Description  ");
+
+        assertEquals("Name", project.getName());
+        assertEquals("Description", project.getDescription());
+        assertNotNull(project.getStatusCounter());
+        assertNotNull(project.getTaskCounter());
+        assertNotNull(project.getSprintCounter());
+    }
+
+    @Test
+    void constructorCreateTest() {
+        Project project = new Project(new CreateProject("Name", "Description", 1L));
+
+        assertEquals("Name", project.getName());
+        assertEquals("Description", project.getDescription());
+        assertNotNull(project.getStatusCounter());
+        assertNotNull(project.getTaskCounter());
+        assertNotNull(project.getSprintCounter());
+
+        project = new Project(new CreateProject("  Name ", "   Description  ", 1L));
+
+        assertEquals("Name", project.getName());
+        assertEquals("Description", project.getDescription());
+        assertNotNull(project.getStatusCounter());
+        assertNotNull(project.getTaskCounter());
+        assertNotNull(project.getSprintCounter());
+    }
+
+    @Test
+    void updateTest() {
+        Project project = new Project("Name", "Description");
+        project.update(new UpdateProject("NewName", "NewDescription", null));
+
+        assertEquals("NewName", project.getName());
+        assertEquals("NewDescription", project.getDescription());
+
+        project.update(new UpdateProject("  Name ", "   Description  ", null));
+
+        assertEquals("Name", project.getName());
+        assertEquals("Description", project.getDescription());
+
+        project.update(new UpdateProject());
+
+        assertEquals("Name", project.getName());
+        assertEquals("Description", project.getDescription());
+    }
+
+    @Test
+    void isMemberTest() {
+        Project project = new Project("Name", "Description");
+
+        assertFalse(project.isMember(user));
+
+        project.getUsers().add(user);
+        project.getProjectWorkspaces().add(new ProjectWorkspace(project, new Workspace(1, "Name", user), 1L));
+
+        assertTrue(project.isMember(user));
+    }
+
+    @Test
+    void removeMemberTest() {
+        Project project = new Project("Name", "Description");
+        project.getUsers().add(user);
+        project.getProjectWorkspaces().add(new ProjectWorkspace(project, new Workspace(1, "Name", user), 1L));
+
+        assertNotNull(project.removeMember(user));
+
+        assertNull(project.removeMember(user));
+    }
+
+    @Test
+    void setNameTest() {
+        Project project = new Project("Name", "Description");
+        project.setName("New name");
+
+        assertEquals("New name", project.getName());
+
+        project.setName("  New name  ");
+
+        assertEquals("New name", project.getName());
+    }
+
+    @Test
+    void setDescriptionTest() {
+        Project project = new Project("Name", "Description");
+        project.setDescription("New description");
+
+        assertEquals("New description", project.getDescription());
+
+        project.setDescription("  New description  ");
+
+        assertEquals("New description", project.getDescription());
+    }
+
+    @Test
+    void validationValidTest() {
+        assertTrue(validator.validate(new Project("Name", "Description")).isEmpty());
+    }
+
+    @Test
+    void validationInvalidTest() {
+        assertEquals(2, validator.validate(new Project("", "Description")).size());
+        assertEquals(2, validator.validate(new Project("  ", "Description")).size());
+        assertEquals(1, validator.validate(new Project("a".repeat(51), "Description")).size());
+        assertEquals(1, validator.validate(new Project("Name", "a".repeat(1001))).size());
     }
 
     @Test
     void compareToTest() {
-        Project project = new Project("name");
-        Project other = new Project("other");
+        Project project = new Project("name", "desc");
+        Project other = new Project("other", "desc");
 
         assertEquals(true, project.compareTo(other) < 0);
 
