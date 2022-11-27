@@ -27,162 +27,156 @@
 
 package dev.vernite.vernite.status;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.PositiveOrZero;
+import javax.validation.constraints.Size;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.task.Task;
-import dev.vernite.vernite.utils.SoftDeleteEntity;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+/**
+ * Entity representing a status of a task in project workflow.
+ */
 @Entity
-public class Status extends SoftDeleteEntity {
+@ToString
+@NoArgsConstructor
+@EqualsAndHashCode
+public class Status {
 
     @Id
-    @JsonIgnore
+    @Setter
+    @Getter
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @PositiveOrZero(message = "status id must be non negative number")
     private long id;
 
-    @JsonProperty("id")
-    @Column(nullable = false)
-    private long number;
-
+    @Getter
     @Column(nullable = false, length = 50)
+    @Size(min = 1, max = 50, message = "project name must be shorter than 50 characters")
+    @NotBlank(message = "project name must contain at least one non-whitespace character")
     private String name;
 
+    @Setter
+    @Getter
     @Column(nullable = false)
+    @PositiveOrZero(message = "status color must be non negative number")
     private int color;
 
+    @Setter
+    @Getter
     @Column(nullable = false)
-    private boolean isFinal;
+    @PositiveOrZero(message = "status color must be non negative number")
+    private int ordinal;
 
+    @Setter
+    @Getter
     @Column(nullable = false)
     private boolean isBegin;
 
+    @Setter
+    @Getter
     @Column(nullable = false)
-    private int ordinal;
+    private boolean isFinal;
 
+    @Setter
+    @Getter
     @JsonIgnore
-    @ManyToOne
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "project_id", nullable = false, foreignKey = @ForeignKey(name = "fk_column_project"))
+    @NotNull(message = "status must belong to a project")
     private Project project;
 
+    @Setter
+    @Getter
     @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "status")
     @OnDelete(action = OnDeleteAction.CASCADE)
-    private List<Task> tasks;
+    @NotNull(message = "status must have tasks")
+    private List<Task> tasks = new ArrayList<>();
 
-    public Status() {
-    }
-
-    public Status(long id, String name, int color, boolean isFinal, boolean isBegin, int ordinal, Project project) {
-        this.number = id;
+    /**
+     * Default constructor for status.
+     * 
+     * @param name    name of the status; must not be {@literal null} or empty
+     * @param color   color of the status
+     * @param ordinal ordinal of the status
+     * @param isFinal is the status final
+     * @param isBegin is the status begin
+     * @param project project the status belongs to; must not be {@literal null}
+     */
+    public Status(String name, int color, int ordinal, boolean isFinal, boolean isBegin, Project project) {
         this.name = name;
         this.color = color;
+        this.ordinal = ordinal;
         this.isFinal = isFinal;
         this.isBegin = isBegin;
-        this.ordinal = ordinal;
         this.project = project;
     }
 
     /**
-     * Updates status with non-empty request fields.
+     * Constructor for status from create request.
      * 
-     * @param request must not be {@literal null}. When fields are not present in
-     *                request, they are not updated.
+     * @param project project the status belongs to; must not be {@literal null}
+     * @param create  must not be {@literal null} and must be valid
      */
-    public void update(@NotNull StatusRequest request) {
-        request.getName().ifPresent(this::setName);
-        request.getColor().ifPresent(this::setColor);
-        request.getFinal().ifPresent(this::setFinal);
-        request.getBegin().ifPresent(this::setBegin);
-        request.getOrdinal().ifPresent(this::setOrdinal);
+    public Status(Project project, CreateStatus create) {
+        this(create.getName(), create.getColor(), create.getOrdinal(), create.getBegin(), create.getIsFinal(), project);
     }
 
-    public long getId() {
-        return id;
+    /**
+     * Update status with data from update.
+     * 
+     * @param update must not be {@literal null} and must be valid
+     */
+    public void update(UpdateStatus update) {
+        if (update.getName() != null) {
+            setName(update.getName());
+        }
+        if (update.getColor() != null) {
+            setColor(update.getColor());
+        }
+        if (update.getOrdinal() != null) {
+            setOrdinal(update.getOrdinal());
+        }
+        if (update.getBegin() != null) {
+            setBegin(update.getBegin());
+        }
+        if (update.getIsFinal() != null) {
+            setFinal(update.getIsFinal());
+        }
     }
 
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public long getNumber() {
-        return number;
-    }
-
-    public void setNumber(long number) {
-        this.number = number;
-    }
-
-    public String getName() {
-        return name;
-    }
-
+    /**
+     * Setter for name value. It performs {@link String#trim()} on its argument.
+     * 
+     * @param name must not be {@literal null} and have at least one non-whitespace
+     *             character and less than 50 characters
+     */
     public void setName(String name) {
-        this.name = name;
-    }
-
-    public int getColor() {
-        return color;
-    }
-
-    public void setColor(Integer color) {
-        this.color = color;
-    }
-
-    public boolean isFinal() {
-        return isFinal;
-    }
-
-    public void setFinal(Boolean isFinal) {
-        this.isFinal = isFinal;
-    }
-
-    public boolean isBegin() {
-        return isBegin;
-    }
-
-    public void setBegin(Boolean isBegin) {
-        this.isBegin = isBegin;
-    }
-
-    public int getOrdinal() {
-        return ordinal;
-    }
-
-    public void setOrdinal(Integer ordinal) {
-        this.ordinal = ordinal;
-    }
-
-    public Project getProject() {
-        return project;
-    }
-
-    public void setProject(Project project) {
-        this.project = project;
-    }
-
-    public List<Task> getTasks() {
-        return tasks;
-    }
-
-    public void setTasks(List<Task> tasks) {
-        this.tasks = tasks;
+        this.name = name.trim();
     }
 }

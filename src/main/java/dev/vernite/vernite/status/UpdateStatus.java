@@ -25,10 +25,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.project;
+package dev.vernite.vernite.status;
 
-import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 import javax.validation.constraints.Size;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import dev.vernite.vernite.common.constraints.NullOrNotBlank;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -40,7 +42,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * Class containing information needed to update project entity.
+ * Class containing information needed to update status entity.
  * Has required constraints annotated using Java Bean Validation.
  * It performs partial update using only present fields.
  */
@@ -48,25 +50,36 @@ import lombok.ToString;
 @NoArgsConstructor
 @EqualsAndHashCode
 @AllArgsConstructor
-public class UpdateProject {
+public class UpdateStatus {
 
     @Setter
     @Getter
-    @Size(min = 1, max = 50, message = "project name must be shorter than 50 characters")
-    @NullOrNotBlank(message = "project name must contain at least one non-whitespace character")
-    @Schema(description = "Name for new project. Must contain at least one non-whitespace character.")
+    @Size(min = 1, max = 50, message = "status name must be shorter than 50 characters")
+    @NullOrNotBlank(message = "status name must contain at least one non-whitespace character")
+    @Schema(description = "Name for status. Must contain at least one non-whitespace character.")
     private String name;
 
     @Setter
     @Getter
-    @Schema(description = "Description for new workspace.")
-    @Size(max = 1000, message = "project description must be shorter than 1000 characters")
-    private String description;
+    @PositiveOrZero(message = "status color must be a non negative number")
+    @Schema(description = "Color for status. Must be a non negative number.")
+    private Integer color;
 
     @Setter
     @Getter
-    @Positive(message = "workspace id must be positive")
-    @Schema(description = "Workspace id for new workspace.")
-    private Long workspaceId;
+    @PositiveOrZero(message = "status order must be a non negative number")
+    @Schema(description = "Order for status. Must be a non negative number.")
+    private Integer ordinal;
+
+    @Setter
+    @Getter
+    @Schema(description = "Flag indicating if status is begin status. Must be a boolean value.")
+    private Boolean begin;
+
+    @Setter
+    @Getter
+    @JsonProperty("final")
+    @Schema(description = "Flag indicating if status is final status. Must be a boolean value.")
+    private Boolean isFinal;
 
 }

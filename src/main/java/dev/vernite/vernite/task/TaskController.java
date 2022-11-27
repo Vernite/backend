@@ -186,7 +186,7 @@ public class TaskController {
             throw new ObjectNotFoundException();
         }
         long statusId = taskRequest.getStatusId().orElseThrow(() -> new FieldErrorException("statusId", "missing"));
-        Status status = statusRepository.findByProjectAndNumberOrThrow(project, statusId);
+        Status status = statusRepository.findByIdAndProjectOrThrow(statusId, project);
         long id = counterSequenceRepository.getIncrementCounter(project.getTaskCounter().getId());
         Task task = taskRequest.createEntity(id, status, user);
         taskRequest.getDeadline().ifPresent(task::setDeadline);
@@ -225,7 +225,7 @@ public class TaskController {
         taskRequest.getAssigneeId().ifPresent(assigneeId -> handleAssignee(assigneeId, task));
         taskRequest.getParentTaskId().ifPresent(parentTaskId -> handleParent(parentTaskId, task, project));
         taskRequest.getStatusId().ifPresent(statusId -> {
-            Status status = statusRepository.findByProjectAndNumberOrThrow(project, statusId);
+            Status status = statusRepository.findByIdAndProjectOrThrow(statusId, project);
             task.setStatus(status);
         });
 

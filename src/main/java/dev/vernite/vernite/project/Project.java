@@ -126,9 +126,8 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     @ToString.Exclude
     @OrderBy("ordinal")
     @EqualsAndHashCode.Exclude
-    @Where(clause = "active is null")
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @NotNull(message = "project workspaces connection must be set")
+    @NotNull(message = "project must have statuses")
     @OneToMany(cascade = CascadeType.PERSIST, mappedBy = "project")
     private List<Status> statuses = new ArrayList<>();
 
@@ -326,9 +325,9 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     @Deprecated
     public Project(String name) {
         this(name, "");
-        this.statuses.add(new Status(1, "To Do", 0, false, true, 0, this));
-        this.statuses.add(new Status(2, "In Progress", 0, false, false, 1, this));
-        this.statuses.add(new Status(3, "Done", 0, true, false, 2, this));
+        this.statuses.add(new Status("To Do", 0, 0, false, true, this));
+        this.statuses.add(new Status("In Progress", 0, 1, false, false, this));
+        this.statuses.add(new Status("Done", 0, 2, true, false, this));
     }
 
 }

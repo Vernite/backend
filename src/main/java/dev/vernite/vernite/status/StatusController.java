@@ -29,17 +29,15 @@ package dev.vernite.vernite.status;
 
 import java.util.List;
 
+import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
-import dev.vernite.vernite.counter.CounterSequenceRepository;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.project.ProjectRepository;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.utils.ErrorType;
 import dev.vernite.vernite.utils.FieldErrorException;
-import dev.vernite.vernite.utils.ObjectNotFoundException;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -54,16 +52,16 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import lombok.AllArgsConstructor;
 
 @RestController
+@AllArgsConstructor
 @RequestMapping("/project/{projectId}/status")
 public class StatusController {
-    @Autowired
+
     private ProjectRepository projectRepository;
-    @Autowired
+
     private StatusRepository statusRepository;
-    @Autowired
-    private CounterSequenceRepository counterSequenceRepository;
 
     @Operation(summary = "Get information on all statuses", description = "This method returns array of all statuses for project with given ID.")
     @ApiResponse(responseCode = "200", description = "List of all project statuses. Can be empty.")
@@ -71,11 +69,7 @@ public class StatusController {
     @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping
     public List<Status> getAll(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        return project.getStatuses();
+        return projectRepository.findByIdAndMemberOrThrow(projectId, user).getStatuses();
     }
 
     @Operation(summary = "Create status", description = "This method creates new status for project.")
@@ -85,13 +79,9 @@ public class StatusController {
     @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PostMapping
     public Status create(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @RequestBody StatusRequest request) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        long id = counterSequenceRepository.getIncrementCounter(project.getStatusCounter().getId());
-        return statusRepository.save(request.createEntity(id, project));
+            @RequestBody @Valid CreateStatus create) {
+        Project project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        return statusRepository.save(new Status(project, create));
     }
 
     @Operation(summary = "Get status information", description = "This method is used to retrieve status with given ID.")
@@ -101,11 +91,8 @@ public class StatusController {
     @GetMapping("/{id}")
     public Status get(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long id) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        return statusRepository.findByProjectAndNumberOrThrow(project, id);
+        Project project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        return statusRepository.findByIdAndProjectOrThrow(id, project);
     }
 
     @Operation(summary = "Alter the status", description = "This method is used to modify existing status information.")
@@ -114,13 +101,10 @@ public class StatusController {
     @ApiResponse(responseCode = "404", description = "Status or project with given ID not found.", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PutMapping("/{id}")
     public Status update(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @PathVariable long id, @RequestBody StatusRequest request) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        Status status = statusRepository.findByProjectAndNumberOrThrow(project, id);
-        status.update(request);
+            @PathVariable long id, @RequestBody @Valid UpdateStatus update) {
+        Project project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        Status status = statusRepository.findByIdAndProjectOrThrow(id, project);
+        status.update(update);
         return statusRepository.save(status);
     }
 
@@ -132,15 +116,11 @@ public class StatusController {
     @DeleteMapping("/{id}")
     public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long id) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        Status status = statusRepository.findByProjectAndNumberOrThrow(project, id);
+        Project project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        Status status = statusRepository.findByIdAndProjectOrThrow(id, project);
         if (!status.getTasks().isEmpty()) {
             throw new FieldErrorException("tasks", "Status has tasks assigned to it.");
         }
-        status.softDelete();
-        statusRepository.save(status);
+        statusRepository.delete(status);
     }
 }

@@ -306,7 +306,7 @@ public class Task extends SoftDeleteEntity {
     }
 
     public long getStatusId() {
-        return this.getStatus().getNumber();
+        return this.getStatus().getId();
     }
 
     public long getCreatedBy() {
