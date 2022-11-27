@@ -220,9 +220,4 @@ public class Sprint extends SoftDeleteEntity {
         this.tasks = tasks;
     }
 
-    @Override
-    public void softDelete() {
-        super.softDelete();
-        setTasks(new ArrayList<>());
-    }
 }
