@@ -317,6 +317,7 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     }
 
     @Override
+    @Deprecated
     public int compareTo(Project other) {
         return getName().equals(other.getName()) ? Long.compare(getId(), other.getId())
                 : getName().compareTo(other.getName());

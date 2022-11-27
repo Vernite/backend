@@ -222,7 +222,7 @@ public class AuthControllerTests {
         try {
             session = userSessionRepository.save(session);
         } catch (DataIntegrityViolationException e) {
-            session = userSessionRepository.findBySession("session_token_projects_tests").orElseThrow();
+            session = userSessionRepository.findBySession("session_token_events_tests").orElseThrow();
         }
 
         client.get().uri("/auth/me/events?from=1&to=1000")
