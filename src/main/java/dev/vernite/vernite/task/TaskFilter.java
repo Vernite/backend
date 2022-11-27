@@ -126,6 +126,7 @@ public class TaskFilter {
                     predicates.add(builder.isNotNull(root.get("sprint")));
                 } else {
                     predicates.add(builder.isNull(root.get("sprint")));
+                    predicates.add(builder.equal(root.get(STATUS).get("isFinal"), false));
                 }
             });
             return builder.and(predicates.toArray(new Predicate[predicates.size()]));
