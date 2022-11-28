@@ -33,7 +33,7 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
 import dev.vernite.vernite.common.exception.ConflictStateException;
-import dev.vernite.vernite.counter.CounterSequenceRepository;
+import dev.vernite.vernite.common.utils.counter.CounterSequenceRepository;
 import dev.vernite.vernite.user.User;
 
 import org.springframework.web.bind.annotation.DeleteMapping;

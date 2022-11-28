@@ -25,46 +25,41 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.counter;
+package dev.vernite.vernite.common.utils.counter;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.validation.constraints.PositiveOrZero;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 /**
- * Entity for storing sequence counters for generation of unique ids.
+ * Entity for storing sequence counters for generation of unique IDs.
  */
 @Entity
+@ToString
+@NoArgsConstructor
+@EqualsAndHashCode
 public class CounterSequence {
+
     @Id
+    @Setter
+    @Getter
+    @PositiveOrZero(message = "counter id must be positive or zero.")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
+    @Setter
+    @Getter
     @Column(nullable = false)
+    @PositiveOrZero(message = "counter value must be positive or zero.")
     private long counterValue = 0;
 
-    public CounterSequence() {
-    }
-
-    public CounterSequence(long counterValue) {
-        this.counterValue = counterValue;
-    }
-
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public long getCounterValue() {
-        return counterValue;
-    }
-
-    public void setCounterValue(long counterValue) {
-        this.counterValue = counterValue;
-    }
 }

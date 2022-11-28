@@ -51,7 +51,8 @@ import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import dev.vernite.vernite.counter.CounterSequence;
+
+import dev.vernite.vernite.common.utils.counter.CounterSequence;
 import dev.vernite.vernite.workspace.Workspace;
 
 import org.hibernate.annotations.OnDelete;

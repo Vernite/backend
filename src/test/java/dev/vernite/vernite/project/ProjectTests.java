@@ -63,7 +63,6 @@ class ProjectTests {
 
         assertEquals("Name", project.getName());
         assertEquals("Description", project.getDescription());
-        assertNotNull(project.getStatusCounter());
         assertNotNull(project.getTaskCounter());
         assertNotNull(project.getSprintCounter());
 
@@ -71,7 +70,6 @@ class ProjectTests {
 
         assertEquals("Name", project.getName());
         assertEquals("Description", project.getDescription());
-        assertNotNull(project.getStatusCounter());
         assertNotNull(project.getTaskCounter());
         assertNotNull(project.getSprintCounter());
     }
@@ -82,7 +80,6 @@ class ProjectTests {
 
         assertEquals("Name", project.getName());
         assertEquals("Description", project.getDescription());
-        assertNotNull(project.getStatusCounter());
         assertNotNull(project.getTaskCounter());
         assertNotNull(project.getSprintCounter());
 
@@ -90,7 +87,6 @@ class ProjectTests {
 
         assertEquals("Name", project.getName());
         assertEquals("Description", project.getDescription());
-        assertNotNull(project.getStatusCounter());
         assertNotNull(project.getTaskCounter());
         assertNotNull(project.getSprintCounter());
     }

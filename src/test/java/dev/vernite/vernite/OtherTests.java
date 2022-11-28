@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import java.util.Date;
 import java.util.List;
 
-import dev.vernite.vernite.counter.CounterSequence;
+import dev.vernite.vernite.common.utils.counter.CounterSequence;
 import dev.vernite.vernite.integration.git.github.entity.GitHubIntegration;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.project.ProjectRepository;
@@ -112,8 +112,6 @@ public class OtherTests {
         assertEquals("repository/name", project.getGitHubIntegration());
         project.setSprintCounter(new CounterSequence());
         assertEquals(0, project.getSprintCounter().getCounterValue());
-        project.setStatusCounter(new CounterSequence());
-        assertEquals(0, project.getStatusCounter().getCounterValue());
         project.setTaskCounter(new CounterSequence());
         assertEquals(0, project.getTaskCounter().getCounterValue());
         assertEquals(3, project.getStatuses().size());

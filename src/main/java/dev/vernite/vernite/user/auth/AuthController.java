@@ -44,7 +44,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotNull;
 
-import dev.vernite.vernite.counter.CounterSequence;
+import dev.vernite.vernite.common.utils.counter.CounterSequence;
 import dev.vernite.vernite.event.Event;
 import dev.vernite.vernite.event.EventFilter;
 import dev.vernite.vernite.event.EventService;

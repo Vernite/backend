@@ -25,18 +25,20 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.counter;
+package dev.vernite.vernite.common.utils.counter;
 
 import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
 
 /**
  * Interface for operations on CounterSequence entity.
  */
+@Repository
 public interface CounterSequenceRepository extends CrudRepository<CounterSequence, Long> {
 
     /**
-     * Runs transaction which adds one to counter sequence with given id. It is used
+     * Runs transaction which adds one to counter sequence with given ID. It is used
      * for safe database incrementing to prevent race condition.
      * 
      * @param counterId should not be {@literal null}.
@@ -44,4 +46,5 @@ public interface CounterSequenceRepository extends CrudRepository<CounterSequenc
      */
     @Procedure("counter_increment")
     long getIncrementCounter(long counterId);
+
 }

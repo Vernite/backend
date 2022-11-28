@@ -41,7 +41,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import dev.vernite.vernite.counter.CounterSequenceRepository;
+import dev.vernite.vernite.common.utils.counter.CounterSequenceRepository;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.project.ProjectRepository;
 import dev.vernite.vernite.task.Task;

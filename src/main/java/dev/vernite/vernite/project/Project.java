@@ -58,7 +58,7 @@ import org.hibernate.annotations.Where;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import dev.vernite.vernite.cdn.File;
-import dev.vernite.vernite.counter.CounterSequence;
+import dev.vernite.vernite.common.utils.counter.CounterSequence;
 import dev.vernite.vernite.integration.common.Integration;
 import dev.vernite.vernite.integration.git.github.entity.GitHubIntegration;
 import dev.vernite.vernite.projectworkspace.ProjectWorkspace;
@@ -139,16 +139,6 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     @NotNull(message = "counter must be set")
     @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToOne(cascade = CascadeType.PERSIST, optional = false)
-    private CounterSequence statusCounter;
-
-    @Setter
-    @Getter
-    @JsonIgnore
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    @NotNull(message = "counter must be set")
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    @OneToOne(cascade = CascadeType.PERSIST, optional = false)
     private CounterSequence taskCounter;
 
     @Setter
@@ -197,7 +187,6 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     public Project(String name, String description) {
         setName(name);
         setDescription(description);
-        this.statusCounter = new CounterSequence();
         this.taskCounter = new CounterSequence();
         this.sprintCounter = new CounterSequence();
     }

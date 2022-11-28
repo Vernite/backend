@@ -35,7 +35,7 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import dev.vernite.vernite.counter.CounterSequenceRepository;
+import dev.vernite.vernite.common.utils.counter.CounterSequenceRepository;
 import dev.vernite.vernite.integration.git.github.data.GitHubCommit;
 import dev.vernite.vernite.integration.git.github.data.GitHubInstallationApi;
 import dev.vernite.vernite.integration.git.github.data.GitHubIssue;

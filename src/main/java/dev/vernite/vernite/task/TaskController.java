@@ -34,7 +34,7 @@ import java.util.Optional;
 
 import javax.validation.constraints.NotNull;
 
-import dev.vernite.vernite.counter.CounterSequenceRepository;
+import dev.vernite.vernite.common.utils.counter.CounterSequenceRepository;
 import dev.vernite.vernite.integration.git.GitTaskService;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.project.ProjectRepository;
