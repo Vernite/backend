@@ -54,6 +54,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.AllArgsConstructor;
 
+/**
+ * Rest controller for performing CRUD operations on {@link Status} entities.
+ */
 @RestController
 @AllArgsConstructor
 @RequestMapping("/project/{projectId}/status")

@@ -83,6 +83,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.AllArgsConstructor;
 import reactor.core.publisher.Flux;
 
+/**
+ * Rest controller for performing CRUD operations on projects entities.
+ */
 @RestController
 @AllArgsConstructor
 @RequestMapping("/project")
