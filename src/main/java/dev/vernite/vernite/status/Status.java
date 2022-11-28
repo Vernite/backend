@@ -129,7 +129,7 @@ public class Status {
      * @param project project the status belongs to; must not be {@literal null}
      */
     public Status(String name, int color, int ordinal, boolean isFinal, boolean isBegin, Project project) {
-        this.name = name;
+        setName(name);
         this.color = color;
         this.ordinal = ordinal;
         this.isFinal = isFinal;

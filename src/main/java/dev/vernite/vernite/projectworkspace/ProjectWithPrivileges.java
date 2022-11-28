@@ -32,6 +32,7 @@ import dev.vernite.vernite.project.Project;
 /**
  * Class representing project and privileges for user.
  */
+@Deprecated
 public record ProjectWithPrivileges(Project project, Long privileges) implements Comparable<ProjectWithPrivileges> {
     @Override
     public int hashCode() {
