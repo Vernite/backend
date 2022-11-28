@@ -32,12 +32,11 @@ import java.util.List;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
+import dev.vernite.vernite.common.exception.ConflictStateException;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.project.ProjectRepository;
 import dev.vernite.vernite.user.User;
-import dev.vernite.vernite.utils.ErrorType;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -46,16 +45,12 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.AllArgsConstructor;
 
 /**
- * Rest controller for performing CRUD operations on {@link Status} entities.
+ * Rest controller for performing CRUD operations on Status entities.
  */
 @RestController
 @AllArgsConstructor
@@ -136,13 +131,12 @@ public class StatusController {
      * @param id        ID of status
      */
     @DeleteMapping("/{id}")
-    @ApiResponse(description = "Status with given id not empty.", responseCode = "409", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long id) {
         Project project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
         Status status = statusRepository.findByIdAndProjectOrThrow(id, project);
         if (!status.getTasks().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "status not empty");
+            throw new ConflictStateException("status must be empty to delete");
         }
         statusRepository.delete(status);
     }

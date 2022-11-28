@@ -310,8 +310,6 @@ public class ProjectController {
         return timeTrackRepository.findByTaskStatusProject(project);
     }
 
-    // @ApiResponse(description = "List of issues.", responseCode = "200", content =
-    // @Content(schema = @Schema(implementation = Issue.class)))
     /**
      * Retrieve git issues for project. Retrieve all issues from integrated git
      * providers.

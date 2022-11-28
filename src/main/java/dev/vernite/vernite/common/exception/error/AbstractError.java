@@ -40,6 +40,15 @@ import lombok.Getter;
 @AllArgsConstructor
 public abstract class AbstractError {
 
+    @Getter
+    @NotNull
+    @Positive
+    private final long timestamp;
+
+    @Getter
+    @NotBlank
+    private final String message;
+
     /**
      * Creates error with timestamp value of current moment.
      * Uses {@link System#currentTimeMillis()}.
@@ -49,14 +58,5 @@ public abstract class AbstractError {
     protected AbstractError(String message) {
         this(System.currentTimeMillis(), message);
     }
-
-    @Getter
-    @NotNull
-    @Positive
-    private final long timestamp;
-
-    @Getter
-    @NotBlank
-    private final String message;
 
 }

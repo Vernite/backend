@@ -38,6 +38,14 @@ import lombok.Getter;
  */
 public class NotFoundError extends AbstractError {
 
+    @Getter
+    @NotNull
+    private final long id;
+
+    @Getter
+    @NotBlank
+    private final String name;
+
     /**
      * Default constructor for {@link NotFoundError}.
      * 
@@ -49,13 +57,5 @@ public class NotFoundError extends AbstractError {
         this.id = id;
         this.name = entityName;
     }
-
-    @Getter
-    @NotNull
-    private final long id;
-
-    @Getter
-    @NotBlank
-    private final String name;
 
 }

@@ -32,11 +32,10 @@ import java.util.List;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
+import dev.vernite.vernite.common.exception.ConflictStateException;
 import dev.vernite.vernite.counter.CounterSequenceRepository;
 import dev.vernite.vernite.user.User;
-import dev.vernite.vernite.utils.ErrorType;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -45,16 +44,12 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.AllArgsConstructor;
 
 /**
- * Rest controller for performing CRUD operations on {@link Workspace} entities.
+ * Rest controller for performing CRUD operations on Workspace entities.
  */
 @RestController
 @AllArgsConstructor
@@ -127,11 +122,10 @@ public class WorkspaceController {
      * @param id   ID of workspace
      */
     @DeleteMapping("/{id}")
-    @ApiResponse(description = "Workspace with given id not empty.", responseCode = "409", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceId(id, user.getId()));
         if (!workspace.getProjects().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "workspace not empty");
+            throw new ConflictStateException("workspace must be empty to delete");
         }
         workspaceRepository.delete(workspace);
     }

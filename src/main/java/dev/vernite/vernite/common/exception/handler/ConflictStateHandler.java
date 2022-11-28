@@ -25,53 +25,37 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.common.exception.error;
+package dev.vernite.vernite.common.exception.handler;
 
-import java.util.List;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotEmpty;
-
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import dev.vernite.vernite.common.exception.ConflictStateException;
+import dev.vernite.vernite.common.exception.error.ConflictError;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /**
- * Model for representing validation error.
- * Its returned from endpoints when java bean validation fails.
- * Contains list of {@link FieldError} objects for each constraint violation.
+ * This class contains exception handler for {@link ConflictStateException}.
  */
-public class ValidationError extends AbstractError {
+@ControllerAdvice
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public class ConflictStateHandler {
 
     /**
-     * Model for representing validation field error.
-     * It represents one constraint violation.
-     */
-    @AllArgsConstructor
-    public static class FieldError {
-
-        @Getter
-        @NotBlank
-        private final String field;
-
-        @Getter
-        @NotBlank
-        private final String message;
-
-    }
-
-    @Getter
-    @NotEmpty
-    private final List<FieldError> errors;
-
-    /**
-     * Default constructor for {@link ValidationError}.
+     * Exception handler for {@link ConflictStateException}.
+     * Maps exception to {@link ConflictError}.
      * 
-     * @param message custom global error message
-     * @param errors  list of all violation error on fields
+     * @param ex exception thrown during request processing
+     * @return error message with reason of conflict
      */
-    public ValidationError(String message, List<FieldError> errors) {
-        super(message);
-        this.errors = errors;
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(ConflictStateException.class)
+    public static @ResponseBody ConflictError handleException(ConflictStateException ex) {
+        return new ConflictError(ex.getMessage(), ex.getReason());
     }
 
 }

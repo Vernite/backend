@@ -27,51 +27,30 @@
 
 package dev.vernite.vernite.common.exception.error;
 
-import java.util.List;
-
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotEmpty;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * Model for representing validation error.
- * Its returned from endpoints when java bean validation fails.
- * Contains list of {@link FieldError} objects for each constraint violation.
+ * Model for representing error when performing operation will cause conflict
+ * with current state. Its returned from endpoints when performing operation
+ * will cause illegal state of the database.
  */
-public class ValidationError extends AbstractError {
-
-    /**
-     * Model for representing validation field error.
-     * It represents one constraint violation.
-     */
-    @AllArgsConstructor
-    public static class FieldError {
-
-        @Getter
-        @NotBlank
-        private final String field;
-
-        @Getter
-        @NotBlank
-        private final String message;
-
-    }
+public class ConflictError extends AbstractError {
 
     @Getter
-    @NotEmpty
-    private final List<FieldError> errors;
+    @NotBlank
+    private final String reason;
 
     /**
-     * Default constructor for {@link ValidationError}.
+     * Default constructor for {@link ConflictError}.
      * 
-     * @param message custom global error message
-     * @param errors  list of all violation error on fields
+     * @param message message of the error
+     * @param reason  reason of conflict
      */
-    public ValidationError(String message, List<FieldError> errors) {
+    public ConflictError(String message, String reason) {
         super(message);
-        this.errors = errors;
+        this.reason = reason;
     }
 
 }
