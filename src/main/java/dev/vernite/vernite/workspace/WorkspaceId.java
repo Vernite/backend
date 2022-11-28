@@ -42,7 +42,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * Composite id for workspace.
+ * Composite ID for workspace.
  * 
  * It contains connected user id and id which is unique
  * among user workspaces and for each user starts on one.
@@ -63,7 +63,7 @@ public class WorkspaceId implements Serializable {
     @Setter
     @Getter
     @JsonIgnore
-    @Positive(message = "user id must be positive number")
+    @Positive(message = "user ID must be positive number")
     private long userId;
 
 }

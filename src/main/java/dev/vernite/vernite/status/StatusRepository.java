@@ -40,11 +40,11 @@ import dev.vernite.vernite.project.Project;
 public interface StatusRepository extends CrudRepository<Status, Long> {
 
     /**
-     * Finds status by id and project.
+     * Finds status by ID and project.
      * 
-     * @param id      status id
+     * @param id      status ID
      * @param project project
-     * @return status with given id and project
+     * @return status with given ID and project
      * @throws EntityNotFoundException thrown when status is not found or project is
      *                                 not equal to status project
      */

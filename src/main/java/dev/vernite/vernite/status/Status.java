@@ -121,11 +121,11 @@ public class Status {
     /**
      * Default constructor for status.
      * 
-     * @param name    name of the status; must not be {@literal null} or empty
-     * @param color   color of the status
+     * @param name    must not be {@literal null} or empty
+     * @param color   color of the status as integer
      * @param ordinal ordinal of the status
-     * @param isFinal is the status final
-     * @param isBegin is the status begin
+     * @param isFinal is the status final (tasks ends in this status)
+     * @param isBegin is the status begin (tasks starts in this status)
      * @param project project the status belongs to; must not be {@literal null}
      */
     public Status(String name, int color, int ordinal, boolean isFinal, boolean isBegin, Project project) {

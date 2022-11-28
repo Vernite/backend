@@ -66,9 +66,9 @@ public class CreateProject {
 
     @Setter
     @Getter
-    @NotNull(message = "workspace id cannot be null")
-    @Positive(message = "workspace id must be positive")
-    @Schema(description = "Workspace id for new project.")
+    @NotNull(message = "workspace ID cannot be null")
+    @Positive(message = "workspace ID must be positive")
+    @Schema(description = "Workspace ID for new project.")
     private Long workspaceId;
 
 }

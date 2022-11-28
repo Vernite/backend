@@ -359,12 +359,12 @@ class StatusControllerTests {
     }
 
     @Test
-    void deleteBadRequest(@Autowired TaskRepository taskRepository) {
+    void deleteConflict(@Autowired TaskRepository taskRepository) {
         Status status = statusRepository.save(new Status("name", 1, 0, false, true, project));
         taskRepository.save(new Task(1, "null", "null", status, user, 0));
         client.delete().uri("/project/{projectId}/status/{statusId}", project.getId(), status.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .exchange().expectStatus().isBadRequest();
+                .exchange().expectStatus().is4xxClientError();
         assertFalse(statusRepository.findById(status.getId()).isEmpty());
     }
 }

@@ -85,7 +85,7 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     @Setter
     @Getter
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @PositiveOrZero(message = "project id must be non negative number")
+    @PositiveOrZero(message = "project ID must be non negative number")
     private long id;
 
     @Getter
