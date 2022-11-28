@@ -83,6 +83,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.AllArgsConstructor;
 import reactor.core.publisher.Flux;
 
+/**
+ * Rest controller for performing CRUD operations on projects entities.
+ */
 @RestController
 @AllArgsConstructor
 @RequestMapping("/project")
@@ -124,12 +127,12 @@ public class ProjectController {
     }
 
     /**
-     * Retrieve project. If user is not member of project with given id this method
+     * Retrieve project. If user is not member of project with given ID this method
      * returns not found error.
      * 
      * @param user logged in user
-     * @param id   id of project
-     * @return project with given id
+     * @param id   ID of project
+     * @return project with given ID
      */
     @GetMapping("/{id}")
     public Project get(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
@@ -137,11 +140,11 @@ public class ProjectController {
     }
 
     /**
-     * Update project with given id. Performs partial update using only supplied
+     * Update project with given ID. Performs partial update using only supplied
      * fields from request body. Authenticated user must be member of project.
      * 
      * @param user   logged in user
-     * @param id     id of project
+     * @param id     ID of project
      * @param update data to update
      * @return project after update
      */
@@ -167,11 +170,11 @@ public class ProjectController {
     }
 
     /**
-     * Delete project with given id. Project will be soft deleted and full delete
+     * Delete project with given ID. Project will be soft deleted and full delete
      * wil happen after a week. Authenticated user must be member of project.
      * 
      * @param user logged in user
-     * @param id   id of project
+     * @param id   ID of project
      */
     @DeleteMapping("/{id}")
     public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
@@ -184,7 +187,7 @@ public class ProjectController {
      * Retrieve project members. Authenticated user must be member of project.
      * 
      * @param user logged in user
-     * @param id   id of project
+     * @param id   ID of project
      * @return list of project members
      */
     @GetMapping("/{id}/member")
@@ -198,8 +201,8 @@ public class ProjectController {
      * Retrieve project member. Authenticated user must be member of project.
      * 
      * @param user     logged in user
-     * @param id       id of project
-     * @param memberId id of searched user
+     * @param id       ID of project
+     * @param memberId ID of searched user
      * @return project member
      */
     @GetMapping("/{id}/member/{memberId}")
@@ -253,8 +256,8 @@ public class ProjectController {
      * have sufficient privileges.
      * 
      * @param user logged in user
-     * @param id   id of project
-     * @param ids  ids of users to remove
+     * @param id   ID of project
+     * @param ids  IDs of users to remove
      * @return removed users
      */
     @PutMapping("/{id}/member")
@@ -278,10 +281,10 @@ public class ProjectController {
     }
 
     /**
-     * Leave project. Authenticated user leaves project with given id.
+     * Leave project. Authenticated user leaves project with given ID.
      * 
      * @param user logged in user
-     * @param id   id of project
+     * @param id   ID of project
      */
     @DeleteMapping("/{id}/member")
     public void leaveProject(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
@@ -298,7 +301,7 @@ public class ProjectController {
      * Retrieve project time tracks. Authenticated user must be member of project.
      * 
      * @param user logged in user
-     * @param id   id of project
+     * @param id   ID of project
      * @return list with all time tracks from given project
      */
     @GetMapping("/{id}/track")
@@ -307,14 +310,12 @@ public class ProjectController {
         return timeTrackRepository.findByTaskStatusProject(project);
     }
 
-    // @ApiResponse(description = "List of issues.", responseCode = "200", content =
-    // @Content(schema = @Schema(implementation = Issue.class)))
     /**
      * Retrieve git issues for project. Retrieve all issues from integrated git
      * providers.
      * 
      * @param user logged in user
-     * @param id   id of project
+     * @param id   ID of project
      * @return list with issues
      */
     @GetMapping("/{id}/integration/git/issue")
@@ -328,7 +329,7 @@ public class ProjectController {
      * integrated git providers.
      * 
      * @param user logged in user
-     * @param id   id of project
+     * @param id   ID of project
      * @return list with pull requests
      */
     @GetMapping("/{id}/integration/git/pull")
@@ -342,7 +343,7 @@ public class ProjectController {
      * providers.
      * 
      * @param user logged in user
-     * @param id   id of project
+     * @param id   ID of project
      * @return list with branches
      */
     @GetMapping("/{id}/integration/git/branch")
@@ -355,7 +356,7 @@ public class ProjectController {
      * Retrieve events for project.
      * 
      * @param user   logged in user
-     * @param id     id of project
+     * @param id     ID of project
      * @param from   timestamp after events happen
      * @param to     timestamp before events happen
      * @param filter filter for events
@@ -373,7 +374,7 @@ public class ProjectController {
      * resolution 400x400. Alpha channel is supported.
      * 
      * @param user logged in user
-     * @param id   id of project
+     * @param id   ID of project
      * @param file new logo image
      * @return new logo file information
      */
@@ -399,7 +400,7 @@ public class ProjectController {
      * Delete project logo. After that logo will be empty.
      * 
      * @param user logged in user
-     * @param id   id of project
+     * @param id   ID of project
      */
     @DeleteMapping(path = "/{id}/logo")
     public void uploadImage(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
@@ -413,7 +414,7 @@ public class ProjectController {
      * synchronization of project calendar.
      * 
      * @param user logged in user
-     * @param id   id of project
+     * @param id   ID of project
      * @return link to project calendar in iCalendar format
      */
     @PostMapping("/{id}/events/sync")

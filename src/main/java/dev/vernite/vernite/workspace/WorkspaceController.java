@@ -32,11 +32,10 @@ import java.util.List;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
+import dev.vernite.vernite.common.exception.ConflictStateException;
 import dev.vernite.vernite.counter.CounterSequenceRepository;
 import dev.vernite.vernite.user.User;
-import dev.vernite.vernite.utils.ErrorType;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -45,14 +44,13 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.AllArgsConstructor;
 
+/**
+ * Rest controller for performing CRUD operations on Workspace entities.
+ */
 @RestController
 @AllArgsConstructor
 @RequestMapping("/workspace")
@@ -64,10 +62,10 @@ public class WorkspaceController {
 
     /**
      * Retrieves all workspaces for authenticated user. There might be extra virtual
-     * workspace with id 0 for projects that aren't contained in any workspace.
+     * workspace with ID 0 for projects that aren't contained in any workspace.
      * 
      * @param user logged in user
-     * @return list with workspaces ordered by name and id
+     * @return list with workspaces ordered by name and ID
      */
     @GetMapping
     public List<Workspace> getAll(@NotNull @Parameter(hidden = true) User user) {
@@ -76,7 +74,7 @@ public class WorkspaceController {
 
     /**
      * Create new workspace for authenticated user. New workspace will have next
-     * unused id unique for user.
+     * unused ID unique for user.
      * 
      * @param user   logged in user
      * @param create data for new workspace
@@ -89,11 +87,11 @@ public class WorkspaceController {
     }
 
     /**
-     * Retrieve workspace for authenticated user.
+     * Retrieve workspace with given ID for authenticated user.
      * 
      * @param user logged in user
-     * @param id   id of workspace
-     * @return workspace with given id
+     * @param id   ID of workspace
+     * @return workspace with given ID
      */
     @GetMapping("/{id}")
     public Workspace get(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
@@ -101,11 +99,11 @@ public class WorkspaceController {
     }
 
     /**
-     * Update workspace with given id. Performs partial update using only supplied
+     * Update workspace with given ID. Performs partial update using only supplied
      * fields from request body.
      * 
      * @param user   logged in user
-     * @param id     id of workspace
+     * @param id     ID of workspace
      * @param update data to update
      * @return workspace after update
      */
@@ -118,17 +116,16 @@ public class WorkspaceController {
     }
 
     /**
-     * Delete workspace with given id. Workspace to delete must be empty.
+     * Delete workspace with given ID. Workspace to delete must be empty.
      * 
      * @param user logged in user
-     * @param id   id of workspace
+     * @param id   ID of workspace
      */
     @DeleteMapping("/{id}")
-    @ApiResponse(description = "Workspace with given id not empty.", responseCode = "409", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
         Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceId(id, user.getId()));
         if (!workspace.getProjects().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "workspace not empty");
+            throw new ConflictStateException("workspace must be empty to delete");
         }
         workspaceRepository.delete(workspace);
     }

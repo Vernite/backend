@@ -59,6 +59,10 @@ public class ValidationError extends AbstractError {
 
     }
 
+    @Getter
+    @NotEmpty
+    private final List<FieldError> errors;
+
     /**
      * Default constructor for {@link ValidationError}.
      * 
@@ -69,9 +73,5 @@ public class ValidationError extends AbstractError {
         super(message);
         this.errors = errors;
     }
-
-    @Getter
-    @NotEmpty
-    private final List<FieldError> errors;
 
 }

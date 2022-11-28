@@ -25,35 +25,27 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.status;
+package dev.vernite.vernite.common.exception;
 
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.stereotype.Repository;
-
-import dev.vernite.vernite.common.exception.EntityNotFoundException;
-import dev.vernite.vernite.project.Project;
+import lombok.Getter;
 
 /**
- * CRUD repository for status entity.
+ * Exception thrown when performing operation will cause conflict with current
+ * state.
  */
-@Repository
-public interface StatusRepository extends CrudRepository<Status, Long> {
+public class ConflictStateException extends RuntimeException {
+
+    @Getter
+    private final String reason;
 
     /**
-     * Finds status by ID and project.
+     * Default constructor for {@link ConflictStateException}.
      * 
-     * @param id      status ID
-     * @param project project
-     * @return status with given ID and project
-     * @throws EntityNotFoundException thrown when status is not found or project is
-     *                                 not equal to status project
+     * @param reason reason of conflict
      */
-    default Status findByIdAndProjectOrThrow(long id, Project project) throws EntityNotFoundException {
-        Status status = findById(id).orElseThrow(() -> new EntityNotFoundException("status", id));
-        if (status.getProject().getId() != project.getId()) {
-            throw new EntityNotFoundException("status", id);
-        }
-        return status;
+    public ConflictStateException(String reason) {
+        super("performing this operation will cause conflict with current state");
+        this.reason = reason;
     }
 
 }

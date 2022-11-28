@@ -25,35 +25,37 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.status;
+package dev.vernite.vernite.common.exception.handler;
 
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.stereotype.Repository;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
-import dev.vernite.vernite.common.exception.EntityNotFoundException;
-import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.common.exception.ConflictStateException;
+import dev.vernite.vernite.common.exception.error.ConflictError;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /**
- * CRUD repository for status entity.
+ * This class contains exception handler for {@link ConflictStateException}.
  */
-@Repository
-public interface StatusRepository extends CrudRepository<Status, Long> {
+@ControllerAdvice
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public class ConflictStateHandler {
 
     /**
-     * Finds status by ID and project.
+     * Exception handler for {@link ConflictStateException}.
+     * Maps exception to {@link ConflictError}.
      * 
-     * @param id      status ID
-     * @param project project
-     * @return status with given ID and project
-     * @throws EntityNotFoundException thrown when status is not found or project is
-     *                                 not equal to status project
+     * @param ex exception thrown during request processing
+     * @return error message with reason of conflict
      */
-    default Status findByIdAndProjectOrThrow(long id, Project project) throws EntityNotFoundException {
-        Status status = findById(id).orElseThrow(() -> new EntityNotFoundException("status", id));
-        if (status.getProject().getId() != project.getId()) {
-            throw new EntityNotFoundException("status", id);
-        }
-        return status;
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(ConflictStateException.class)
+    public static @ResponseBody ConflictError handleException(ConflictStateException ex) {
+        return new ConflictError(ex.getMessage(), ex.getReason());
     }
 
 }

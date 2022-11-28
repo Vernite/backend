@@ -40,7 +40,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * Class containing information needed to update new project entity.
+ * Class containing information needed to update project entity.
  * Has required constraints annotated using Java Bean Validation.
  * It performs partial update using only present fields.
  */

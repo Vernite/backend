@@ -39,10 +39,10 @@ import dev.vernite.vernite.common.exception.EntityNotFoundException;
 public interface WorkspaceRepository extends CrudRepository<Workspace, WorkspaceId> {
 
     /**
-     * Retrieves an entity by its id.
+     * Retrieves an entity by its ID.
      * 
      * @param id must not be null
-     * @return the entity with the given id
+     * @return the entity with the given ID
      * @throws EntityNotFoundException if entity is not found
      */
     default Workspace findByIdOrThrow(WorkspaceId id) throws EntityNotFoundException {

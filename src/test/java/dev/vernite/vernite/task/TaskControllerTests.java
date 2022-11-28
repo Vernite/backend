@@ -212,7 +212,7 @@ class TaskControllerTests {
         taskEquals(tasks.get(1), result.get(0));
 
         result = client.get()
-                .uri("/project/{pId}/task?statusId={iId}", project.getId(), project.getStatuses().get(2).getNumber())
+                .uri("/project/{pId}/task?statusId={iId}", project.getId(), project.getStatuses().get(2).getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBodyList(Task.class).hasSize(1).returnResult().getResponseBody();
         assertNotNull(result);
@@ -220,7 +220,7 @@ class TaskControllerTests {
 
         result = client.get()
                 .uri("/project/{pId}/task?statusId={iId}&assigneeId={aId}", project.getId(),
-                        project.getStatuses().get(1).getNumber(), user.getId())
+                        project.getStatuses().get(1).getId(), user.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBodyList(Task.class).hasSize(1).returnResult().getResponseBody();
         assertNotNull(result);
@@ -267,7 +267,7 @@ class TaskControllerTests {
 
     @Test
     void createSuccess() {
-        TaskRequest request = new TaskRequest("name", "desc", project.getStatuses().get(0).getNumber(), 0, "low");
+        TaskRequest request = new TaskRequest("name", "desc", project.getStatuses().get(0).getId(), 0, "low");
         Task parentTask = taskRepository
                 .save(new Task(10, "parent", "desc", project.getStatuses().get(0), user, 0, "low"));
         Task task = client.post().uri("/project/{pId}/task", project.getId())
@@ -304,22 +304,22 @@ class TaskControllerTests {
     void createBadRequest() {
         client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new TaskRequest(null, "desc", project.getStatuses().get(0).getNumber(), 0, "low")).exchange()
+                .bodyValue(new TaskRequest(null, "desc", project.getStatuses().get(0).getId(), 0, "low")).exchange()
                 .expectStatus().isBadRequest();
 
         client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new TaskRequest(" ", "desc", project.getStatuses().get(0).getNumber(), 0, "low")).exchange()
+                .bodyValue(new TaskRequest(" ", "desc", project.getStatuses().get(0).getId(), 0, "low")).exchange()
                 .expectStatus().isBadRequest();
 
         client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new TaskRequest("a".repeat(51), "desc", project.getStatuses().get(0).getNumber(), 0, "low"))
+                .bodyValue(new TaskRequest("a".repeat(51), "desc", project.getStatuses().get(0).getId(), 0, "low"))
                 .exchange().expectStatus().isBadRequest();
 
         client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new TaskRequest("name", null, project.getStatuses().get(0).getNumber(), 0, "low"))
+                .bodyValue(new TaskRequest("name", null, project.getStatuses().get(0).getId(), 0, "low"))
                 .exchange().expectStatus().isBadRequest();
 
         client.post().uri("/project/{pId}/task", project.getId())
@@ -329,12 +329,12 @@ class TaskControllerTests {
 
         client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new TaskRequest("name", "desc", project.getStatuses().get(0).getNumber(), null, "low"))
+                .bodyValue(new TaskRequest("name", "desc", project.getStatuses().get(0).getId(), null, "low"))
                 .exchange().expectStatus().isBadRequest();
 
         client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new TaskRequest("name", "desc", project.getStatuses().get(0).getNumber(), 0, null))
+                .bodyValue(new TaskRequest("name", "desc", project.getStatuses().get(0).getId(), 0, null))
                 .exchange().expectStatus().isBadRequest();
 
         Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
@@ -342,7 +342,7 @@ class TaskControllerTests {
         parentTask.setParentTask(task);
         parentTask = taskRepository.save(parentTask);
 
-        TaskRequest request = new TaskRequest("name", "desc", project.getStatuses().get(0).getNumber(), 0, "low");
+        TaskRequest request = new TaskRequest("name", "desc", project.getStatuses().get(0).getId(), 0, "low");
         request.setParentTaskId(parentTask.getNumber());
 
         client.post().uri("/project/{pId}/task", project.getId())
@@ -360,13 +360,13 @@ class TaskControllerTests {
     @Test
     void createUnauthorized() {
         client.post().uri("/project/{pId}/task", project.getId())
-                .bodyValue(new TaskRequest("NAME", "DESC", project.getStatuses().get(0).getNumber(), 0, "low"))
+                .bodyValue(new TaskRequest("NAME", "DESC", project.getStatuses().get(0).getId(), 0, "low"))
                 .exchange().expectStatus().isUnauthorized();
     }
 
     @Test
     void createNotFound() {
-        TaskRequest request = new TaskRequest("n", "d", forbiddenProject.getStatuses().get(0).getNumber(), 0, "low");
+        TaskRequest request = new TaskRequest("n", "d", forbiddenProject.getStatuses().get(0).getId(), 0, "low");
 
         client.post().uri("/project/{pId}/task", forbiddenProject.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
@@ -429,7 +429,7 @@ class TaskControllerTests {
                 .expectStatus().isOk().expectBody(Task.class).returnResult().getResponseBody();
         taskEquals(task, result);
 
-        TaskRequest request = new TaskRequest("new", "new", project.getStatuses().get(1).getNumber(), 1, "medium");
+        TaskRequest request = new TaskRequest("new", "new", project.getStatuses().get(1).getId(), 1, "medium");
         request.setStoryPoints(10L);
         task.setType(1);
         task.setPriority("medium");
