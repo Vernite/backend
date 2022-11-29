@@ -25,42 +25,66 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.communicator.slack;
+package dev.vernite.vernite.integration.communicator.model;
 
-import java.util.List;
+import javax.validation.constraints.NotBlank;
 
-import com.slack.api.methods.response.conversations.ConversationsHistoryResponse;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
-import dev.vernite.vernite.integration.communicator.model.Message;
-import dev.vernite.vernite.integration.communicator.slack.model.SlackMessage;
-import io.swagger.v3.oas.annotations.media.Schema;
+/**
+ * Model representing a chat channel.
+ */
+@ToString
+@EqualsAndHashCode
+@AllArgsConstructor
+public class Channel {
 
-public class MessageContainer {
-    @Schema(description = "Null means there is no more messages to load.")
-    private String cursor;
+    /**
+     * ID of the channel.
+     */
+    @Setter
+    @Getter
+    @NotBlank
+    private String id;
 
-    private List<Message> messages;
+    /**
+     * Name of channel. Null if channel is a DM.
+     */
+    @Setter
+    @Getter
+    private String name;
 
-    public MessageContainer(ConversationsHistoryResponse response) {
-        if (response.isHasMore()) {
-            this.setCursor(response.getResponseMetadata().getNextCursor());
-        }
-        this.setMessages(response.getMessages().stream().map(m -> (Message) new SlackMessage(m)).toList());
-    }
+    /**
+     * ID of user that the channel is a DM with. Null if channel is not a DM.
+     */
+    @Setter
+    @Getter
+    private String user;
 
-    public String getCursor() {
-        return cursor;
-    }
+    /**
+     * Whether the channel is a DM. If true channel is not a DM.
+     */
+    @Setter
+    @Getter
+    private boolean channel;
 
-    public void setCursor(String cursor) {
-        this.cursor = cursor;
-    }
+    /**
+     * ID of team / server the channel is in. Might be null if channel is a DM.
+     */
+    @Setter
+    @Getter
+    private String team;
 
-    public List<Message> getMessages() {
-        return messages;
-    }
+    /**
+     * Service the channel is associated with.
+     */
+    @Setter
+    @Getter
+    @NotBlank
+    private String provider;
 
-    public void setMessages(List<Message> messages) {
-        this.messages = messages;
-    }
 }

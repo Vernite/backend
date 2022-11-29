@@ -25,42 +25,70 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.communicator.slack;
+package dev.vernite.vernite.integration.communicator.model;
 
-import java.util.List;
+import javax.validation.constraints.NotBlank;
 
-import com.slack.api.methods.response.conversations.ConversationsHistoryResponse;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
-import dev.vernite.vernite.integration.communicator.model.Message;
-import dev.vernite.vernite.integration.communicator.slack.model.SlackMessage;
-import io.swagger.v3.oas.annotations.media.Schema;
+/**
+ * Model representing a chat message.
+ */
+@ToString
+@EqualsAndHashCode
+@AllArgsConstructor
+public class Message {
 
-public class MessageContainer {
-    @Schema(description = "Null means there is no more messages to load.")
-    private String cursor;
+    /**
+     * ID of the message.
+     */
+    @Setter
+    @Getter
+    @NotBlank
+    private String id;
 
-    private List<Message> messages;
+    /**
+     * ID of the user that sent the message.
+     */
+    @Setter
+    @Getter
+    @NotBlank
+    private String user;
 
-    public MessageContainer(ConversationsHistoryResponse response) {
-        if (response.isHasMore()) {
-            this.setCursor(response.getResponseMetadata().getNextCursor());
-        }
-        this.setMessages(response.getMessages().stream().map(m -> (Message) new SlackMessage(m)).toList());
-    }
+    /**
+     * ID of the channel the message was sent to.
+     */
+    @Setter
+    @Getter
+    @NotBlank
+    private String channel;
 
-    public String getCursor() {
-        return cursor;
-    }
+    /**
+     * Content of the message.
+     */
+    @Setter
+    @Getter
+    @NotBlank
+    private String content;
 
-    public void setCursor(String cursor) {
-        this.cursor = cursor;
-    }
+    /**
+     * Timestamp of the message.
+     */
+    @Setter
+    @Getter
+    @NotBlank
+    private String timestamp;
 
-    public List<Message> getMessages() {
-        return messages;
-    }
+    /**
+     * Service that sent the message.
+     */
+    @Setter
+    @Getter
+    @NotBlank
+    private String provider;
 
-    public void setMessages(List<Message> messages) {
-        this.messages = messages;
-    }
 }

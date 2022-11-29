@@ -55,11 +55,14 @@ import com.slack.api.methods.response.conversations.ConversationsHistoryResponse
 import com.slack.api.methods.response.conversations.ConversationsListResponse;
 import com.slack.api.methods.response.oauth.OAuthV2AccessResponse;
 import com.slack.api.methods.response.users.UsersInfoResponse;
-import com.slack.api.model.Conversation;
 import com.slack.api.model.ConversationType;
 
+import dev.vernite.vernite.integration.communicator.model.Channel;
+import dev.vernite.vernite.integration.communicator.model.ChatUser;
 import dev.vernite.vernite.integration.communicator.slack.entity.SlackInstallation;
 import dev.vernite.vernite.integration.communicator.slack.entity.SlackInstallationRepository;
+import dev.vernite.vernite.integration.communicator.slack.model.SlackChannel;
+import dev.vernite.vernite.integration.communicator.slack.model.SlackUser;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.user.UserRepository;
 import dev.vernite.vernite.utils.ErrorType;
@@ -150,11 +153,11 @@ public class SlackController {
     }
 
     @Operation(summary = "Get channels", description = "Get channels for slack integration")
-    @ApiResponse(description = "Slack channels", responseCode = "200", content = @Content(array = @ArraySchema(schema = @Schema(implementation = Conversation.class))))
+    @ApiResponse(description = "Slack channels", responseCode = "200", content = @Content(array = @ArraySchema(schema = @Schema(implementation = Channel.class))))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Integration with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/user/integration/slack/{id}/channel")
-    public List<Conversation> channels(@NotNull @Parameter(hidden = true) User user, @PathVariable long id)
+    public List<Channel> channels(@NotNull @Parameter(hidden = true) User user, @PathVariable long id)
             throws IOException, SlackApiException {
         SlackInstallation installation = installationRepository.findById(id).orElseThrow(ObjectNotFoundException::new);
         if (installation.getUser().getId() != user.getId()) {
@@ -168,15 +171,15 @@ public class SlackController {
         if (!response.isOk()) {
             throw new ExternalApiException("slack", "Cannot get list of channels");
         }
-        return response.getChannels();
+        return response.getChannels().stream().map(c -> (Channel) new SlackChannel(c)).toList();
     }
 
     @Operation(summary = "Get user", description = "Get user info")
-    @ApiResponse(description = "Slack user", responseCode = "200", content = @Content(schema = @Schema(implementation = com.slack.api.model.User.class)))
+    @ApiResponse(description = "Slack user", responseCode = "200", content = @Content(schema = @Schema(implementation = ChatUser.class)))
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Integration with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping("/user/integration/slack/{id}/user/{userId}")
-    public com.slack.api.model.User getUser(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+    public ChatUser getUser(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
             @PathVariable String userId) throws IOException, SlackApiException {
         SlackInstallation installation = installationRepository.findById(id).orElseThrow(ObjectNotFoundException::new);
         if (installation.getUser().getId() != user.getId()) {
@@ -187,7 +190,7 @@ public class SlackController {
         if (!response.isOk()) {
             throw new ExternalApiException("slack", "Cannot get user details");
         }
-        return response.getUser();
+        return new SlackUser(response.getUser());
     }
 
     @Operation(summary = "Get messages", description = "Get messages for slack channel")
@@ -203,7 +206,7 @@ public class SlackController {
             throw new ObjectNotFoundException();
         }
         ConversationsHistoryResponse response = app.client().conversationsHistory(
-                ConversationsHistoryRequest.builder().token(installation.getToken()).channel(channelId).cursor(cursor).limit(5)
+                ConversationsHistoryRequest.builder().token(installation.getToken()).channel(channelId).cursor(cursor)
                         .build());
         if (!response.isOk()) {
             throw new ExternalApiException("slack", "Cannot get list of channels");

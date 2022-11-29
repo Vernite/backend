@@ -25,42 +25,22 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.communicator.slack;
-
-import java.util.List;
-
-import com.slack.api.methods.response.conversations.ConversationsHistoryResponse;
+package dev.vernite.vernite.integration.communicator.slack.model;
 
 import dev.vernite.vernite.integration.communicator.model.Message;
-import dev.vernite.vernite.integration.communicator.slack.model.SlackMessage;
-import io.swagger.v3.oas.annotations.media.Schema;
 
-public class MessageContainer {
-    @Schema(description = "Null means there is no more messages to load.")
-    private String cursor;
+/**
+ * Model representing a Slack message.
+ */
+public class SlackMessage extends Message {
 
-    private List<Message> messages;
-
-    public MessageContainer(ConversationsHistoryResponse response) {
-        if (response.isHasMore()) {
-            this.setCursor(response.getResponseMetadata().getNextCursor());
-        }
-        this.setMessages(response.getMessages().stream().map(m -> (Message) new SlackMessage(m)).toList());
+    /**
+     * Creates a new Slack message.
+     * 
+     * @param m Slack message.
+     */
+    public SlackMessage(com.slack.api.model.Message m) {
+        super(m.getClientMsgId(), m.getUser(), m.getChannel(), m.getText(), m.getTs(), "slack");
     }
 
-    public String getCursor() {
-        return cursor;
-    }
-
-    public void setCursor(String cursor) {
-        this.cursor = cursor;
-    }
-
-    public List<Message> getMessages() {
-        return messages;
-    }
-
-    public void setMessages(List<Message> messages) {
-        this.messages = messages;
-    }
 }

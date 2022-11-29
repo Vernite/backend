@@ -25,42 +25,76 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.communicator.slack;
+package dev.vernite.vernite.integration.communicator.model;
 
-import java.util.List;
+import javax.validation.constraints.NotBlank;
 
-import com.slack.api.methods.response.conversations.ConversationsHistoryResponse;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
-import dev.vernite.vernite.integration.communicator.model.Message;
-import dev.vernite.vernite.integration.communicator.slack.model.SlackMessage;
-import io.swagger.v3.oas.annotations.media.Schema;
+/**
+ * Model representing a chat user.
+ */
+@ToString
+@EqualsAndHashCode
+@AllArgsConstructor
+public class ChatUser {
 
-public class MessageContainer {
-    @Schema(description = "Null means there is no more messages to load.")
-    private String cursor;
+    /**
+     * ID of the user.
+     */
+    @Setter
+    @Getter
+    @NotBlank
+    private String id;
 
-    private List<Message> messages;
+    /**
+     * Team associated with the user. Might be null.
+     */
+    @Setter
+    @Getter
+    private String team;
 
-    public MessageContainer(ConversationsHistoryResponse response) {
-        if (response.isHasMore()) {
-            this.setCursor(response.getResponseMetadata().getNextCursor());
-        }
-        this.setMessages(response.getMessages().stream().map(m -> (Message) new SlackMessage(m)).toList());
-    }
+    /**
+     * Name of the user.
+     */
+    @Setter
+    @Getter
+    @NotBlank
+    private String name;
 
-    public String getCursor() {
-        return cursor;
-    }
+    /**
+     * Display name of the user.
+     */
+    @Setter
+    @Getter
+    @NotBlank
+    private String displayName;
 
-    public void setCursor(String cursor) {
-        this.cursor = cursor;
-    }
+    /**
+     * Whether the user is a bot.
+     */
+    @Setter
+    @Getter
+    private boolean bot;
 
-    public List<Message> getMessages() {
-        return messages;
-    }
+    /**
+     * Link to the user's avatar.
+     */
+    @Setter
+    @Getter
+    @NotBlank
+    private String avatar;
 
-    public void setMessages(List<Message> messages) {
-        this.messages = messages;
-    }
+    /**
+     * Service the user is associated with.
+     */
+    @Setter
+    @Getter
+    @NotBlank
+    private String provider;
+
 }
