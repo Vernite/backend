@@ -621,6 +621,10 @@ class ProjectControllerTests {
         client.get().uri("/project/{id}/events?from=1&to=1000", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBodyList(Event.class).hasSize(3);
+
+        client.get().uri("/project/{id}/events?from=1&to=1000&type=0", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Event.class).hasSize(1);
     }
 
     @Test

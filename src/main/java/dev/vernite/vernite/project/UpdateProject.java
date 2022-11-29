@@ -31,7 +31,6 @@ import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
 
 import dev.vernite.vernite.common.constraints.NullOrNotBlank;
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -50,23 +49,29 @@ import lombok.ToString;
 @AllArgsConstructor
 public class UpdateProject {
 
+    /**
+     * New name for project. Must contain at least one non-whitespace character.
+     */
     @Setter
     @Getter
     @Size(min = 1, max = 50, message = "project name must be shorter than 50 characters")
     @NullOrNotBlank(message = "project name must contain at least one non-whitespace character")
-    @Schema(description = "Name for new project. Must contain at least one non-whitespace character.")
     private String name;
 
+    /**
+     * New description for new project.
+     */
     @Setter
     @Getter
-    @Schema(description = "Description for new workspace.")
     @Size(max = 1000, message = "project description must be shorter than 1000 characters")
     private String description;
 
+    /**
+     * New workspace id for project.
+     */
     @Setter
     @Getter
     @Positive(message = "workspace id must be positive")
-    @Schema(description = "Workspace id for new workspace.")
     private Long workspaceId;
 
 }

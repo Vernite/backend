@@ -31,27 +31,40 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.springframework.data.annotation.ReadOnlyProperty;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Positive;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import dev.vernite.vernite.meeting.Meeting;
 import dev.vernite.vernite.release.Release;
 import dev.vernite.vernite.sprint.Sprint;
 import dev.vernite.vernite.task.Task;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
+/**
+ * Model representing a generic event in calendar.
+ */
+@ToString
+@NoArgsConstructor
+@EqualsAndHashCode
+@AllArgsConstructor
 public class Event implements Comparable<Event> {
-    public enum EventType {
+
+    /**
+     * Event type enum. Used to determine what was the entity that is connected to
+     * this event.
+     */
+    public enum Type {
         MEETING, SPRINT, TASK_ESTIMATE, TASK_DEADLINE, RELEASE
     }
-
-    private long projectId;
-    private EventType type;
-    private long relatedId;
-    private String name;
-    private String description;
-    private Date startDate;
-    private Date endDate;
-    private String location;
 
     /**
      * Creates a new events from a task. The events will be of type TASK_ESTIMATE
@@ -64,12 +77,12 @@ public class Event implements Comparable<Event> {
     public static List<Event> from(Task task) {
         List<Event> result = new ArrayList<>();
         if (task.getEstimatedDate() != null) {
-            result.add(new Event(task.getStatus().getProject().getId(), EventType.TASK_ESTIMATE, task.getNumber(),
-                    task.getName(), task.getDescription(), null, task.getEstimatedDate()));
+            result.add(new Event(task.getStatus().getProject().getId(), Type.TASK_ESTIMATE, task.getNumber(),
+                    task.getName(), task.getDescription(), null, task.getEstimatedDate(), null));
         }
         if (task.getDeadline() != null) {
-            result.add(new Event(task.getStatus().getProject().getId(), EventType.TASK_DEADLINE, task.getNumber(),
-                    task.getName(), task.getDescription(), null, task.getDeadline()));
+            result.add(new Event(task.getStatus().getProject().getId(), Type.TASK_DEADLINE, task.getNumber(),
+                    task.getName(), task.getDescription(), null, task.getDeadline(), null));
         }
         return result;
     }
@@ -81,8 +94,8 @@ public class Event implements Comparable<Event> {
      * @return the event
      */
     public static Event from(Sprint sprint) {
-        return new Event(sprint.getProject().getId(), EventType.SPRINT, sprint.getNumber(), sprint.getName(),
-                sprint.getDescription(), sprint.getStartDate(), sprint.getFinishDate());
+        return new Event(sprint.getProject().getId(), Type.SPRINT, sprint.getNumber(), sprint.getName(),
+                sprint.getDescription(), sprint.getStartDate(), sprint.getFinishDate(), null);
     }
 
     /**
@@ -92,8 +105,8 @@ public class Event implements Comparable<Event> {
      * @return the event
      */
     public static Event from(Meeting meeting) {
-        Event e = new Event(meeting.getProject().getId(), EventType.MEETING, meeting.getId(), meeting.getName(),
-                meeting.getDescription(), meeting.getStartDate(), meeting.getEndDate());
+        Event e = new Event(meeting.getProject().getId(), Type.MEETING, meeting.getId(), meeting.getName(),
+                meeting.getDescription(), meeting.getStartDate(), meeting.getEndDate(), null);
         e.setLocation(meeting.getLocation());
         return e;
     }
@@ -105,92 +118,54 @@ public class Event implements Comparable<Event> {
      * @return the event
      */
     public static Event from(Release release) {
-        return new Event(release.getProject().getId(), EventType.RELEASE, release.getId(), release.getName(),
-                release.getDescription(), null, release.getDeadline());
+        return new Event(release.getProject().getId(), Type.RELEASE, release.getId(), release.getName(),
+                release.getDescription(), null, release.getDeadline(), null);
     }
 
-    public Event() {
-    }
+    @Setter
+    @Getter
+    @Positive
+    private long projectId;
 
-    private Event(long projectId, EventType type, long relatedId, String name, String description, Date startDate,
-            Date endDate) {
-        this.projectId = projectId;
-        this.type = type;
-        this.relatedId = relatedId;
-        this.name = name;
-        this.description = description;
-        this.startDate = startDate;
-        this.endDate = endDate;
-    }
-
-    public long getProjectId() {
-        return projectId;
-    }
-
-    public void setProjectId(long projectId) {
-        this.projectId = projectId;
-    }
-
-    public int getType() {
-        return type.ordinal();
-    }
-
+    @Setter
+    @Getter
     @JsonIgnore
-    public EventType getEventType() {
-        return type;
-    }
+    private Type type;
 
-    @ReadOnlyProperty
-    public void setType(EventType type) {
-        this.type = type;
-    }
+    @Setter
+    @Getter
+    @Positive
+    private long relatedId;
 
-    public long getRelatedId() {
-        return relatedId;
-    }
+    @Setter
+    @Getter
+    @NotBlank
+    private String name;
 
-    public void setRelatedId(long relatedId) {
-        this.relatedId = relatedId;
-    }
+    @Setter
+    @Getter
+    @NotNull
+    private String description;
 
-    public String getName() {
-        return name;
-    }
+    @Setter
+    @Getter
+    private Date startDate;
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    @Setter
+    @Getter
+    @NotNull
+    private Date endDate;
 
-    public String getDescription() {
-        return description;
-    }
+    @Setter
+    @Getter
+    private String location;
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public Date getStartDate() {
-        return startDate;
-    }
-
-    public void setStartDate(Date startDate) {
-        this.startDate = startDate;
-    }
-
-    public Date getEndDate() {
-        return endDate;
-    }
-
-    public void setEndDate(Date endDate) {
-        this.endDate = endDate;
-    }
-
-    public String getLocation() {
-        return location;
-    }
-
-    public void setLocation(String location) {
-        this.location = location;
+    /**
+     * @return the type of the event as a int (ordinal)
+     */
+    @JsonProperty("type")
+    public int getEventType() {
+        return type.ordinal();
     }
 
     @Override
@@ -201,16 +176,8 @@ public class Event implements Comparable<Event> {
             if (result != 0) {
                 return result;
             }
-            result = endDate.compareTo(o.endDate);
-            if (result != 0) {
-                return result;
-            }
         } else if (startDate != null) {
             result = startDate.compareTo(o.endDate);
-            if (result != 0) {
-                return result;
-            }
-            result = endDate.compareTo(o.endDate);
             if (result != 0) {
                 return result;
             }
@@ -219,15 +186,10 @@ public class Event implements Comparable<Event> {
             if (result != 0) {
                 return result;
             }
-            result = endDate.compareTo(o.endDate);
-            if (result != 0) {
-                return result;
-            }
-        } else {
-            result = endDate.compareTo(o.endDate);
-            if (result != 0) {
-                return result;
-            }
+        }
+        result = endDate.compareTo(o.endDate);
+        if (result != 0) {
+            return result;
         }
         result = Integer.compare(type.ordinal(), o.type.ordinal());
         if (result != 0) {
@@ -243,4 +205,5 @@ public class Event implements Comparable<Event> {
         }
         return Long.compare(relatedId, o.relatedId);
     }
+
 }

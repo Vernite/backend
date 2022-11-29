@@ -33,7 +33,6 @@ import javax.validation.constraints.Size;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import dev.vernite.vernite.common.constraints.NullOrNotBlank;
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -52,34 +51,44 @@ import lombok.ToString;
 @AllArgsConstructor
 public class UpdateStatus {
 
+    /**
+     * New name for status. Must contain at least one non-whitespace character.
+     */
     @Setter
     @Getter
     @Size(min = 1, max = 50, message = "status name must be shorter than 50 characters")
     @NullOrNotBlank(message = "status name must contain at least one non-whitespace character")
-    @Schema(description = "Name for status. Must contain at least one non-whitespace character.")
     private String name;
 
+    /**
+     * New color for status. Must be a non negative number.
+     */
     @Setter
     @Getter
     @PositiveOrZero(message = "status color must be a non negative number")
-    @Schema(description = "Color for status. Must be a non negative number.")
     private Integer color;
 
+    /**
+     * New order for status. Must be a non negative number.
+     */
     @Setter
     @Getter
     @PositiveOrZero(message = "status order must be a non negative number")
-    @Schema(description = "Order for status. Must be a non negative number.")
     private Integer ordinal;
 
+    /**
+     * Flag indicating if status is begin status. Must be a boolean value.
+     */
     @Setter
     @Getter
-    @Schema(description = "Flag indicating if status is begin status. Must be a boolean value.")
     private Boolean begin;
 
+    /**
+     * Flag indicating if status is final status. Must be a boolean value.
+     */
     @Setter
     @Getter
     @JsonProperty("final")
-    @Schema(description = "Flag indicating if status is final status. Must be a boolean value.")
     private Boolean isFinal;
 
 }

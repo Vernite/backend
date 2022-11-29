@@ -48,4 +48,5 @@ public interface WorkspaceRepository extends CrudRepository<Workspace, Workspace
     default Workspace findByIdOrThrow(WorkspaceId id) throws EntityNotFoundException {
         return findById(id).orElseThrow(() -> new EntityNotFoundException("workspace", id.getId()));
     }
+
 }
