@@ -32,7 +32,6 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -50,25 +49,31 @@ import lombok.ToString;
 @AllArgsConstructor
 public class CreateProject {
 
+    /**
+     * Name for new project. Must contain at least one non-whitespace character.
+     */
     @Setter
     @Getter
     @Size(min = 1, max = 50, message = "project name must be shorter than 50 characters")
     @NotBlank(message = "project name must contain at least one non-whitespace character")
-    @Schema(description = "Name for new project. Must contain at least one non-whitespace character.")
     private String name;
 
+    /**
+     * Description for new project.
+     */
     @Setter
     @Getter
     @NotNull(message = "description cannot be null")
-    @Schema(description = "Description for new project.")
     @Size(max = 1000, message = "project description must be shorter than 1000 characters")
     private String description;
 
+    /**
+     * Workspace ID for new project.
+     */
     @Setter
     @Getter
     @NotNull(message = "workspace ID cannot be null")
     @Positive(message = "workspace ID must be positive")
-    @Schema(description = "Workspace ID for new project.")
     private Long workspaceId;
 
 }

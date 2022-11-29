@@ -30,7 +30,6 @@ package dev.vernite.vernite.workspace;
 import javax.validation.constraints.Size;
 
 import dev.vernite.vernite.common.constraints.NullOrNotBlank;
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -49,11 +48,13 @@ import lombok.ToString;
 @AllArgsConstructor
 public class UpdateWorkspace {
 
+    /**
+     * New name for workspace. Must contain at least one non-whitespace character.
+     */
     @Setter
     @Getter
     @Size(min = 1, max = 50, message = "workspace name must be shorter than 50 characters")
     @NullOrNotBlank(message = "workspace name must contain at least one non-whitespace character")
-    @Schema(description = "If set updates name of workspace. Must contain at least one non-whitespace character.")
     private String name;
 
 }

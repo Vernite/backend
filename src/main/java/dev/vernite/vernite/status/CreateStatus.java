@@ -34,7 +34,6 @@ import javax.validation.constraints.Size;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -52,38 +51,48 @@ import lombok.ToString;
 @AllArgsConstructor
 public class CreateStatus {
 
+    /**
+     * Name for new status. Must contain at least one non-whitespace character.
+     */
     @Setter
     @Getter
     @Size(min = 1, max = 50, message = "status name must be shorter than 50 characters")
     @NotBlank(message = "status name must contain at least one non-whitespace character")
-    @Schema(description = "Name for new status. Must contain at least one non-whitespace character.")
     private String name;
 
+    /**
+     * Color for new status. Must be a non negative number.
+     */
     @Setter
     @Getter
     @NotNull(message = "status color must be specified")
     @PositiveOrZero(message = "status color must be a non negative number")
-    @Schema(description = "Color for new status. Must be a non negative number.")
     private Integer color;
 
+    /**
+     * Order for new status. Must be a non negative number.
+     */
     @Setter
     @Getter
     @NotNull(message = "status order must be specified")
     @PositiveOrZero(message = "status order must be a non negative number")
-    @Schema(description = "Order for new status. Must be a non negative number.")
     private Integer ordinal;
 
+    /**
+     * Flag indicating if new status is begin status. Must be a boolean value.
+     */
     @Setter
     @Getter
     @NotNull(message = "begin status must be specified")
-    @Schema(description = "Flag indicating if new status is begin status. Must be a boolean value.")
     private Boolean begin;
 
+    /**
+     * Flag indicating if new status is final status. Must be a boolean value.
+     */
     @Setter
     @Getter
     @JsonProperty("final")
     @NotNull(message = "final status must be specified")
-    @Schema(description = "Flag indicating if new status is final status. Must be a boolean value.")
     private Boolean isFinal;
 
 }

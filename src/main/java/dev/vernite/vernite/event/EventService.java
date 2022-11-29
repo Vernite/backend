@@ -5,8 +5,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.TreeSet;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import dev.vernite.vernite.meeting.MeetingRepository;
@@ -15,17 +13,21 @@ import dev.vernite.vernite.release.ReleaseRepository;
 import dev.vernite.vernite.sprint.SprintRepository;
 import dev.vernite.vernite.task.TaskRepository;
 import dev.vernite.vernite.user.User;
+import lombok.AllArgsConstructor;
 
+/**
+ * Service for getting events.
+ */
 @Service
-@Component
+@AllArgsConstructor
 public class EventService {
-    @Autowired
+
     private SprintRepository sprintRepository;
-    @Autowired
+
     private TaskRepository taskRepository;
-    @Autowired
+
     private MeetingRepository meetingRepository;
-    @Autowired
+
     private ReleaseRepository releaseRepository;
 
     /**
@@ -87,4 +89,5 @@ public class EventService {
         }
         return new ArrayList<>(result);
     }
+
 }
