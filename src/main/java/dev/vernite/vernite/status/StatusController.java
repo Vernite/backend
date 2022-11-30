@@ -29,17 +29,14 @@ package dev.vernite.vernite.status;
 
 import java.util.List;
 
+import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
-import dev.vernite.vernite.counter.CounterSequenceRepository;
+import dev.vernite.vernite.common.exception.ConflictStateException;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.project.ProjectRepository;
 import dev.vernite.vernite.user.User;
-import dev.vernite.vernite.utils.ErrorType;
-import dev.vernite.vernite.utils.FieldErrorException;
-import dev.vernite.vernite.utils.ObjectNotFoundException;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -49,98 +46,98 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import lombok.AllArgsConstructor;
 
+/**
+ * Rest controller for performing CRUD operations on Status entities.
+ */
 @RestController
+@AllArgsConstructor
 @RequestMapping("/project/{projectId}/status")
 public class StatusController {
-    @Autowired
-    private ProjectRepository projectRepository;
-    @Autowired
-    private StatusRepository statusRepository;
-    @Autowired
-    private CounterSequenceRepository counterSequenceRepository;
 
-    @Operation(summary = "Get information on all statuses", description = "This method returns array of all statuses for project with given ID.")
-    @ApiResponse(responseCode = "200", description = "List of all project statuses. Can be empty.")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    private ProjectRepository projectRepository;
+
+    private StatusRepository statusRepository;
+
+    /**
+     * Retrieves all statuses for project with given ID. Statuses will be ordered by
+     * ordinal number.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @return list of statuses
+     */
     @GetMapping
     public List<Status> getAll(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        return project.getStatuses();
+        return projectRepository.findByIdAndMemberOrThrow(projectId, user).getStatuses();
     }
 
-    @Operation(summary = "Create status", description = "This method creates new status for project.")
-    @ApiResponse(responseCode = "200", description = "Newly created status.")
-    @ApiResponse(responseCode = "400", description = "Some fields are missing.", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(responseCode = "404", description = "Project with given ID not found.", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Creates new status for project with given ID.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param create    data for new status
+     * @return newly created status
+     */
     @PostMapping
     public Status create(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @RequestBody StatusRequest request) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        long id = counterSequenceRepository.getIncrementCounter(project.getStatusCounter().getId());
-        return statusRepository.save(request.createEntity(id, project));
+            @RequestBody @Valid CreateStatus create) {
+        Project project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        return statusRepository.save(new Status(project, create));
     }
 
-    @Operation(summary = "Get status information", description = "This method is used to retrieve status with given ID.")
-    @ApiResponse(responseCode = "200", description = "Project with given ID.")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(responseCode = "404", description = "Project or status with given ID not found.", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Retrieves status with given ID.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param id        ID of status
+     * @return status with given ID
+     */
     @GetMapping("/{id}")
     public Status get(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long id) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        return statusRepository.findByProjectAndNumberOrThrow(project, id);
+        Project project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        return statusRepository.findByIdAndProjectOrThrow(id, project);
     }
 
-    @Operation(summary = "Alter the status", description = "This method is used to modify existing status information.")
-    @ApiResponse(responseCode = "200", description = "Modified status information with given ID.")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(responseCode = "404", description = "Status or project with given ID not found.", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Updates status with given ID. Performs partial update using only supplied
+     * fields from request body.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param id        ID of status
+     * @param update    data to update
+     * @return updated status
+     */
     @PutMapping("/{id}")
     public Status update(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @PathVariable long id, @RequestBody StatusRequest request) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        Status status = statusRepository.findByProjectAndNumberOrThrow(project, id);
-        status.update(request);
+            @PathVariable long id, @RequestBody @Valid UpdateStatus update) {
+        Project project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        Status status = statusRepository.findByIdAndProjectOrThrow(id, project);
+        status.update(update);
         return statusRepository.save(status);
     }
 
-    @Operation(summary = "Delete status", description = "This method is used to delete status. On success does not return anything.")
-    @ApiResponse(responseCode = "200", description = "Status with given ID has been deleted.")
-    @ApiResponse(responseCode = "400", description = "Status is not empty.", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(responseCode = "404", description = "Project or status with given ID not found.", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Deletes status with given ID. Status must be empty.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param id        ID of status
+     */
     @DeleteMapping("/{id}")
     public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long id) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        Status status = statusRepository.findByProjectAndNumberOrThrow(project, id);
+        Project project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        Status status = statusRepository.findByIdAndProjectOrThrow(id, project);
         if (!status.getTasks().isEmpty()) {
-            throw new FieldErrorException("tasks", "Status has tasks assigned to it.");
+            throw new ConflictStateException("status must be empty to delete");
         }
-        status.softDelete();
-        statusRepository.save(status);
+        statusRepository.delete(status);
     }
 }

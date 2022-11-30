@@ -27,10 +27,12 @@
 
 package dev.vernite.vernite.integration.git.github;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotNull;
 
 import dev.vernite.vernite.integration.git.github.data.GitHubIntegrationInfo;
@@ -51,9 +53,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -89,18 +93,24 @@ public class GitHubController {
         return service.getRepositories(user);
     }
 
-    @Operation(summary = "Create GitHub account connection", description = "Creates new GitHub application installation. Installation id must be retrieved from GitHub.")
-    @ApiResponse(description = "GitHub installation created. List with repositories and link. Can be empty.", responseCode = "200", content = @Content(schema = @Schema(implementation = GitHubIntegrationInfo.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @PostMapping("/user/integration/github")
-    public Mono<GitHubIntegrationInfo> newInstallation(@NotNull @Parameter(hidden = true) User user,
-            long installationId) {
-        if (installationRepository.findByInstallationId(installationId).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "installation with this id exists");
+    @Operation(summary = "Redirect to GitHub", description = "This endpoint redirects user to GitHub to authorize application. After authorization user is redirected back to application.")
+    @GetMapping("/user/integration/github/install")
+    public void install(HttpServletResponse httpServletResponse) throws IOException {
+        httpServletResponse.sendRedirect(GitHubService.INTEGRATION_LINK);
+    }
+
+    @Hidden
+    @GetMapping("/user/integration/github/redirect")
+    public Mono<Void> newInstallation(@NotNull @Parameter(hidden = true) User user,
+            @RequestParam(name = "installation_id") long installationId,
+            @RequestParam(name = "setup_action") String setupAction, HttpServletResponse httpServletResponse)
+            throws IOException {
+        httpServletResponse.sendRedirect("https://vernite.dev/?path=/github");
+        if (installationRepository.findByInstallationIdAndUser(installationId, user).isPresent()) {
+            return Mono.empty();
         }
         return service.newInstallation(user, installationId)
-                .switchIfEmpty(Mono.error(
-                        new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "GitHub service unavailable")));
+                .then();
     }
 
     @Operation(summary = "Delete GitHub account connection", description = "Retrieves link to delete GitHub account installation.")
@@ -114,7 +124,12 @@ public class GitHubController {
             throw new ObjectNotFoundException();
         }
         HashMap<String, String> result = new HashMap<>();
-        result.put("link", "https://github.com/settings/installations/" + installation.getInstallationId());
+        if ("Organization".equals(installation.getType())) {
+            result.put("link", "https://github.com/organizations/" + installation.getGitHubUsername()
+                    + "/settings/installations/" + installation.getInstallationId());
+        } else {
+            result.put("link", "https://github.com/settings/installations/" + installation.getInstallationId());
+        }
         return result;
     }
 

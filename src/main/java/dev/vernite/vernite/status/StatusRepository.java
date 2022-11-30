@@ -27,31 +27,33 @@
 
 package dev.vernite.vernite.status;
 
-import java.util.Optional;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
 
+import dev.vernite.vernite.common.exception.EntityNotFoundException;
 import dev.vernite.vernite.project.Project;
-import dev.vernite.vernite.utils.ObjectNotFoundException;
-import dev.vernite.vernite.utils.SoftDeleteRepository;
 
-public interface StatusRepository extends SoftDeleteRepository<Status, Long> {
-    /**
-     * Finds a status by its number and project.
-     * 
-     * @param project the project.
-     * @param number  the number of the status.
-     * @return optional of the status.
-     */
-    Optional<Status> findByProjectAndNumberAndActiveNull(Project project, long number);
+/**
+ * CRUD repository for status entity.
+ */
+@Repository
+public interface StatusRepository extends CrudRepository<Status, Long> {
 
     /**
-     * Finds a status by its number and project or throws error when not found.
+     * Finds status by ID and project.
      * 
-     * @param project the project.
-     * @param number  the number of the status.
-     * @return the status.
-     * @throws ObjectNotFoundException when not found.
+     * @param id      status ID
+     * @param project project
+     * @return status with given ID and project
+     * @throws EntityNotFoundException thrown when status is not found or project is
+     *                                 not equal to status project
      */
-    default Status findByProjectAndNumberOrThrow(Project project, long number) {
-        return findByProjectAndNumberAndActiveNull(project, number).orElseThrow(ObjectNotFoundException::new);
+    default Status findByIdAndProjectOrThrow(long id, Project project) throws EntityNotFoundException {
+        Status status = findById(id).orElseThrow(() -> new EntityNotFoundException("status", id));
+        if (status.getProject().getId() != project.getId()) {
+            throw new EntityNotFoundException("status", id);
+        }
+        return status;
     }
+
 }

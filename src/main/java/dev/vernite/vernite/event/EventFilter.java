@@ -1,47 +1,70 @@
 package dev.vernite.vernite.event;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springdoc.api.annotations.ParameterObject;
 
-import dev.vernite.vernite.event.Event.EventType;
+import dev.vernite.vernite.event.Event.Type;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Getter;
+import lombok.Setter;
 
+/**
+ * Parameter object for filtering events.
+ */
 @ParameterObject
 public class EventFilter {
-    @Schema(description = "Whether to include events that have already ended. It only affects tasks.", defaultValue = "true")
+
+    /**
+     * Whether to include events that have already ended. It only affects tasks.
+     */
+    @Setter
+    @Getter
     private boolean showEnded = true;
-    @Schema(description = "Include only events of this types. If empty, all types are included. When filtering task types both deadlines and estimates are included even if only one of this types is specified.", defaultValue = "[]")
-    private Optional<List<Integer>> type = Optional.empty();
 
-    public boolean getShowEnded() {
-        return showEnded;
-    }
+    /**
+     * Types to include in the result. When empty, all types are included. When
+     * filtering task types both deadlines and estimates are included even if only
+     * one of this types is specified.
+     */
+    @Setter
+    @Getter
+    private List<Integer> type = List.of();
 
-    public void setShowEnded(boolean showEnded) {
-        this.showEnded = showEnded;
-    }
-
-    public Optional<List<Integer>> getType() {
-        return type;
-    }
-
-    public void setType(List<Integer> type) {
-        this.type = Optional.of(type);
-    }
-
+    /**
+     * Whether to include events that are connected to a tasks.
+     * 
+     * @return true if task events should be included; false otherwise
+     */
     public boolean showTasks() {
-        return !type.isPresent() || type.get().contains(EventType.TASK_DEADLINE.ordinal())
-                || type.get().contains(EventType.TASK_ESTIMATE.ordinal());
+        return type.isEmpty() || type.contains(Type.TASK_DEADLINE.ordinal())
+                || type.contains(Type.TASK_ESTIMATE.ordinal());
     }
 
+    /**
+     * Whether to include events that are connected to a sprints.
+     * 
+     * @return true if sprint events should be included; false otherwise
+     */
     public boolean showSprints() {
-        return !type.isPresent() || type.get().contains(EventType.SPRINT.ordinal());
+        return type.isEmpty() || type.contains(Type.SPRINT.ordinal());
     }
 
+    /**
+     * Whether to include events that are connected to a meetings.
+     * 
+     * @return true if meetings events should be included; false otherwise
+     */
     public boolean showMeetings() {
-        return !type.isPresent() || type.get().contains(EventType.MEETING.ordinal());
+        return type.isEmpty() || type.contains(Type.MEETING.ordinal());
+    }
+
+    /**
+     * Whether to include events that are connected to a releases.
+     * 
+     * @return true if release events should be included; false otherwise
+     */
+    public boolean showReleases() {
+        return type.isEmpty() || type.contains(Type.RELEASE.ordinal());
     }
 }

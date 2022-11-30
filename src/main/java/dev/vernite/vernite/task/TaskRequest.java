@@ -28,7 +28,6 @@
 package dev.vernite.vernite.task;
 
 import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -74,7 +73,7 @@ public class TaskRequest {
     @JsonDeserialize(using = PullActionDeserializer.class)
     private Optional<PullAction> pull = Optional.empty();
     @Schema(description = "List of all sprints for the task.")
-    private Optional<List<Long>> sprintIds = Optional.empty();
+    private Optional<Optional<Long>> sprintId = Optional.empty();
     @Schema(description = "Amount of story points for the task.")
     private Optional<Long> storyPoints = Optional.empty();
 
@@ -205,14 +204,6 @@ public class TaskRequest {
         this.pull = Optional.ofNullable(pullAction);
     }
 
-    public Optional<List<Long>> getSprintIds() {
-        return sprintIds;
-    }
-
-    public void setSprintIds(List<Long> sprintIds) {
-        this.sprintIds = Optional.of(sprintIds);
-    }
-
     public Optional<String> getPriority() {
         return priority;
     }
@@ -233,5 +224,13 @@ public class TaskRequest {
             throw new FieldErrorException("storyPoints", NULL_VALUE);
         }
         this.storyPoints = Optional.of(storyPoints);
+    }
+
+    public void setSprintId(Long id) {
+        this.sprintId = Optional.of(Optional.ofNullable(id));
+    }
+
+    public Optional<Optional<Long>> getSprintId() {
+        return sprintId;
     }
 }

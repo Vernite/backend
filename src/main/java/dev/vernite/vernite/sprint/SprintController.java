@@ -41,9 +41,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import dev.vernite.vernite.counter.CounterSequenceRepository;
+import dev.vernite.vernite.common.utils.counter.CounterSequenceRepository;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.project.ProjectRepository;
+import dev.vernite.vernite.task.Task;
+import dev.vernite.vernite.task.TaskRepository;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.utils.ErrorType;
 import dev.vernite.vernite.utils.FieldErrorException;
@@ -65,18 +67,24 @@ public class SprintController {
     private SprintRepository sprintRepository;
     @Autowired
     private CounterSequenceRepository counterSequenceRepository;
+    @Autowired
+    private TaskRepository taskRepository;
 
     @Operation(summary = "Retrieve all sprints", description = "Retrieves all sprints for project. Results are ordered by id.")
     @ApiResponse(description = "List with sprints. Can be empty.", responseCode = "200")
     @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @GetMapping
-    public List<Sprint> getAll(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId) {
+    public List<Sprint> getAll(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @Parameter(allowEmptyValue = true) Integer status) {
         Project project = projectRepository.findByIdOrThrow(projectId);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
         }
-        return project.getSprints();
+        if (status == null) {
+            return project.getSprints();
+        }
+        return sprintRepository.findAllByProjectAndStatusAndActiveNull(project, status.intValue());
     }
 
     @Operation(summary = "Create a sprint", description = "Creates a new sprint for project.")
@@ -153,6 +161,9 @@ public class SprintController {
         }
         Sprint sprint = sprintRepository.findByProjectAndNumberOrThrow(project, id);
         sprint.softDelete();
+        List<Task> tasks = sprint.getTasks();
         sprintRepository.save(sprint);
+        tasks.forEach(t -> t.setSprint(null));
+        taskRepository.saveAll(tasks);
     }
 }

@@ -25,31 +25,49 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.counter;
+package dev.vernite.vernite.integration.communicator.slack.entity;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.ManyToOne;
 
-/**
- * Entity for storing sequence counters for generation of unique ids.
- */
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import dev.vernite.vernite.user.User;
+
 @Entity
-public class CounterSequence {
+public class SlackInstallation {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
-    @Column(nullable = false)
-    private long counterValue = 0;
+    @JsonIgnore
+    @Column(unique = true, nullable = false, length = 100)
+    private String token;
 
-    public CounterSequence() {
+    private String installerUserId;
+
+    @JsonIgnore
+    private String teamId;
+
+    private String teamName;
+
+    @JsonIgnore
+    @ManyToOne(optional = false)
+    private User user;
+
+    public SlackInstallation() {
     }
 
-    public CounterSequence(long counterValue) {
-        this.counterValue = counterValue;
+    public SlackInstallation(String token, String installerUserId, String teamId, String teamName, User user) {
+        this.token = token;
+        this.installerUserId = installerUserId;
+        this.teamId = teamId;
+        this.teamName = teamName;
+        this.user = user;
     }
 
     public long getId() {
@@ -60,11 +78,43 @@ public class CounterSequence {
         this.id = id;
     }
 
-    public long getCounterValue() {
-        return counterValue;
+    public String getToken() {
+        return token;
     }
 
-    public void setCounterValue(long counterValue) {
-        this.counterValue = counterValue;
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public String getInstallerUserId() {
+        return installerUserId;
+    }
+
+    public void setInstallerUserId(String installerUserId) {
+        this.installerUserId = installerUserId;
+    }
+
+    public String getTeamId() {
+        return teamId;
+    }
+
+    public void setTeamId(String teamId) {
+        this.teamId = teamId;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public String getTeamName() {
+        return teamName;
+    }
+
+    public void setTeamName(String teamName) {
+        this.teamName = teamName;
     }
 }

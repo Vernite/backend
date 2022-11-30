@@ -27,147 +27,148 @@
 
 package dev.vernite.vernite.workspace;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.MapsId;
 import javax.persistence.OneToMany;
+import javax.persistence.OrderBy;
+import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
+
+import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.projectworkspace.ProjectWithPrivileges;
 import dev.vernite.vernite.projectworkspace.ProjectWorkspace;
 import dev.vernite.vernite.user.User;
-import dev.vernite.vernite.utils.SoftDeleteEntity;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.annotations.Where;
 
 /**
- * Entity for representing workspace. Workspace is a collection of projects. Its
- * primary key is composed of id and user id. Workspace with id 0 is reserved
- * for inbox.
+ * Entity for representing collection of projects.
+ * Its connected to user and has unique id for that user.
  */
 @Entity
-@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
-public class Workspace extends SoftDeleteEntity implements Comparable<Workspace> {
+@ToString
+@NoArgsConstructor
+@EqualsAndHashCode
+public class Workspace {
+
+    @Valid
+    @Setter
+    @Getter
     @EmbeddedId
     @JsonUnwrapped
-    private WorkspaceKey id;
+    @NotNull(message = "workspace id cannot be null")
+    private WorkspaceId id;
 
+    @Getter
     @Column(nullable = false, length = 50)
+    @Size(min = 1, max = 50, message = "workspace name must be shorter than 50 characters")
+    @NotBlank(message = "workspace name must contain at least one non-whitespace character")
     private String name;
 
+    @Setter
+    @Getter
     @JsonIgnore
     @MapsId("userId")
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(optional = false)
+    @NotNull(message = "workspace must have user set")
     private User user;
 
+    @Setter
+    @Getter
     @JsonIgnore
+    @Deprecated
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @OneToMany(mappedBy = "workspace")
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @OneToMany(fetch = FetchType.LAZY, mappedBy = "workspace")
-    private List<ProjectWorkspace> projectWorkspaces = new ArrayList<>();
+    @NotNull(message = "project workspaces connection must be set")
+    private List<ProjectWorkspace> projectWorkspaces = List.of();
 
-    public Workspace() {
-    }
+    @Setter
+    @Getter
+    @ManyToMany
+    @ToString.Exclude
+    @OrderBy("name, id")
+    @EqualsAndHashCode.Exclude
+    @Where(clause = "active is null")
+    @NotNull(message = "projects connection must be set")
+    @JoinTable(name = "project_workspace", joinColumns = {
+            @JoinColumn(name = "workspace_user_id", referencedColumnName = "user_id"),
+            @JoinColumn(name = "workspace_id", referencedColumnName = "id"),
+    }, inverseJoinColumns = @JoinColumn(name = "project_id", referencedColumnName = "id"))
+    private Set<Project> projects = Set.of();
 
-    public Workspace(long id, User user, String name) {
-        this.id = new WorkspaceKey(id, user);
-        this.user = user;
-        this.name = name;
+    /**
+     * Default constructor for workspace.
+     * 
+     * @param id   unique to user positive number for new workspace
+     * @param name must not be {@literal null} and have size between 1 and 50
+     * @param user must not be {@literal null} and must be entity from database
+     */
+    public Workspace(long id, String name, User user) {
+        this.setId(new WorkspaceId(id, user.getId()));
+        this.setName(name);
+        this.setUser(user);
     }
 
     /**
-     * Updates workspace with non-empty request fields.
+     * Constructor for workspace from create request.
      * 
-     * @param request must not be {@literal null}. When fields are not present in
-     *                request, they are not updated.
+     * @param id     unique to user positive number for new workspace
+     * @param user   must not be {@literal null} and must be entity from database
+     * @param create must not be {@literal null} and must be valid
      */
-    public void update(@NotNull WorkspaceRequest request) {
-        request.getName().ifPresent(this::setName);
+    public Workspace(long id, User user, CreateWorkspace create) {
+        this(id, create.getName(), user);
     }
 
     /**
-     * Checks if the workspace is empty.
+     * Updates workspace entity with data from update.
      * 
-     * @return {@literal true} if the workspace is empty, {@literal false}
-     *         otherwise.
+     * @param update must not be {@literal null} and be valid
      */
-    public boolean isEmpty() {
-        return getProjectWorkspaces().stream().allMatch(p -> p.getProject().getActive() != null);
+    public void update(UpdateWorkspace update) {
+        if (update.getName() != null) {
+            setName(update.getName());
+        }
     }
 
-    public WorkspaceKey getId() {
-        return id;
-    }
-
-    public void setId(WorkspaceKey id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
+    /**
+     * Setter for name value. It performs {@link String#trim()} on its argument.
+     * 
+     * @param name must not be {@literal null} and have at least one non-whitespace
+     *             character and less than 50 characters
+     */
     public void setName(String name) {
-        this.name = name;
+        this.name = name.trim();
     }
 
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public List<ProjectWorkspace> getProjectWorkspaces() {
-        return projectWorkspaces;
-    }
-
-    public void setProjectWorkspaces(List<ProjectWorkspace> projectWorkspaces) {
-        this.projectWorkspaces = projectWorkspaces;
-    }
-
+    @Deprecated
     public List<ProjectWithPrivileges> getProjectsWithPrivileges() {
-        return getProjectWorkspaces().stream()
-                .filter(pw -> pw.getProject().getActive() == null)
-                .map(ProjectWorkspace::getProjectWithPrivileges)
-                .sorted((f, s) -> f.compareTo(s)).toList();
+        return getProjects().stream().map(p -> new ProjectWithPrivileges(p, 69L)).toList();
     }
 
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int hash = prime + (getId() == null ? 0 : getId().hashCode());
-        hash = prime * hash + (getName() == null ? 0 : getName().hashCode());
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null || getClass() != obj.getClass())
-            return false;
-        Workspace other = (Workspace) obj;
-        if (getId() == null) {
-            if (other.getId() != null)
-                return false;
-        } else if (!getId().equals(other.getId()))
-            return false;
-        if (getName() == null)
-            return other.getName() == null;
-        return getName().equals(other.getName());
-    }
-
-    @Override
-    public int compareTo(Workspace o) {
-        return getName().equals(o.getName()) ? getId().compareTo(o.getId()) : getName().compareTo(o.getName());
-    }
 }

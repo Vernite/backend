@@ -5,25 +5,30 @@ import java.util.Date;
 import java.util.List;
 import java.util.TreeSet;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import dev.vernite.vernite.meeting.MeetingRepository;
 import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.release.ReleaseRepository;
 import dev.vernite.vernite.sprint.SprintRepository;
 import dev.vernite.vernite.task.TaskRepository;
 import dev.vernite.vernite.user.User;
+import lombok.AllArgsConstructor;
 
+/**
+ * Service for getting events.
+ */
 @Service
-@Component
+@AllArgsConstructor
 public class EventService {
-    @Autowired
+
     private SprintRepository sprintRepository;
-    @Autowired
+
     private TaskRepository taskRepository;
-    @Autowired
+
     private MeetingRepository meetingRepository;
+
+    private ReleaseRepository releaseRepository;
 
     /**
      * Returns all events for the given user between dates.
@@ -47,6 +52,10 @@ public class EventService {
         if (filter.showMeetings()) {
             meetingRepository.findMeetingsByUserAndDate(user, startDate, endDate)
                     .forEach(meeting -> result.add(Event.from(meeting)));
+        }
+        if (filter.showReleases()) {
+            releaseRepository.findAllFromUserAndDate(user, startDate, endDate)
+                    .forEach(release -> result.add(Event.from(release)));
         }
         return new ArrayList<>(result);
     }
@@ -74,6 +83,11 @@ public class EventService {
             meetingRepository.findMeetingsByProjectAndDate(project, startDate, endDate)
                     .forEach(meeting -> result.add(Event.from(meeting)));
         }
+        if (filter.showReleases()) {
+            releaseRepository.findAllFromProjectAndDate(project, startDate, endDate)
+                    .forEach(release -> result.add(Event.from(release)));
+        }
         return new ArrayList<>(result);
     }
+
 }

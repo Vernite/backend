@@ -102,7 +102,7 @@ public class SprintControllerTests {
         } catch (DataIntegrityViolationException e) {
             session = userSessionRepository.findBySession("session_token_sprint_tests").orElseThrow();
         }
-        workspace = workspaceRepository.save(new Workspace(1, user, "Project Tests"));
+        workspace = workspaceRepository.save(new Workspace(1, "Project Tests", user));
         project = projectRepository.save(new Project("Sprint Tests"));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
     }
@@ -129,8 +129,8 @@ public class SprintControllerTests {
         // Test non-empty return list
         List<Sprint> sprints = List.of(
                 new Sprint(1, "Sprint 1", new Date(), new Date(), Sprint.Status.CREATED, "desc", project),
-                new Sprint(2, "Sprint 2", new Date(), new Date(), Sprint.Status.CREATED, "desc", project),
-                new Sprint(3, "Sprint 3", new Date(), new Date(), Sprint.Status.CREATED, "desc", project));
+                new Sprint(2, "Sprint 2", new Date(), new Date(), Sprint.Status.ACTIVE, "desc", project),
+                new Sprint(3, "Sprint 3", new Date(), new Date(), Sprint.Status.CLOSED, "desc", project));
         sprintRepository.saveAll(sprints);
         List<Sprint> result = client.get().uri("/project/{projectId}/sprint", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
@@ -139,6 +139,24 @@ public class SprintControllerTests {
         sprintEquals(result.get(0), sprints.get(0));
         sprintEquals(result.get(1), sprints.get(1));
         sprintEquals(result.get(2), sprints.get(2));
+
+        result = client.get().uri("/project/{projectId}/sprint?status=0", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Sprint.class).hasSize(1).returnResult().getResponseBody();
+        assertNotNull(result);
+        sprintEquals(result.get(0), sprints.get(0));
+
+        result = client.get().uri("/project/{projectId}/sprint?status=1", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Sprint.class).hasSize(1).returnResult().getResponseBody();
+        assertNotNull(result);
+        sprintEquals(result.get(0), sprints.get(1));
+
+        result = client.get().uri("/project/{projectId}/sprint?status=2", project.getId())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Sprint.class).hasSize(1).returnResult().getResponseBody();
+        assertNotNull(result);
+        sprintEquals(result.get(0), sprints.get(2));
     }
 
     @Test

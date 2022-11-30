@@ -27,11 +27,30 @@
 
 package dev.vernite.vernite.release;
 
+import java.util.Date;
 import java.util.List;
 
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
 import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.utils.SoftDeleteRepository;
 
-public interface ReleaseRepository extends SoftDeleteRepository<Release, Long> {
+public interface ReleaseRepository extends SoftDeleteRepository<Release, Long>, JpaSpecificationExecutor<Release> {
     List<Release> findAllByProjectAndActiveNullOrderByDeadlineDescName(Project project);
+
+    default Iterable<Release> findAllFromUserAndDate(User user, Date startDate, Date endDate) {
+        return findAll((root, query, cb) -> cb.and(
+                cb.between(root.get("deadline"), startDate, endDate),
+                cb.equal(root.join("project").join("projectWorkspaces").join("workspace").join("user"), user),
+                cb.isNull(root.get("active"))));
+    }
+
+    default Iterable<Release> findAllFromProjectAndDate(Project project, Date startDate, Date endDate) {
+        return findAll((root, query, cb) -> {
+            return cb.and(cb.equal(root.get("project"), project),
+                    cb.between(root.get("deadline"), startDate, endDate),
+                    cb.isNull(root.get("active")));
+        });
+    }
 }

@@ -27,7 +27,26 @@
 
 package dev.vernite.vernite.workspace;
 
-import dev.vernite.vernite.utils.SoftDeleteRepository;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
 
-public interface WorkspaceRepository extends SoftDeleteRepository<Workspace, WorkspaceKey> {
+import dev.vernite.vernite.common.exception.EntityNotFoundException;
+
+/*
+ * CRUD repository for workspace entity.
+ */
+@Repository
+public interface WorkspaceRepository extends CrudRepository<Workspace, WorkspaceId> {
+
+    /**
+     * Retrieves an entity by its ID.
+     * 
+     * @param id must not be null
+     * @return the entity with the given ID
+     * @throws EntityNotFoundException if entity is not found
+     */
+    default Workspace findByIdOrThrow(WorkspaceId id) throws EntityNotFoundException {
+        return findById(id).orElseThrow(() -> new EntityNotFoundException("workspace", id.getId()));
+    }
+
 }

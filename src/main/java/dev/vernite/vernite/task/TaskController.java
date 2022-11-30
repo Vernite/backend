@@ -29,13 +29,12 @@ package dev.vernite.vernite.task;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
 import javax.validation.constraints.NotNull;
 
-import dev.vernite.vernite.counter.CounterSequenceRepository;
+import dev.vernite.vernite.common.utils.counter.CounterSequenceRepository;
 import dev.vernite.vernite.integration.git.GitTaskService;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.project.ProjectRepository;
@@ -103,33 +102,16 @@ public class TaskController {
      * @param task     the task
      * @param project  the project
      */
-    private void handleSprint(List<Long> sprints, Task task, Project project) {
-        HashSet<Sprint> sprintSet = new HashSet<>();
-        HashSet<Long> oldSprintSet = new HashSet<>();
-        boolean added = false;
-        for (Sprint sprint : task.getSprints()) {
+    private void handleSprint(Long sprintId, Task task, Project project) {
+        Sprint sprint = null;
+        if (sprintId != null) {
+            sprint = sprintRepository.findByProjectAndNumberAndActiveNull(project, sprintId)
+                    .orElseThrow(() -> new ObjectNotFoundException());
             if (sprint.getStatusEnum() == Sprint.Status.CLOSED) {
-                oldSprintSet.add(sprint.getNumber());
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "cannot assign task to closed sprint");
             }
         }
-        for (Long sprintId : sprints) {
-            Sprint sprint = sprintRepository.findByProjectAndNumberOrThrow(project, sprintId);
-            sprintSet.add(sprint);
-            if (sprint.getStatusEnum() == Sprint.Status.CLOSED) {
-                if (!oldSprintSet.remove(sprint.getNumber())) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot add task to not active sprint");
-                }
-            } else {
-                if (added) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot add task to multiple non closed sprints");
-                }
-                added = true;
-            }
-        }
-        if (!oldSprintSet.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot remove closed sprint from task");
-        }
-        task.setSprints(sprintSet);
+        task.setSprint(sprint);
     }
 
     /**
@@ -204,12 +186,12 @@ public class TaskController {
             throw new ObjectNotFoundException();
         }
         long statusId = taskRequest.getStatusId().orElseThrow(() -> new FieldErrorException("statusId", "missing"));
-        Status status = statusRepository.findByProjectAndNumberOrThrow(project, statusId);
+        Status status = statusRepository.findByIdAndProjectOrThrow(statusId, project);
         long id = counterSequenceRepository.getIncrementCounter(project.getTaskCounter().getId());
         Task task = taskRequest.createEntity(id, status, user);
         taskRequest.getDeadline().ifPresent(task::setDeadline);
         taskRequest.getEstimatedDate().ifPresent(task::setEstimatedDate);
-        taskRequest.getSprintIds().ifPresent(sprintId -> handleSprint(sprintId, task, project));
+        taskRequest.getSprintId().ifPresent(sprintId -> handleSprint(sprintId.orElse(null), task, project));
         taskRequest.getAssigneeId().ifPresent(assigneeId -> handleAssignee(assigneeId, task));
         taskRequest.getParentTaskId().ifPresent(parentTaskId -> handleParent(parentTaskId, task, project));
         taskRequest.getStoryPoints().ifPresent(task::setStoryPoints);
@@ -239,11 +221,11 @@ public class TaskController {
         }
         Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
         task.update(taskRequest);
-        taskRequest.getSprintIds().ifPresent(sprintId -> handleSprint(sprintId, task, project));
+        taskRequest.getSprintId().ifPresent(sprintId -> handleSprint(sprintId.orElse(null), task, project));
         taskRequest.getAssigneeId().ifPresent(assigneeId -> handleAssignee(assigneeId, task));
         taskRequest.getParentTaskId().ifPresent(parentTaskId -> handleParent(parentTaskId, task, project));
         taskRequest.getStatusId().ifPresent(statusId -> {
-            Status status = statusRepository.findByProjectAndNumberOrThrow(project, statusId);
+            Status status = statusRepository.findByIdAndProjectOrThrow(statusId, project);
             task.setStatus(status);
         });
 

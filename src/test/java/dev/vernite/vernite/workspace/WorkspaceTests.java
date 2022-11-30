@@ -28,129 +28,102 @@
 package dev.vernite.vernite.workspace;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import javax.validation.Validation;
+import javax.validation.Validator;
+import javax.validation.ValidatorFactory;
+
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
 
 import dev.vernite.vernite.user.User;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@TestPropertySource({ "classpath:application.properties", "classpath:application-test.properties" })
 class WorkspaceTests {
-    private static final User user = new User("name", "surname", "username", "email", "password", "English", "YYYY-MM-DD");
 
-    @Test
-    void equalsTest() {
-        Workspace workspace = new Workspace(1, user, "Name");
-        Workspace other = new Workspace(2, user, "Name 2");
+    private static final User user = new User("name", "surname", "username", "email", "password");
+    private static Validator validator;
 
-        assertEquals(workspace, workspace);
-        assertNotEquals(new Object(), workspace);
-        assertNotEquals(null, workspace);
-        assertEquals(false, workspace.equals(null));
-        assertNotEquals(other, workspace);
-        assertNotEquals(workspace, other);
+    @BeforeAll
+    static void init() {
+        user.setId(1);
 
-        other.setUser(null);
-
-        assertNotEquals(other, workspace);
-        assertNotEquals(workspace, other);
-
-        other.setId(null);
-
-        assertNotEquals(other, workspace);
-        assertNotEquals(workspace, other);
-
-        other.setProjectWorkspaces(null);
-        other.setName(null);
-
-        assertEquals(other, other);
-        assertNotEquals(other, workspace);
-        assertNotEquals(workspace, other);
-
-        Workspace other2 = new Workspace(3, user, "Name");
-
-        WorkspaceKey key = new WorkspaceKey(1, user);
-        key.setUserId(0);
-        other2.setId(key);
-
-        assertEquals(other2, workspace);
-
-        other2.setId(null);
-        other2.setUser(null);
-
-        assertNotEquals(other, other2);
+        final ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        validator = factory.getValidator();
     }
 
     @Test
-    void hashCodeTests() {
-        Workspace workspace = new Workspace(1, user, "Name");
-        Workspace other = new Workspace(2, user, "Name 2");
-
-        assertEquals(workspace.hashCode(), workspace.hashCode());
-        assertNotEquals(workspace.hashCode(), other.hashCode());
-
-        other.setUser(null);
-
-        assertNotEquals(workspace.hashCode(), other.hashCode());
-
-        other.setId(null);
-
-        assertNotEquals(workspace.hashCode(), other.hashCode());
-
-        other.setProjectWorkspaces(null);
-        other.setName(null);
-
-        assertNotEquals(workspace.hashCode(), other.hashCode());
-
-        Workspace other2 = new Workspace(3, user, "Name");
-
-        WorkspaceKey key = new WorkspaceKey(1, user);
-        key.setUserId(0);
-        other2.setId(key);
-
-        assertEquals(other2.hashCode(), workspace.hashCode());
-    }
-
-    @Test
-    void compareToTests() {
-        Workspace workspace = new Workspace(1, user, "Name");
-        Workspace other = new Workspace(2, user, "Name");
-
-        assertEquals(true, workspace.compareTo(other) < 0);
-
-        other.setName("Name 2");
-
-        assertEquals(true, workspace.compareTo(other) < 0);
-
-        Workspace other2 = new Workspace(3, user, "Name");
-
-        WorkspaceKey key = new WorkspaceKey(1, user);
-        key.setUserId(0);
-        other2.setId(key);
-
-        assertEquals(0, workspace.compareTo(other2));
-
-        assertEquals(0, workspace.compareTo(workspace));
-    }
-
-    @Test
-    void updateTests() {
-        Workspace workspace = new Workspace(1, user, "Name");
-        workspace.update(new WorkspaceRequest());
+    void constructorBaseTest() {
+        Workspace workspace = new Workspace(1, "Name", user);
 
         assertEquals(1, workspace.getId().getId());
-        assertEquals(user, workspace.getUser());
         assertEquals("Name", workspace.getName());
+        assertEquals(user, workspace.getUser());
 
-        workspace.update(new WorkspaceRequest("Name 2"));
+        workspace = new Workspace(1, "  Name  ", user);
 
         assertEquals(1, workspace.getId().getId());
+        assertEquals("Name", workspace.getName());
         assertEquals(user, workspace.getUser());
-        assertEquals("Name 2", workspace.getName());
+    }
+
+    @Test
+    void constructorCreateTest() {
+        Workspace workspace = new Workspace(1, user, new CreateWorkspace("Name"));
+
+        assertEquals(1, workspace.getId().getId());
+        assertEquals("Name", workspace.getName());
+        assertEquals(user, workspace.getUser());
+
+        workspace = new Workspace(1, user, new CreateWorkspace("  Name  "));
+
+        assertEquals(1, workspace.getId().getId());
+        assertEquals("Name", workspace.getName());
+        assertEquals(user, workspace.getUser());
+    }
+
+    @Test
+    void updateTest() {
+        Workspace workspace = new Workspace(1, "Name", user);
+        workspace.update(new UpdateWorkspace("New name"));
+
+        assertEquals(1, workspace.getId().getId());
+        assertEquals("New name", workspace.getName());
+        assertEquals(user, workspace.getUser());
+
+        workspace.update(new UpdateWorkspace(null));
+
+        assertEquals(1, workspace.getId().getId());
+        assertEquals("New name", workspace.getName());
+        assertEquals(user, workspace.getUser());
+    }
+
+    @Test
+    void setNameTest() {
+        Workspace workspace = new Workspace(1, "Name", user);
+        workspace.setName("New name");
+
+        assertEquals(1, workspace.getId().getId());
+        assertEquals("New name", workspace.getName());
+        assertEquals(user, workspace.getUser());
+
+        workspace.setName("  New name  ");
+
+        assertEquals(1, workspace.getId().getId());
+        assertEquals("New name", workspace.getName());
+        assertEquals(user, workspace.getUser());
+    }
+
+    @Test
+    void validationValidTest() {
+        assertTrue(validator.validate(new Workspace(1, "Name", user)).isEmpty());
+    }
+
+    @Test
+    void validationInvalidTest() {
+        assertEquals(2, validator.validate(new Workspace(1, "", user)).size());
+        assertEquals(2, validator.validate(new Workspace(1, "  ", user)).size());
+        assertEquals(3, validator.validate(new Workspace(-1, "   ", user)).size());
+        assertEquals(1, validator.validate(new Workspace(1, "a".repeat(51), user)).size());
     }
 }

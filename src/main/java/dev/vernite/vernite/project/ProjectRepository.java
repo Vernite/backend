@@ -27,7 +27,33 @@
 
 package dev.vernite.vernite.project;
 
+import org.springframework.stereotype.Repository;
+
+import dev.vernite.vernite.common.exception.EntityNotFoundException;
+import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.utils.SoftDeleteRepository;
 
+/**
+ * CRUD repository for project entity.
+ */
+@Repository
 public interface ProjectRepository extends SoftDeleteRepository<Project, Long> {
+
+    /**
+     * Finds active project by id and checks if user is member of project.
+     * 
+     * @param id   project id
+     * @param user potential project member
+     * @return project with given id and user is its member
+     * @throws EntityNotFoundException thrown when project is not found or user is
+     *                                 not member of found project
+     */
+    default Project findByIdAndMemberOrThrow(long id, User user) throws EntityNotFoundException {
+        Project project = findByIdAndActiveNull(id).orElseThrow(() -> new EntityNotFoundException("project", id));
+        if (!project.isMember(user)) {
+            throw new EntityNotFoundException("project", id);
+        }
+        return project;
+    }
+
 }

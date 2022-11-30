@@ -90,7 +90,7 @@ public interface TaskRepository extends SoftDeleteRepository<Task, Long>, JpaSpe
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.isNotNull(root.get("assignee")));
             predicates.add(cb.equal(root.get("assignee"), user));
-            if (filter.getShowEnded()) {
+            if (filter.isShowEnded()) {
                 predicates.add(cb.equal(root.get("status").get("isFinal"), false));
             }
             predicates.add(cb.isNull(root.get("active")));
@@ -117,7 +117,7 @@ public interface TaskRepository extends SoftDeleteRepository<Task, Long>, JpaSpe
         return findAll((root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status").get("project"), project));
-            if (filter.getShowEnded()) {
+            if (filter.isShowEnded()) {
                 predicates.add(cb.equal(root.get("status").get("isFinal"), false));
             }
             predicates.add(cb.isNull(root.get("active")));

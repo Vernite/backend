@@ -35,22 +35,24 @@ import javax.persistence.MappedSuperclass;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
 /**
  * Abstract class for representing database entities with soft delete
  * capability.
  */
+@ToString
 @MappedSuperclass
+@EqualsAndHashCode
 public abstract class SoftDeleteEntity {
+
+    @Setter
+    @Getter
     @JsonIgnore
     private Date active;
-
-    public Date getActive() {
-        return active;
-    }
-
-    public void setActive(Date active) {
-        this.active = active;
-    }
 
     /**
      * Soft deletes entity for one week.
@@ -58,4 +60,5 @@ public abstract class SoftDeleteEntity {
     public void softDelete() {
         setActive(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)));
     }
+
 }

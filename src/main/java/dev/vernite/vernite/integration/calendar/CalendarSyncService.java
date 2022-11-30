@@ -90,7 +90,7 @@ public class CalendarSyncService {
                 calEvent = new VEvent(new DateTime(event.getStartDate()), new DateTime(event.getEndDate()), event.getName());
             }
             calEvent.getProperties().add(new Uid(String.format("project_%d_event_%d_%d", event.getProjectId(),
-                    event.getEventType().ordinal(), event.getRelatedId())));
+                    event.getType().ordinal(), event.getRelatedId())));
             if (event.getDescription() != null) {
                 calEvent.getProperties().add(new Description(event.getDescription()));
             }

@@ -25,23 +25,61 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.counter;
+package dev.vernite.vernite.integration.common;
 
-import org.springframework.data.jpa.repository.query.Procedure;
-import org.springframework.data.repository.CrudRepository;
+import javax.validation.constraints.NotNull;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 /**
- * Interface for operations on CounterSequence entity.
+ * Model for representing integration.
  */
-public interface CounterSequenceRepository extends CrudRepository<CounterSequence, Long> {
+@ToString
+@EqualsAndHashCode
+public abstract class Integration {
 
     /**
-     * Runs transaction which adds one to counter sequence with given id. It is used
-     * for safe database incrementing to prevent race condition.
+     * Default constructor for integration.
      * 
-     * @param counterId should not be {@literal null}.
-     * @return counter sequence value after transaction.
+     * @param id       unique number of id within service and provider
+     * @param service  name of provided service by integration
+     * @param provider provider of service for integration
+     * @param active   whether integration is active
+     * @param data     custom data for integration
      */
-    @Procedure("counter_increment")
-    long getIncrementCounter(long counterId);
+    protected Integration(long id, String service, String provider, boolean active, Object data) {
+        this.id = String.format("%s_%s_%d", service, provider, id);
+        this.service = service;
+        this.provider = provider;
+        this.active = active;
+        this.data = data;
+    }
+
+    @Getter
+    @Setter
+    @NotNull
+    private String id;
+
+    @Setter
+    @Getter
+    @NotNull
+    private String service;
+
+    @Setter
+    @Getter
+    @NotNull
+    private String provider;
+
+    @Setter
+    @Getter
+    private boolean active;
+
+    @Setter
+    @Getter
+    @NotNull
+    private Object data;
+
 }

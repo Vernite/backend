@@ -43,7 +43,7 @@ import org.hibernate.annotations.OnDeleteAction;
  * Entity for representing relation between workspace (with user) and project.
  * Constrains privileges of user in project.
  */
-@Entity
+@Entity(name = "project_workspace")
 public class ProjectWorkspace {
     @EmbeddedId
     private ProjectWorkspaceKey id;

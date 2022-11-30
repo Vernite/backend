@@ -79,7 +79,7 @@ public class UserResolver implements HandlerMethodArgumentResolver {
             }
         }
         if (parameter.hasParameterAnnotation(NotNull.class)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "user not logged");
+            throw new AuthException();
         } else {
             return null;
         }

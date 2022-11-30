@@ -159,7 +159,7 @@ public class ProjectIntegrationTests {
         } catch (DataIntegrityViolationException e) {
             session = sessionRepository.findBySession("session_token_git_tests").orElseThrow();
         }
-        workspace = workspaceRepository.save(new Workspace(1, user, "Project Tests"));
+        workspace = workspaceRepository.save(new Workspace(1, "Project Tests", user));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
 
     }

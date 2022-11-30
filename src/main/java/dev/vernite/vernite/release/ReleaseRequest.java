@@ -43,17 +43,14 @@ public class ReleaseRequest {
     private Optional<String> description = Optional.empty();
     @Schema(description = "Estimated time to publish release.")
     private Optional<Date> deadline = Optional.empty();
-    @Schema(description = "Whether release has been released. Ignored when creating release.")
-    private Optional<Boolean> released = Optional.empty();
 
     public ReleaseRequest() {
     }
 
-    public ReleaseRequest(String name, String description, Date deadline, boolean released) {
+    public ReleaseRequest(String name, String description, Date deadline) {
         this.name = Optional.ofNullable(name);
         this.description = Optional.ofNullable(description);
         this.deadline = Optional.ofNullable(deadline);
-        this.released = Optional.ofNullable(released);
     }
 
     /**
@@ -106,16 +103,5 @@ public class ReleaseRequest {
 
     public void setDeadline(Date deadline) {
         this.deadline = Optional.ofNullable(deadline);
-    }
-
-    public Optional<Boolean> getReleased() {
-        return released;
-    }
-
-    public void setReleased(Boolean released) {
-        if (released == null) {
-            throw new FieldErrorException("released", NULL_VALUE);
-        }
-        this.released = Optional.of(released);
     }
 }
