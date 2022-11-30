@@ -34,6 +34,7 @@ import org.springframework.core.env.Environment;
 import com.slack.api.bolt.App;
 import com.slack.api.bolt.AppConfig;
 import com.slack.api.bolt.AppConfig.AppConfigBuilder;
+import com.slack.api.model.event.MessageEvent;
 
 import dev.vernite.vernite.integration.communicator.slack.entity.SlackInstallationRepository;
 
@@ -46,8 +47,15 @@ public class SlackConfiguration {
                 .clientId(env.getProperty("slack.clientId"))
                 .clientSecret(env.getProperty("slack.clientSecret"))
                 .userScope(env.getProperty("slack.userScope"));
-        return new App(builder.build()).asOAuthApp(true).service(service)
-                .enableTokenRevocationHandlers();
+        App app = new App(builder.build()).service(service).enableTokenRevocationHandlers();
+
+        app.event(MessageEvent.class, (payload, ctx) -> {
+            MessageEvent event = payload.getEvent();
+            ctx.logger.error("Message: {} - {}", event.getText(), ctx.getRequestUserId());
+            return ctx.ack();
+        });
+
+        return app;
     }
 
     @Bean
