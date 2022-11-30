@@ -15,6 +15,12 @@
 	<properties>
 		<java.version>17</java.version>
 	</properties>
+	<repositories>
+		<repository>
+			<id>vernite-protobuf</id>
+			<url>https://vernite.github.io/protobuf/</url>
+		</repository>
+	</repositories>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -109,6 +115,15 @@
 			<groupId>org.mnode.ical4j</groupId>
 			<artifactId>ical4j</artifactId>
 			<version>3.2.7</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>dev.vernite</groupId>
+			<artifactId>protobuf</artifactId>
+			<version>1.0.14-SNAPSHOT</version>
 		</dependency>
 	</dependencies>
 
