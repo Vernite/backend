@@ -40,6 +40,7 @@ public class SlackMessage extends Message {
      * @param m Slack message.
      */
     public SlackMessage(com.slack.api.model.Message m) {
+        
         super(m.getClientMsgId(), m.getUser(), m.getChannel(), m.getText(), m.getTs(), "slack");
     }
 

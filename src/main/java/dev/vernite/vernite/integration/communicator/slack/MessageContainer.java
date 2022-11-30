@@ -31,21 +31,29 @@ import java.util.List;
 
 import com.slack.api.methods.response.conversations.ConversationsHistoryResponse;
 
-import dev.vernite.vernite.integration.communicator.model.Message;
-import dev.vernite.vernite.integration.communicator.slack.model.SlackMessage;
+import dev.vernite.protobuf.CommunicatorModel;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 public class MessageContainer {
     @Schema(description = "Null means there is no more messages to load.")
     private String cursor;
 
-    private List<Message> messages;
+    private List<CommunicatorModel.Message> messages;
 
     public MessageContainer(ConversationsHistoryResponse response) {
         if (response.isHasMore()) {
             this.setCursor(response.getResponseMetadata().getNextCursor());
         }
-        this.setMessages(response.getMessages().stream().map(m -> (Message) new SlackMessage(m)).toList());
+        this.setMessages(response.getMessages().stream()
+                .map(m -> CommunicatorModel.Message.newBuilder()
+                        .setId(m.getClientMsgId())
+                        .setUser(m.getUser())
+                        .setChannel(m.getChannel())
+                        .setContent(m.getText())
+                        .setTimestamp(m.getTs())
+                        .setProvider("slack")
+                        .build())
+                .toList());
     }
 
     public String getCursor() {
@@ -56,11 +64,11 @@ public class MessageContainer {
         this.cursor = cursor;
     }
 
-    public List<Message> getMessages() {
+    public List<CommunicatorModel.Message> getMessages() {
         return messages;
     }
 
-    public void setMessages(List<Message> messages) {
+    public void setMessages(List<CommunicatorModel.Message> messages) {
         this.messages = messages;
     }
 }
