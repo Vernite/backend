@@ -58,7 +58,6 @@ public class SlackConfiguration {
 
         app.event(MessageEvent.class, (payload, ctx) -> {
             MessageEvent event = payload.getEvent();
-            ctx.logger.error("Message: {} - {}", event.getText(), ctx.getRequestUserId());
             var response = ctx.client().appsEventAuthorizationsList(AppsEventAuthorizationsListRequest.builder()
                     .token(env.getProperty("slack.app.level.token")).eventContext(payload.getEventContext()).build());
             if (!response.isOk()) {
@@ -69,7 +68,7 @@ public class SlackConfiguration {
                 repository.findByTeamIdAndInstallerUserId(authorizations.getTeamId(), authorizations.getUserId())
                         .ifPresent(inst -> {
                             // send by websocket
-                            ctx.logger.error("Message to user: {}", inst.getUser().getUsername());
+                            ctx.logger.info("Message to user: {}", inst.getUser().getUsername());
                         });
             }
             return ctx.ack();

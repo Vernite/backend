@@ -21,8 +21,8 @@
 			<url>https://vernite.github.io/protobuf/</url>
 		</repository>
 		<repository>
-		    <id>jitpack.io</id>
-		    <url>https://jitpack.io</url>
+			<id>jitpack.io</id>
+			<url>https://jitpack.io</url>
 		</repository>
 	</repositories>
 	<dependencies>
@@ -155,28 +155,28 @@
 		</dependency>
 
 		<dependency>
-            <groupId>com.github.Vernite.java-slack-sdk</groupId>
-            <artifactId>bolt</artifactId>
-            <version>8f80be0ba7</version>
-        </dependency>
-        
-        <dependency>
-            <groupId>com.github.Vernite.java-slack-sdk</groupId>
-            <artifactId>bolt-servlet</artifactId>
-            <version>8f80be0ba7</version>
-        </dependency>
+			<groupId>com.github.Vernite.java-slack-sdk</groupId>
+			<artifactId>bolt</artifactId>
+			<version>8f80be0ba7</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>com.github.Vernite.java-slack-sdk</groupId>
+			<artifactId>bolt-servlet</artifactId>
+			<version>8f80be0ba7</version>
+		</dependency>
 
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>1.7.36</version>
-        </dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<version>1.7.36</version>
+		</dependency>
 
-        <dependency>
-            <groupId>com.github.Vernite.java-slack-sdk</groupId>
-            <artifactId>slack-api-client</artifactId>
-            <version>8f80be0ba7</version>
-        </dependency>
+		<dependency>
+			<groupId>com.github.Vernite.java-slack-sdk</groupId>
+			<artifactId>slack-api-client</artifactId>
+			<version>8f80be0ba7</version>
+		</dependency>
 	</dependencies>
 
 	<build>
