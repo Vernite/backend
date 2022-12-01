@@ -27,6 +27,7 @@
 
 package dev.vernite.vernite.integration.communicator.slack;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -34,12 +35,18 @@ import org.springframework.core.env.Environment;
 import com.slack.api.bolt.App;
 import com.slack.api.bolt.AppConfig;
 import com.slack.api.bolt.AppConfig.AppConfigBuilder;
+import com.slack.api.methods.request.apps.event.authorizations.AppsEventAuthorizationsListRequest;
+import com.slack.api.methods.response.apps.event.authorizations.AppsEventAuthorizationsListResponse.Authorization;
 import com.slack.api.model.event.MessageEvent;
 
 import dev.vernite.vernite.integration.communicator.slack.entity.SlackInstallationRepository;
 
 @Configuration
 public class SlackConfiguration {
+
+    @Autowired
+    private SlackInstallationRepository repository;
+
     @Bean
     public App initSlackApp(VerniteInstallationService service, Environment env) {
         AppConfigBuilder builder = AppConfig.builder()
@@ -47,11 +54,24 @@ public class SlackConfiguration {
                 .clientId(env.getProperty("slack.clientId"))
                 .clientSecret(env.getProperty("slack.clientSecret"))
                 .userScope(env.getProperty("slack.userScope"));
-        App app = new App(builder.build()).service(service).enableTokenRevocationHandlers();
+        final App app = new App(builder.build()).service(service).enableTokenRevocationHandlers();
 
         app.event(MessageEvent.class, (payload, ctx) -> {
             MessageEvent event = payload.getEvent();
             ctx.logger.error("Message: {} - {}", event.getText(), ctx.getRequestUserId());
+            var response = ctx.client().appsEventAuthorizationsList(AppsEventAuthorizationsListRequest.builder()
+                    .token(env.getProperty("slack.app.level.token")).eventContext(payload.getEventContext()).build());
+            if (!response.isOk()) {
+                ctx.logger.error("Cannot get authorizations: {}", response.getError());
+                return ctx.ack();
+            }
+            for (Authorization authorizations : response.getAuthorizations()) {
+                repository.findByTeamIdAndInstallerUserId(authorizations.getTeamId(), authorizations.getUserId())
+                        .ifPresent(inst -> {
+                            // send by websocket
+                            ctx.logger.error("Message to user: {}", inst.getUser().getUsername());
+                        });
+            }
             return ctx.ack();
         });
 
