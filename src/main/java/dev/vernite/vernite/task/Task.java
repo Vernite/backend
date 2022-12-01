@@ -36,6 +36,7 @@ import java.util.Set;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EntityListeners;
 import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -49,10 +50,14 @@ import javax.persistence.OneToOne;
 import javax.persistence.OrderBy;
 import javax.validation.constraints.NotNull;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.annotations.Where;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonProperty.Access;
 
 import dev.vernite.vernite.integration.git.Issue;
@@ -68,10 +73,7 @@ import dev.vernite.vernite.utils.SoftDeleteEntity;
 import lombok.Getter;
 import lombok.Setter;
 
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-import org.hibernate.annotations.Where;
-
+@EntityListeners(TaskListener.class)
 @Entity
 @JsonInclude(Include.NON_NULL)
 public class Task extends SoftDeleteEntity {
@@ -431,4 +433,6 @@ public class Task extends SoftDeleteEntity {
     public List<Long> getArchivedSprintIds() {
         return this.getArchiveSprints().stream().map(Sprint::getNumber).toList();
     }
+
+
 }
