@@ -71,7 +71,7 @@ public class SlackConfiguration {
                         .ifPresent(inst -> {
                             CommunicatorModel.Message message = CommunicatorModel.Message
                                     .newBuilder()
-                                    .setId(event.getClientMsgId())
+                                    .setId(event.getClientMsgId() == null ? "" : event.getClientMsgId())
                                     .setUser(event.getUser())
                                     .setChannel(event.getChannel())
                                     .setContent(event.getText())
