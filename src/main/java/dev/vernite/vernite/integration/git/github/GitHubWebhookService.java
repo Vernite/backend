@@ -31,9 +31,15 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.commons.codec.digest.HmacAlgorithms;
+import org.apache.commons.codec.digest.HmacUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import dev.vernite.vernite.common.utils.counter.CounterSequenceRepository;
 import dev.vernite.vernite.integration.git.github.data.GitHubCommit;
@@ -55,14 +61,6 @@ import dev.vernite.vernite.task.Task;
 import dev.vernite.vernite.task.TaskRepository;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.user.UserRepository;
-
-import org.apache.commons.codec.digest.HmacAlgorithms;
-import org.apache.commons.codec.digest.HmacUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

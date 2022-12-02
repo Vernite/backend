@@ -48,6 +48,8 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.OrderBy;
+import javax.persistence.PrePersist;
+import javax.persistence.PreUpdate;
 import javax.validation.constraints.NotNull;
 
 import org.hibernate.annotations.OnDelete;
@@ -192,6 +194,11 @@ public class Task extends SoftDeleteEntity {
     @ManyToOne
     @JsonIgnore
     private Release release;
+
+    @Getter
+    @Setter
+    @NotNull
+    private Date lastUpdated;
 
     public Task() {
     }
@@ -434,5 +441,9 @@ public class Task extends SoftDeleteEntity {
         return this.getArchiveSprints().stream().map(Sprint::getNumber).toList();
     }
 
-
+    @PrePersist
+    @PreUpdate
+    private void updateDate() {
+        this.setLastUpdated(new Date());
+    }
 }
