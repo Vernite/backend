@@ -72,7 +72,7 @@ public class SocketSession implements Closeable {
             return;
         }
         try {
-            session.sendMessage(new BinaryMessage(Any.pack(message).toByteArray()));
+            session.sendMessage(new BinaryMessage(Any.pack(message, "").toByteArray()));
         } catch (IOException e) {
             e.printStackTrace();
             try {
