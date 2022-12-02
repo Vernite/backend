@@ -271,6 +271,11 @@ public class User {
         this.counterSequence = counterSequence;
     }
 
+    @Override
+    public String toString() {
+        return "U[" + this.getUsername() + "#" + this.getId() + "]";
+    }
+
     // TODO: lombok auto generate
     @Override
     public int hashCode() {

@@ -44,6 +44,7 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 
 import dev.vernite.vernite.user.UserResolver;
 import dev.vernite.vernite.ws.SocketHandler;
+import dev.vernite.vernite.ws.WebSocketInterceptor;
 
 @EnableWebMvc
 @Configuration
@@ -53,6 +54,9 @@ public class WebConfig implements WebMvcConfigurer, WebSocketConfigurer {
 
     @Autowired
     private UserResolver userResolver;
+
+    @Autowired
+    private WebSocketInterceptor webSocketInterceptor;
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
@@ -70,7 +74,10 @@ public class WebConfig implements WebMvcConfigurer, WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(new SocketHandler(), "/ws").setAllowedOrigins("http://localhost:4200",
+        registry.addHandler(new SocketHandler(), "/ws")
+            .addInterceptors(webSocketInterceptor)
+            .setAllowedOrigins(
+                "http://localhost:4200",
                 "http://localhost:4201", "https://vernite.dev", "tauri://localhost");
     }
 
