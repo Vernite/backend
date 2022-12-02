@@ -96,6 +96,9 @@ public class PacketExecutor {
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
+        for (Descriptor i : descriptor.getNestedTypes()) {
+            fill(packetClasses, handlers, i);
+        }
     }
 
     static {
