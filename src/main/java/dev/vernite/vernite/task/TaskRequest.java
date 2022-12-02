@@ -76,6 +76,8 @@ public class TaskRequest {
     private Optional<Optional<Long>> sprintId = Optional.empty();
     @Schema(description = "Amount of story points for the task.")
     private Optional<Long> storyPoints = Optional.empty();
+    @Schema(description = "Release id for the task.")
+    private Optional<Optional<Long>> releaseId = Optional.empty();
 
     public TaskRequest() {
     }
@@ -232,5 +234,13 @@ public class TaskRequest {
 
     public Optional<Optional<Long>> getSprintId() {
         return sprintId;
+    }
+
+    public void setReleaseId(Long id) {
+        this.releaseId = Optional.of(Optional.ofNullable(id));
+    }
+
+    public Optional<Optional<Long>> getReleaseId() {
+        return releaseId;
     }
 }

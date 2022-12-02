@@ -51,6 +51,8 @@ import dev.vernite.vernite.common.utils.counter.CounterSequenceRepository;
 import dev.vernite.vernite.integration.git.GitTaskService;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.project.ProjectRepository;
+import dev.vernite.vernite.release.Release;
+import dev.vernite.vernite.release.ReleaseRepository;
 import dev.vernite.vernite.sprint.Sprint;
 import dev.vernite.vernite.sprint.SprintRepository;
 import dev.vernite.vernite.status.Status;
@@ -88,6 +90,8 @@ public class TaskController {
     @Autowired
     private SprintRepository sprintRepository;
     @Autowired
+    private ReleaseRepository releaseRepository;
+    @Autowired
     private CounterSequenceRepository counterSequenceRepository;
     @Autowired
     private TimeTrackRepository trackRepository;
@@ -111,6 +115,25 @@ public class TaskController {
             }
         }
         task.setSprint(sprint);
+    }
+
+    /**
+     * Handle the request to change release ID of a task.
+     * 
+     * @param sprintId the release id (can be null)
+     * @param task     the task
+     * @param project  the project
+     */
+    private void handleReleaseId(Long releaseId, Task task, Project project) {
+        Release release = null;
+        if (releaseId != null) {
+            release = releaseRepository.findById(releaseId)
+                    .orElseThrow(() -> new ObjectNotFoundException());
+            if (release.getProject().getId() != project.getId()) {
+                throw new ObjectNotFoundException();
+            }
+        }
+        task.setRelease(release);
     }
 
     /**
@@ -194,6 +217,7 @@ public class TaskController {
         taskRequest.getAssigneeId().ifPresent(assigneeId -> handleAssignee(assigneeId, task));
         taskRequest.getParentTaskId().ifPresent(parentTaskId -> handleParent(parentTaskId, task, project));
         taskRequest.getStoryPoints().ifPresent(task::setStoryPoints);
+        taskRequest.getReleaseId().ifPresent(releaseId -> handleReleaseId(releaseId.orElse(null), task, project));
 
         if (task.getType() == Task.TaskType.SUBTASK.ordinal() && task.getParentTask() == null) {
             throw new FieldErrorException(PARENT_FIELD, "subtask must have parent");
@@ -231,6 +255,8 @@ public class TaskController {
         if (task.getType() == Task.TaskType.SUBTASK.ordinal() && task.getParentTask() == null) {
             throw new FieldErrorException(PARENT_FIELD, "subtask must have parent");
         }
+        taskRequest.getStoryPoints().ifPresent(task::setStoryPoints);
+        taskRequest.getReleaseId().ifPresent(releaseId -> handleReleaseId(releaseId.orElse(null), task, project));
 
         Task savedTask = taskRepository.save(task);
         List<Mono<Void>> results = new ArrayList<>();
