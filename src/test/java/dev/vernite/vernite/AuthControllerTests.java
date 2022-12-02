@@ -27,9 +27,6 @@
 
 package dev.vernite.vernite;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
 import java.util.Date;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -40,8 +37,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseCookie;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
@@ -51,10 +46,6 @@ import dev.vernite.vernite.user.UserRepository;
 import dev.vernite.vernite.user.UserSession;
 import dev.vernite.vernite.user.UserSessionRepository;
 import dev.vernite.vernite.user.auth.AuthController;
-import dev.vernite.vernite.user.auth.ChangePasswordRequest;
-import dev.vernite.vernite.user.auth.LoginRequest;
-import dev.vernite.vernite.user.auth.PasswordRecoveryRequest;
-import dev.vernite.vernite.user.auth.RegisterRequest;
 
 @SpringBootTest
 @AutoConfigureMockMvc

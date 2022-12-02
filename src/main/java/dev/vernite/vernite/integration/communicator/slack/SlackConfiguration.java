@@ -39,7 +39,9 @@ import com.slack.api.methods.request.apps.event.authorizations.AppsEventAuthoriz
 import com.slack.api.methods.response.apps.event.authorizations.AppsEventAuthorizationsListResponse.Authorization;
 import com.slack.api.model.event.MessageEvent;
 
+import dev.vernite.protobuf.CommunicatorModel;
 import dev.vernite.vernite.integration.communicator.slack.entity.SlackInstallationRepository;
+import dev.vernite.vernite.ws.SocketHandler;
 
 @Configuration
 public class SlackConfiguration {
@@ -67,8 +69,16 @@ public class SlackConfiguration {
             for (Authorization authorizations : response.getAuthorizations()) {
                 repository.findByTeamIdAndInstallerUserId(authorizations.getTeamId(), authorizations.getUserId())
                         .ifPresent(inst -> {
-                            // send by websocket
-                            ctx.logger.info("Message to user: {}", inst.getUser().getUsername());
+                            CommunicatorModel.Message message = CommunicatorModel.Message
+                                    .newBuilder()
+                                    .setId(event.getClientMsgId())
+                                    .setUser(event.getUser())
+                                    .setChannel(event.getChannel())
+                                    .setContent(event.getText())
+                                    // TODO .setTimestamp(event.getTs())
+                                    .setProvider("slack")
+                                    .build();
+                            SocketHandler.sendToUser(inst.getUser().getId(), message);
                         });
             }
             return ctx.ack();

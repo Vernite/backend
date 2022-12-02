@@ -27,6 +27,7 @@
 
 package dev.vernite.vernite.ws;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,13 +49,29 @@ import dev.vernite.protobuf.KeepAlive;
 public class SocketHandler extends BinaryWebSocketHandler {
     private static final Set<SocketSession> SESSIONS = new CopyOnWriteArraySet<>();
     private static final Map<WebSocketSession, SocketSession> SESSION_MAP = new ConcurrentHashMap<>();
+    private static final Map<Long, Set<SocketSession>> SESSIONS_BY_USER = new ConcurrentHashMap<>();
+
+    public static void sendToUser(long userId, Message.Builder message) {
+        sendToUser(userId, message.build());
+    }
+
+    public static void sendToUser(long userId, Message message) {
+        Set<SocketSession> sessions = SESSIONS_BY_USER.get(userId);
+        if (sessions != null) {
+            bc(sessions, message);
+        }
+    }
 
     public static void bc(Message.Builder message) {
         SocketHandler.bc(message.build());
     }
 
     public static void bc(Message message) {
-        for (SocketSession s : SESSIONS) {
+        SocketHandler.bc(SESSIONS, message);
+    }
+
+    private static void bc(Collection<SocketSession> sessions, Message message) {
+        for (SocketSession s : sessions) {
             s.send(message);
         }
     }
@@ -76,6 +93,9 @@ public class SocketHandler extends BinaryWebSocketHandler {
         if (s != null) {
             SESSIONS.remove(s);
             SESSION_MAP.remove(session);
+            if (s.getUser() != null) {
+                SESSIONS_BY_USER.get(s.getUser().getId()).remove(s);
+            }
             s.close();
         }
     }
@@ -85,6 +105,9 @@ public class SocketHandler extends BinaryWebSocketHandler {
         SocketSession s = new SocketSession(session);
         SESSIONS.add(s);
         SESSION_MAP.put(session, s);
+        if (s.getUser() != null) {
+            SESSIONS_BY_USER.computeIfAbsent(s.getUser().getId(), k -> new CopyOnWriteArraySet<>()).add(s);
+        }
     }
 
     @Scheduled(cron = "* * * * * *")
