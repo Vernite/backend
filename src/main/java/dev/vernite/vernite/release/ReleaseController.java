@@ -43,6 +43,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import dev.vernite.vernite.common.exception.ConflictStateException;
 import dev.vernite.vernite.integration.git.GitTaskService;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.project.ProjectRepository;
@@ -143,7 +144,8 @@ public class ReleaseController {
     @ApiResponse(description = "Project or release not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @PutMapping("/{id}/publish")
     public Mono<Release> publish(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @PathVariable long id, boolean publishGitService, @Parameter(required = false, in = ParameterIn.QUERY, description = "Not required") String branch) {
+            @PathVariable long id, boolean publishGitService,
+            @Parameter(required = false, in = ParameterIn.QUERY, description = "Not required") String branch) {
         Project project = projectRepository.findByIdOrThrow(projectId);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
@@ -186,6 +188,9 @@ public class ReleaseController {
         Release release = releaseRepository.findByIdOrThrow(id);
         if (release.getProject().getId() != projectId) {
             throw new ObjectNotFoundException();
+        }
+        if (release.getReleased()) {
+            throw new ConflictStateException("cannot delete release that has already been released");
         }
         release.softDelete();
         releaseRepository.save(release);
