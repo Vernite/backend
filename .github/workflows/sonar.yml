@@ -29,6 +29,14 @@ jobs:
           mysql -h 127.0.0.1 -uroot -proot -e 'create database vernite_test charset utf8mb4'
           mysql -h 127.0.0.1 -uroot -proot -e 'create user "vernite"@"localhost" identified by "${{ secrets.MYSQL_PASSWORD }}"'
           mysql -h 127.0.0.1 -uroot -proot -e 'grant all on *.* to "vernite"@"localhost" with grant option'
+      - name: Install properties
+        run: 'echo "$SPRING_APPLICATION_PROPERTIES" > application.properties'
+        env:
+          SPRING_APPLICATION_PROPERTIES: ${{ secrets.SPRING_APPLICATION_PROPERTIES }}
+      - name: Prepare secret
+        run: |
+          echo "${{ secrets.VERNITE_2022_PRIVATE_KEY_PEM }}" > key.pem
+          openssl pkcs8 -topk8 -inform pem -in key.pem -out "vernite-2022.private-key.der" -outform der -nocrypt
       - name: Cache Maven packages
         uses: actions/cache@v1
         with:
