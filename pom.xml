@@ -87,13 +87,6 @@
 		</dependency>
 
 		<dependency>
-			<!-- TODO: This dependency should not be here but it does not work without it -->
-			<groupId>org.springdoc</groupId>
-			<artifactId>springdoc-openapi-javadoc</artifactId>
-			<version>1.6.13</version>
-		</dependency>
-
-		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-api</artifactId>
 			<version>0.10.5</version>
@@ -174,6 +167,13 @@
 			<artifactId>slack-api-client</artifactId>
 			<version>8f80be0ba7</version>
 		</dependency>
+
+		<dependency>
+			<groupId>com.github.therapi</groupId>
+			<artifactId>therapi-runtime-javadoc</artifactId>
+			<version>0.15.0</version>
+		</dependency>
+		
 	</dependencies>
 
 	<build>
