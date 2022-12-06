@@ -29,8 +29,8 @@ package dev.vernite.vernite.status;
 
 import java.util.List;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 import dev.vernite.vernite.common.exception.ConflictStateException;
 import dev.vernite.vernite.project.Project;

@@ -2,7 +2,7 @@ package dev.vernite.vernite.event;
 
 import java.util.List;
 
-import org.springdoc.api.annotations.ParameterObject;
+import org.springdoc.core.annotations.ParameterObject;
 
 import dev.vernite.vernite.event.Event.Type;
 

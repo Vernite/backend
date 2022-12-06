@@ -32,8 +32,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletResponse;
-import javax.validation.constraints.NotNull;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.constraints.NotNull;
 
 import dev.vernite.vernite.integration.git.github.data.GitHubIntegrationInfo;
 import dev.vernite.vernite.integration.git.github.entity.GitHubInstallation;

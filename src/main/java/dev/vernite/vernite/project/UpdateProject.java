@@ -27,8 +27,8 @@
 
 package dev.vernite.vernite.project;
 
-import javax.validation.constraints.Positive;
-import javax.validation.constraints.Size;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
 import dev.vernite.vernite.common.constraints.NullOrNotBlank;
 import lombok.AllArgsConstructor;

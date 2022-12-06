@@ -27,7 +27,7 @@
 
 package dev.vernite.vernite.integration.common;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;

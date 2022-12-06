@@ -30,7 +30,7 @@ package dev.vernite.vernite.user;
 import java.util.Date;
 import java.util.List;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 
 import org.springframework.data.repository.CrudRepository;
 
