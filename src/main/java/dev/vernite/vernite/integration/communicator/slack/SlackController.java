@@ -47,7 +47,9 @@ import com.slack.api.bolt.App;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.auth.AuthRevokeRequest;
 import com.slack.api.methods.request.conversations.ConversationsHistoryRequest;
+import com.slack.api.methods.request.conversations.ConversationsInfoRequest;
 import com.slack.api.methods.request.conversations.ConversationsListRequest;
+import com.slack.api.methods.request.conversations.ConversationsMembersRequest;
 import com.slack.api.methods.request.oauth.OAuthV2AccessRequest;
 import com.slack.api.methods.request.users.UsersInfoRequest;
 import com.slack.api.methods.response.auth.AuthRevokeResponse;
@@ -212,5 +214,68 @@ public class SlackController {
             throw new ExternalApiException("slack", "Cannot get list of channels");
         }
         return new MessageContainer(response);
+    }
+
+    /**
+     * Get channel members.
+     * 
+     * @param user      logged in user
+     * @param id        slack integration id
+     * @param channelId slack channel id
+     * @return list of channel members
+     * @throws SlackApiException
+     * @throws IOException
+     */
+    @GetMapping("/user/integration/slack/{id}/channel/{channelId}/members")
+    public List<ChatUser> channelMembers(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+            @PathVariable String channelId) throws IOException, SlackApiException {
+        SlackInstallation installation = installationRepository.findById(id).orElseThrow(ObjectNotFoundException::new);
+        if (installation.getUser().getId() != user.getId()) {
+            throw new ObjectNotFoundException();
+        }
+        var response = app.client().conversationsMembers(
+                ConversationsMembersRequest.builder().token(installation.getToken()).channel(channelId).build());
+        if (!response.isOk()) {
+            throw new ExternalApiException("slack", "Cannot get list of channel members");
+        }
+        return response.getMembers().stream().map(userId -> {
+            UsersInfoResponse userResponse;
+            try {
+                userResponse = app.client()
+                        .usersInfo(UsersInfoRequest.builder().token(installation.getToken()).user(userId).build());
+            } catch (IOException | SlackApiException e) {
+                throw new ExternalApiException("slack", "Cannot get list of channel members");
+            }
+            if (!userResponse.isOk()) {
+                throw new ExternalApiException("slack", "Cannot get user details");
+            }
+            return (ChatUser) new SlackUser(userResponse.getUser());
+        }).toList();
+    }
+
+    /**
+     * Get channel.
+     * 
+     * @param user      logged in user
+     * @param id        slack integration id
+     * @param channelId slack channel id
+     * @return slack channel
+     * @throws IOException
+     * @throws SlackApiException
+     */
+    @GetMapping("/user/integration/slack/{id}/channel/{channelId}/info")
+    public Channel channel(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+            @PathVariable String channelId)
+            throws IOException, SlackApiException {
+        SlackInstallation installation = installationRepository.findById(id).orElseThrow(ObjectNotFoundException::new);
+        if (installation.getUser().getId() != user.getId()) {
+            throw new ObjectNotFoundException();
+        }
+        var response = app.client().conversationsInfo(
+                ConversationsInfoRequest.builder().token(installation.getToken()).channel(channelId).build());
+        if (!response.isOk()) {
+            throw new ExternalApiException("slack", "Cannot get list of channels");
+        }
+        return (Channel) new SlackChannel(response.getChannel());
     }
 }

@@ -33,6 +33,7 @@ import java.util.Optional;
 
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 
@@ -116,7 +117,7 @@ public class TaskFilter {
             predicates.add(builder.equal(root.get(STATUS).get("project"), project));
             predicates.add(builder.isNull(root.get("active")));
             predicates.add(builder.notEqual(root.get("type"), TaskType.SUBTASK.ordinal()));
-            sprintId.ifPresent(id -> predicates.add(builder.or(builder.in(root.join("archiveSprints").get(NUMBER)).value(id), builder.equal(root.get("sprint").get(NUMBER), id))));
+            sprintId.ifPresent(id -> predicates.add(builder.or(builder.in(root.join("archiveSprints", JoinType.LEFT).get(NUMBER)).value(id), builder.equal(root.get("sprint").get(NUMBER), id))));
             assigneeId.ifPresent(id -> predicates.add(builder.equal(root.get("assignee").get("id"), id)));
             statusId.ifPresent(ids -> predicates.add(builder.in(root.get(STATUS).get("id")).value(ids)));
             type.ifPresent(types -> predicates.add(builder.in(root.get("type")).value(types)));
@@ -129,6 +130,7 @@ public class TaskFilter {
                     predicates.add(builder.equal(root.get(STATUS).get("isFinal"), false));
                 }
             });
+            query.distinct(true);
             return builder.and(predicates.toArray(new Predicate[predicates.size()]));
         };
     }
