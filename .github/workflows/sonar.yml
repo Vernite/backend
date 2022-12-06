@@ -1,4 +1,4 @@
-name: Build
+name: Sonar
 on:
   push:
     branches:
@@ -22,6 +22,13 @@ jobs:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
+      - name: Install and configure MySQL
+        run: |
+          sudo systemctl start mysql.service
+          mysql -h 127.0.0.1 -uroot -proot -e 'create database vernite charset utf8mb4'
+          mysql -h 127.0.0.1 -uroot -proot -e 'create database vernite_test charset utf8mb4'
+          mysql -h 127.0.0.1 -uroot -proot -e 'create user "vernite"@"localhost" identified by "${{ secrets.MYSQL_PASSWORD }}"'
+          mysql -h 127.0.0.1 -uroot -proot -e 'grant all on *.* to "vernite"@"localhost" with grant option'
       - name: Cache Maven packages
         uses: actions/cache@v1
         with:
