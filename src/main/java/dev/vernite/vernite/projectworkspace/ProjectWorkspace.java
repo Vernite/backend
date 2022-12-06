@@ -27,11 +27,11 @@
 
 package dev.vernite.vernite.projectworkspace;
 
-import javax.persistence.EmbeddedId;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.ManyToOne;
-import javax.persistence.MapsId;
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapsId;
 
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.workspace.Workspace;

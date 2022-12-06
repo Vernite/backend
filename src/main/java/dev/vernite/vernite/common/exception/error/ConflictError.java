@@ -27,7 +27,7 @@
 
 package dev.vernite.vernite.common.exception.error;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 
 import lombok.Getter;
 

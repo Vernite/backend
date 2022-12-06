@@ -29,7 +29,7 @@ package dev.vernite.vernite.projectworkspace;
 
 import java.io.Serializable;
 
-import javax.persistence.Embeddable;
+import jakarta.persistence.Embeddable;
 
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.workspace.Workspace;

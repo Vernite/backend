@@ -29,9 +29,9 @@ package dev.vernite.vernite.workspace;
 
 import java.io.Serializable;
 
-import javax.persistence.Embeddable;
-import javax.validation.constraints.Positive;
-import javax.validation.constraints.PositiveOrZero;
+import jakarta.persistence.Embeddable;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;

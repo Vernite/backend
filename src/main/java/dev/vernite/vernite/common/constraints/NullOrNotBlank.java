@@ -40,8 +40,8 @@ import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
-import javax.validation.Constraint;
-import javax.validation.Payload;
+import jakarta.validation.Constraint;
+import jakarta.validation.Payload;
 
 import dev.vernite.vernite.common.constraints.NullOrNotBlank.List;
 import dev.vernite.vernite.common.validators.NullOrNotBlankValidator;

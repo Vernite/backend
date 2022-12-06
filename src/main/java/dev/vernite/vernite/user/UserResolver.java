@@ -30,9 +30,9 @@ package dev.vernite.vernite.user;
 import java.util.Date;
 import java.util.Optional;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.validation.constraints.NotNull;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.NotNull;
 
 import dev.vernite.vernite.user.auth.AuthController;
 

@@ -32,7 +32,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-import javax.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Predicate;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;

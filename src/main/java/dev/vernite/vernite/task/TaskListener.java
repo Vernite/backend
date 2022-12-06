@@ -27,9 +27,9 @@
 
 package dev.vernite.vernite.task;
 
-import javax.persistence.PostPersist;
-import javax.persistence.PostRemove;
-import javax.persistence.PostUpdate;
+import jakarta.persistence.PostPersist;
+import jakarta.persistence.PostRemove;
+import jakarta.persistence.PostUpdate;
 
 import dev.vernite.protobuf.BasicAction;
 import dev.vernite.protobuf.Task.Builder;
