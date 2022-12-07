@@ -205,6 +205,7 @@ public class Task extends SoftDeleteEntity {
     @Setter
     @NotNull
     @JsonIgnore
+    @OrderBy("createdAt DESC")
     @OneToMany(mappedBy = "task")
     @OnDelete(action = OnDeleteAction.CASCADE)
     private List<Comment> comments = new ArrayList<>();

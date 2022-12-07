@@ -35,6 +35,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
@@ -74,7 +75,8 @@ public class Comment {
 
     @Column(nullable = false, length = 1000)
     @NotNull(message = "comment content cannot be null")
-    @Size(max = 1000, message = "comment must be shorter than 1000 characters")
+    @NotBlank(message = "comment content cannot be blank")
+    @Size(min = 1, max = 1000, message = "comment must be shorter than 1000 characters")
     private String content;
 
     @ToString.Exclude
