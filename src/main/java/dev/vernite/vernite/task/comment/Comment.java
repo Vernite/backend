@@ -61,7 +61,7 @@ public class Comment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @PositiveOrZero(message = "project ID must be non negative number")
+    @PositiveOrZero(message = "comment ID must be non negative number")
     private long id;
 
     @JsonIgnore

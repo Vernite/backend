@@ -28,7 +28,6 @@
 package dev.vernite.vernite.task.comment;
 
 import org.springframework.data.repository.CrudRepository;
-import org.springframework.stereotype.Repository;
 
 import dev.vernite.vernite.common.exception.EntityNotFoundException;
 import dev.vernite.vernite.task.Task;
@@ -36,7 +35,6 @@ import dev.vernite.vernite.task.Task;
 /**
  * CRUD repository for comment entity.
  */
-@Repository
 public interface CommentRepository extends CrudRepository<Comment, Long> {
 
     /**

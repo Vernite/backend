@@ -28,7 +28,6 @@
 package dev.vernite.vernite.status;
 
 import org.springframework.data.repository.CrudRepository;
-import org.springframework.stereotype.Repository;
 
 import dev.vernite.vernite.common.exception.EntityNotFoundException;
 import dev.vernite.vernite.project.Project;
@@ -36,7 +35,6 @@ import dev.vernite.vernite.project.Project;
 /**
  * CRUD repository for status entity.
  */
-@Repository
 public interface StatusRepository extends CrudRepository<Status, Long> {
 
     /**

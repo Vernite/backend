@@ -27,8 +27,6 @@
 
 package dev.vernite.vernite.project;
 
-import org.springframework.stereotype.Repository;
-
 import dev.vernite.vernite.common.exception.EntityNotFoundException;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.utils.SoftDeleteRepository;
@@ -36,7 +34,6 @@ import dev.vernite.vernite.utils.SoftDeleteRepository;
 /**
  * CRUD repository for project entity.
  */
-@Repository
 public interface ProjectRepository extends SoftDeleteRepository<Project, Long> {
 
     /**

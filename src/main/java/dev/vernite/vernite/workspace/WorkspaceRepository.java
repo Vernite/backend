@@ -28,14 +28,12 @@
 package dev.vernite.vernite.workspace;
 
 import org.springframework.data.repository.CrudRepository;
-import org.springframework.stereotype.Repository;
 
 import dev.vernite.vernite.common.exception.EntityNotFoundException;
 
 /*
  * CRUD repository for workspace entity.
  */
-@Repository
 public interface WorkspaceRepository extends CrudRepository<Workspace, WorkspaceId> {
 
     /**

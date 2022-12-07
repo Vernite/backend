@@ -27,9 +27,22 @@
 
 package dev.vernite.vernite.task.comment;
 
+import java.util.List;
+
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import dev.vernite.vernite.project.ProjectRepository;
+import dev.vernite.vernite.task.TaskRepository;
+import dev.vernite.vernite.user.User;
+import io.swagger.v3.oas.annotations.Parameter;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 
 /**
@@ -40,8 +53,99 @@ import lombok.AllArgsConstructor;
 @RequestMapping("/project/{projectId}/task/{taskId}/comment")
 public class CommentController {
 
+    private ProjectRepository projectRepository;
+
+    private TaskRepository taskRepository;
+
     private CommentRepository commentRepository;
 
-    // TODO: implement CRUD operations
+    /**
+     * Creates a new comment for a task.
+     * 
+     * @param user      the user who is creating the comment
+     * @param projectId the id of the project the task belongs to
+     * @param taskId    the number of the task
+     * @param create    data for new comment
+     * @return newly created comment
+     */
+    @PostMapping
+    public Comment create(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long taskId, @RequestBody CreateComment create) {
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        var task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
+        var comment = new Comment(task, user, create);
+        return commentRepository.save(comment);
+    }
+
+    /**
+     * Retrieves all comments for a task.
+     * 
+     * @param user      logged in user
+     * @param projectId id of the project the task belongs to
+     * @param taskId    number of the task
+     * @return list of comments
+     */
+    @GetMapping
+    public List<Comment> getAll(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long taskId) {
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        var task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
+        return task.getComments();
+    }
+
+    /**
+     * Retrieves a single comment.
+     * 
+     * @param user      logged in user
+     * @param projectId id of the project the task belongs to
+     * @param taskId    number of the task
+     * @param id        id of the comment
+     * @return comment
+     */
+    @GetMapping("/{id}")
+    public Comment get(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long taskId, @PathVariable long id) {
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        var task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
+        return commentRepository.findByIdAndTaskOrThrow(id, task);
+    }
+
+    /**
+     * Updates a comment. Performs partial update using only supplied
+     * fields from request body.
+     * 
+     * @param user      logged in user
+     * @param projectId id of the project the task belongs to
+     * @param taskId    number of the task
+     * @param id        id of the comment
+     * @param update    data to update
+     * @return updated comment
+     */
+    @PutMapping("/{id}")
+    public Comment update(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long taskId, @PathVariable long id, @RequestBody UpdateComment update) {
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        var task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
+        var comment = commentRepository.findByIdAndTaskOrThrow(id, task);
+        comment.update(update);
+        return commentRepository.save(comment);
+    }
+
+    /**
+     * Deletes a comment.
+     * 
+     * @param user      logged in user
+     * @param projectId id of the project the task belongs to
+     * @param taskId    number of the task
+     * @param id        id of the comment
+     */
+    @DeleteMapping("/{id}")
+    public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long taskId, @PathVariable long id) {
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        var task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
+        var comment = commentRepository.findByIdAndTaskOrThrow(id, task);
+        commentRepository.delete(comment);
+    }
 
 }
