@@ -47,7 +47,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 
 /**
- * Rest controller for performing CRUD operations on Projects entities.
+ * Rest controller for performing CRUD operations on Comment entities.
  */
 @RestController
 @AllArgsConstructor
