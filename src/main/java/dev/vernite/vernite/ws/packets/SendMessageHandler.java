@@ -28,7 +28,6 @@
 package dev.vernite.vernite.ws.packets;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.logging.Logger;
 
 import org.springframework.beans.BeansException;
@@ -36,8 +35,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
-import com.google.protobuf.Any;
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.slack.api.bolt.App;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.chat.ChatPostMessageRequest;
@@ -93,10 +90,4 @@ public class SendMessageHandler implements IHandler<SendMessage>, ApplicationCon
         SendMessageHandler.slackInstallationRepository = applicationContext.getBean(SlackInstallationRepository.class);
     }
 
-    // public static void main(String[] args) throws InvalidProtocolBufferException {
-    //     byte[] b = Any.pack(SendMessage.newBuilder().setChannel("D04CLSG3C5N").setContent("pozdrawiam ze springa")
-    //                 .setIntegrationID(9L)
-    //             .setProvider("slack").build()).toByteArray();
-    //     System.out.println(Arrays.toString(b));
-    // }
 }

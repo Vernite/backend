@@ -25,26 +25,33 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.workspace;
+package dev.vernite.vernite.task.comment;
 
 import org.springframework.data.repository.CrudRepository;
 
 import dev.vernite.vernite.common.exception.EntityNotFoundException;
+import dev.vernite.vernite.task.Task;
 
-/*
- * CRUD repository for workspace entity.
+/**
+ * CRUD repository for comment entity.
  */
-public interface WorkspaceRepository extends CrudRepository<Workspace, WorkspaceId> {
+public interface CommentRepository extends CrudRepository<Comment, Long> {
 
     /**
-     * Retrieves an entity by its ID.
+     * Find comment by id and task.
      * 
-     * @param id must not be null
-     * @return the entity with the given ID
-     * @throws EntityNotFoundException if entity is not found
+     * @param id   comment id
+     * @param task task
+     * @return comment with given id and task
+     * @throws EntityNotFoundException thrown when comment is not found or comment
+     *                                 is not assigned to given task
      */
-    default Workspace findByIdOrThrow(WorkspaceId id) throws EntityNotFoundException {
-        return findById(id).orElseThrow(() -> new EntityNotFoundException("workspace", id.getId()));
+    default Comment findByIdAndTaskOrThrow(long id, Task task) throws EntityNotFoundException {
+        Comment comment = findById(id).orElseThrow(() -> new EntityNotFoundException("comment", id));
+        if (comment.getTask().getId() != task.getId()) {
+            throw new EntityNotFoundException("comment", id);
+        }
+        return comment;
     }
 
 }

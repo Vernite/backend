@@ -84,7 +84,7 @@ import lombok.AllArgsConstructor;
 import reactor.core.publisher.Flux;
 
 /**
- * Rest controller for performing CRUD operations on projects entities.
+ * Rest controller for performing CRUD operations on Projects entities.
  */
 @RestController
 @AllArgsConstructor

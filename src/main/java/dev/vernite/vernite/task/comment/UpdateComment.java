@@ -25,26 +25,29 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.workspace;
+package dev.vernite.vernite.task.comment;
 
-import org.springframework.data.repository.CrudRepository;
+import dev.vernite.vernite.common.constraints.NullOrNotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import dev.vernite.vernite.common.exception.EntityNotFoundException;
-
-/*
- * CRUD repository for workspace entity.
+/**
+ * Class containing information needed to update comment entity.
+ * Has required constraints annotated using Java Bean Validation.
+ * It performs partial update using only present fields.
  */
-public interface WorkspaceRepository extends CrudRepository<Workspace, WorkspaceId> {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UpdateComment {
 
     /**
-     * Retrieves an entity by its ID.
-     * 
-     * @param id must not be null
-     * @return the entity with the given ID
-     * @throws EntityNotFoundException if entity is not found
+     * New content for comment. Must contain at least one non-whitespace character.
      */
-    default Workspace findByIdOrThrow(WorkspaceId id) throws EntityNotFoundException {
-        return findById(id).orElseThrow(() -> new EntityNotFoundException("workspace", id.getId()));
-    }
+    @Size(min = 1, max = 1000, message = "comment content must be shorter than 1000 characters")
+    @NullOrNotBlank(message = "comment content must contain at least one non-whitespace character")
+    private String content;
 
 }

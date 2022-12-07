@@ -29,12 +29,10 @@ package dev.vernite.vernite.common.utils.counter;
 
 import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.CrudRepository;
-import org.springframework.stereotype.Repository;
 
 /**
  * Interface for operations on CounterSequence entity.
  */
-@Repository
 public interface CounterSequenceRepository extends CrudRepository<CounterSequence, Long> {
 
     /**

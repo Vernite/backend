@@ -69,6 +69,7 @@ import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskPull;
 import dev.vernite.vernite.release.Release;
 import dev.vernite.vernite.sprint.Sprint;
 import dev.vernite.vernite.status.Status;
+import dev.vernite.vernite.task.comment.Comment;
 import dev.vernite.vernite.task.time.TimeTrack;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.utils.SoftDeleteEntity;
@@ -199,6 +200,15 @@ public class Task extends SoftDeleteEntity {
     @Setter
     @NotNull
     private Date lastUpdated;
+
+    @Getter
+    @Setter
+    @NotNull
+    @JsonIgnore
+    @OrderBy("createdAt DESC")
+    @OneToMany(mappedBy = "task")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private List<Comment> comments = new ArrayList<>();
 
     public Task() {
     }

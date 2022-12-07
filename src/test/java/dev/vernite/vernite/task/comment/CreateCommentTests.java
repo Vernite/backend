@@ -25,26 +25,42 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.workspace;
+package dev.vernite.vernite.task.comment;
 
-import org.springframework.data.repository.CrudRepository;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import dev.vernite.vernite.common.exception.EntityNotFoundException;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
 
-/*
- * CRUD repository for workspace entity.
- */
-public interface WorkspaceRepository extends CrudRepository<Workspace, WorkspaceId> {
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
-    /**
-     * Retrieves an entity by its ID.
-     * 
-     * @param id must not be null
-     * @return the entity with the given ID
-     * @throws EntityNotFoundException if entity is not found
-     */
-    default Workspace findByIdOrThrow(WorkspaceId id) throws EntityNotFoundException {
-        return findById(id).orElseThrow(() -> new EntityNotFoundException("workspace", id.getId()));
+class CreateCommentTests {
+
+    private static Validator validator;
+
+    @BeforeAll
+    static void init() {
+        final ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        validator = factory.getValidator();
+    }
+
+    @Test
+    void validationValidTest() {
+        assertTrue(validator.validate(new CreateComment("Name")).isEmpty());
+        assertTrue(validator.validate(new CreateComment("  Name ")).isEmpty());
+        assertTrue(validator.validate(new CreateComment("New name")).isEmpty());
+    }
+
+    @Test
+    void validationInvalidTest() {
+        assertEquals(1, validator.validate(new CreateComment(null)).size());
+        assertEquals(2, validator.validate(new CreateComment("")).size());
+        assertEquals(1, validator.validate(new CreateComment("  ")).size());
+        assertEquals(1, validator.validate(new CreateComment("   ")).size());
+        assertEquals(1, validator.validate(new CreateComment("a".repeat(1001))).size());
     }
 
 }
