@@ -46,9 +46,7 @@ public class EventFilter {
     private boolean showEnded = true;
 
     /**
-     * Types to include in the result. When empty, all types are included. When
-     * filtering task types both deadlines and estimates are included even if only
-     * one of this types is specified.
+     * Types to include in the result. When empty, all types are included.
      */
     private List<Integer> type = List.of();
 

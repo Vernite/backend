@@ -82,7 +82,12 @@ public class EventService implements ApplicationContextAware {
      */
     public Set<Event> getUserEvents(User user, Date start, Date end, EventFilter filter) {
         var result = new TreeSet<Event>();
-        providers.forEach(provider -> result.addAll(provider.provideUserEvents(user, start, end, filter)));
+        providers.forEach(provider -> {
+            if (filter.getType().isEmpty()
+                    || filter.getType().contains(Event.Type.valueOf(provider.getType()).ordinal())) {
+                result.addAll(provider.provideUserEvents(user, start, end, filter));
+            }
+        });
         return result;
     }
 
@@ -99,7 +104,12 @@ public class EventService implements ApplicationContextAware {
      */
     public Set<Event> getProjectEvents(Project project, Date start, Date end, EventFilter filter) {
         var result = new TreeSet<Event>();
-        providers.forEach(provider -> result.addAll(provider.provideProjectEvents(project, start, end, filter)));
+        providers.forEach(provider -> {
+            if (filter.getType().isEmpty()
+                    || filter.getType().contains(Event.Type.valueOf(provider.getType()).ordinal())) {
+                result.addAll(provider.provideProjectEvents(project, start, end, filter));
+            }
+        });
         return result;
     }
 

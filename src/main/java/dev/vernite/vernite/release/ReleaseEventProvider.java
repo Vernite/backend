@@ -28,7 +28,6 @@
 package dev.vernite.vernite.release;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 
 import org.springframework.stereotype.Service;
@@ -56,20 +55,19 @@ public class ReleaseEventProvider implements EventProvider {
 
     @Override
     public Collection<Event> provideUserEvents(User user, Date startDate, Date endDate, EventFilter filter) {
-        if (filter.getType().isEmpty() || filter.getType().contains(Event.Type.RELEASE.ordinal())) {
-            return repository.findAllFromUserAndDate(user, startDate, endDate).stream()
-                    .map(ReleaseEventProvider::convert).toList();
-        }
-        return Collections.emptyList();
+        return repository.findAllFromUserAndDate(user, startDate, endDate).stream()
+                .map(ReleaseEventProvider::convert).toList();
     }
 
     @Override
     public Collection<Event> provideProjectEvents(Project project, Date startDate, Date endDate, EventFilter filter) {
-        if (filter.getType().isEmpty() || filter.getType().contains(Event.Type.RELEASE.ordinal())) {
-            return repository.findAllFromProjectAndDate(project, startDate, endDate).stream()
-                    .map(ReleaseEventProvider::convert).toList();
-        }
-        return Collections.emptyList();
+        return repository.findAllFromProjectAndDate(project, startDate, endDate).stream()
+                .map(ReleaseEventProvider::convert).toList();
+    }
+
+    @Override
+    public String getType() {
+        return Event.Type.RELEASE.name();
     }
 
 }

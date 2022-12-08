@@ -27,11 +27,8 @@
 
 package dev.vernite.vernite.task;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
-import java.util.List;
 
 import org.springframework.stereotype.Service;
 
@@ -43,45 +40,34 @@ import dev.vernite.vernite.user.User;
 import lombok.AllArgsConstructor;
 
 /**
- * Event provider for tasks.
+ * Event provider for task estimates.
  */
 @Service
 @AllArgsConstructor
-public class TaskEventProvider implements EventProvider {
+public class TaskEstimateEventProvider implements EventProvider {
 
-    private static List<Event> convert(Task task) {
-        List<Event> result = new ArrayList<>();
-        if (task.getEstimatedDate() != null) {
-            result.add(new Event(task.getStatus().getProject().getId(), Event.Type.TASK_ESTIMATE, task.getNumber(),
-                    task.getName(), task.getDescription(), null, task.getEstimatedDate(), null));
-        }
-        if (task.getDeadline() != null) {
-            result.add(new Event(task.getStatus().getProject().getId(), Event.Type.TASK_DEADLINE, task.getNumber(),
-                    task.getName(), task.getDescription(), null, task.getDeadline(), null));
-        }
-        return result;
+    private static Event convert(Task task) {
+        return new Event(task.getStatus().getProject().getId(), Event.Type.TASK_ESTIMATE, task.getNumber(),
+                task.getName(), task.getDescription(), null, task.getEstimatedDate(), null);
     }
 
     private TaskRepository repository;
 
     @Override
     public Collection<Event> provideUserEvents(User user, Date startDate, Date endDate, EventFilter filter) {
-        if (filter.getType().isEmpty() || filter.getType().contains(Event.Type.TASK_DEADLINE.ordinal())
-                || filter.getType().contains(Event.Type.TASK_ESTIMATE.ordinal())) {
-            return repository.findAllFromUserAndDate(user, startDate, endDate, filter).stream()
-                    .map(TaskEventProvider::convert).flatMap(List::stream).toList();
-        }
-        return Collections.emptyList();
+        return repository.findAllFromUserAndDateEstimate(user, startDate, endDate, filter).stream()
+                .map(TaskEstimateEventProvider::convert).toList();
     }
 
     @Override
     public Collection<Event> provideProjectEvents(Project project, Date startDate, Date endDate, EventFilter filter) {
-        if (filter.getType().isEmpty() || filter.getType().contains(Event.Type.TASK_DEADLINE.ordinal())
-                || filter.getType().contains(Event.Type.TASK_ESTIMATE.ordinal())) {
-            return repository.findAllFromProjectAndDate(project, startDate, endDate, filter).stream()
-                    .map(TaskEventProvider::convert).flatMap(List::stream).toList();
-        }
-        return Collections.emptyList();
+        return repository.findAllFromProjectAndDateEstimate(project, startDate, endDate, filter).stream()
+                .map(TaskEstimateEventProvider::convert).toList();
+    }
+
+    @Override
+    public String getType() {
+        return Event.Type.TASK_ESTIMATE.name();
     }
 
 }

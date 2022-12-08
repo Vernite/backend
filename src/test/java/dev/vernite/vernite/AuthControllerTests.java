@@ -219,5 +219,9 @@ public class AuthControllerTests {
         client.get().uri("/auth/me/events?from=1&to=1000")
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBodyList(Event.class).hasSize(0);
+
+        client.get().uri("/auth/me/events?from=1&to=1000&type=1")
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
+                .expectBodyList(Event.class).hasSize(0);
     }
 }

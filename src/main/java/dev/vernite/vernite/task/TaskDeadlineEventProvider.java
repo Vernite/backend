@@ -25,7 +25,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.sprint;
+package dev.vernite.vernite.task;
 
 import java.util.Collection;
 import java.util.Date;
@@ -40,34 +40,34 @@ import dev.vernite.vernite.user.User;
 import lombok.AllArgsConstructor;
 
 /**
- * Event provider for sprints.
+ * Event provider for task deadlines.
  */
 @Service
 @AllArgsConstructor
-public class SprintEventProvider implements EventProvider {
+public class TaskDeadlineEventProvider implements EventProvider {
 
-    private static Event convert(Sprint sprint) {
-        return new Event(sprint.getProject().getId(), Event.Type.SPRINT, sprint.getNumber(), sprint.getName(),
-                sprint.getDescription(), sprint.getStartDate(), sprint.getFinishDate(), null);
+    private static Event convert(Task task) {
+        return new Event(task.getStatus().getProject().getId(), Event.Type.TASK_DEADLINE, task.getNumber(),
+                task.getName(), task.getDescription(), null, task.getDeadline(), null);
     }
 
-    private SprintRepository repository;
+    private TaskRepository repository;
 
     @Override
     public Collection<Event> provideUserEvents(User user, Date startDate, Date endDate, EventFilter filter) {
-        return repository.findAllFromUserAndDate(user, startDate, endDate).stream()
-                .map(SprintEventProvider::convert).toList();
+        return repository.findAllFromUserAndDateDeadline(user, startDate, endDate, filter).stream()
+                .map(TaskDeadlineEventProvider::convert).toList();
     }
 
     @Override
     public Collection<Event> provideProjectEvents(Project project, Date startDate, Date endDate, EventFilter filter) {
-        return repository.findAllFromProjectAndDate(project, startDate, endDate).stream()
-                .map(SprintEventProvider::convert).toList();
+        return repository.findAllFromProjectAndDateDeadline(project, startDate, endDate, filter).stream()
+                .map(TaskDeadlineEventProvider::convert).toList();
     }
 
     @Override
     public String getType() {
-        return Event.Type.SPRINT.name();
+        return Event.Type.TASK_DEADLINE.name();
     }
 
 }

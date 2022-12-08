@@ -43,10 +43,8 @@ public interface EventProvider {
      * Provides events for the given user between dates.
      * 
      * @param user      the user
-     * @param startDate the start date; if null, all events before the end date will
-     *                  be returned
-     * @param endDate   the end date; if null, all events after the start date will
-     *                  be returned
+     * @param startDate the start date
+     * @param endDate   the end date
      * @param filter    the filter
      * @return an collection of events
      */
@@ -56,13 +54,16 @@ public interface EventProvider {
      * Provides events for the given project between dates.
      * 
      * @param project   the project
-     * @param startDate the start date; if null, all events before the end date will
-     *                  be returned
-     * @param endDate   the end date; if null, all events after the start date will
-     *                  be returned
+     * @param startDate the start date
+     * @param endDate   the end date
      * @param filter    the filter
      * @return an collection of events
      */
     Collection<Event> provideProjectEvents(Project project, Date startDate, Date endDate, EventFilter filter);
+
+    /**
+     * @return the type of events provided by this provider
+     */
+    String getType();
 
 }

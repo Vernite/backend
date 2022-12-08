@@ -28,7 +28,6 @@
 package dev.vernite.vernite.meeting;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 
 import org.springframework.stereotype.Service;
@@ -56,20 +55,19 @@ public class MeetingEventProvider implements EventProvider {
 
     @Override
     public Collection<Event> provideUserEvents(User user, Date startDate, Date endDate, EventFilter filter) {
-        if (filter.getType().isEmpty() || filter.getType().contains(Event.Type.MEETING.ordinal())) {
-            return repository.findMeetingsByUserAndDate(user, startDate, endDate).stream()
-                    .map(MeetingEventProvider::convert).toList();
-        }
-        return Collections.emptyList();
+        return repository.findMeetingsByUserAndDate(user, startDate, endDate).stream()
+                .map(MeetingEventProvider::convert).toList();
     }
 
     @Override
     public Collection<Event> provideProjectEvents(Project project, Date startDate, Date endDate, EventFilter filter) {
-        if (filter.getType().isEmpty() || filter.getType().contains(Event.Type.MEETING.ordinal())) {
-            return repository.findMeetingsByProjectAndDate(project, startDate, endDate).stream()
-                    .map(MeetingEventProvider::convert).toList();
-        }
-        return Collections.emptyList();
+        return repository.findMeetingsByProjectAndDate(project, startDate, endDate).stream()
+                .map(MeetingEventProvider::convert).toList();
+    }
+
+    @Override
+    public String getType() {
+        return Event.Type.MEETING.name();
     }
 
 }
