@@ -27,29 +27,42 @@
 
 package dev.vernite.vernite.event;
 
-import java.util.List;
+import java.util.Collection;
+import java.util.Date;
 
-import org.springdoc.core.annotations.ParameterObject;
-
-import lombok.Data;
+import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.user.User;
 
 /**
- * Parameter object for filtering events.
+ * Interface for providing events. All classes implementing this interface will
+ * be automatically registered as event providers.
  */
-@Data
-@ParameterObject
-public class EventFilter {
+public interface EventProvider {
 
     /**
-     * Whether to include events that have already ended. It only affects tasks.
+     * Provides events for the given user between dates.
+     * 
+     * @param user      the user
+     * @param startDate the start date; if null, all events before the end date will
+     *                  be returned
+     * @param endDate   the end date; if null, all events after the start date will
+     *                  be returned
+     * @param filter    the filter
+     * @return an collection of events
      */
-    private boolean showEnded = true;
+    Collection<Event> provideUserEvents(User user, Date startDate, Date endDate, EventFilter filter);
 
     /**
-     * Types to include in the result. When empty, all types are included. When
-     * filtering task types both deadlines and estimates are included even if only
-     * one of this types is specified.
+     * Provides events for the given project between dates.
+     * 
+     * @param project   the project
+     * @param startDate the start date; if null, all events before the end date will
+     *                  be returned
+     * @param endDate   the end date; if null, all events after the start date will
+     *                  be returned
+     * @param filter    the filter
+     * @return an collection of events
      */
-    private List<Integer> type = List.of();
+    Collection<Event> provideProjectEvents(Project project, Date startDate, Date endDate, EventFilter filter);
 
 }

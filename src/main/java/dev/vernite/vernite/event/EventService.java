@@ -1,93 +1,106 @@
+/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 package dev.vernite.vernite.event;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
+import java.util.Set;
 import java.util.TreeSet;
 
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
+import org.springframework.core.type.filter.AssignableTypeFilter;
 import org.springframework.stereotype.Service;
 
-import dev.vernite.vernite.meeting.MeetingRepository;
 import dev.vernite.vernite.project.Project;
-import dev.vernite.vernite.release.ReleaseRepository;
-import dev.vernite.vernite.sprint.SprintRepository;
-import dev.vernite.vernite.task.TaskRepository;
 import dev.vernite.vernite.user.User;
-import lombok.AllArgsConstructor;
 
 /**
- * Service for getting events.
+ * Service providing events.
  */
 @Service
-@AllArgsConstructor
-public class EventService {
+public class EventService implements ApplicationContextAware {
 
-    private SprintRepository sprintRepository;
+    private static Class<?> getProviderClass(String name) {
+        try {
+            return EventService.class.getClassLoader().loadClass(name);
+        } catch (ClassNotFoundException e) {
+            // TODO Should not happen
+            return null;
+        }
+    }
 
-    private TaskRepository taskRepository;
+    private Iterable<EventProvider> providers;
 
-    private MeetingRepository meetingRepository;
+    @Override
+    public void setApplicationContext(ApplicationContext context) throws BeansException {
+        var scanner = new ClassPathScanningCandidateComponentProvider(false);
+        scanner.addIncludeFilter(new AssignableTypeFilter(EventProvider.class));
 
-    private ReleaseRepository releaseRepository;
+        providers = scanner.findCandidateComponents("dev.vernite.vernite").stream()
+                .map(BeanDefinition::getBeanClassName).map(EventService::getProviderClass).map(context::getBean)
+                .map(EventProvider.class::cast).toList();
+    }
 
     /**
      * Returns all events for the given user between dates.
      * 
-     * @param user      the user
-     * @param startDate the start date
-     * @param endDate   the end date
-     * @param filter    the filter
-     * @return a list of events
+     * @param user   the user
+     * @param start  the start date; if null, all events before the end date will
+     *               be returned
+     * @param end    the end date; if null, all events after the start date will
+     *               be returned
+     * @param filter the filter
+     * @return an sorted set of events
      */
-    public List<Event> getUserEvents(User user, Date startDate, Date endDate, EventFilter filter) {
-        TreeSet<Event> result = new TreeSet<>();
-        if (filter.showTasks()) {
-            taskRepository.findAllFromUserAndDate(user, startDate, endDate, filter)
-                    .forEach(task -> result.addAll(Event.from(task)));
-        }
-        if (filter.showSprints()) {
-            sprintRepository.findAllFromUserAndDate(user, startDate, endDate)
-                    .forEach(sprint -> result.add(Event.from(sprint)));
-        }
-        if (filter.showMeetings()) {
-            meetingRepository.findMeetingsByUserAndDate(user, startDate, endDate)
-                    .forEach(meeting -> result.add(Event.from(meeting)));
-        }
-        if (filter.showReleases()) {
-            releaseRepository.findAllFromUserAndDate(user, startDate, endDate)
-                    .forEach(release -> result.add(Event.from(release)));
-        }
-        return new ArrayList<>(result);
+    public Set<Event> getUserEvents(User user, Date start, Date end, EventFilter filter) {
+        var result = new TreeSet<Event>();
+        providers.forEach(provider -> result.addAll(provider.provideUserEvents(user, start, end, filter)));
+        return result;
     }
 
     /**
      * Returns all events for the given project between dates.
      * 
-     * @param project   the project
-     * @param startDate the start date
-     * @param endDate   the end date
-     * @param filter    the filter
-     * @return a list of events
+     * @param project the project
+     * @param start   the start date; if null, all events before the end date will
+     *                be returned
+     * @param end     the end date; if null, all events after the start date will be
+     *                returned
+     * @param filter  the filter
+     * @return an sorted set of events
      */
-    public List<Event> getProjectEvents(Project project, Date startDate, Date endDate, EventFilter filter) {
-        TreeSet<Event> result = new TreeSet<>();
-        if (filter.showTasks()) {
-            taskRepository.findAllFromProjectAndDate(project, startDate, endDate, filter)
-                    .forEach(task -> result.addAll(Event.from(task)));
-        }
-        if (filter.showSprints()) {
-            sprintRepository.findAllFromProjectAndDate(project, startDate, endDate)
-                    .forEach(sprint -> result.add(Event.from(sprint)));
-        }
-        if (filter.showMeetings()) {
-            meetingRepository.findMeetingsByProjectAndDate(project, startDate, endDate)
-                    .forEach(meeting -> result.add(Event.from(meeting)));
-        }
-        if (filter.showReleases()) {
-            releaseRepository.findAllFromProjectAndDate(project, startDate, endDate)
-                    .forEach(release -> result.add(Event.from(release)));
-        }
-        return new ArrayList<>(result);
+    public Set<Event> getProjectEvents(Project project, Date start, Date end, EventFilter filter) {
+        var result = new TreeSet<Event>();
+        providers.forEach(provider -> result.addAll(provider.provideProjectEvents(project, start, end, filter)));
+        return result;
     }
 
 }

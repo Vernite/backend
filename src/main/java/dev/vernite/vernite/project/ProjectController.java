@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -363,7 +364,7 @@ public class ProjectController {
      * @return list with events after 'from' and before 'to' filtered by 'filter'
      */
     @GetMapping("/{id}/events")
-    public List<Event> getEvents(@NotNull @Parameter(hidden = true) User user, @PathVariable long id, long from,
+    public Set<Event> getEvents(@NotNull @Parameter(hidden = true) User user, @PathVariable long id, long from,
             long to, @ModelAttribute EventFilter filter) {
         Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
         return eventService.getProjectEvents(project, new Date(from), new Date(to), filter);

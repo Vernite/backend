@@ -27,30 +27,49 @@
 
 package dev.vernite.vernite.release;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
-import java.util.List;
 
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.stereotype.Service;
 
+import dev.vernite.vernite.event.Event;
+import dev.vernite.vernite.event.EventFilter;
+import dev.vernite.vernite.event.EventProvider;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.user.User;
-import dev.vernite.vernite.utils.SoftDeleteRepository;
+import lombok.AllArgsConstructor;
 
-public interface ReleaseRepository extends SoftDeleteRepository<Release, Long>, JpaSpecificationExecutor<Release> {
-    List<Release> findAllByProjectAndActiveNullOrderByDeadlineDescName(Project project);
+/**
+ * Event provider for releases.
+ */
+@Service
+@AllArgsConstructor
+public class ReleaseEventProvider implements EventProvider {
 
-    default List<Release> findAllFromUserAndDate(User user, Date startDate, Date endDate) {
-        return findAll((root, query, cb) -> cb.and(
-                cb.between(root.get("deadline"), startDate, endDate),
-                cb.equal(root.join("project").join("projectWorkspaces").join("workspace").join("user"), user),
-                cb.isNull(root.get("active"))));
+    private static Event convert(Release release) {
+        return new Event(release.getProject().getId(), Event.Type.RELEASE, release.getId(), release.getName(),
+                release.getDescription(), null, release.getDeadline(), null);
     }
 
-    default List<Release> findAllFromProjectAndDate(Project project, Date startDate, Date endDate) {
-        return findAll((root, query, cb) -> {
-            return cb.and(cb.equal(root.get("project"), project),
-                    cb.between(root.get("deadline"), startDate, endDate),
-                    cb.isNull(root.get("active")));
-        });
+    private ReleaseRepository repository;
+
+    @Override
+    public Collection<Event> provideUserEvents(User user, Date startDate, Date endDate, EventFilter filter) {
+        if (filter.getType().isEmpty() || filter.getType().contains(Event.Type.RELEASE.ordinal())) {
+            return repository.findAllFromUserAndDate(user, startDate, endDate).stream()
+                    .map(ReleaseEventProvider::convert).toList();
+        }
+        return Collections.emptyList();
     }
+
+    @Override
+    public Collection<Event> provideProjectEvents(Project project, Date startDate, Date endDate, EventFilter filter) {
+        if (filter.getType().isEmpty() || filter.getType().contains(Event.Type.RELEASE.ordinal())) {
+            return repository.findAllFromProjectAndDate(project, startDate, endDate).stream()
+                    .map(ReleaseEventProvider::convert).toList();
+        }
+        return Collections.emptyList();
+    }
+
 }
