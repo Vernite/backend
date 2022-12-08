@@ -25,32 +25,45 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.release;
+package dev.vernite.vernite.event;
 
+import java.util.Collection;
 import java.util.Date;
-import java.util.List;
-
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.user.User;
-import dev.vernite.vernite.utils.SoftDeleteRepository;
 
-public interface ReleaseRepository extends SoftDeleteRepository<Release, Long>, JpaSpecificationExecutor<Release> {
-    List<Release> findAllByProjectAndActiveNullOrderByDeadlineDescName(Project project);
+/**
+ * Interface for providing events. All classes implementing this interface will
+ * be automatically registered as event providers.
+ */
+public interface EventProvider {
 
-    default List<Release> findAllFromUserAndDate(User user, Date startDate, Date endDate) {
-        return findAll((root, query, cb) -> cb.and(
-                cb.between(root.get("deadline"), startDate, endDate),
-                cb.equal(root.join("project").join("projectWorkspaces").join("workspace").join("user"), user),
-                cb.isNull(root.get("active"))));
-    }
+    /**
+     * Provides events for the given user between dates.
+     * 
+     * @param user      the user
+     * @param startDate the start date
+     * @param endDate   the end date
+     * @param filter    the filter
+     * @return an collection of events
+     */
+    Collection<Event> provideUserEvents(User user, Date startDate, Date endDate, EventFilter filter);
 
-    default List<Release> findAllFromProjectAndDate(Project project, Date startDate, Date endDate) {
-        return findAll((root, query, cb) -> {
-            return cb.and(cb.equal(root.get("project"), project),
-                    cb.between(root.get("deadline"), startDate, endDate),
-                    cb.isNull(root.get("active")));
-        });
-    }
+    /**
+     * Provides events for the given project between dates.
+     * 
+     * @param project   the project
+     * @param startDate the start date
+     * @param endDate   the end date
+     * @param filter    the filter
+     * @return an collection of events
+     */
+    Collection<Event> provideProjectEvents(Project project, Date startDate, Date endDate, EventFilter filter);
+
+    /**
+     * @return the type of events provided by this provider
+     */
+    String getType();
+
 }

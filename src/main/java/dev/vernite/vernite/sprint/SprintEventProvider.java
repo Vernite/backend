@@ -25,32 +25,49 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.release;
+package dev.vernite.vernite.sprint;
 
+import java.util.Collection;
 import java.util.Date;
-import java.util.List;
 
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.stereotype.Service;
 
+import dev.vernite.vernite.event.Event;
+import dev.vernite.vernite.event.EventFilter;
+import dev.vernite.vernite.event.EventProvider;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.user.User;
-import dev.vernite.vernite.utils.SoftDeleteRepository;
+import lombok.AllArgsConstructor;
 
-public interface ReleaseRepository extends SoftDeleteRepository<Release, Long>, JpaSpecificationExecutor<Release> {
-    List<Release> findAllByProjectAndActiveNullOrderByDeadlineDescName(Project project);
+/**
+ * Event provider for sprints.
+ */
+@Service
+@AllArgsConstructor
+public class SprintEventProvider implements EventProvider {
 
-    default List<Release> findAllFromUserAndDate(User user, Date startDate, Date endDate) {
-        return findAll((root, query, cb) -> cb.and(
-                cb.between(root.get("deadline"), startDate, endDate),
-                cb.equal(root.join("project").join("projectWorkspaces").join("workspace").join("user"), user),
-                cb.isNull(root.get("active"))));
+    private static Event convert(Sprint sprint) {
+        return new Event(sprint.getProject().getId(), Event.Type.SPRINT, sprint.getNumber(), sprint.getName(),
+                sprint.getDescription(), sprint.getStartDate(), sprint.getFinishDate(), null);
     }
 
-    default List<Release> findAllFromProjectAndDate(Project project, Date startDate, Date endDate) {
-        return findAll((root, query, cb) -> {
-            return cb.and(cb.equal(root.get("project"), project),
-                    cb.between(root.get("deadline"), startDate, endDate),
-                    cb.isNull(root.get("active")));
-        });
+    private SprintRepository repository;
+
+    @Override
+    public Collection<Event> provideUserEvents(User user, Date startDate, Date endDate, EventFilter filter) {
+        return repository.findAllFromUserAndDate(user, startDate, endDate).stream()
+                .map(SprintEventProvider::convert).toList();
     }
+
+    @Override
+    public Collection<Event> provideProjectEvents(Project project, Date startDate, Date endDate, EventFilter filter) {
+        return repository.findAllFromProjectAndDate(project, startDate, endDate).stream()
+                .map(SprintEventProvider::convert).toList();
+    }
+
+    @Override
+    public String getType() {
+        return Event.Type.SPRINT.name();
+    }
+
 }

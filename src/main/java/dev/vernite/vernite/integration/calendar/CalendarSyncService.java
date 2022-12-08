@@ -31,7 +31,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -68,7 +68,7 @@ public class CalendarSyncService {
     public byte[] handleCalendar(String key) {
         java.util.Date to = java.util.Date.from(Instant.now().plus(1000, ChronoUnit.DAYS));
         CalendarIntegration integration = repository.findByKey(key).orElseThrow(ObjectNotFoundException::new);
-        List<Event> events;
+        Set<Event> events;
         Calendar calendar = new Calendar();
         if (integration.getProject() == null) {
             events = eventService.getUserEvents(integration.getUser(), FROM, to, new EventFilter());

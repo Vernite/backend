@@ -1,70 +1,53 @@
+/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 package dev.vernite.vernite.event;
 
 import java.util.List;
 
 import org.springdoc.core.annotations.ParameterObject;
 
-import dev.vernite.vernite.event.Event.Type;
-
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
 /**
  * Parameter object for filtering events.
  */
+@Data
 @ParameterObject
 public class EventFilter {
 
     /**
      * Whether to include events that have already ended. It only affects tasks.
      */
-    @Setter
-    @Getter
     private boolean showEnded = true;
 
     /**
-     * Types to include in the result. When empty, all types are included. When
-     * filtering task types both deadlines and estimates are included even if only
-     * one of this types is specified.
+     * Types to include in the result. When empty, all types are included.
      */
-    @Setter
-    @Getter
     private List<Integer> type = List.of();
 
-    /**
-     * Whether to include events that are connected to a tasks.
-     * 
-     * @return true if task events should be included; false otherwise
-     */
-    public boolean showTasks() {
-        return type.isEmpty() || type.contains(Type.TASK_DEADLINE.ordinal())
-                || type.contains(Type.TASK_ESTIMATE.ordinal());
-    }
-
-    /**
-     * Whether to include events that are connected to a sprints.
-     * 
-     * @return true if sprint events should be included; false otherwise
-     */
-    public boolean showSprints() {
-        return type.isEmpty() || type.contains(Type.SPRINT.ordinal());
-    }
-
-    /**
-     * Whether to include events that are connected to a meetings.
-     * 
-     * @return true if meetings events should be included; false otherwise
-     */
-    public boolean showMeetings() {
-        return type.isEmpty() || type.contains(Type.MEETING.ordinal());
-    }
-
-    /**
-     * Whether to include events that are connected to a releases.
-     * 
-     * @return true if release events should be included; false otherwise
-     */
-    public boolean showReleases() {
-        return type.isEmpty() || type.contains(Type.RELEASE.ordinal());
-    }
 }

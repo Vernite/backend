@@ -33,6 +33,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -139,7 +140,7 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "List with events for current user. Empty list if no events. Tasks are only displayed if they are not finished and assigned to user.")
     @ApiResponse(responseCode = "401", description = "User is not logged.", content = @Content())
     @GetMapping("/me/events")
-    public List<Event> getEvents(@NotNull @Parameter(hidden = true) User loggedUser, long from, long to,
+    public Set<Event> getEvents(@NotNull @Parameter(hidden = true) User loggedUser, long from, long to,
             @ModelAttribute EventFilter filter) {
         return eventService.getUserEvents(loggedUser, new Date(from), new Date(to), filter);
     }

@@ -27,9 +27,7 @@
 
 package dev.vernite.vernite.event;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -38,23 +36,13 @@ import jakarta.validation.constraints.Positive;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import dev.vernite.vernite.meeting.Meeting;
-import dev.vernite.vernite.release.Release;
-import dev.vernite.vernite.sprint.Sprint;
-import dev.vernite.vernite.task.Task;
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.Data;
 
 /**
  * Model representing a generic event in calendar.
  */
-@ToString
-@NoArgsConstructor
-@EqualsAndHashCode
+@Data
 @AllArgsConstructor
 public class Event implements Comparable<Event> {
 
@@ -66,98 +54,26 @@ public class Event implements Comparable<Event> {
         MEETING, SPRINT, TASK_ESTIMATE, TASK_DEADLINE, RELEASE
     }
 
-    /**
-     * Creates a new events from a task. The events will be of type TASK_ESTIMATE
-     * and TASK_DEADLINE. If the task has no estimate or deadline, the corresponding
-     * event will not be created.
-     * 
-     * @param task the task to create the events from
-     * @return a list of events
-     */
-    public static List<Event> from(Task task) {
-        List<Event> result = new ArrayList<>();
-        if (task.getEstimatedDate() != null) {
-            result.add(new Event(task.getStatus().getProject().getId(), Type.TASK_ESTIMATE, task.getNumber(),
-                    task.getName(), task.getDescription(), null, task.getEstimatedDate(), null));
-        }
-        if (task.getDeadline() != null) {
-            result.add(new Event(task.getStatus().getProject().getId(), Type.TASK_DEADLINE, task.getNumber(),
-                    task.getName(), task.getDescription(), null, task.getDeadline(), null));
-        }
-        return result;
-    }
-
-    /**
-     * Creates a new event from a sprint. The event will be of type SPRINT.
-     * 
-     * @param sprint the sprint to create the event from
-     * @return the event
-     */
-    public static Event from(Sprint sprint) {
-        return new Event(sprint.getProject().getId(), Type.SPRINT, sprint.getNumber(), sprint.getName(),
-                sprint.getDescription(), sprint.getStartDate(), sprint.getFinishDate(), null);
-    }
-
-    /**
-     * Creates a new event from a meeting. The event will be of type MEETING.
-     * 
-     * @param meeting the meeting to create the event from
-     * @return the event
-     */
-    public static Event from(Meeting meeting) {
-        Event e = new Event(meeting.getProject().getId(), Type.MEETING, meeting.getId(), meeting.getName(),
-                meeting.getDescription(), meeting.getStartDate(), meeting.getEndDate(), null);
-        e.setLocation(meeting.getLocation());
-        return e;
-    }
-
-    /**
-     * Creates a new event from a release. The event will be of type RELEASE.
-     * 
-     * @param release the release to create the event from
-     * @return the event
-     */
-    public static Event from(Release release) {
-        return new Event(release.getProject().getId(), Type.RELEASE, release.getId(), release.getName(),
-                release.getDescription(), null, release.getDeadline(), null);
-    }
-
-    @Setter
-    @Getter
     @Positive
     private long projectId;
 
-    @Setter
-    @Getter
     @JsonIgnore
     private Type type;
 
-    @Setter
-    @Getter
     @Positive
     private long relatedId;
 
-    @Setter
-    @Getter
     @NotBlank
     private String name;
 
-    @Setter
-    @Getter
     @NotNull
     private String description;
 
-    @Setter
-    @Getter
     private Date startDate;
 
-    @Setter
-    @Getter
     @NotNull
     private Date endDate;
 
-    @Setter
-    @Getter
     private String location;
 
     /**

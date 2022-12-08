@@ -85,7 +85,7 @@ public interface TaskRepository extends SoftDeleteRepository<Task, Long>, JpaSpe
      * @param endDate   the end date.
      * @return the tasks.
      */
-    default List<Task> findAllFromUserAndDate(User user, Date startDate, Date endDate, EventFilter filter) {
+    default List<Task> findAllFromUserAndDateDeadline(User user, Date startDate, Date endDate, EventFilter filter) {
         return findAll((root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.isNotNull(root.get("assignee")));
@@ -94,13 +94,9 @@ public interface TaskRepository extends SoftDeleteRepository<Task, Long>, JpaSpe
                 predicates.add(cb.equal(root.get("status").get("isFinal"), false));
             }
             predicates.add(cb.isNull(root.get("active")));
-            predicates.add(cb.or(
-                    cb.and(
-                            cb.isNotNull(root.get("deadline")),
-                            cb.between(root.get("deadline"), startDate, endDate)),
-                    cb.and(
-                            cb.isNotNull(root.get("estimatedDate")),
-                            cb.between(root.get("estimatedDate"), startDate, endDate))));
+            predicates.add(cb.and(
+                    cb.isNotNull(root.get("deadline")),
+                    cb.between(root.get("deadline"), startDate, endDate)));
             return cb.and(predicates.toArray(new Predicate[0]));
         });
     }
@@ -113,7 +109,8 @@ public interface TaskRepository extends SoftDeleteRepository<Task, Long>, JpaSpe
      * @param endDate   the end date.
      * @return the tasks.
      */
-    default List<Task> findAllFromProjectAndDate(Project project, Date startDate, Date endDate, EventFilter filter) {
+    default List<Task> findAllFromProjectAndDateDeadline(Project project, Date startDate, Date endDate,
+            EventFilter filter) {
         return findAll((root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status").get("project"), project));
@@ -121,13 +118,59 @@ public interface TaskRepository extends SoftDeleteRepository<Task, Long>, JpaSpe
                 predicates.add(cb.equal(root.get("status").get("isFinal"), false));
             }
             predicates.add(cb.isNull(root.get("active")));
-            predicates.add(cb.or(
-                    cb.and(
-                            cb.isNotNull(root.get("deadline")),
-                            cb.between(root.get("deadline"), startDate, endDate)),
+            predicates.add(cb.and(
+                    cb.isNotNull(root.get("deadline")),
+                    cb.between(root.get("deadline"), startDate, endDate)));
+            return cb.and(predicates.toArray(new Predicate[0]));
+        });
+    }
+
+    /**
+     * Finds tasks by user assigned and between dates.
+     * 
+     * @param user      the user.
+     * @param startDate the start date.
+     * @param endDate   the end date.
+     * @return the tasks.
+     */
+    default List<Task> findAllFromUserAndDateEstimate(User user, Date startDate, Date endDate, EventFilter filter) {
+        return findAll((root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.isNotNull(root.get("assignee")));
+            predicates.add(cb.equal(root.get("assignee"), user));
+            if (filter.isShowEnded()) {
+                predicates.add(cb.equal(root.get("status").get("isFinal"), false));
+            }
+            predicates.add(cb.isNull(root.get("active")));
+            predicates.add(
                     cb.and(
                             cb.isNotNull(root.get("estimatedDate")),
-                            cb.between(root.get("estimatedDate"), startDate, endDate))));
+                            cb.between(root.get("estimatedDate"), startDate, endDate)));
+            return cb.and(predicates.toArray(new Predicate[0]));
+        });
+    }
+
+    /**
+     * Finds tasks by project and between dates.
+     * 
+     * @param project   the project.
+     * @param startDate the start date.
+     * @param endDate   the end date.
+     * @return the tasks.
+     */
+    default List<Task> findAllFromProjectAndDateEstimate(Project project, Date startDate, Date endDate,
+            EventFilter filter) {
+        return findAll((root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("status").get("project"), project));
+            if (filter.isShowEnded()) {
+                predicates.add(cb.equal(root.get("status").get("isFinal"), false));
+            }
+            predicates.add(cb.isNull(root.get("active")));
+            predicates.add(
+                    cb.and(
+                            cb.isNotNull(root.get("estimatedDate")),
+                            cb.between(root.get("estimatedDate"), startDate, endDate)));
             return cb.and(predicates.toArray(new Predicate[0]));
         });
     }
