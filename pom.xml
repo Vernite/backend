@@ -9,7 +9,7 @@
 	</parent>
 	<groupId>dev.vernite</groupId>
 	<artifactId>vernite</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0-alpha-1</version>
 	<name>vernite</name>
 	<description>Vernite backend</description>
 	<properties>
