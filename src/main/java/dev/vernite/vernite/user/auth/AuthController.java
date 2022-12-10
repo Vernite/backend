@@ -44,7 +44,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotNull;
-
+import lombok.Setter;
 import dev.vernite.vernite.common.utils.counter.CounterSequence;
 import dev.vernite.vernite.event.Event;
 import dev.vernite.vernite.event.EventFilter;
@@ -66,6 +66,7 @@ import dev.vernite.vernite.utils.ObjectNotFoundException;
 import dev.vernite.vernite.utils.SecureStringUtils;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.mail.SimpleMailMessage;
@@ -119,6 +120,10 @@ public class AuthController {
 
     @Autowired
     private CalendarIntegrationRepository calendarRepository;
+
+    @Setter
+    @Value("${server.servlet.context-path}")
+    private String cookiePath;
 
     @Operation(summary = "Logged user", description = "This method returns currently logged user.")
     @ApiResponse(responseCode = "200", description = "Logged user.")
@@ -462,7 +467,7 @@ public class AuthController {
             }
         }
         Cookie c = new Cookie(COOKIE_NAME, us.getSession());
-        c.setPath("/api");
+        c.setPath(cookiePath);
         if (req.getHeader("X-Forwarded-For") != null) {
             c.setSecure(true);
         } else {
