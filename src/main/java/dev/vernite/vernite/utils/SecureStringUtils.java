@@ -2,6 +2,7 @@ package dev.vernite.vernite.utils;
 
 import java.security.SecureRandom;
 
+@Deprecated
 public final class SecureStringUtils {
     private static final char[] CHARS = "0123456789qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM".toCharArray();
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();

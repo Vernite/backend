@@ -25,30 +25,23 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.common.exception;
+package dev.vernite.vernite.integration.git.github.api.model;
 
-import lombok.Getter;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.Data;
 
 /**
- * Exception thrown when entity with given id is not found in database.
+ * Model to represent a GitHub user.
  */
-@Getter
-public class EntityNotFoundException extends RuntimeException {
+@Data
+public class GitHubUser {
 
-    private final String entityName;
+    private String login;
 
-    private final long id;
+    private long id;
 
-    /**
-     * Default constructor for {@link EntityNotFoundException}.
-     * 
-     * @param entityName name of entity class that were not found
-     * @param id         id of entity which were not found
-     */
-    public EntityNotFoundException(String entityName, long id) {
-        super(entityName + " not found");
-        this.entityName = entityName;
-        this.id = id;
-    }
+    @JsonProperty("avatar_url")
+    private String avatarUrl;
 
 }

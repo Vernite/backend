@@ -25,30 +25,32 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.common.exception;
+package dev.vernite.vernite.integration.git.github.model;
 
-import lombok.Getter;
+import org.springframework.data.repository.CrudRepository;
+
+import dev.vernite.vernite.common.exception.EntityNotFoundException;
+import dev.vernite.vernite.project.Project;
 
 /**
- * Exception thrown when entity with given id is not found in database.
+ * CRUD repository for project integration entity.
  */
-@Getter
-public class EntityNotFoundException extends RuntimeException {
-
-    private final String entityName;
-
-    private final long id;
+public interface ProjectIntegrationRepository extends CrudRepository<ProjectIntegration, Long> {
 
     /**
-     * Default constructor for {@link EntityNotFoundException}.
+     * Find integration by project and id.
      * 
-     * @param entityName name of entity class that were not found
-     * @param id         id of entity which were not found
+     * @param id      integration id
+     * @param project project
+     * @return integration
+     * @throws EntityNotFoundException if integration not found
      */
-    public EntityNotFoundException(String entityName, long id) {
-        super(entityName + " not found");
-        this.entityName = entityName;
-        this.id = id;
+    default ProjectIntegration findByIdAndProjectOrThrow(long id, Project project) throws EntityNotFoundException {
+        var integration = findById(id).orElseThrow(() -> new EntityNotFoundException("github_project_integration", id));
+        if (integration.getProject().getId() != project.getId()) {
+            throw new EntityNotFoundException("github_project_integration", id);
+        }
+        return integration;
     }
 
 }

@@ -25,30 +25,46 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.common.exception;
+package dev.vernite.vernite.common.utils;
 
-import lombok.Getter;
+import java.security.SecureRandom;
+
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /**
- * Exception thrown when entity with given id is not found in database.
+ * Utils for common secure random operations.
  */
-@Getter
-public class EntityNotFoundException extends RuntimeException {
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public class SecureRandomUtils {
 
-    private final String entityName;
+    private static final SecureRandom RANDOM = new SecureRandom();
 
-    private final long id;
+    private static final char[] CHARS = "0123456789qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM".toCharArray();
 
     /**
-     * Default constructor for {@link EntityNotFoundException}.
+     * Generates a secure random string of the given length.
      * 
-     * @param entityName name of entity class that were not found
-     * @param id         id of entity which were not found
+     * @param length must be greater than 0
+     * @return the generated string
      */
-    public EntityNotFoundException(String entityName, long id) {
-        super(entityName + " not found");
-        this.entityName = entityName;
-        this.id = id;
+    public static String generateSecureRandomString(int length) {
+        var secureCharacters = new char[length];
+
+        for (var index = 0; index < secureCharacters.length; index++) {
+            secureCharacters[index] = CHARS[RANDOM.nextInt(CHARS.length)];
+        }
+
+        return new String(secureCharacters);
+    }
+
+    /**
+     * Generates a secure random string of length 128.
+     * 
+     * @return the generated string
+     */
+    public static String generateSecureRandomString() {
+        return generateSecureRandomString(128);
     }
 
 }

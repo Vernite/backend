@@ -25,30 +25,43 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.common.exception;
+package dev.vernite.vernite.integration.git.github.model;
 
-import lombok.Getter;
+import java.util.List;
+
+import org.springframework.data.repository.CrudRepository;
+
+import dev.vernite.vernite.common.exception.EntityNotFoundException;
+import dev.vernite.vernite.user.User;
 
 /**
- * Exception thrown when entity with given id is not found in database.
+ * CRUD repository for authorization entity.
  */
-@Getter
-public class EntityNotFoundException extends RuntimeException {
-
-    private final String entityName;
-
-    private final long id;
+public interface AuthorizationRepository extends CrudRepository<Authorization, Long> {
 
     /**
-     * Default constructor for {@link EntityNotFoundException}.
+     * This method finds authorization by given user.
      * 
-     * @param entityName name of entity class that were not found
-     * @param id         id of entity which were not found
+     * @param user user of authorizations to find
+     * @return authorizations for given user
      */
-    public EntityNotFoundException(String entityName, long id) {
-        super(entityName + " not found");
-        this.entityName = entityName;
-        this.id = id;
+    List<Authorization> findByUser(User user);
+
+    /**
+     * This method finds authorization by given user and id.
+     * 
+     * @param id   id of authorization to find
+     * @param user user of authorization to find
+     * @return authorization for given user and id
+     * @throws EntityNotFoundException if authorization with given id does not exist
+     *                                 for given user
+     */
+    default Authorization findByIdAndUserOrThrow(long id, User user) throws EntityNotFoundException {
+        var auth = findById(id).orElseThrow(() -> new EntityNotFoundException("github_authorization", id));
+        if (auth.getUser().getId() != user.getId()) {
+            throw new EntityNotFoundException("github_authorization", id);
+        }
+        return auth;
     }
 
 }

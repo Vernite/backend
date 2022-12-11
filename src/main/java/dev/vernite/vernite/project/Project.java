@@ -61,6 +61,7 @@ import dev.vernite.vernite.cdn.File;
 import dev.vernite.vernite.common.utils.counter.CounterSequence;
 import dev.vernite.vernite.integration.common.Integration;
 import dev.vernite.vernite.integration.git.github.entity.GitHubIntegration;
+import dev.vernite.vernite.integration.git.github.model.ProjectIntegration;
 import dev.vernite.vernite.projectworkspace.ProjectWorkspace;
 import dev.vernite.vernite.sprint.Sprint;
 import dev.vernite.vernite.status.Status;
@@ -157,6 +158,15 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     @OneToOne(mappedBy = "project")
     @OnDelete(action = OnDeleteAction.CASCADE)
     private GitHubIntegration gitHubIntegration;
+
+    @Getter
+    @Setter
+    @NotNull
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @OneToMany(mappedBy = "project")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private List<ProjectIntegration> githubProjectIntegrations = new ArrayList<>();
 
     @Setter
     @Getter
