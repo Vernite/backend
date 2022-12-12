@@ -25,42 +25,34 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.git.github.model;
+package dev.vernite.vernite.integration.git.github.api.model;
 
-import java.util.Optional;
+import java.util.List;
 
-import org.springframework.data.repository.CrudRepository;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty.Access;
 
-import dev.vernite.vernite.common.exception.EntityNotFoundException;
-import dev.vernite.vernite.project.Project;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
- * CRUD repository for project integration entity.
+ * Object to represent a GitHub Rest api issue.
  */
-public interface ProjectIntegrationRepository extends CrudRepository<ProjectIntegration, Long> {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class GitHubIssue {
 
-    /**
-     * Find integration by project and id.
-     * 
-     * @param id      integration id
-     * @param project project
-     * @return integration
-     * @throws EntityNotFoundException if integration not found
-     */
-    default ProjectIntegration findByIdAndProjectOrThrow(long id, Project project) throws EntityNotFoundException {
-        var integration = findById(id).orElseThrow(() -> new EntityNotFoundException("github_project_integration", id));
-        if (integration.getProject().getId() != project.getId()) {
-            throw new EntityNotFoundException("github_project_integration", id);
-        }
-        return integration;
-    }
+    private long number;
 
-    /**
-     * Find integration by project.
-     * 
-     * @param project project
-     * @return integration
-     */
-    Optional<ProjectIntegration> findByProject(Project project);
+    private String state;
+
+    private String title;
+
+    private String body;
+
+    @JsonProperty(access = Access.READ_ONLY)
+    private List<String> assignees;
 
 }

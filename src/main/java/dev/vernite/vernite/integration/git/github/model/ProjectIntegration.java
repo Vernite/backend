@@ -30,6 +30,7 @@ package dev.vernite.vernite.integration.git.github.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import dev.vernite.vernite.project.Project;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -49,6 +50,7 @@ import lombok.ToString;
  */
 @Data
 @NoArgsConstructor
+@Schema(name = "GitHubProjectIntegration")
 @Entity(name = "github_project_integration")
 public class ProjectIntegration {
 

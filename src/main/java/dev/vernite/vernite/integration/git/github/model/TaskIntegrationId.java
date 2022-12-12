@@ -27,40 +27,36 @@
 
 package dev.vernite.vernite.integration.git.github.model;
 
-import java.util.Optional;
+import java.io.Serializable;
 
-import org.springframework.data.repository.CrudRepository;
-
-import dev.vernite.vernite.common.exception.EntityNotFoundException;
-import dev.vernite.vernite.project.Project;
+import jakarta.persistence.Embeddable;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
- * CRUD repository for project integration entity.
+ * Composite ID for task integration.
+ * 
+ * It contains connected task id, project integration id and id of issue in
+ * GitHub.
  */
-public interface ProjectIntegrationRepository extends CrudRepository<ProjectIntegration, Long> {
+@Data
+@Embeddable
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskIntegrationId implements Serializable {
 
-    /**
-     * Find integration by project and id.
-     * 
-     * @param id      integration id
-     * @param project project
-     * @return integration
-     * @throws EntityNotFoundException if integration not found
-     */
-    default ProjectIntegration findByIdAndProjectOrThrow(long id, Project project) throws EntityNotFoundException {
-        var integration = findById(id).orElseThrow(() -> new EntityNotFoundException("github_project_integration", id));
-        if (integration.getProject().getId() != project.getId()) {
-            throw new EntityNotFoundException("github_project_integration", id);
-        }
-        return integration;
-    }
+    private static final long serialVersionUID = 1;
 
-    /**
-     * Find integration by project.
-     * 
-     * @param project project
-     * @return integration
-     */
-    Optional<ProjectIntegration> findByProject(Project project);
+    @Positive
+    private long taskId;
+
+    @Positive
+    private long integrationId;
+
+    @PositiveOrZero
+    private int type;
 
 }

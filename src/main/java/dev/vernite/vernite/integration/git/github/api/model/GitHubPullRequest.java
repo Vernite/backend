@@ -25,42 +25,44 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.git.github.model;
+package dev.vernite.vernite.integration.git.github.api.model;
 
-import java.util.Optional;
+import java.util.List;
 
-import org.springframework.data.repository.CrudRepository;
-
-import dev.vernite.vernite.common.exception.EntityNotFoundException;
-import dev.vernite.vernite.project.Project;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 /**
- * CRUD repository for project integration entity.
+ * Object to represent a GitHub Rest api pull request.
  */
-public interface ProjectIntegrationRepository extends CrudRepository<ProjectIntegration, Long> {
+@Data
+@NoArgsConstructor
+@ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true)
+public class GitHubPullRequest extends GitHubIssue {
+
+    private GitHubBranch head;
+
+    private boolean merged;
 
     /**
-     * Find integration by project and id.
+     * Constructor for GitHubPullRequest.
      * 
-     * @param id      integration id
-     * @param project project
-     * @return integration
-     * @throws EntityNotFoundException if integration not found
+     * @param number    number of the pull request
+     * @param state     state of the pull request
+     * @param title     title of the pull request
+     * @param body      body of the pull request
+     * @param assignees list of assignees
+     * @param head      head of the pull request
+     * @param merged    merged status of the pull request
      */
-    default ProjectIntegration findByIdAndProjectOrThrow(long id, Project project) throws EntityNotFoundException {
-        var integration = findById(id).orElseThrow(() -> new EntityNotFoundException("github_project_integration", id));
-        if (integration.getProject().getId() != project.getId()) {
-            throw new EntityNotFoundException("github_project_integration", id);
-        }
-        return integration;
+    public GitHubPullRequest(long number, String state, String title, String body, List<String> assignees,
+            GitHubBranch head, boolean merged) {
+        super(number, state, title, body, assignees);
+        this.head = head;
+        this.merged = merged;
     }
-
-    /**
-     * Find integration by project.
-     * 
-     * @param project project
-     * @return integration
-     */
-    Optional<ProjectIntegration> findByProject(Project project);
 
 }

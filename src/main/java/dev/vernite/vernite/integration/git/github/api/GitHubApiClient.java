@@ -32,15 +32,21 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
+import org.springframework.web.service.annotation.PatchExchange;
 import org.springframework.web.service.annotation.PostExchange;
+import org.springframework.web.service.annotation.PutExchange;
 
 import dev.vernite.vernite.integration.git.github.api.model.OauthToken;
 import dev.vernite.vernite.integration.git.github.api.model.Repositories;
 import dev.vernite.vernite.integration.git.github.api.model.request.OauthRefreshTokenRequest;
 import dev.vernite.vernite.integration.git.github.api.model.request.OauthTokenRequest;
 import dev.vernite.vernite.integration.git.github.api.model.AppToken;
+import dev.vernite.vernite.integration.git.github.api.model.GitHubIssue;
+import dev.vernite.vernite.integration.git.github.api.model.GitHubPullRequest;
 import dev.vernite.vernite.integration.git.github.api.model.GitHubUser;
 import dev.vernite.vernite.integration.git.github.api.model.Installations;
+import dev.vernite.vernite.integration.git.github.api.model.MergeResponse;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -103,5 +109,72 @@ public interface GitHubApiClient {
      */
     @GetExchange("/installation/repositories")
     Mono<Repositories> getInstallationRepositories(@RequestHeader("Authorization") String token);
+
+    /**
+     * Create a repository issue.
+     * 
+     * @param token installation access token
+     * @param owner owner of repository
+     * @param name  name of repository
+     * @param body  issue body
+     * @return the created issue
+     */
+    @PostExchange("/repos/{owner}/{name}/issues")
+    Mono<GitHubIssue> createRepositoryIssue(@RequestHeader("Authorization") String token, @PathVariable String owner,
+            @PathVariable String name, @RequestBody GitHubIssue body);
+
+    /**
+     * Get the repository collaborators.
+     * 
+     * @param token installation access token
+     * @param owner owner of repository
+     * @param name  name of repository
+     * @return the repository collaborators
+     */
+    @GetExchange("/repos/{owner}/{name}/collaborators")
+    Flux<GitHubUser> getRepositoryCollaborators(@RequestHeader("Authorization") String token,
+            @PathVariable String owner, @PathVariable String name);
+
+    /**
+     * Patch a repository issue.
+     * 
+     * @param token installation access token
+     * @param owner owner of repository
+     * @param name  name of repository
+     * @param id    id of issue
+     * @param body  issue body
+     * @return the patched issue
+     */
+    @PatchExchange("/repos/{owner}/{name}/issues/{id}")
+    Mono<GitHubIssue> patchRepositoryIssue(@RequestHeader("Authorization") String token, @PathVariable String owner,
+            @PathVariable String name, @PathVariable long id, @RequestBody GitHubIssue body);
+
+    /**
+     * Patch a repository pull request.
+     * 
+     * @param token installation access token
+     * @param owner owner of repository
+     * @param name  name of repository
+     * @param id    id of issue
+     * @param body  pull request body
+     * @return the patched pull request
+     */
+    @PatchExchange("/repos/{owner}/{name}/pulls/{id}")
+    Mono<GitHubPullRequest> patchRepositoryPullRequest(@RequestHeader("Authorization") String token,
+            @PathVariable String owner, @PathVariable String name, @PathVariable long id,
+            @RequestBody GitHubPullRequest body);
+
+    /**
+     * Merge a pull request.
+     * 
+     * @param token installation access token
+     * @param owner owner of repository
+     * @param name  name of repository
+     * @param id    id of pull request
+     * @return the merge response
+     */
+    @PutExchange("/repos/{owner}/{name}/pulls/{id}/merge")
+    Mono<MergeResponse> mergePullRequest(@RequestHeader("Authorization") String token, @PathVariable String owner,
+            @PathVariable String name, @PathVariable long id);
 
 }

@@ -25,42 +25,16 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.git.github.model;
+package dev.vernite.vernite.integration.git.github.api.model;
 
-import java.util.Optional;
-
-import org.springframework.data.repository.CrudRepository;
-
-import dev.vernite.vernite.common.exception.EntityNotFoundException;
-import dev.vernite.vernite.project.Project;
+import lombok.Data;
 
 /**
- * CRUD repository for project integration entity.
+ * Object to represent a GitHub Rest api branch.
  */
-public interface ProjectIntegrationRepository extends CrudRepository<ProjectIntegration, Long> {
+@Data
+public class GitHubBranch {
 
-    /**
-     * Find integration by project and id.
-     * 
-     * @param id      integration id
-     * @param project project
-     * @return integration
-     * @throws EntityNotFoundException if integration not found
-     */
-    default ProjectIntegration findByIdAndProjectOrThrow(long id, Project project) throws EntityNotFoundException {
-        var integration = findById(id).orElseThrow(() -> new EntityNotFoundException("github_project_integration", id));
-        if (integration.getProject().getId() != project.getId()) {
-            throw new EntityNotFoundException("github_project_integration", id);
-        }
-        return integration;
-    }
-
-    /**
-     * Find integration by project.
-     * 
-     * @param project project
-     * @return integration
-     */
-    Optional<ProjectIntegration> findByProject(Project project);
+    private String ref;
 
 }

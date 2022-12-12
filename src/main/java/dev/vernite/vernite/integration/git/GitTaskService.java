@@ -30,6 +30,7 @@ package dev.vernite.vernite.integration.git;
 import java.util.List;
 
 import dev.vernite.vernite.integration.git.github.GitHubService;
+import dev.vernite.vernite.integration.git.github.GitHubService2;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.release.Release;
 import dev.vernite.vernite.task.Task;
@@ -49,6 +50,8 @@ import reactor.core.publisher.Mono;
 public class GitTaskService {
     @Autowired
     private GitHubService gitHubService;
+    @Autowired
+    private GitHubService2 gitHubService2;
 
     /**
      * Handle issue action for a given task.
@@ -76,7 +79,7 @@ public class GitTaskService {
      * @return Mono with created issue.
      */
     public Flux<Issue> createIssue(Task task) {
-        return Flux.concat(List.of(gitHubService.createIssue(task)));
+        return Flux.concat(List.of(gitHubService2.createIssue(task)));
     }
 
     /**
@@ -87,7 +90,7 @@ public class GitTaskService {
      * @return Mono with patched issue.
      */
     public Flux<Issue> patchIssue(Task task) {
-        return Flux.concat(List.of(gitHubService.patchIssue(task), gitHubService.patchPullRequest(task)));
+        return Flux.concat(List.of(gitHubService2.patchIssue(task), gitHubService2.patchPullRequest(task)));
     }
 
     /**
