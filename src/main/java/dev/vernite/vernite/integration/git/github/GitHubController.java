@@ -34,6 +34,7 @@ import java.util.List;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotNull;
 import kotlin.NotImplementedError;
+import dev.vernite.vernite.common.exception.EntityNotFoundException;
 import dev.vernite.vernite.common.utils.StateManager;
 import dev.vernite.vernite.integration.git.Repository;
 import dev.vernite.vernite.integration.git.github.model.Authorization;
@@ -193,11 +194,11 @@ public class GitHubController {
      * @param projectId id of project
      * @param id        id of project integration
      */
-    @DeleteMapping("/project/{projectId}/integration/git/github/{id}")
+    @DeleteMapping("/project/{projectId}/integration/git/github")
     public void deleteProjectIntegration(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long id) {
         var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
-        var integration = projectIntegrationRepository.findByIdAndProjectOrThrow(id, project);
+        var integration = projectIntegrationRepository.findByProject(project).orElseThrow(() -> new EntityNotFoundException("integration", id));
         projectIntegrationRepository.delete(integration);
     }
 
