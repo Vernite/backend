@@ -105,7 +105,7 @@ public class GitHubController {
             @RequestParam(name = "installation_id") long installationId,
             @RequestParam(name = "setup_action") String setupAction, HttpServletResponse httpServletResponse)
             throws IOException {
-        httpServletResponse.sendRedirect("https://vernite.dev/?path=/github");
+        httpServletResponse.sendRedirect("https://vernite.dev/?path=%2Fgithub");
         if (installationRepository.findByInstallationIdAndUser(installationId, user).isPresent()) {
             return Mono.empty();
         }
