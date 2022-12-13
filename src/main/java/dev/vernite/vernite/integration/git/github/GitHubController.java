@@ -29,20 +29,13 @@ package dev.vernite.vernite.integration.git.github;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotNull;
 import kotlin.NotImplementedError;
 import dev.vernite.vernite.common.utils.StateManager;
 import dev.vernite.vernite.integration.git.Repository;
-import dev.vernite.vernite.integration.git.github.data.GitHubIntegrationInfo;
-import dev.vernite.vernite.integration.git.github.entity.GitHubInstallation;
-import dev.vernite.vernite.integration.git.github.entity.GitHubInstallationRepository;
-import dev.vernite.vernite.integration.git.github.entity.GitHubIntegration;
-import dev.vernite.vernite.integration.git.github.entity.GitHubIntegrationRepository;
 import dev.vernite.vernite.integration.git.github.model.Authorization;
 import dev.vernite.vernite.integration.git.github.model.AuthorizationRepository;
 import dev.vernite.vernite.integration.git.github.model.ProjectIntegrationRepository;
@@ -50,8 +43,6 @@ import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.project.ProjectRepository;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.user.UserRepository;
-import dev.vernite.vernite.utils.ErrorType;
-import dev.vernite.vernite.utils.ObjectNotFoundException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -65,12 +56,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Hidden;
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -81,14 +67,9 @@ public class GitHubController {
 
     @Autowired
     private UserRepository userRepository;
-    @Autowired
-    private GitHubInstallationRepository installationRepository;
+
     @Autowired
     private ProjectRepository projectRepository;
-    @Autowired
-    private GitHubIntegrationRepository integrationRepository;
-    @Autowired
-    private GitHubService service;
 
     @Autowired
     private GitHubService2 service2;
@@ -220,104 +201,4 @@ public class GitHubController {
         projectIntegrationRepository.delete(integration);
     }
 
-    @Deprecated
-    @Operation(summary = "Retrieve connected GitHub accounts", description = "Retrieves all GitHub accounts connected to authenticated user account.")
-    @ApiResponse(description = "List with GitHub installations. Can be empty.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @GetMapping("/user/integration/github")
-    public List<GitHubInstallation> getInstallations(@NotNull @Parameter(hidden = true) User user) {
-        return installationRepository.findByUser(user);
-    }
-
-    @Deprecated
-    @Operation(summary = "Get repositories", description = "Retrieves list of repositories available to application for authenticated user. Also returns link to change settings on GitHub.")
-    @ApiResponse(description = "List with repositories and link. Can be empty.", responseCode = "200", content = @Content(schema = @Schema(implementation = GitHubIntegrationInfo.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @GetMapping("/user/integration/github/repository")
-    public Mono<GitHubIntegrationInfo> getRepositories(@NotNull @Parameter(hidden = true) User user) {
-        return service.getRepositories(user);
-    }
-
-    @Deprecated
-    @Operation(summary = "Redirect to GitHub", description = "This endpoint redirects user to GitHub to authorize application. After authorization user is redirected back to application.")
-    @GetMapping("/user/integration/github/install")
-    public void install(HttpServletResponse httpServletResponse) throws IOException {
-        httpServletResponse.sendRedirect(GitHubService.INTEGRATION_LINK);
-    }
-
-    @Hidden
-    @Deprecated
-    @GetMapping("/user/integration/github/redirect")
-    public Mono<Void> newInstallation(@NotNull @Parameter(hidden = true) User user,
-            @RequestParam(name = "installation_id") long installationId,
-            @RequestParam(name = "setup_action") String setupAction, HttpServletResponse httpServletResponse)
-            throws IOException {
-        httpServletResponse.sendRedirect("https://vernite.dev/?path=/github");
-        if (installationRepository.findByInstallationIdAndUser(installationId, user).isPresent()) {
-            return Mono.empty();
-        }
-        return service.newInstallation(user, installationId)
-                .then();
-    }
-
-    @Deprecated
-    @Operation(summary = "Delete GitHub account connection", description = "Retrieves link to delete GitHub account installation.")
-    @ApiResponse(description = "Link to delete GitHub installation.", responseCode = "200", content = @Content(examples = @ExampleObject(value = "{\"link\": \"string\"}")))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Installation with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @DeleteMapping("/user/integration/github/{id}")
-    public Map<String, String> deleteInstallation(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
-        GitHubInstallation installation = installationRepository.findByIdOrThrow(id);
-        if (!installation.getUser().equals(user)) {
-            throw new ObjectNotFoundException();
-        }
-        HashMap<String, String> result = new HashMap<>();
-        if ("Organization".equals(installation.getType())) {
-            result.put("link", "https://github.com/organizations/" + installation.getGitHubUsername()
-                    + "/settings/installations/" + installation.getInstallationId());
-        } else {
-            result.put("link", "https://github.com/settings/installations/" + installation.getInstallationId());
-        }
-        return result;
-    }
-
-    @Deprecated
-    @Operation(summary = "Create GitHub repository integration", description = "Creates integration between project and GitHub repository.")
-    @ApiResponse(description = "Integration created.", responseCode = "200", content = @Content(schema = @Schema(implementation = Project.class)))
-    @ApiResponse(description = "Project already has integration.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project or installation not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @PostMapping("/project/{id}/integration/github")
-    public Mono<Project> newIntegration(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
-            @RequestBody String repositoryFullName) {
-        Project project = projectRepository.findByIdOrThrow(id);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        if (project.getGitHubIntegration() != null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Project already has connected repository.");
-        }
-        return service.newIntegration(user, project, repositoryFullName)
-                .switchIfEmpty(Mono.error(ObjectNotFoundException::new))
-                .thenReturn(projectRepository.findByIdOrThrow(id));
-    }
-
-    @Deprecated
-    @Operation(summary = "Delete GitHub integration", description = "Deletes integration between project and GitHub repository.")
-    @ApiResponse(description = "Integration deleted.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project or integration not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @DeleteMapping("/project/{id}/integration/github")
-    public void deleteIntegration(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
-        Project project = projectRepository.findByIdOrThrow(id);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        if (project.getGitHubIntegration() == null) {
-            throw new ObjectNotFoundException();
-        }
-        GitHubIntegration integration = integrationRepository.findByProjectAndActiveNull(project).orElseThrow();
-        integration.softDelete();
-        integrationRepository.save(integration);
-    }
 }

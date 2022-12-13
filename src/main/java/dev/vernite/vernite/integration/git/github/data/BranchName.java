@@ -27,24 +27,24 @@
 
 package dev.vernite.vernite.integration.git.github.data;
 
+import dev.vernite.vernite.integration.git.Branch;
+import lombok.Data;
+
 /**
  * Object to represent a GitHub Rest api branch.
  */
-public class GitHubBranchRead {
-    private String name;
+@Data
+public class BranchName {
 
-    public GitHubBranchRead() {
+    String name;
+
+    /**
+     * Converts GitHubBranch to Branch.
+     * 
+     * @return Branch
+     */
+    public Branch toBranch() {
+        return new Branch(name);
     }
 
-    public GitHubBranchRead(String name) {
-        this.name = name;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
 }

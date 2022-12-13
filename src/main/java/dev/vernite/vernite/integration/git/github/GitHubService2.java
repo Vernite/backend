@@ -50,7 +50,6 @@ import dev.vernite.vernite.integration.git.PullRequest;
 import dev.vernite.vernite.integration.git.Repository;
 import dev.vernite.vernite.integration.git.github.api.GitHubApiClient;
 import dev.vernite.vernite.integration.git.github.api.GitHubConfiguration;
-import dev.vernite.vernite.integration.git.github.api.model.GitHubBranch;
 import dev.vernite.vernite.integration.git.github.api.model.GitHubIssue;
 import dev.vernite.vernite.integration.git.github.api.model.GitHubPullRequest;
 import dev.vernite.vernite.integration.git.github.api.model.GitHubRelease;
@@ -59,6 +58,7 @@ import dev.vernite.vernite.integration.git.github.api.model.Installations;
 import dev.vernite.vernite.integration.git.github.api.model.Repositories;
 import dev.vernite.vernite.integration.git.github.api.model.request.OauthRefreshTokenRequest;
 import dev.vernite.vernite.integration.git.github.api.model.request.OauthTokenRequest;
+import dev.vernite.vernite.integration.git.github.data.BranchName;
 import dev.vernite.vernite.integration.git.github.model.Authorization;
 import dev.vernite.vernite.integration.git.github.model.AuthorizationRepository;
 import dev.vernite.vernite.integration.git.github.model.Installation;
@@ -507,7 +507,7 @@ public class GitHubService2 {
                 .map(Installation::getToken)
                 .map(token -> "Bearer " + token)
                 .flatMapMany(token -> client.getRepositoryBranches(token, owner, repo))
-                .map(GitHubBranch::toBranch);
+                .map(BranchName::toBranch);
     }
 
     /**

@@ -59,8 +59,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import dev.vernite.vernite.cdn.File;
 import dev.vernite.vernite.common.utils.counter.CounterSequence;
-import dev.vernite.vernite.integration.common.Integration;
-import dev.vernite.vernite.integration.git.github.entity.GitHubIntegration;
 import dev.vernite.vernite.integration.git.github.model.ProjectIntegration;
 import dev.vernite.vernite.projectworkspace.ProjectWorkspace;
 import dev.vernite.vernite.sprint.Sprint;
@@ -152,13 +150,6 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     @OneToOne(cascade = CascadeType.PERSIST, optional = false)
     private CounterSequence sprintCounter;
 
-    @Setter
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    @OneToOne(mappedBy = "project")
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private GitHubIntegration gitHubIntegration;
-
     @Getter
     @Setter
     @NotNull
@@ -249,21 +240,6 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     }
 
     /**
-     * Return all integrations for project.
-     * 
-     * @return list of integrations for project
-     */
-    public List<Integration> getIntegrations() {
-        if (getGitHubIntegrationEntity() == null) {
-            return List.of();
-        }
-        return List.of(new dev.vernite.vernite.integration.git.github.integration.GitHubProjectIntegration(
-                getGitHubIntegrationEntity().getId(),
-                getGitHubIntegrationEntity().getActive() == null,
-                getGitHubIntegrationEntity().getRepositoryFullName()));
-    }
-
-    /**
      * Find index of user in project workspace list.
      * 
      * @param user must not be {@literal null}. Must be value returned by
@@ -300,18 +276,6 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
      */
     public void setDescription(String description) {
         this.description = description.trim();
-    }
-
-    @Deprecated
-    public String getGitHubIntegration() {
-        return gitHubIntegration != null && gitHubIntegration.getActive() == null
-                ? gitHubIntegration.getRepositoryFullName()
-                : null;
-    }
-
-    @JsonIgnore
-    public GitHubIntegration getGitHubIntegrationEntity() {
-        return gitHubIntegration;
     }
 
     @Override

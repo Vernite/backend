@@ -110,7 +110,7 @@ class TaskControllerTests {
         assertEquals(expected.getEstimatedDate(), actual.getEstimatedDate());
         assertEquals(expected.getIssue(), actual.getIssue());
         assertEquals(expected.getPriority(), actual.getPriority());
-        assertEquals(expected.getPull(), actual.getPull());
+        assertEquals(expected.getPullRequest(), actual.getPullRequest());
         assertEquals(expected.getStoryPoints(), actual.getStoryPoints());
     }
 

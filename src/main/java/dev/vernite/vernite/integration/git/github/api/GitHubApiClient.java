@@ -40,8 +40,8 @@ import dev.vernite.vernite.integration.git.github.api.model.OauthToken;
 import dev.vernite.vernite.integration.git.github.api.model.Repositories;
 import dev.vernite.vernite.integration.git.github.api.model.request.OauthRefreshTokenRequest;
 import dev.vernite.vernite.integration.git.github.api.model.request.OauthTokenRequest;
+import dev.vernite.vernite.integration.git.github.data.BranchName;
 import dev.vernite.vernite.integration.git.github.api.model.AppToken;
-import dev.vernite.vernite.integration.git.github.api.model.GitHubBranch;
 import dev.vernite.vernite.integration.git.github.api.model.GitHubIssue;
 import dev.vernite.vernite.integration.git.github.api.model.GitHubPullRequest;
 import dev.vernite.vernite.integration.git.github.api.model.GitHubRelease;
@@ -238,7 +238,7 @@ public interface GitHubApiClient {
      * @return the repository branches
      */
     @GetExchange("/repos/{owner}/{name}/branches")
-    Flux<GitHubBranch> getRepositoryBranches(@RequestHeader("Authorization") String token, @PathVariable String owner,
+    Flux<BranchName> getRepositoryBranches(@RequestHeader("Authorization") String token, @PathVariable String owner,
             @PathVariable String name);
 
     /**

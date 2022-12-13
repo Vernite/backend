@@ -31,17 +31,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.util.Date;
-import java.util.List;
 
-import dev.vernite.vernite.common.utils.counter.CounterSequence;
-import dev.vernite.vernite.integration.git.github.entity.GitHubIntegration;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.project.ProjectRepository;
 import dev.vernite.vernite.projectworkspace.ProjectMember;
 import dev.vernite.vernite.projectworkspace.ProjectWithPrivileges;
 import dev.vernite.vernite.projectworkspace.ProjectWorkspace;
 import dev.vernite.vernite.projectworkspace.ProjectWorkspaceKey;
-import dev.vernite.vernite.status.Status;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.user.UserRepository;
 import dev.vernite.vernite.user.UserSession;
@@ -102,23 +98,6 @@ public class OtherTests {
     @BeforeEach
     void reset() {
         projectRepository.deleteAll();
-    }
-
-    @Test
-    void projectTests() {
-        Project project = new Project("name");
-
-        project.setGitHubIntegration(new GitHubIntegration(project, null, "repository/name"));
-        assertEquals("repository/name", project.getGitHubIntegration());
-        project.setSprintCounter(new CounterSequence());
-        assertEquals(0, project.getSprintCounter().getCounterValue());
-        project.setTaskCounter(new CounterSequence());
-        assertEquals(0, project.getTaskCounter().getCounterValue());
-        assertEquals(3, project.getStatuses().size());
-        project.setStatuses(List.of(new Status()));
-        assertEquals(1, project.getStatuses().size());
-        project.setProjectWorkspaces(List.of(new ProjectWorkspace()));
-        assertEquals(1, project.getProjectWorkspaces().size());
     }
 
     @Test

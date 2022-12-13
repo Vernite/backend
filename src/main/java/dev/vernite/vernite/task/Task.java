@@ -46,7 +46,6 @@ import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
@@ -64,8 +63,6 @@ import com.fasterxml.jackson.annotation.JsonProperty.Access;
 
 import dev.vernite.vernite.integration.git.Issue;
 import dev.vernite.vernite.integration.git.PullRequest;
-import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskIssue;
-import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskPull;
 import dev.vernite.vernite.integration.git.github.model.TaskIntegration;
 import dev.vernite.vernite.release.Release;
 import dev.vernite.vernite.sprint.Sprint;
@@ -158,16 +155,6 @@ public class Task extends SoftDeleteEntity {
 
     @Column(nullable = false)
     private int type;
-
-    @JsonIgnore
-    @OneToOne(mappedBy = "task")
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private GitHubTaskIssue issueTask;
-
-    @JsonIgnore
-    @OneToOne(mappedBy = "task")
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private GitHubTaskPull pullTask;
 
     @JsonIgnore
     @ManyToOne
@@ -360,30 +347,6 @@ public class Task extends SoftDeleteEntity {
                 }
             }
         }
-    }
-
-    public Issue getIssueOld() {
-        return getIssueTask() != null ? getIssueTask().toIssue() : null;
-    }
-
-    public PullRequest getPull() {
-        return getPullTask() != null ? getPullTask().toPull() : null;
-    }
-
-    public GitHubTaskIssue getIssueTask() {
-        return issueTask;
-    }
-
-    public void setIssueTask(GitHubTaskIssue issues) {
-        this.issueTask = issues;
-    }
-
-    public GitHubTaskPull getPullTask() {
-        return pullTask;
-    }
-
-    public void setPullTask(GitHubTaskPull pulls) {
-        this.pullTask = pulls;
     }
 
     public Task getParentTask() {
