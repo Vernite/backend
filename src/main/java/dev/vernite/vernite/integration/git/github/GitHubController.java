@@ -37,6 +37,7 @@ import kotlin.NotImplementedError;
 import dev.vernite.vernite.common.exception.EntityNotFoundException;
 import dev.vernite.vernite.common.utils.StateManager;
 import dev.vernite.vernite.integration.git.Repository;
+import dev.vernite.vernite.integration.git.github.data.Repositories;
 import dev.vernite.vernite.integration.git.github.model.Authorization;
 import dev.vernite.vernite.integration.git.github.model.AuthorizationRepository;
 import dev.vernite.vernite.integration.git.github.model.ProjectIntegrationRepository;
@@ -58,7 +59,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Parameter;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -127,8 +127,9 @@ public class GitHubController {
                         throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                                 "Failed to redirect to " + url, e);
                     }
-                    return null;
-                });
+                    return url;
+                })
+                .then();
     }
 
     /**
@@ -161,8 +162,13 @@ public class GitHubController {
      * @return list of GitHub repositories
      */
     @GetMapping("/user/integration/git/github/repository")
-    public Flux<Repository> getRepositories(@NotNull @Parameter(hidden = true) User user) {
-        return service.getUserRepositories(user);
+    public Mono<Repositories> getRepositories(@NotNull @Parameter(hidden = true) User user) {
+        return service.getUserRepositories(user).collectList().map(list -> {
+            var repos = new Repositories();
+            repos.setRepositories(list);
+            repos.setLink("https://github.com/apps/vernite/installations/new");
+            return repos;
+        });
     }
 
     /**

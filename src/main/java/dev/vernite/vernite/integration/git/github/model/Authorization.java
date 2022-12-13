@@ -117,12 +117,12 @@ public class Authorization {
      */
     public void update(OauthToken token, GitHubUser user, User userEntity) {
         refreshToken(token);
-        if (getId() != 0) {
+        if (getId() == 0) {
             setId(user.getId());
         }
         this.login = user.getLogin();
         this.avatarUrl = user.getAvatarUrl();
-        if (getUser() != null) {
+        if (getUser() == null) {
             setUser(userEntity);
         }
     }
