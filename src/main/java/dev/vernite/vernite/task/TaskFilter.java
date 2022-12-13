@@ -31,21 +31,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.JoinType;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
-
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.jpa.domain.Specification;
 
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.task.Task.TaskType;
-
 import io.swagger.v3.oas.annotations.Parameter;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import lombok.Getter;
 
 @ParameterObject
+@Getter
 public class TaskFilter {
     private static final String NUMBER = "number";
     private static final String STATUS = "status";
@@ -62,53 +62,35 @@ public class TaskFilter {
     private Optional<Long> parentId = Optional.empty();
     @Parameter(description = "Return only backlog tasks (filters are combined with 'and')")
     private Optional<Boolean> backlog = Optional.empty();
-
-    public Optional<Long> getSprintId() {
-        return sprintId;
-    }
+    @Parameter(description = "Priority of filtered tasks (filters are combined with 'and')")
+    private Optional<String> priority = Optional.empty();
 
     public void setSprintId(long sprintId) {
         this.sprintId = Optional.of(sprintId);
-    }
-
-    public Optional<Long> getAssigneeId() {
-        return assigneeId;
     }
 
     public void setAssigneeId(long assigneeId) {
         this.assigneeId = Optional.of(assigneeId);
     }
 
-    public Optional<List<Long>> getStatusId() {
-        return statusId;
-    }
-
     public void setStatusId(List<Long> statusId) {
         this.statusId = Optional.of(statusId);
-    }
-
-    public Optional<List<Integer>> getType() {
-        return type;
     }
 
     public void setType(List<Integer> type) {
         this.type = Optional.of(type);
     }
 
-    public Optional<Long> getParentId() {
-        return parentId;
-    }
-
     public void setParentId(long parentId) {
         this.parentId = Optional.of(parentId);
     }
 
-    public Optional<Boolean> getBacklog() {
-        return backlog;
-    }
-
     public void setBacklog(boolean backlog) {
         this.backlog = Optional.of(backlog);
+    }
+
+    public void setPriority(String priority) {
+        this.priority = Optional.of(priority);
     }
 
     public Specification<Task> toSpecification(Project project) {
@@ -117,7 +99,9 @@ public class TaskFilter {
             predicates.add(builder.equal(root.get(STATUS).get("project"), project));
             predicates.add(builder.isNull(root.get("active")));
             predicates.add(builder.notEqual(root.get("type"), TaskType.SUBTASK.ordinal()));
-            sprintId.ifPresent(id -> predicates.add(builder.or(builder.in(root.join("archiveSprints", JoinType.LEFT).get(NUMBER)).value(id), builder.equal(root.get("sprint").get(NUMBER), id))));
+            sprintId.ifPresent(id -> predicates
+                    .add(builder.or(builder.in(root.join("archiveSprints", JoinType.LEFT).get(NUMBER)).value(id),
+                            builder.equal(root.get("sprint").get(NUMBER), id))));
             assigneeId.ifPresent(id -> predicates.add(builder.equal(root.get("assignee").get("id"), id)));
             statusId.ifPresent(ids -> predicates.add(builder.in(root.get(STATUS).get("id")).value(ids)));
             type.ifPresent(types -> predicates.add(builder.in(root.get("type")).value(types)));
@@ -130,6 +114,8 @@ public class TaskFilter {
                     predicates.add(builder.equal(root.get(STATUS).get("isFinal"), false));
                 }
             });
+            parentId.ifPresent(id -> predicates.add(builder.equal(root.get("parentTask").get(NUMBER), id)));
+            priority.ifPresent(priority -> predicates.add(builder.equal(root.get("priority"), priority)));
             query.distinct(true);
             return builder.and(predicates.toArray(new Predicate[predicates.size()]));
         };
