@@ -89,7 +89,7 @@ public class GitHubServiceTests {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Autowired
-    private GitHubService2 service;
+    private GitHubService service;
     @Autowired
     private UserRepository userRepository;
     @Autowired

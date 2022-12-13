@@ -80,7 +80,7 @@ import reactor.core.publisher.Mono;
  * Service for GitHub integration.
  */
 @Service
-public class GitHubService2 {
+public class GitHubService {
 
     private final GitHubApiClient client;
 
@@ -94,7 +94,7 @@ public class GitHubService2 {
 
     private TaskIntegrationRepository taskIntegrationRepository;
 
-    public GitHubService2(GitHubConfiguration config, AuthorizationRepository authorizationRepository,
+    public GitHubService(GitHubConfiguration config, AuthorizationRepository authorizationRepository,
             InstallationRepository installationRepository, ProjectIntegrationRepository projectIntegrationRepository,
             TaskIntegrationRepository taskIntegrationRepository) {
         this.config = config;

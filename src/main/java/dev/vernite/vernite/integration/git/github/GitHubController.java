@@ -72,7 +72,7 @@ public class GitHubController {
     private ProjectRepository projectRepository;
 
     @Autowired
-    private GitHubService2 service2;
+    private GitHubService service;
 
     @Autowired
     private AuthorizationRepository authorizationRepository;
@@ -92,7 +92,7 @@ public class GitHubController {
     @GetMapping("/user/integration/git/github/authorize")
     public void authorize(@NotNull @Parameter(hidden = true) User user, HttpServletResponse response)
             throws URISyntaxException, IOException {
-        response.sendRedirect(service2.getAuthorizationUrl(STATE_MANAGER.createState(user.getId())).toString());
+        response.sendRedirect(service.getAuthorizationUrl(STATE_MANAGER.createState(user.getId())).toString());
     }
 
     /**
@@ -114,7 +114,7 @@ public class GitHubController {
             var user = userRepository.findById(id).orElse(null);
 
             if (user != null) {
-                result = service2.createAuthorization(user, code);
+                result = service.createAuthorization(user, code);
             }
         }
 
@@ -161,7 +161,7 @@ public class GitHubController {
      */
     @GetMapping("/user/integration/git/github/repository")
     public Flux<Repository> getRepositories2(@NotNull @Parameter(hidden = true) User user) {
-        return service2.getUserRepositories(user);
+        return service.getUserRepositories(user);
     }
 
     /**
@@ -180,7 +180,7 @@ public class GitHubController {
         if (!project.getGithubProjectIntegrations().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Project already has GitHub integration");
         }
-        return service2.createProjectIntegration(user, project, repository.getFullName())
+        return service.createProjectIntegration(user, project, repository.getFullName())
                 .switchIfEmpty(Mono.error(new NotImplementedError()))
                 .thenReturn(projectRepository.findByIdAndMemberOrThrow(id, user));
     }

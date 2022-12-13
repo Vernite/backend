@@ -80,7 +80,7 @@ public class GitHubWebhookService {
     @Autowired
     private TaskIntegrationRepository issueRepository;
     @Autowired
-    private GitHubService2 service;
+    private GitHubService service;
     @Autowired
     private CounterSequenceRepository counterSequenceRepository;
     @Autowired
