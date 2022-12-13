@@ -44,13 +44,16 @@ import org.springframework.web.reactive.function.client.support.WebClientAdapter
 import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
 import dev.vernite.vernite.common.exception.ExternalApiException;
+import dev.vernite.vernite.integration.git.Branch;
 import dev.vernite.vernite.integration.git.Issue;
 import dev.vernite.vernite.integration.git.PullRequest;
 import dev.vernite.vernite.integration.git.Repository;
 import dev.vernite.vernite.integration.git.github.api.GitHubApiClient;
 import dev.vernite.vernite.integration.git.github.api.GitHubConfiguration;
+import dev.vernite.vernite.integration.git.github.api.model.GitHubBranch;
 import dev.vernite.vernite.integration.git.github.api.model.GitHubIssue;
 import dev.vernite.vernite.integration.git.github.api.model.GitHubPullRequest;
+import dev.vernite.vernite.integration.git.github.api.model.GitHubRelease;
 import dev.vernite.vernite.integration.git.github.api.model.GitHubRepository;
 import dev.vernite.vernite.integration.git.github.api.model.Installations;
 import dev.vernite.vernite.integration.git.github.api.model.Repositories;
@@ -66,6 +69,7 @@ import dev.vernite.vernite.integration.git.github.model.TaskIntegration;
 import dev.vernite.vernite.integration.git.github.model.TaskIntegrationId;
 import dev.vernite.vernite.integration.git.github.model.TaskIntegrationRepository;
 import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.release.Release;
 import dev.vernite.vernite.task.Task;
 import dev.vernite.vernite.user.User;
 import io.jsonwebtoken.Jwts;
@@ -99,7 +103,7 @@ public class GitHubService2 {
         this.projectIntegrationRepository = projectIntegrationRepository;
         this.taskIntegrationRepository = taskIntegrationRepository;
 
-        var webClient = WebClient.builder().baseUrl(GitHubConfiguration.GITHUB_API_URL)
+        var webClient = WebClient.builder().baseUrl(config.getApiURL())
                 .defaultStatusHandler(HttpStatusCode::isError,
                         resp -> Mono.error(new ExternalApiException("github", "github error" + resp.statusCode())))
                 .build();
@@ -180,6 +184,67 @@ public class GitHubService2 {
     }
 
     /**
+     * Get issues for the given project.
+     * 
+     * @param project the project
+     * @return the issues
+     */
+    public Flux<Issue> getIssues(Project project) {
+        var integrationOptional = projectIntegrationRepository.findByProject(project);
+
+        if (integrationOptional.isEmpty()) {
+            return Flux.empty();
+        }
+
+        var integration = integrationOptional.get();
+        var owner = integration.getRepositoryOwner();
+        var repo = integration.getRepositoryName();
+
+        return Mono.just(integration.getInstallation())
+                .filter(inst -> !inst.isSuspended())
+                .flatMap(this::refreshToken)
+                .map(Installation::getToken)
+                .map(token -> "Bearer " + token)
+                .flatMapMany(token -> client.getRepositoryIssues(token, owner, repo))
+                .map(GitHubIssue::toIssue);
+    }
+
+    /**
+     * Connect the given task to the given issue.
+     * 
+     * @param task the task
+     * @param id   the issue id
+     * @return the issue
+     */
+    public Mono<Issue> connectIssue(Task task, long id) {
+        var integrationOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());
+
+        if (integrationOptional.isEmpty()) {
+            return Mono.empty();
+        }
+
+        var integration = integrationOptional.get();
+        var owner = integration.getRepositoryOwner();
+        var repo = integration.getRepositoryName();
+
+        Set<Long> assignees = new HashSet<>();
+        if (task.getAssignee() != null) {
+            authorizationRepository.findByUser(task.getAssignee()).forEach(auth -> assignees.add(auth.getId()));
+        }
+
+        return Mono.just(integration.getInstallation())
+                .filter(inst -> !inst.isSuspended())
+                .flatMap(this::refreshToken)
+                .map(Installation::getToken)
+                .map(token -> "Bearer " + token)
+                .flatMap(token -> client.getRepositoryIssue(token, owner, repo, id))
+                .map(GitHubIssue::toIssue)
+                .map(issue -> new TaskIntegration(task, integration, id, TaskIntegration.Type.ISSUE))
+                .map(taskIntegrationRepository::save)
+                .then(patchIssue(task));
+    }
+
+    /**
      * Create a GitHub issue for the given task.
      * 
      * @param task the task
@@ -196,7 +261,7 @@ public class GitHubService2 {
         var owner = integration.getRepositoryOwner();
         var repo = integration.getRepositoryName();
 
-        var issue = new GitHubIssue(0, null, task.getName(), task.getDescription(), new ArrayList<>());
+        var issue = new GitHubIssue(0, null, null, task.getName(), task.getDescription(), new ArrayList<>());
         Set<Long> assignees = new HashSet<>();
         if (task.getAssignee() != null) {
             authorizationRepository.findByUser(task.getAssignee()).forEach(auth -> assignees.add(auth.getId()));
@@ -207,10 +272,11 @@ public class GitHubService2 {
                 .flatMap(this::refreshToken)
                 .flatMap(inst -> setCollaborators(inst, owner, repo, issue, assignees))
                 .flatMap(inst -> client.createRepositoryIssue("Bearer " + inst.getToken(), owner, repo, issue))
-                .map(newIssue -> new TaskIntegration(task, integration, newIssue.getNumber(),
-                        TaskIntegration.Type.ISSUE))
-                .map(taskIntegrationRepository::save)
-                .map(TaskIntegration::toIssue);
+                .map(newIssue -> {
+                    var i = new TaskIntegration(task, integration, newIssue.getNumber(), TaskIntegration.Type.ISSUE);
+                    taskIntegrationRepository.save(i);
+                    return newIssue.toIssue();
+                });
     }
 
     /**
@@ -237,8 +303,9 @@ public class GitHubService2 {
 
         var integration = integrationOptional.get();
 
-        var issue = new GitHubIssue(integration.getIssueId(), task.getStatus().isFinal() ? "closed" : "open",
-                task.getName(), task.getDescription(), new ArrayList<>());
+        var issue = new GitHubIssue(integration.getIssueId(), integration.link(),
+                task.getStatus().isFinal() ? "closed" : "open", task.getName(), task.getDescription(),
+                new ArrayList<>());
         Set<Long> assignees = new HashSet<>();
         if (task.getAssignee() != null) {
             authorizationRepository.findByUser(task.getAssignee()).forEach(auth -> assignees.add(auth.getId()));
@@ -253,7 +320,90 @@ public class GitHubService2 {
                 .flatMap(inst -> setCollaborators(inst, owner, repo, issue, assignees))
                 .flatMap(inst -> client.patchRepositoryIssue("Bearer " + inst.getToken(), owner, repo,
                         issue.getNumber(), issue))
-                .thenReturn(integration.toIssue());
+                .map(gitIssue -> gitIssue.toIssue());
+    }
+
+    /**
+     * Delete the GitHub issue connection for the given task.
+     * 
+     * @param task the task
+     */
+    public void deleteIssue(Task task) {
+        var integrationOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());
+
+        if (integrationOptional.isEmpty()) {
+            return;
+        }
+
+        var integration = integrationOptional.get();
+
+        taskIntegrationRepository
+                .findById(
+                        new TaskIntegrationId(task.getId(), integration.getId(), TaskIntegration.Type.ISSUE.ordinal()))
+                .ifPresent(taskIntegrationRepository::delete);
+    }
+
+    /**
+     * Get the GitHub pull requests for the given project.
+     * 
+     * @param project the project
+     * @return the pull requests
+     */
+    public Flux<PullRequest> getPullRequests(Project project) {
+        var integrationOptional = projectIntegrationRepository.findByProject(project);
+
+        if (integrationOptional.isEmpty()) {
+            return Flux.empty();
+        }
+
+        var integration = integrationOptional.get();
+        var owner = integration.getRepositoryOwner();
+        var repo = integration.getRepositoryName();
+
+        return Mono.just(integration.getInstallation())
+                .filter(inst -> !inst.isSuspended())
+                .flatMap(this::refreshToken)
+                .map(Installation::getToken)
+                .map(token -> "Bearer " + token)
+                .flatMapMany(token -> client.getRepositoryPullRequests(token, owner, repo))
+                .map(GitHubPullRequest::toPullRequest);
+    }
+
+    /**
+     * Connect the given task to the given GitHub pull request.
+     * 
+     * @param task the task
+     * @param id   the pull request id
+     * @return the pull request
+     */
+    public Mono<PullRequest> connectPullRequest(Task task, long id) {
+        var integrationOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());
+
+        if (integrationOptional.isEmpty()) {
+            return Mono.empty();
+        }
+
+        var integration = integrationOptional.get();
+        var owner = integration.getRepositoryOwner();
+        var repo = integration.getRepositoryName();
+
+        Set<Long> assignees = new HashSet<>();
+        if (task.getAssignee() != null) {
+            authorizationRepository.findByUser(task.getAssignee()).forEach(auth -> assignees.add(auth.getId()));
+        }
+
+        return Mono.just(integration.getInstallation())
+                .filter(inst -> !inst.isSuspended())
+                .flatMap(this::refreshToken)
+                .map(Installation::getToken)
+                .map(token -> "Bearer " + token)
+                .flatMap(token -> client.getRepositoryPullRequest(token, owner, repo, id))
+                .map(GitHubPullRequest::toPullRequest)
+                .map(pull -> {
+                    var i = new TaskIntegration(task, integration, id, TaskIntegration.Type.PULL_REQUEST);
+                    taskIntegrationRepository.save(i);
+                    return pull;
+                });
     }
 
     /**
@@ -280,8 +430,8 @@ public class GitHubService2 {
 
         var integration = integrationOptional.get();
 
-        var pullRequest = new GitHubPullRequest(integration.getIssueId(), null, task.getName(), task.getDescription(),
-                new ArrayList<>(), null, false);
+        var pullRequest = new GitHubPullRequest(integration.getIssueId(), null, null, task.getName(),
+                task.getDescription(), new ArrayList<>(), null, false);
 
         Set<Long> assignees = new HashSet<>();
         if (task.getAssignee() != null) {
@@ -302,7 +452,7 @@ public class GitHubService2 {
                         return integration;
                     })
                     .map(taskIntegrationRepository::save)
-                    .thenReturn(new PullRequest());
+                    .then(Mono.empty());
         }
 
         return Mono.just(integrationProject.getInstallation())
@@ -311,7 +461,80 @@ public class GitHubService2 {
                 .flatMap(inst -> setCollaborators(inst, owner, repo, (GitHubIssue) pullRequest, assignees))
                 .flatMap(inst -> client.patchRepositoryPullRequest("Bearer " + inst.getToken(), owner, repo,
                         pullRequest.getNumber(), pullRequest))
-                .thenReturn(integration.toPullRequest());
+                .map(pull -> pull.toPullRequest());
+    }
+
+    /**
+     * Delete the GitHub pull request for the given task.
+     * 
+     * @param task the task
+     */
+    public void deletePullRequest(Task task) {
+        var integrationOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());
+
+        if (integrationOptional.isEmpty()) {
+            return;
+        }
+
+        var integration = integrationOptional.get();
+
+        taskIntegrationRepository
+                .findById(new TaskIntegrationId(task.getId(), integration.getId(),
+                        TaskIntegration.Type.PULL_REQUEST.ordinal()))
+                .ifPresent(taskIntegrationRepository::delete);
+    }
+
+    /**
+     * Get git branches for the given project.
+     * 
+     * @param project the project
+     * @return the branches
+     */
+    public Flux<Branch> getBranches(Project project) {
+        var integrationOptional = projectIntegrationRepository.findByProject(project);
+
+        if (integrationOptional.isEmpty()) {
+            return Flux.empty();
+        }
+
+        var integration = integrationOptional.get();
+        var owner = integration.getRepositoryOwner();
+        var repo = integration.getRepositoryName();
+
+        return Mono.just(integration.getInstallation())
+                .filter(inst -> !inst.isSuspended())
+                .flatMap(this::refreshToken)
+                .map(Installation::getToken)
+                .map(token -> "Bearer " + token)
+                .flatMapMany(token -> client.getRepositoryBranches(token, owner, repo))
+                .map(GitHubBranch::toBranch);
+    }
+
+    /**
+     * Create new release for the given project.
+     * 
+     * @param release the release
+     * @param branch  the branch
+     * @return the release
+     */
+    public Mono<Long> publishRelease(Release release, String branch) {
+        var integrationOptional = projectIntegrationRepository.findByProject(release.getProject());
+
+        if (integrationOptional.isEmpty()) {
+            return Mono.empty();
+        }
+
+        var integration = integrationOptional.get();
+        var owner = integration.getRepositoryOwner();
+        var repo = integration.getRepositoryName();
+
+        return Mono.just(integration.getInstallation())
+                .filter(inst -> !inst.isSuspended())
+                .flatMap(this::refreshToken)
+                .map(Installation::getToken)
+                .map(token -> "Bearer " + token)
+                .flatMap(token -> client.createRepositoryRelease(token, owner, repo, new GitHubRelease(release)))
+                .map(GitHubRelease::getId);
     }
 
     private Mono<Installation> refreshToken(Installation installation) {
@@ -357,6 +580,9 @@ public class GitHubService2 {
 
     private Mono<Installation> setCollaborators(Installation installation, String owner, String name,
             GitHubIssue issue, Set<Long> assignees) {
+        if (assignees.isEmpty()) {
+            return Mono.just(installation);
+        }
         return client.getRepositoryCollaborators("Bearer " + installation.getToken(), owner, name)
                 .filter(user -> assignees.contains(user.getId()))
                 .map(user -> issue.getAssignees().add(user.getLogin()))

@@ -27,6 +27,7 @@
 
 package dev.vernite.vernite.integration.git.github.model;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.repository.CrudRepository;
@@ -62,5 +63,14 @@ public interface ProjectIntegrationRepository extends CrudRepository<ProjectInte
      * @return integration
      */
     Optional<ProjectIntegration> findByProject(Project project);
+
+    /**
+     * Find integration by repository owner and name.
+     * 
+     * @param owner repository owner
+     * @param name  repository name
+     * @return integration
+     */
+    List<ProjectIntegration> findByRepositoryOwnerAndRepositoryName(String owner, String name);
 
 }

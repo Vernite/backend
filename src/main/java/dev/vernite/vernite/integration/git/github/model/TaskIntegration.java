@@ -27,6 +27,9 @@
 
 package dev.vernite.vernite.integration.git.github.model;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import dev.vernite.vernite.integration.git.Issue;
 import dev.vernite.vernite.integration.git.PullRequest;
 import dev.vernite.vernite.task.Task;
@@ -68,6 +71,7 @@ public class TaskIntegration {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Task task;
 
     @NotNull
@@ -75,6 +79,7 @@ public class TaskIntegration {
     @MapsId("integrationId")
     @EqualsAndHashCode.Exclude
     @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private ProjectIntegration projectIntegration;
 
     @Positive

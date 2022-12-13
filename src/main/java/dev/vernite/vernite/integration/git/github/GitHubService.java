@@ -77,6 +77,7 @@ import io.jsonwebtoken.Jwts;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+@Deprecated
 @Service
 @Component
 public class GitHubService {

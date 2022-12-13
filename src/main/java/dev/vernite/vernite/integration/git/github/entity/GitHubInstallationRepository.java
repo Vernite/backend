@@ -33,6 +33,7 @@ import java.util.Optional;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.utils.NotFoundRepository;
 
+@Deprecated
 public interface GitHubInstallationRepository extends NotFoundRepository<GitHubInstallation, Long> {
     /**
      * This method finds all associated GitHub installations for given user.

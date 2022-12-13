@@ -45,6 +45,7 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
+@Deprecated
 public class GitHubTaskPull {
     @EmbeddedId
     private GitHubTaskKey id;

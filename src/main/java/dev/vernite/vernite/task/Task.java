@@ -468,8 +468,12 @@ public class Task extends SoftDeleteEntity {
     public PullRequest getPullRequest() {
         for (var integration : getGitHubTaskIntegrations()) {
             if (integration.getId().getType() == TaskIntegration.Type.PULL_REQUEST.ordinal()) {
-                return new PullRequest(integration.getIssueId(), integration.link(), getName(), getDescription(),
+                var pull = new PullRequest(integration.getIssueId(), integration.link(), getName(), getDescription(),
                         "github", integration.getBranch());
+                if (integration.isMerged()) {
+                    pull.setState("merged");
+                }
+                return pull;
             }
         }
         return null;

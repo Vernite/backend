@@ -32,6 +32,7 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonProperty.Access;
 
+import dev.vernite.vernite.integration.git.Issue;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -46,6 +47,8 @@ public class GitHubIssue {
 
     private long number;
 
+    private String url;
+
     private String state;
 
     private String title;
@@ -54,5 +57,14 @@ public class GitHubIssue {
 
     @JsonProperty(access = Access.READ_ONLY)
     private List<String> assignees;
+
+    /**
+     * Converts this object to a general Issue object.
+     * 
+     * @return Issue object
+     */
+    public Issue toIssue() {
+        return new Issue(number, url.replace("api.", "").replace("/repos", ""), title, body, "github");
+    }
 
 }

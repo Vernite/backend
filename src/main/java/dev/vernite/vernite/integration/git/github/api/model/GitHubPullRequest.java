@@ -29,6 +29,7 @@ package dev.vernite.vernite.integration.git.github.api.model;
 
 import java.util.List;
 
+import dev.vernite.vernite.integration.git.PullRequest;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -58,11 +59,19 @@ public class GitHubPullRequest extends GitHubIssue {
      * @param head      head of the pull request
      * @param merged    merged status of the pull request
      */
-    public GitHubPullRequest(long number, String state, String title, String body, List<String> assignees,
+    public GitHubPullRequest(long number, String url, String state, String title, String body, List<String> assignees,
             GitHubBranch head, boolean merged) {
-        super(number, state, title, body, assignees);
+        super(number, url, state, title, body, assignees);
         this.head = head;
         this.merged = merged;
+    }
+
+    /**
+     * Converts the GitHubPullRequest to a PullRequest.
+     */
+    public PullRequest toPullRequest() {
+        return new PullRequest(getNumber(), getUrl().replace("api.", "").replace("/repos", ""), getTitle(), getBody(),
+                "github", getHead().getRef());
     }
 
 }

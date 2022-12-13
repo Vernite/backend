@@ -41,8 +41,10 @@ import dev.vernite.vernite.integration.git.github.api.model.Repositories;
 import dev.vernite.vernite.integration.git.github.api.model.request.OauthRefreshTokenRequest;
 import dev.vernite.vernite.integration.git.github.api.model.request.OauthTokenRequest;
 import dev.vernite.vernite.integration.git.github.api.model.AppToken;
+import dev.vernite.vernite.integration.git.github.api.model.GitHubBranch;
 import dev.vernite.vernite.integration.git.github.api.model.GitHubIssue;
 import dev.vernite.vernite.integration.git.github.api.model.GitHubPullRequest;
+import dev.vernite.vernite.integration.git.github.api.model.GitHubRelease;
 import dev.vernite.vernite.integration.git.github.api.model.GitHubUser;
 import dev.vernite.vernite.integration.git.github.api.model.Installations;
 import dev.vernite.vernite.integration.git.github.api.model.MergeResponse;
@@ -111,6 +113,31 @@ public interface GitHubApiClient {
     Mono<Repositories> getInstallationRepositories(@RequestHeader("Authorization") String token);
 
     /**
+     * Get the repository issues.
+     * 
+     * @param token installation access token
+     * @param owner owner of repository
+     * @param name  name of repository
+     * @return the repository issues
+     */
+    @GetExchange("/repos/{owner}/{name}/issues")
+    Flux<GitHubIssue> getRepositoryIssues(@RequestHeader("Authorization") String token, @PathVariable String owner,
+            @PathVariable String name);
+
+    /**
+     * Get the repository issue.
+     * 
+     * @param token       installation access token
+     * @param owner       owner of repository
+     * @param name        name of repository
+     * @param issueNumber issue number
+     * @return the repository issue
+     */
+    @GetExchange("/repos/{owner}/{name}/issues/{issueNumber}")
+    Mono<GitHubIssue> getRepositoryIssue(@RequestHeader("Authorization") String token, @PathVariable String owner,
+            @PathVariable String name, @PathVariable long issueNumber);
+
+    /**
      * Create a repository issue.
      * 
      * @param token installation access token
@@ -122,6 +149,31 @@ public interface GitHubApiClient {
     @PostExchange("/repos/{owner}/{name}/issues")
     Mono<GitHubIssue> createRepositoryIssue(@RequestHeader("Authorization") String token, @PathVariable String owner,
             @PathVariable String name, @RequestBody GitHubIssue body);
+
+    /**
+     * Get the repository pull requests.
+     * 
+     * @param token installation access token
+     * @param owner owner of repository
+     * @param name  name of repository
+     * @return the repository pull requests
+     */
+    @GetExchange("/repos/{owner}/{name}/pulls")
+    Flux<GitHubPullRequest> getRepositoryPullRequests(@RequestHeader("Authorization") String token,
+            @PathVariable String owner, @PathVariable String name);
+
+    /**
+     * Get the repository pull request.
+     * 
+     * @param token             installation access token
+     * @param owner             owner of repository
+     * @param name              name of repository
+     * @param pullRequestNumber pull request number
+     * @return the repository pull request
+     */
+    @GetExchange("/repos/{owner}/{name}/pulls/{pullRequestNumber}")
+    Mono<GitHubPullRequest> getRepositoryPullRequest(@RequestHeader("Authorization") String token,
+            @PathVariable String owner, @PathVariable String name, @PathVariable long pullRequestNumber);
 
     /**
      * Get the repository collaborators.
@@ -176,5 +228,30 @@ public interface GitHubApiClient {
     @PutExchange("/repos/{owner}/{name}/pulls/{id}/merge")
     Mono<MergeResponse> mergePullRequest(@RequestHeader("Authorization") String token, @PathVariable String owner,
             @PathVariable String name, @PathVariable long id);
+
+    /**
+     * Get the repository branches.
+     * 
+     * @param token installation access token
+     * @param owner owner of repository
+     * @param name  name of repository
+     * @return the repository branches
+     */
+    @GetExchange("/repos/{owner}/{name}/branches")
+    Flux<GitHubBranch> getRepositoryBranches(@RequestHeader("Authorization") String token, @PathVariable String owner,
+            @PathVariable String name);
+
+    /**
+     * Create a repository release.
+     * 
+     * @param token   installation access token
+     * @param owner   owner of repository
+     * @param name    name of repository
+     * @param release release body
+     * @return the created release
+     */
+    @PostExchange("/repos/{owner}/{name}/releases")
+    Mono<GitHubRelease> createRepositoryRelease(@RequestHeader("Authorization") String token,
+            @PathVariable String owner, @PathVariable String name, @RequestBody GitHubRelease release);
 
 }

@@ -27,5 +27,6 @@
 
 package dev.vernite.vernite.integration.git.github.entity.task;
 
+@Deprecated
 public interface GitHubTaskIssueRepository extends GitHubTaskRepository<GitHubTaskIssue, GitHubTaskKey> {
 }

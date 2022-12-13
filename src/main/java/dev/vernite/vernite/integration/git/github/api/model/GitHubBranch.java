@@ -27,6 +27,7 @@
 
 package dev.vernite.vernite.integration.git.github.api.model;
 
+import dev.vernite.vernite.integration.git.Branch;
 import lombok.Data;
 
 /**
@@ -36,5 +37,14 @@ import lombok.Data;
 public class GitHubBranch {
 
     private String ref;
+
+    /**
+     * Converts GitHubBranch to Branch.
+     * 
+     * @return Branch
+     */
+    public Branch toBranch() {
+        return new Branch(ref);
+    }
 
 }

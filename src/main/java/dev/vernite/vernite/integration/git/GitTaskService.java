@@ -29,7 +29,6 @@ package dev.vernite.vernite.integration.git;
 
 import java.util.List;
 
-import dev.vernite.vernite.integration.git.github.GitHubService;
 import dev.vernite.vernite.integration.git.github.GitHubService2;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.release.Release;
@@ -48,8 +47,6 @@ import reactor.core.publisher.Mono;
 @Service
 @Component
 public class GitTaskService {
-    @Autowired
-    private GitHubService gitHubService;
     @Autowired
     private GitHubService2 gitHubService2;
 
@@ -100,7 +97,7 @@ public class GitTaskService {
      * @return Flux with issues.
      */
     public Flux<Issue> getIssues(Project project) {
-        return Flux.concat(List.of(gitHubService.getIssues(project)));
+        return Flux.concat(List.of(gitHubService2.getIssues(project)));
     }
 
     /**
@@ -112,7 +109,7 @@ public class GitTaskService {
      */
     public Mono<Issue> connectIssue(Task task, Issue issue) {
         if ("github".equals(issue.getService())) {
-            return gitHubService.connectIssue(task, issue);
+            return gitHubService2.connectIssue(task, issue.getId());
         }
         return Mono.empty();
     }
@@ -123,7 +120,7 @@ public class GitTaskService {
      * @param task must not be {@literal null}; must be entity from database.
      */
     public void deleteIssue(Task task) {
-        gitHubService.deleteIssue(task);
+        gitHubService2.deleteIssue(task);
     }
 
     /**
@@ -149,7 +146,7 @@ public class GitTaskService {
      * @return Flux with pull requests.
      */
     public Flux<PullRequest> getPullRequests(Project project) {
-        return Flux.concat(List.of(gitHubService.getPullRequests(project)));
+        return Flux.concat(List.of(gitHubService2.getPullRequests(project)));
     }
 
     /**
@@ -162,7 +159,7 @@ public class GitTaskService {
      */
     public Mono<PullRequest> connectPullRequest(Task task, PullRequest pullRequest) {
         if ("github".equals(pullRequest.getService())) {
-            return gitHubService.connectPullRequest(task, pullRequest);
+            return gitHubService2.connectPullRequest(task, pullRequest.getId());
         }
         return Mono.empty();
     }
@@ -173,14 +170,14 @@ public class GitTaskService {
      * @param task must not be {@literal null}; must be entity from database.
      */
     public void deletePullRequest(Task task) {
-        gitHubService.deletePullRequest(task);
+        gitHubService2.deletePullRequest(task);
     }
 
     public Mono<Long> publishRelease(Release release, String branch) {
-        return gitHubService.publishRelease(release, branch);
+        return gitHubService2.publishRelease(release, branch);
     }
 
     public Flux<Branch> getBranches(Project project) {
-        return Flux.concat(List.of(gitHubService.getBranches(project)));
+        return Flux.concat(List.of(gitHubService2.getBranches(project)));
     }
 }

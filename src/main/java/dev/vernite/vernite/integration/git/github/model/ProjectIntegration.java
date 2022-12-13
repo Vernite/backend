@@ -27,6 +27,9 @@
 
 package dev.vernite.vernite.integration.git.github.model;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import dev.vernite.vernite.project.Project;
@@ -72,6 +75,7 @@ public class ProjectIntegration {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Project project;
 
     @NotNull
@@ -79,6 +83,7 @@ public class ProjectIntegration {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Installation installation;
 
     /**
@@ -95,6 +100,13 @@ public class ProjectIntegration {
         this.repositoryName = split[1];
         this.project = project;
         this.installation = installation;
+    }
+
+    /**
+     * @return the full name of the repository, in the format of "owner/name"
+     */
+    public String getRepositoryFullName() {
+        return repositoryOwner + "/" + repositoryName;
     }
 
 }

@@ -25,43 +25,45 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.git.github.entity.task;
+package dev.vernite.vernite.integration.git.github.api.model;
 
-import java.util.List;
-import java.util.Optional;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty.Access;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.repository.NoRepositoryBean;
+import dev.vernite.vernite.release.Release;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import dev.vernite.vernite.integration.git.github.entity.GitHubIntegration;
-import dev.vernite.vernite.task.Task;
+/**
+ * Object to represent a GitHub Rest api release.
+ */
+@Data
+@NoArgsConstructor
+public class GitHubRelease {
 
-@NoRepositoryBean
-@Deprecated
-public interface GitHubTaskRepository<T, K> extends JpaRepository<T, K> {
+    @JsonProperty(access = Access.WRITE_ONLY)
+    private long id;
+
+    @JsonProperty("tag_name")
+    private String tagName;
+
+    private String body;
+
+    @JsonProperty("generate_release_notes")
+    private boolean generateReleaseNotes;
+
+    @JsonProperty("target_commitish")
+    private String targetCommitish;
+
     /**
-     * This method finds GitHub issue / pull request connection for task.
+     * Constructor to create a GitHubRelease object from a Release object.
      * 
-     * @param task which connection is looked for.
-     * @return Optional with connection to GitHub issue / pull request; empty when
-     *         there is not any.
+     * @param release Release object to create a GitHubRelease object from.
      */
-    Optional<T> findByTask(Task task);
+    public GitHubRelease(Release release) {
+        this.tagName = release.getName().replace(" ", "-");
+        this.body = release.getDescription();
+        this.generateReleaseNotes = true;
+    }
 
-    /**
-     * This method finds GitHub issues connection for integration.
-     * 
-     * @param integration which connection is looked for.
-     * @return List of all task associated with integration.
-     */
-    List<T> findByGitHubIntegration(GitHubIntegration integration);
-
-    /**
-     * This method finds GitHub issue connections for integration and issue id.
-     * 
-     * @param issueId     id of github issue.
-     * @param integration integration with github.
-     * @return List with connections between issue and task.
-     */
-    List<T> findByIssueIdAndGitHubIntegration(long issueId, GitHubIntegration integration);
 }

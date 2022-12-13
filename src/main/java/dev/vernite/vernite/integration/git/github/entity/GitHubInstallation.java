@@ -49,6 +49,7 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
+@Deprecated
 public class GitHubInstallation {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

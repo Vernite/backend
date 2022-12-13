@@ -30,6 +30,9 @@ package dev.vernite.vernite.integration.git.github.model;
 import java.time.Instant;
 import java.util.Date;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import dev.vernite.vernite.integration.git.github.api.model.GitHubUser;
@@ -102,6 +105,7 @@ public class Authorization {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
 
     /**

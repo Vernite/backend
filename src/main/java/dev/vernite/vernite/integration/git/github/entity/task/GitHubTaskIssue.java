@@ -42,6 +42,7 @@ import dev.vernite.vernite.task.Task;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+@Deprecated
 @Entity
 public class GitHubTaskIssue {
     @EmbeddedId

@@ -33,6 +33,7 @@ import java.util.Optional;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.utils.SoftDeleteRepository;
 
+@Deprecated
 public interface GitHubIntegrationRepository extends SoftDeleteRepository<GitHubIntegration, Long> {
     /**
      * This method finds integration with GitHub for given project.

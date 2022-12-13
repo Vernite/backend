@@ -31,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,14 +49,13 @@ import dev.vernite.vernite.integration.git.github.data.GitHubIssue;
 import dev.vernite.vernite.integration.git.github.data.GitHubPullRequest;
 import dev.vernite.vernite.integration.git.github.data.GitHubRepository;
 import dev.vernite.vernite.integration.git.github.data.GitHubWebhookData;
-import dev.vernite.vernite.integration.git.github.entity.GitHubInstallation;
-import dev.vernite.vernite.integration.git.github.entity.GitHubInstallationRepository;
-import dev.vernite.vernite.integration.git.github.entity.GitHubIntegration;
-import dev.vernite.vernite.integration.git.github.entity.GitHubIntegrationRepository;
-import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskIssue;
-import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskIssueRepository;
-import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskPull;
-import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskPullRepository;
+import dev.vernite.vernite.integration.git.github.model.AuthorizationRepository;
+import dev.vernite.vernite.integration.git.github.model.Installation;
+import dev.vernite.vernite.integration.git.github.model.InstallationRepository;
+import dev.vernite.vernite.integration.git.github.model.ProjectIntegration;
+import dev.vernite.vernite.integration.git.github.model.ProjectIntegrationRepository;
+import dev.vernite.vernite.integration.git.github.model.TaskIntegrationRepository;
+import dev.vernite.vernite.integration.git.github.model.TaskIntegration;
 import dev.vernite.vernite.status.Status;
 import dev.vernite.vernite.task.Task;
 import dev.vernite.vernite.task.TaskRepository;
@@ -72,19 +72,19 @@ public class GitHubWebhookService {
     private static final String CLOSED = "closed";
     private static final String EDITED = "edited";
     @Autowired
-    private GitHubInstallationRepository installationRepository;
+    private InstallationRepository installationRepository;
     @Autowired
-    private GitHubIntegrationRepository integrationRepository;
+    private ProjectIntegrationRepository integrationRepository;
     @Autowired
     private TaskRepository taskRepository;
     @Autowired
-    private GitHubTaskIssueRepository issueRepository;
+    private TaskIntegrationRepository issueRepository;
     @Autowired
-    private GitHubTaskPullRepository pullRepository;
-    @Autowired
-    private GitHubService service;
+    private GitHubService2 service;
     @Autowired
     private CounterSequenceRepository counterSequenceRepository;
+    @Autowired
+    private AuthorizationRepository authorizationRepository;
     private User systemUser;
 
     @Autowired
@@ -129,33 +129,33 @@ public class GitHubWebhookService {
 
     private void handleInstallation(GitHubWebhookData data) {
         GitHubInstallationApi installationApi = data.getInstallation();
-        List<GitHubInstallation> optional = installationRepository.findByInstallationId(installationApi.getId());
+        Optional<Installation> optional = installationRepository.findById(installationApi.getId());
         if (optional.isEmpty()) {
             return;
         }
-        for (GitHubInstallation installation : optional) {
-            switch (data.getAction()) {
-                case "suspend":
-                    installation.setSuspended(true);
-                    installationRepository.save(installation);
-                    break;
-                case "unsuspend":
-                    installation.setSuspended(false);
-                    installationRepository.save(installation);
-                    break;
-                case "deleted":
-                    installationRepository.delete(installation);
-                    break;
-                default:
-                    break;
-            }
+        var installation = optional.get();
+        switch (data.getAction()) {
+            case "suspend":
+                installation.setSuspended(true);
+                installationRepository.save(installation);
+                break;
+            case "unsuspend":
+                installation.setSuspended(false);
+                installationRepository.save(installation);
+                break;
+            case "deleted":
+                installationRepository.delete(installation);
+                break;
+            default:
+                break;
         }
     }
 
     private Mono<Void> handlePush(GitHubWebhookData data) {
         GitHubRepository repository = data.getRepository();
         List<Task> tasks = new ArrayList<>();
-        for (GitHubIntegration integration : integrationRepository.findByRepositoryFullName(repository.getFullName())) {
+        var name = repository.getFullName().split("/");
+        for (var integration : integrationRepository.findByRepositoryOwnerAndRepositoryName(name[0], name[1])) {
             for (GitHubCommit commit : data.getCommits()) {
                 Matcher matcher = PATTERN.matcher(commit.getMessage());
                 if (matcher.find()) {
@@ -176,19 +176,20 @@ public class GitHubWebhookService {
     private void handleIssue(GitHubWebhookData data) {
         GitHubRepository repository = data.getRepository();
         GitHubIssue issue = data.getIssue();
-        for (GitHubIntegration integration : integrationRepository.findByRepositoryFullName(repository.getFullName())) {
+        var name = repository.getFullName().split("/");
+        for (var integration : integrationRepository.findByRepositoryOwnerAndRepositoryName(name[0], name[1])) {
             if (data.getAction().equals("opened")
-                    && issueRepository.findByIssueIdAndGitHubIntegration(issue.getNumber(), integration).isEmpty()) {
+                    && issueRepository.findByProjectIntegrationAndIssueId(integration, issue.getNumber()).isEmpty()) {
                 long id = counterSequenceRepository
                         .getIncrementCounter(integration.getProject().getTaskCounter().getId());
                 Status status = integration.getProject().getStatuses().get(0);
                 Task task = new Task(id, issue.getTitle(), issue.getBody(), status, systemUser, 0);
                 task.changeStatus(true);
                 task = taskRepository.save(task);
-                issueRepository.save(new GitHubTaskIssue(task, integration, issue));
+                issueRepository
+                        .save(new TaskIntegration(task, integration, issue.getNumber(), TaskIntegration.Type.ISSUE));
             } else {
-                for (GitHubTaskIssue gitTask : issueRepository.findByIssueIdAndGitHubIntegration(issue.getNumber(),
-                        integration)) {
+                for (var gitTask : issueRepository.findByProjectIntegrationAndIssueId(integration, issue.getNumber())) {
                     Task task = gitTask.getTask();
                     switch (data.getAction()) {
                         case EDITED:
@@ -210,7 +211,7 @@ public class GitHubWebhookService {
                             taskRepository.delete(task);
                             break;
                         case "assigned":
-                            installationRepository.findByGitHubUsername(data.getAssignee().getLogin())
+                            authorizationRepository.findById(data.getAssignee().getId())
                                     .ifPresent(installation -> {
                                         if (integration.getProject().member(installation.getUser()) != -1) {
                                             task.setAssignee(installation.getUser());
@@ -234,9 +235,10 @@ public class GitHubWebhookService {
         if (data.getRepositoriesRemoved() == null) {
             return;
         }
-        List<GitHubIntegration> integrations = new ArrayList<>();
+        List<ProjectIntegration> integrations = new ArrayList<>();
         for (GitHubRepository repository : data.getRepositoriesRemoved()) {
-            integrations.addAll(integrationRepository.findByRepositoryFullName(repository.getFullName()));
+            var name = repository.getFullName().split("/");
+            integrations.addAll(integrationRepository.findByRepositoryOwnerAndRepositoryName(name[0], name[1]));
         }
         integrationRepository.deleteAll(integrations);
     }
@@ -244,22 +246,23 @@ public class GitHubWebhookService {
     private void handlePullRequest(GitHubWebhookData data) {
         GitHubPullRequest pullRequest = data.getPullRequest();
         GitHubRepository repository = data.getRepository();
-        for (GitHubIntegration integration : integrationRepository.findByRepositoryFullName(repository.getFullName())) {
-            for (GitHubTaskPull gitTask : pullRepository.findByIssueIdAndGitHubIntegration(pullRequest.getNumber(),
-                    integration)) {
+        var name = repository.getFullName().split("/");
+        for (var integration : integrationRepository.findByRepositoryOwnerAndRepositoryName(name[0], name[1])) {
+            for (var gitTask : issueRepository.findByProjectIntegrationAndIssueId(integration,
+                    pullRequest.getNumber())) {
                 Task task = gitTask.getTask();
                 switch (data.getAction()) {
                     case CLOSED:
                     case "reopened":
                         if (pullRequest.isMerged()) {
                             gitTask.setMerged(true);
-                            pullRepository.save(gitTask);
+                            issueRepository.save(gitTask);
                         }
                         task.changeStatus(pullRequest.getState().equals("open"));
                         taskRepository.save(task);
                         break;
                     case "assigned":
-                        installationRepository.findByGitHubUsername(data.getAssignee().getLogin())
+                        authorizationRepository.findById(data.getAssignee().getId())
                                 .ifPresent(installation -> {
                                     if (integration.getProject().member(installation.getUser()) != -1) {
                                         task.setAssignee(installation.getUser());
@@ -272,9 +275,10 @@ public class GitHubWebhookService {
                         taskRepository.save(task);
                         break;
                     case EDITED:
-                        gitTask.setTitle(pullRequest.getTitle());
-                        gitTask.setDescription(pullRequest.getBody());
-                        pullRepository.save(gitTask);
+                        task.setName(pullRequest.getTitle());
+                        task.setDescription(pullRequest.getBody());
+                        taskRepository.save(task);
+                        issueRepository.save(gitTask);
                         break;
                     default:
                         break;

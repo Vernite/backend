@@ -36,6 +36,7 @@ import dev.vernite.vernite.integration.git.github.entity.GitHubIntegration;
 import dev.vernite.vernite.task.Task;
 
 @Embeddable
+@Deprecated
 public class GitHubTaskKey implements Serializable {
     @Column(name = "task_id")
     long taskId;

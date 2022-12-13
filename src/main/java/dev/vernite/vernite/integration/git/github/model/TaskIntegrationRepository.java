@@ -27,11 +27,22 @@
 
 package dev.vernite.vernite.integration.git.github.model;
 
+import java.util.List;
+
 import org.springframework.data.repository.CrudRepository;
 
 /**
  * CRUD repository for task integration entity.
  */
 public interface TaskIntegrationRepository extends CrudRepository<TaskIntegration, TaskIntegrationId> {
+
+    /**
+     * Find task integration by integration and issue id.
+     * 
+     * @param projectIntegration project integration
+     * @param issueId            issue id
+     * @return task integration
+     */
+    List<TaskIntegration> findByProjectIntegrationAndIssueId(ProjectIntegration projectIntegration, long issueId);
 
 }

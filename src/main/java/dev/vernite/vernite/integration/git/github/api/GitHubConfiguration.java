@@ -21,9 +21,9 @@ import lombok.Getter;
 @Component
 public class GitHubConfiguration {
 
-    public static final String GITHUB_API_URL = "https://api.github.com";
-
     public static final String GITHUB_AUTH_URL = "https://github.com/login/oauth/authorize";
+
+    private final String apiURL;
 
     private final long appId;
 
@@ -37,6 +37,7 @@ public class GitHubConfiguration {
         this.appId = Long.parseLong(env.getProperty("github.app.id"));
         this.clientId = env.getProperty("github.client.id");
         this.clientSecret = env.getProperty("github.client.secret");
+        this.apiURL = env.getProperty("github.api.url");
 
         var path = Path.of(env.getProperty("github.jwt.secret.path"));
         var spec = new PKCS8EncodedKeySpec(Files.readAllBytes(path));
