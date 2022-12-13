@@ -27,43 +27,26 @@
 
 package dev.vernite.vernite.user.auth;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse.BodyHandlers;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.constraints.NotNull;
-import lombok.Setter;
-import dev.vernite.vernite.common.utils.counter.CounterSequence;
-import dev.vernite.vernite.event.Event;
-import dev.vernite.vernite.event.EventFilter;
-import dev.vernite.vernite.event.EventService;
-import dev.vernite.vernite.integration.calendar.CalendarIntegration;
-import dev.vernite.vernite.integration.calendar.CalendarIntegrationRepository;
-import dev.vernite.vernite.task.time.TimeTrack;
-import dev.vernite.vernite.task.time.TimeTrackRepository;
-import dev.vernite.vernite.user.DeleteAccountRequest;
-import dev.vernite.vernite.user.DeleteAccountRequestRepository;
-import dev.vernite.vernite.user.PasswordRecovery;
-import dev.vernite.vernite.user.PasswordRecoveryRepository;
-import dev.vernite.vernite.user.User;
-import dev.vernite.vernite.user.UserRepository;
-import dev.vernite.vernite.user.UserSession;
-import dev.vernite.vernite.user.UserSessionRepository;
-import dev.vernite.vernite.utils.ErrorType;
-import dev.vernite.vernite.utils.ObjectNotFoundException;
-import dev.vernite.vernite.utils.SecureStringUtils;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -83,19 +66,56 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import dev.vernite.vernite.common.utils.counter.CounterSequence;
+import dev.vernite.vernite.event.Event;
+import dev.vernite.vernite.event.EventFilter;
+import dev.vernite.vernite.event.EventService;
+import dev.vernite.vernite.integration.calendar.CalendarIntegration;
+import dev.vernite.vernite.integration.calendar.CalendarIntegrationRepository;
+import dev.vernite.vernite.task.time.TimeTrack;
+import dev.vernite.vernite.task.time.TimeTrackRepository;
+import dev.vernite.vernite.user.DeleteAccountRequest;
+import dev.vernite.vernite.user.DeleteAccountRequestRepository;
+import dev.vernite.vernite.user.PasswordRecovery;
+import dev.vernite.vernite.user.PasswordRecoveryRepository;
+import dev.vernite.vernite.user.User;
+import dev.vernite.vernite.user.UserRepository;
+import dev.vernite.vernite.user.UserSession;
+import dev.vernite.vernite.user.UserSessionRepository;
+import dev.vernite.vernite.utils.ErrorType;
+import dev.vernite.vernite.utils.ObjectNotFoundException;
+import dev.vernite.vernite.utils.SecureStringUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.constraints.NotNull;
+import lombok.Setter;
 
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
 
     public static final String COOKIE_NAME = "session";
-    private static final Random RANDOM = new Random();
+    private static final URI RECAPTCHA_URI;
+    static {
+        try {
+            RECAPTCHA_URI = new URI("https://www.google.com/recaptcha/api/siteverify");
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    private static final SecureRandom RANDOM = new SecureRandom();
     private static final ScheduledExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadScheduledExecutor();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Autowired
     private UserRepository userRepository;
@@ -124,6 +144,9 @@ public class AuthController {
     @Setter
     @Value("${server.servlet.context-path}")
     private String cookiePath;
+
+    @Value("${recaptcha.secret}")
+    private String recaptchaSecret;
 
     @Operation(summary = "Logged user", description = "This method returns currently logged user.")
     @ApiResponse(responseCode = "200", description = "Logged user.")
@@ -234,7 +257,7 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "Logged user.", content = {
             @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
     })
-    @ApiResponse(responseCode = "403", description = "User is already logged.", content = @Content())
+    @ApiResponse(responseCode = "403", description = "User is already logged or invalid captcha.", content = @Content())
     @ApiResponse(responseCode = "404", description = "Username or password is incorrect.", content = @Content())
     @PostMapping("/login")
     public Future<User> login(@Parameter(hidden = true) User loggedUser, @RequestBody LoginRequest req,
@@ -248,19 +271,27 @@ public class AuthController {
         if (req.getEmail() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing username");
         }
-        User u = req.getEmail().indexOf('@') != -1 ? userRepository.findByEmail(req.getEmail())
-                : userRepository.findByUsername(req.getEmail());
-        CompletableFuture<User> f = new CompletableFuture<>();
-        EXECUTOR_SERVICE.schedule(() -> {
-            if (u == null || !u.checkPassword(req.getPassword())) {
-                f.completeExceptionally(
-                        new ResponseStatusException(HttpStatus.NOT_FOUND, "username or password incorrect"));
-            } else {
-                createSession(request, response, u, req.isRemember());
-                f.complete(u);
+        return verifyCaptcha(req.getCaptcha(), request).thenApply(action -> {
+            if (!"login".equals(action)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "invalid captcha");
             }
-        }, 500 + RANDOM.nextInt(500), TimeUnit.MILLISECONDS);
-        return f;
+            if (req.getEmail().indexOf('@') != -1) {
+                return userRepository.findByEmail(req.getEmail());
+            }
+            return userRepository.findByUsername(req.getEmail());
+        }).thenCompose(u -> {
+            CompletableFuture<User> f = new CompletableFuture<>();
+            EXECUTOR_SERVICE.schedule(() -> {
+                if (u == null || !u.checkPassword(req.getPassword())) {
+                    f.completeExceptionally(
+                            new ResponseStatusException(HttpStatus.NOT_FOUND, "username or password incorrect"));
+                } else {
+                    createSession(request, response, u, req.isRemember());
+                    f.complete(u);
+                }
+            }, 500 + RANDOM.nextInt(500), TimeUnit.MILLISECONDS);
+            return f;
+        });
     }
 
     @Operation(summary = "Modify user account", description = "This method edits the account.")
@@ -288,10 +319,10 @@ public class AuthController {
 
     @Operation(summary = "Register account", description = "This method registers a new account. On success returns newly created user.")
     @ApiResponse(responseCode = "200", description = "Newly created user.")
-    @ApiResponse(responseCode = "403", description = "User is already logged.", content = @Content())
+    @ApiResponse(responseCode = "403", description = "User is already logged or invalid captcha.", content = @Content())
     @ApiResponse(responseCode = "422", description = "Username or email is already taken.", content = @Content())
     @PostMapping("/register")
-    public User register(@Parameter(hidden = true) User loggedUser, @RequestBody RegisterRequest req,
+    public Future<User> register(@Parameter(hidden = true) User loggedUser, @RequestBody RegisterRequest req,
             HttpServletRequest request, HttpServletResponse response) {
         if (loggedUser != null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "already logged");
@@ -317,31 +348,36 @@ public class AuthController {
         if (req.getEmail().indexOf('@') == -1) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing at sign in email");
         }
-        if (userRepository.findByUsername(req.getUsername()) != null) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "this username is already taken");
-        }
-        if (userRepository.findByEmail(req.getEmail()) != null) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "this email is already taken");
-        }
-        User u = new User();
-        u.setEmail(req.getEmail());
-        u.setName(req.getName());
-        u.setPassword(req.getPassword());
-        u.setSurname(req.getSurname());
-        u.setUsername(req.getUsername());
-        u.setLanguage(req.getLanguage());
-        u.setDateFormat(req.getDateFormat());
-        u.setCounterSequence(new CounterSequence());
-        u = userRepository.save(u);
-        createSession(request, response, u, false);
-        SimpleMailMessage msg = new SimpleMailMessage();
-        msg.setTo(req.getEmail());
-        msg.setFrom("contact@vernite.dev");
-        // TODO activation link
-        msg.setSubject("Dziękujemy za rejestrację");
-        msg.setText("Cześć, " + req.getName() + "!\nDziękujemy za zarejestrowanie się w naszym serwisie");
-        javaMailSender.send(msg);
-        return u;
+        return verifyCaptcha(req.getCaptcha(), request).thenApply(action -> {
+            if (!"register".equals(action)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "invalid captcha");
+            }
+            if (userRepository.findByUsername(req.getUsername()) != null) {
+                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "this username is already taken");
+            }
+            if (userRepository.findByEmail(req.getEmail()) != null) {
+                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "this email is already taken");
+            }
+            User u = new User();
+            u.setEmail(req.getEmail());
+            u.setName(req.getName());
+            u.setPassword(req.getPassword());
+            u.setSurname(req.getSurname());
+            u.setUsername(req.getUsername());
+            u.setLanguage(req.getLanguage());
+            u.setDateFormat(req.getDateFormat());
+            u.setCounterSequence(new CounterSequence());
+            u = userRepository.save(u);
+            createSession(request, response, u, false);
+            SimpleMailMessage msg = new SimpleMailMessage();
+            msg.setTo(req.getEmail());
+            msg.setFrom("contact@vernite.dev");
+            // TODO activation link
+            msg.setSubject("Dziękujemy za rejestrację");
+            msg.setText("Cześć, " + req.getName() + "!\nDziękujemy za zarejestrowanie się w naszym serwisie");
+            javaMailSender.send(msg);
+            return u;
+        });
     }
 
     @Operation(summary = "Log out", description = "This method log outs the user.")
@@ -474,6 +510,46 @@ public class AuthController {
             c.setHttpOnly(true);
         }
         resp.addCookie(c);
+    }
+
+    /**
+     * Verify captcha response
+     * 
+     * @param response response from recaptcha
+     * @param request request
+     * @return action if success or null if failed
+     */
+    private CompletableFuture<String> verifyCaptcha(String response, HttpServletRequest request) {
+        String remoteip = request.getHeader("X-Forwarded-For");
+        if (remoteip == null) {
+            remoteip = request.getRemoteAddr();
+        }
+
+        HttpClient client = HttpClient.newHttpClient();
+        String data = String.format("secret=%s&response=%s&remoteip=%s",
+                URLEncoder.encode(recaptchaSecret, UTF_8),
+                URLEncoder.encode(response, UTF_8),
+                URLEncoder.encode(remoteip, UTF_8));
+        
+        HttpRequest req = HttpRequest.newBuilder(RECAPTCHA_URI)
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(data))
+                .build();
+        return client.sendAsync(req, BodyHandlers.ofString()).thenApply(n -> {
+            if (n.statusCode() != 200) {
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Captcha verification failed");
+            }
+            try {
+                JsonNode node = MAPPER.readTree(n.body());
+                if (node.get("success").asBoolean()) {
+                    return node.get("action").asText();
+                }
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Captcha verification failed");
+            }
+            return null;
+        });
     }
 
     @Scheduled(cron = "0 * * * * *")
