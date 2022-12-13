@@ -160,7 +160,7 @@ public class GitHubController {
      * @return list of GitHub repositories
      */
     @GetMapping("/user/integration/git/github/repository")
-    public Flux<Repository> getRepositories2(@NotNull @Parameter(hidden = true) User user) {
+    public Flux<Repository> getRepositories(@NotNull @Parameter(hidden = true) User user) {
         return service.getUserRepositories(user);
     }
 

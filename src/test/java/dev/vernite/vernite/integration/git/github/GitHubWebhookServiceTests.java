@@ -355,12 +355,12 @@ public class GitHubWebhookServiceTests {
         client.post().uri("/webhook/github")
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
                 .header("X-GitHub-Event", "pull_request").bodyValue(data).exchange().expectStatus().isOk();
-        assertEquals("merged", taskRepository.findById(task.getId()).get().getPullRequest().getState());
+        assertEquals("merged", taskRepository.findById(task.getId()).get().getPull().getState());
 
         data.getRepository().setFullName("username/repo2");
         client.post().uri("/webhook/github")
                 .header("X-Hub-Signature-256", "sha256=" + utils.hmacHex(MAPPER.writeValueAsString(data)))
                 .header("X-GitHub-Event", "pull_request").bodyValue(data).exchange().expectStatus().isOk();
-        assertEquals("merged", taskRepository.findById(task.getId()).get().getPullRequest().getState());
+        assertEquals("merged", taskRepository.findById(task.getId()).get().getPull().getState());
     }
 }

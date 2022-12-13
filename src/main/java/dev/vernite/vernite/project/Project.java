@@ -293,4 +293,13 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
         this.statuses.add(new Status("Done", 0, 2, true, false, this));
     }
 
+    @Deprecated
+    public String getGitHubIntegration() {
+        if (githubProjectIntegrations.isEmpty()) {
+            return null;
+        } else {
+            return githubProjectIntegrations.get(0).getRepositoryFullName();
+        }
+    }
+
 }

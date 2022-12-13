@@ -29,12 +29,16 @@ package dev.vernite.vernite.integration.git.github.api.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Model to represent a GitHub user.
  */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class GitHubUser {
 
     private String login;

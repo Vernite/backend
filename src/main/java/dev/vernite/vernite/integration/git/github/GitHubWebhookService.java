@@ -43,10 +43,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import dev.vernite.vernite.common.utils.counter.CounterSequenceRepository;
-import dev.vernite.vernite.integration.git.github.data.GitHubCommit;
 import dev.vernite.vernite.integration.git.github.data.GitHubInstallationApi;
-import dev.vernite.vernite.integration.git.github.data.GitHubIssue;
-import dev.vernite.vernite.integration.git.github.data.GitHubPullRequest;
 import dev.vernite.vernite.integration.git.github.data.GitHubRepository;
 import dev.vernite.vernite.integration.git.github.data.GitHubWebhookData;
 import dev.vernite.vernite.integration.git.github.model.AuthorizationRepository;
@@ -152,11 +149,11 @@ public class GitHubWebhookService {
     }
 
     private Mono<Void> handlePush(GitHubWebhookData data) {
-        GitHubRepository repository = data.getRepository();
+        var repository = data.getRepository();
         List<Task> tasks = new ArrayList<>();
         var name = repository.getFullName().split("/");
         for (var integration : integrationRepository.findByRepositoryOwnerAndRepositoryName(name[0], name[1])) {
-            for (GitHubCommit commit : data.getCommits()) {
+            for (var commit : data.getCommits()) {
                 Matcher matcher = PATTERN.matcher(commit.getMessage());
                 if (matcher.find()) {
                     boolean isOpen = "reopen".equals(matcher.group(1));
@@ -174,8 +171,8 @@ public class GitHubWebhookService {
     }
 
     private void handleIssue(GitHubWebhookData data) {
-        GitHubRepository repository = data.getRepository();
-        GitHubIssue issue = data.getIssue();
+        var repository = data.getRepository();
+        var issue = data.getIssue();
         var name = repository.getFullName().split("/");
         for (var integration : integrationRepository.findByRepositoryOwnerAndRepositoryName(name[0], name[1])) {
             if (data.getAction().equals("opened")
@@ -244,7 +241,7 @@ public class GitHubWebhookService {
     }
 
     private void handlePullRequest(GitHubWebhookData data) {
-        GitHubPullRequest pullRequest = data.getPullRequest();
+        var pullRequest = data.getPullRequest();
         GitHubRepository repository = data.getRepository();
         var name = repository.getFullName().split("/");
         for (var integration : integrationRepository.findByRepositoryOwnerAndRepositoryName(name[0], name[1])) {

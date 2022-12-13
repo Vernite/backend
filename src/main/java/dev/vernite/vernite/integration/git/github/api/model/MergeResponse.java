@@ -27,12 +27,16 @@
 
 package dev.vernite.vernite.integration.git.github.api.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Object to represent a GitHub Rest api merge response.
  */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class MergeResponse {
 
     private String sha;

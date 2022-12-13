@@ -39,12 +39,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.vernite.vernite.integration.git.Issue;
 import dev.vernite.vernite.integration.git.PullRequest;
-import dev.vernite.vernite.integration.git.github.data.GitHubBranch;
-import dev.vernite.vernite.integration.git.github.data.GitHubIssue;
-import dev.vernite.vernite.integration.git.github.data.GitHubMergeInfo;
-import dev.vernite.vernite.integration.git.github.data.GitHubPullRequest;
-import dev.vernite.vernite.integration.git.github.data.GitHubUser;
-import dev.vernite.vernite.integration.git.github.data.InstallationToken;
+import dev.vernite.vernite.integration.git.github.api.model.GitHubBranch;
+import dev.vernite.vernite.integration.git.github.api.model.GitHubIssue;
+import dev.vernite.vernite.integration.git.github.api.model.MergeResponse;
+import dev.vernite.vernite.integration.git.github.api.model.GitHubPullRequest;
+import dev.vernite.vernite.integration.git.github.api.model.GitHubUser;
+import dev.vernite.vernite.integration.git.github.api.model.AppToken;
 import dev.vernite.vernite.integration.git.github.model.Authorization;
 import dev.vernite.vernite.integration.git.github.model.AuthorizationRepository;
 import dev.vernite.vernite.integration.git.github.model.Installation;
@@ -127,7 +127,7 @@ public class GitHubServiceTests {
         if (iGitHubInstallation.getExpires().before(Date.from(Instant.now()))) {
             mockBackEnd.enqueue(new MockResponse()
                     .setBody(MAPPER.writeValueAsString(
-                            new InstallationToken("token" + iGitHubInstallation.getId(),
+                            new AppToken("token" + iGitHubInstallation.getId(),
                                     Instant.now().plus(30, ChronoUnit.MINUTES).toString())))
                     .addHeader("Content-Type", "application/json"));
         }
@@ -233,7 +233,7 @@ public class GitHubServiceTests {
         issueRepository
                 .save(new TaskIntegration(task, integration, 1, TaskIntegration.Type.ISSUE));
 
-        GitHubIssue gitIssue = new GitHubIssue(1, "url", "open", "name", "description");
+        GitHubIssue gitIssue = new GitHubIssue(1, "url", "open", "name", "description", List.of());
 
         tokenCheck();
         mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(gitIssue)).addHeader("Content-Type",
@@ -252,7 +252,7 @@ public class GitHubServiceTests {
 
         tokenCheck();
         mockBackEnd.enqueue(new MockResponse()
-                .setBody(MAPPER.writeValueAsString(List.of(new GitHubUser(1, "username")))).addHeader("Content-Type",
+                .setBody(MAPPER.writeValueAsString(List.of(new GitHubUser("username", 1, "a")))).addHeader("Content-Type",
                         "application/json"));
         mockBackEnd.enqueue(new MockResponse().setBody(MAPPER.writeValueAsString(gitIssue)).addHeader("Content-Type",
                 "application/json"));
@@ -362,7 +362,7 @@ public class GitHubServiceTests {
         tokenCheck();
         mockBackEnd.enqueue(new MockResponse()
                 .setBody(MAPPER.writeValueAsString(
-                        new GitHubPullRequest(1, "url", "open", "name", "description", new GitHubBranch("ref"))))
+                        new GitHubPullRequest(1, "url", "open", "name", "description", List.of(), new GitHubBranch("ref"), false)))
                 .addHeader("Content-Type",
                         "application/json"));
 
@@ -379,24 +379,24 @@ public class GitHubServiceTests {
                 .setBody(MAPPER.writeValueAsString(List.of())).addHeader("Content-Type", "application/json"));
         mockBackEnd.enqueue(new MockResponse()
                 .setBody(MAPPER.writeValueAsString(
-                        new GitHubPullRequest(1, "url", "open", "name", "description", new GitHubBranch("ref"))))
+                        new GitHubPullRequest(1, "url", "open", "name", "description", List.of(), new GitHubBranch("ref"), false)))
                 .addHeader("Content-Type", "application/json"));
         issue = service.patchPullRequest(task).block();
 
         tokenCheck();
         mockBackEnd.enqueue(new MockResponse()
-                .setBody(MAPPER.writeValueAsString(List.of(new GitHubUser(1, "username"))))
+                .setBody(MAPPER.writeValueAsString(List.of(new GitHubUser("username", 1, "a"))))
                 .addHeader("Content-Type", "application/json"));
         mockBackEnd.enqueue(new MockResponse()
                 .setBody(MAPPER.writeValueAsString(
-                        new GitHubPullRequest(1, "url", "open", "name", "description", new GitHubBranch("ref"))))
+                        new GitHubPullRequest(1, "url", "open", "name", "description", List.of(), new GitHubBranch("ref"), false)))
                 .addHeader("Content-Type", "application/json"));
         issue = service.patchPullRequest(task).block();
 
         task.setStatus(statuses[1]);
         tokenCheck();
         mockBackEnd.enqueue(
-                new MockResponse().setBody(MAPPER.writeValueAsString(new GitHubMergeInfo("1", false, "message")))
+                new MockResponse().setBody(MAPPER.writeValueAsString(new MergeResponse("1", false, "message")))
                         .addHeader("Content-Type",
                                 "application/json"));
         issue = service.patchPullRequest(task).block();
@@ -409,7 +409,7 @@ public class GitHubServiceTests {
 
         tokenCheck();
         mockBackEnd.enqueue(new MockResponse()
-                .setBody(MAPPER.writeValueAsString(new GitHubMergeInfo("1", true, "message"))).addHeader("Content-Type",
+                .setBody(MAPPER.writeValueAsString(new MergeResponse("1", true, "message"))).addHeader("Content-Type",
                         "application/json"));
         issue = service.patchPullRequest(task).block();
 

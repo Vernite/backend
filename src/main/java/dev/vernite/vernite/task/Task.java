@@ -428,7 +428,7 @@ public class Task extends SoftDeleteEntity {
         this.setLastUpdated(new Date());
     }
 
-    public PullRequest getPullRequest() {
+    public PullRequest getPull() {
         for (var integration : getGitHubTaskIntegrations()) {
             if (integration.getId().getType() == TaskIntegration.Type.PULL_REQUEST.ordinal()) {
                 var pull = new PullRequest(integration.getIssueId(), integration.link(), getName(), getDescription(),

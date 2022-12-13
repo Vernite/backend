@@ -39,10 +39,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.vernite.vernite.integration.git.Issue;
 import dev.vernite.vernite.integration.git.PullRequest;
+import dev.vernite.vernite.integration.git.github.api.model.AppToken;
 import dev.vernite.vernite.integration.git.github.data.GitHubBranch;
 import dev.vernite.vernite.integration.git.github.data.GitHubIssue;
 import dev.vernite.vernite.integration.git.github.data.GitHubPullRequest;
-import dev.vernite.vernite.integration.git.github.data.InstallationToken;
 import dev.vernite.vernite.integration.git.github.model.Installation;
 import dev.vernite.vernite.integration.git.github.model.InstallationRepository;
 import dev.vernite.vernite.integration.git.github.model.ProjectIntegration;
@@ -118,7 +118,7 @@ public class ProjectIntegrationTests {
         if (iGitHubInstallation.getExpires().before(Date.from(Instant.now()))) {
             mockBackEnd.enqueue(new MockResponse()
                     .setBody(MAPPER.writeValueAsString(
-                            new InstallationToken("token" + iGitHubInstallation.getId(),
+                            new AppToken("token" + iGitHubInstallation.getId(),
                                     Instant.now().plus(30, ChronoUnit.MINUTES).toString())))
                     .addHeader("Content-Type", "application/json"));
         }
@@ -132,7 +132,6 @@ public class ProjectIntegrationTests {
 
     @BeforeAll
     public void init() throws IOException {
-        // mockBackEnd.start();
 
         integrationRepository.deleteAll();
         installationRepository.deleteAll();
