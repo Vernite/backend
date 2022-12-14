@@ -25,36 +25,29 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.git.github.data;
+package dev.vernite.vernite.integration.git.github.api.model;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.Data;
 
 /**
- * Object to represent repositories an installation link.
+ * Object to represent GitHub Rest api repository.
  */
-public class GitHubIntegrationInfo {
-    @Deprecated
-    private String link;
-    private List<GitHubRepository> gitRepositories;
+@Data
+public class GitHubRepository {
 
-    public GitHubIntegrationInfo(String link, List<GitHubRepository> gitHubRepositories) {
-        this.link = link;
-        this.gitRepositories = gitHubRepositories;
-    }
+    private long id;
 
-    public String getLink() {
-        return link;
-    }
+    private String name;
 
-    public void setLink(String link) {
-        this.link = link;
-    }
+    @JsonProperty("full_name")
+    private String fullName;
 
-    public List<GitHubRepository> getGitRepositories() {
-        return gitRepositories;
-    }
+    @JsonProperty("private")
+    private boolean isPrivate;
 
-    public void setGitRepositories(List<GitHubRepository> gitRepositories) {
-        this.gitRepositories = gitRepositories;
-    }
+    @JsonProperty("html_url")
+    private String htmlUrl;
+
 }

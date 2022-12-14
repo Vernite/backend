@@ -25,30 +25,28 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.common.exception;
+package dev.vernite.vernite.common.exception.error;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 
 /**
- * Exception thrown when entity with given id is not found in database.
+ * Model for representing error when external API returns error.
  */
 @Getter
-public class EntityNotFoundException extends RuntimeException {
+public class ExternalApiError extends AbstractError {
 
-    private final String entityName;
-
-    private final long id;
+    @NotBlank
+    private final String service;
 
     /**
-     * Default constructor for {@link EntityNotFoundException}.
+     * Default constructor for {@link ExternalApiError}.
      * 
-     * @param entityName name of entity class that were not found
-     * @param id         id of entity which were not found
+     * @param service name of service that returned error
      */
-    public EntityNotFoundException(String entityName, long id) {
-        super(entityName + " not found");
-        this.entityName = entityName;
-        this.id = id;
+    public ExternalApiError(String service) {
+        super("External API error");
+        this.service = service;
     }
 
 }

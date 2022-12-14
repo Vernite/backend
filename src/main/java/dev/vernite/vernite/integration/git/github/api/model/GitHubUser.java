@@ -25,42 +25,27 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.git.github.entity.task;
+package dev.vernite.vernite.integration.git.github.api.model;
 
-import java.util.List;
-import java.util.Optional;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.repository.NoRepositoryBean;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import dev.vernite.vernite.integration.git.github.entity.GitHubIntegration;
-import dev.vernite.vernite.task.Task;
+/**
+ * Model to represent a GitHub user.
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class GitHubUser {
 
-@NoRepositoryBean
-public interface GitHubTaskRepository<T, K> extends JpaRepository<T, K> {
-    /**
-     * This method finds GitHub issue / pull request connection for task.
-     * 
-     * @param task which connection is looked for.
-     * @return Optional with connection to GitHub issue / pull request; empty when
-     *         there is not any.
-     */
-    Optional<T> findByTask(Task task);
+    private String login;
 
-    /**
-     * This method finds GitHub issues connection for integration.
-     * 
-     * @param integration which connection is looked for.
-     * @return List of all task associated with integration.
-     */
-    List<T> findByGitHubIntegration(GitHubIntegration integration);
+    private long id;
 
-    /**
-     * This method finds GitHub issue connections for integration and issue id.
-     * 
-     * @param issueId     id of github issue.
-     * @param integration integration with github.
-     * @return List with connections between issue and task.
-     */
-    List<T> findByIssueIdAndGitHubIntegration(long issueId, GitHubIntegration integration);
+    @JsonProperty("avatar_url")
+    private String avatarUrl;
+
 }

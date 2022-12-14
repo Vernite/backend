@@ -46,7 +46,6 @@ import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
@@ -64,8 +63,7 @@ import com.fasterxml.jackson.annotation.JsonProperty.Access;
 
 import dev.vernite.vernite.integration.git.Issue;
 import dev.vernite.vernite.integration.git.PullRequest;
-import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskIssue;
-import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskPull;
+import dev.vernite.vernite.integration.git.github.model.TaskIntegration;
 import dev.vernite.vernite.release.Release;
 import dev.vernite.vernite.sprint.Sprint;
 import dev.vernite.vernite.status.Status;
@@ -159,16 +157,6 @@ public class Task extends SoftDeleteEntity {
     private int type;
 
     @JsonIgnore
-    @OneToOne(mappedBy = "task")
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private GitHubTaskIssue issueTask;
-
-    @JsonIgnore
-    @OneToOne(mappedBy = "task")
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private GitHubTaskPull pullTask;
-
-    @JsonIgnore
     @ManyToOne
     @JoinColumn(nullable = true)
     private Task parentTask;
@@ -209,6 +197,13 @@ public class Task extends SoftDeleteEntity {
     @OneToMany(mappedBy = "task")
     @OnDelete(action = OnDeleteAction.CASCADE)
     private List<Comment> comments = new ArrayList<>();
+
+    @Getter
+    @Setter
+    @JsonIgnore
+    @OneToMany(mappedBy = "task")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private List<TaskIntegration> gitHubTaskIntegrations = new ArrayList<>();
 
     public Task() {
     }
@@ -354,30 +349,6 @@ public class Task extends SoftDeleteEntity {
         }
     }
 
-    public Issue getIssue() {
-        return getIssueTask() != null ? getIssueTask().toIssue() : null;
-    }
-
-    public PullRequest getPull() {
-        return getPullTask() != null ? getPullTask().toPull() : null;
-    }
-
-    public GitHubTaskIssue getIssueTask() {
-        return issueTask;
-    }
-
-    public void setIssueTask(GitHubTaskIssue issues) {
-        this.issueTask = issues;
-    }
-
-    public GitHubTaskPull getPullTask() {
-        return pullTask;
-    }
-
-    public void setPullTask(GitHubTaskPull pulls) {
-        this.pullTask = pulls;
-    }
-
     public Task getParentTask() {
         return parentTask;
     }
@@ -455,5 +426,28 @@ public class Task extends SoftDeleteEntity {
     @PreUpdate
     private void updateDate() {
         this.setLastUpdated(new Date());
+    }
+
+    public PullRequest getPull() {
+        for (var integration : getGitHubTaskIntegrations()) {
+            if (integration.getId().getType() == TaskIntegration.Type.PULL_REQUEST.ordinal()) {
+                var pull = new PullRequest(integration.getIssueId(), integration.link(), getName(), getDescription(),
+                        "github", integration.getBranch());
+                if (integration.isMerged()) {
+                    pull.setState("merged");
+                }
+                return pull;
+            }
+        }
+        return null;
+    }
+
+    public Issue getIssue() {
+        for (var integration : getGitHubTaskIntegrations()) {
+            if (integration.getId().getType() == TaskIntegration.Type.ISSUE.ordinal()) {
+                return integration.toIssue();
+            }
+        }
+        return null;
     }
 }

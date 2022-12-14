@@ -25,37 +25,24 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.git.github.entity;
+package dev.vernite.vernite.integration.git.github.model;
 
 import java.util.List;
-import java.util.Optional;
 
-import dev.vernite.vernite.project.Project;
-import dev.vernite.vernite.utils.SoftDeleteRepository;
+import org.springframework.data.repository.CrudRepository;
 
-public interface GitHubIntegrationRepository extends SoftDeleteRepository<GitHubIntegration, Long> {
-    /**
-     * This method finds integration with GitHub for given project.
-     * 
-     * @param project - project for which integration will be found.
-     * @return Integration for given project.
-     */
-    Optional<GitHubIntegration> findByProjectAndActiveNull(Project project);
+/**
+ * CRUD repository for task integration entity.
+ */
+public interface TaskIntegrationRepository extends CrudRepository<TaskIntegration, TaskIntegrationId> {
 
     /**
-     * This method finds all integrations for given GitHub account.
+     * Find task integration by integration and issue id.
      * 
-     * @param installation - installation for which integrations will be found.
-     * @return Integrations associated with given installation.
+     * @param projectIntegration project integration
+     * @param issueId            issue id
+     * @return task integration
      */
-    List<GitHubIntegration> findByInstallation(GitHubInstallation installation);
+    List<TaskIntegration> findByProjectIntegrationAndIssueId(ProjectIntegration projectIntegration, long issueId);
 
-    /**
-     * This method finds all integrations for repository full name.
-     * 
-     * @param repositoryFullName - full name of GitHub repository to which
-     *                            integrations will be returned.
-     * @return Integrations associated with repository with given name.
-     */
-    List<GitHubIntegration> findByRepositoryFullName(String repositoryFullName);
 }

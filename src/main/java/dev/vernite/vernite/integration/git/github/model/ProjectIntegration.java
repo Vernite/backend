@@ -25,86 +25,88 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.git.github.entity;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToOne;
-
-import dev.vernite.vernite.project.Project;
-import dev.vernite.vernite.utils.SoftDeleteEntity;
+package dev.vernite.vernite.integration.git.github.model;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-@Entity
-public class GitHubIntegration extends SoftDeleteEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    long id;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import dev.vernite.vernite.project.Project;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+/**
+ * Entity for representing GitHub project integration.
+ */
+@Data
+@NoArgsConstructor
+@Schema(name = "GitHubProjectIntegration")
+@Entity(name = "github_project_integration")
+public class ProjectIntegration {
+
+    @Id
+    @PositiveOrZero
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
+
+    @NotBlank
+    @Column(nullable = false)
+    private String repositoryOwner;
+
+    @NotBlank
+    @Column(nullable = false)
+    private String repositoryName;
+
+    @NotNull
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
     private Project project;
 
+    @NotNull
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    private GitHubInstallation installation;
+    private Installation installation;
 
-    @Column(unique = true, nullable = false, length = 150)
-    private String repositoryFullName;
-
-    public GitHubIntegration() {
-    }
-
-    public GitHubIntegration(Project project, GitHubInstallation installation, String repositoryFullName) {
+    /**
+     * Creates a new project integration from a repository full name.
+     * 
+     * @param repositoryFullName the full name of the repository, in the format of
+     *                           "owner/name"
+     * @param project            the project to integrate with
+     * @param installation       the installation to use
+     */
+    public ProjectIntegration(String repositoryFullName, Project project, Installation installation) {
+        var split = repositoryFullName.split("/");
+        this.repositoryOwner = split[0];
+        this.repositoryName = split[1];
         this.project = project;
         this.installation = installation;
-        this.repositoryFullName = repositoryFullName;
     }
 
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public Project getProject() {
-        return project;
-    }
-
-    public void setProject(Project project) {
-        this.project = project;
-    }
-
-    public GitHubInstallation getInstallation() {
-        return installation;
-    }
-
-    public void setInstallation(GitHubInstallation installation) {
-        this.installation = installation;
-    }
-
+    /**
+     * @return the full name of the repository, in the format of "owner/name"
+     */
     public String getRepositoryFullName() {
-        return repositoryFullName;
+        return repositoryOwner + "/" + repositoryName;
     }
 
-    public void setRepositoryFullName(String repositoryFullName) {
-        this.repositoryFullName = repositoryFullName;
-    }
-
-    public String getRepositoryName() {
-        return repositoryFullName.split("/")[1];
-    }
-
-    public String getRepositoryOwner() {
-        return repositoryFullName.split("/")[0];
-    }
 }

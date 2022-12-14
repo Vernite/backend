@@ -25,61 +25,46 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.git.github.entity.task;
+package dev.vernite.vernite.integration.git.github.api.model;
 
-import java.io.Serializable;
+import java.util.List;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty.Access;
 
-import dev.vernite.vernite.integration.git.github.entity.GitHubIntegration;
-import dev.vernite.vernite.task.Task;
+import dev.vernite.vernite.integration.git.Issue;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Embeddable
-public class GitHubTaskKey implements Serializable {
-    @Column(name = "task_id")
-    long taskId;
+/**
+ * Object to represent a GitHub Rest api issue.
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class GitHubIssue {
 
-    @Column(name = "integration_id")
-    long integrationId;
+    private long number;
 
-    public GitHubTaskKey() {
+    private String url;
+
+    private String state;
+
+    private String title;
+
+    private String body;
+
+    @JsonProperty(access = Access.READ_ONLY)
+    private List<String> assignees;
+
+    /**
+     * Converts this object to a general Issue object.
+     * 
+     * @return Issue object
+     */
+    public Issue toIssue() {
+        return new Issue(number, url.replace("api.", "").replace("/repos", ""), title, body, "github");
     }
 
-    public GitHubTaskKey(Task task, GitHubIntegration integration) {
-        this.taskId = task.getId();
-        this.integrationId = integration.getId();
-    }
-
-    public long getTaskId() {
-        return taskId;
-    }
-
-    public void setTaskId(long taskId) {
-        this.taskId = taskId;
-    }
-
-    public long getIntegrationId() {
-        return integrationId;
-    }
-
-    public void setIntegrationId(long integrationId) {
-        this.integrationId = integrationId;
-    }
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int hash = prime + Long.hashCode(taskId);
-        hash = prime * hash + Long.hashCode(integrationId);
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null || getClass() != obj.getClass())
-            return false;
-        GitHubTaskKey other = (GitHubTaskKey) obj;
-        return taskId == other.taskId && integrationId == other.integrationId;
-    }
 }

@@ -25,7 +25,46 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.git.github.entity.task;
+package dev.vernite.vernite.common.utils;
 
-public interface GitHubTaskIssueRepository extends GitHubTaskRepository<GitHubTaskIssue, GitHubTaskKey> {
+import java.security.SecureRandom;
+
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+/**
+ * Utils for common secure random operations.
+ */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public class SecureRandomUtils {
+
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    private static final char[] CHARS = "0123456789qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM".toCharArray();
+
+    /**
+     * Generates a secure random string of the given length.
+     * 
+     * @param length must be greater than 0
+     * @return the generated string
+     */
+    public static String generateSecureRandomString(int length) {
+        var secureCharacters = new char[length];
+
+        for (var index = 0; index < secureCharacters.length; index++) {
+            secureCharacters[index] = CHARS[RANDOM.nextInt(CHARS.length)];
+        }
+
+        return new String(secureCharacters);
+    }
+
+    /**
+     * Generates a secure random string of length 128.
+     * 
+     * @return the generated string
+     */
+    public static String generateSecureRandomString() {
+        return generateSecureRandomString(128);
+    }
+
 }

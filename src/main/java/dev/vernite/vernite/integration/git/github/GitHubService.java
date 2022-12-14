@@ -27,710 +27,573 @@
 
 package dev.vernite.vernite.integration.git.github;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.security.Key;
-import java.security.KeyFactory;
-import java.security.spec.PKCS8EncodedKeySpec;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
+import org.apache.hc.core5.net.URIBuilder;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.support.WebClientAdapter;
+import org.springframework.web.service.invoker.HttpServiceProxyFactory;
+
+import dev.vernite.vernite.common.exception.ExternalApiException;
 import dev.vernite.vernite.integration.git.Branch;
 import dev.vernite.vernite.integration.git.Issue;
 import dev.vernite.vernite.integration.git.PullRequest;
-import dev.vernite.vernite.integration.git.github.data.GitHubBranchRead;
-import dev.vernite.vernite.integration.git.github.data.GitHubInstallationApi;
-import dev.vernite.vernite.integration.git.github.data.GitHubIssue;
-import dev.vernite.vernite.integration.git.github.data.GitHubMergeInfo;
-import dev.vernite.vernite.integration.git.github.data.GitHubPullRequest;
-import dev.vernite.vernite.integration.git.github.data.GitHubRelease;
-import dev.vernite.vernite.integration.git.github.data.GitHubRepository;
-import dev.vernite.vernite.integration.git.github.data.GitHubUser;
-import dev.vernite.vernite.integration.git.github.data.GitHubInstallationRepositories;
-import dev.vernite.vernite.integration.git.github.data.GitHubIntegrationInfo;
-import dev.vernite.vernite.integration.git.github.data.InstallationToken;
-import dev.vernite.vernite.integration.git.github.entity.GitHubInstallation;
-import dev.vernite.vernite.integration.git.github.entity.GitHubInstallationRepository;
-import dev.vernite.vernite.integration.git.github.entity.GitHubIntegration;
-import dev.vernite.vernite.integration.git.github.entity.GitHubIntegrationRepository;
-import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskIssue;
-import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskIssueRepository;
-import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskPull;
-import dev.vernite.vernite.integration.git.github.entity.task.GitHubTaskPullRepository;
+import dev.vernite.vernite.integration.git.Repository;
+import dev.vernite.vernite.integration.git.github.api.GitHubApiClient;
+import dev.vernite.vernite.integration.git.github.api.GitHubConfiguration;
+import dev.vernite.vernite.integration.git.github.api.model.BranchName;
+import dev.vernite.vernite.integration.git.github.api.model.GitHubIssue;
+import dev.vernite.vernite.integration.git.github.api.model.GitHubPullRequest;
+import dev.vernite.vernite.integration.git.github.api.model.GitHubRelease;
+import dev.vernite.vernite.integration.git.github.api.model.GitHubRepository;
+import dev.vernite.vernite.integration.git.github.api.model.Installations;
+import dev.vernite.vernite.integration.git.github.api.model.Repositories;
+import dev.vernite.vernite.integration.git.github.api.model.request.OauthRefreshTokenRequest;
+import dev.vernite.vernite.integration.git.github.api.model.request.OauthTokenRequest;
+import dev.vernite.vernite.integration.git.github.model.Authorization;
+import dev.vernite.vernite.integration.git.github.model.AuthorizationRepository;
+import dev.vernite.vernite.integration.git.github.model.Installation;
+import dev.vernite.vernite.integration.git.github.model.InstallationRepository;
+import dev.vernite.vernite.integration.git.github.model.ProjectIntegration;
+import dev.vernite.vernite.integration.git.github.model.ProjectIntegrationRepository;
+import dev.vernite.vernite.integration.git.github.model.TaskIntegration;
+import dev.vernite.vernite.integration.git.github.model.TaskIntegrationId;
+import dev.vernite.vernite.integration.git.github.model.TaskIntegrationRepository;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.release.Release;
 import dev.vernite.vernite.task.Task;
 import dev.vernite.vernite.user.User;
-import dev.vernite.vernite.utils.ExternalApiException;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.server.ResponseStatusException;
-
 import io.jsonwebtoken.Jwts;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+/**
+ * Service for GitHub integration.
+ */
 @Service
-@Component
 public class GitHubService {
-    private static final String APP_ID = "195507";
-    private static final String AUTHORIZATION = "Authorization";
-    public static final String INTEGRATION_LINK = "https://github.com/apps/vernite/installations/new";
-    private static final String ACCEPT = "Accept";
-    private static final String BEARER = "Bearer ";
-    private static final String APPLICATION_JSON_GITHUB = "application/vnd.github.v3+json";
-    private static final String GITHUB = "github";
 
-    private WebClient client = WebClient.create("https://api.github.com");
-    @Autowired
-    private GitHubInstallationRepository installationRepository;
-    @Autowired
-    private GitHubIntegrationRepository integrationRepository;
-    @Autowired
-    private GitHubTaskIssueRepository issueRepository;
-    @Autowired
-    private GitHubTaskPullRepository pullRepository;
+    private final GitHubApiClient client;
+
+    private GitHubConfiguration config;
+
+    private AuthorizationRepository authorizationRepository;
+
+    private InstallationRepository installationRepository;
+
+    private ProjectIntegrationRepository projectIntegrationRepository;
+
+    private TaskIntegrationRepository taskIntegrationRepository;
+
+    public GitHubService(GitHubConfiguration config, AuthorizationRepository authorizationRepository,
+            InstallationRepository installationRepository, ProjectIntegrationRepository projectIntegrationRepository,
+            TaskIntegrationRepository taskIntegrationRepository) {
+        this.config = config;
+        this.authorizationRepository = authorizationRepository;
+        this.installationRepository = installationRepository;
+        this.projectIntegrationRepository = projectIntegrationRepository;
+        this.taskIntegrationRepository = taskIntegrationRepository;
+
+        var webClient = WebClient.builder().baseUrl(config.getApiURL())
+                .defaultStatusHandler(HttpStatusCode::isError,
+                        resp -> Mono.error(new ExternalApiException("github", "github error" + resp.statusCode())))
+                .build();
+        var adapter = WebClientAdapter.forClient(webClient);
+        client = HttpServiceProxyFactory.builder(adapter).build().createClient(GitHubApiClient.class);
+    }
+
+    /**
+     * Get the GitHub OAuth installation URL for the given state.
+     * 
+     * @param state the state to pass to GitHub
+     * @return the installation URL
+     * @throws URISyntaxException if the URL cannot be built
+     */
+    public URI getAuthorizationUrl(String state) throws URISyntaxException {
+        var builder = new URIBuilder(GitHubConfiguration.GITHUB_AUTH_URL);
+        builder.addParameter("client_id", config.getClientId());
+        builder.addParameter("state", state);
+        return builder.build();
+    }
+
+    /**
+     * Create an authorization for the given user and code.
+     * 
+     * @param user the user to create the authorization for
+     * @param code the code to use to create the authorization
+     * @return the authorization
+     */
+    public Mono<Authorization> createAuthorization(User user, String code) {
+        var request = new OauthTokenRequest(config.getClientId(), config.getClientSecret(), code);
+        return client.createOauthAccessToken(request)
+                .flatMap(token -> client.getAuthenticatedUser("Bearer " + token.getAccessToken()).map(githubUser -> {
+                    var auth = authorizationRepository.findById(githubUser.getId()).orElseGet(Authorization::new);
+                    auth.update(token, githubUser, user);
+                    return authorizationRepository.save(auth);
+                }));
+    }
 
     /**
      * Retrieves repositories available for user from GitHub api.
      * 
-     * @param user must be entity from database.
-     * @return Mono with list of repositories and link.
+     * @param user the user
+     * @return list with all repositories
      */
-    public Mono<GitHubIntegrationInfo> getRepositories(User user) {
-        return Flux.fromIterable(installationRepository.findByUserAndSuspendedFalse(user))
+    public Flux<Repository> getUserRepositories(User user) {
+        return Flux.fromIterable(authorizationRepository.findByUser(user))
                 .flatMap(this::refreshToken)
-                .flatMap(this::apiGetInstallationRepositories)
-                .map(GitHubInstallationRepositories::getRepositories)
-                .reduce(new ArrayList<GitHubRepository>(), (first, second) -> {
-                    first.addAll(second);
-                    return first;
-                })
-                .map(repositories -> new GitHubIntegrationInfo(INTEGRATION_LINK, repositories))
-                .defaultIfEmpty(new GitHubIntegrationInfo(INTEGRATION_LINK, List.of()));
+                .flatMap(this::getUserInstallations)
+                .flatMap(this::refreshToken)
+                .map(Installation::getToken)
+                .map(token -> "Bearer " + token)
+                .flatMap(client::getInstallationRepositories)
+                .flatMapIterable(Repositories::getRepositoryList)
+                .map(repo -> new Repository(repo.getId(), repo.getName(), repo.getFullName(), repo.getHtmlUrl(),
+                        repo.isPrivate(), "github"));
     }
 
     /**
-     * Creates new installation for user.
+     * Create a project integration for the given project and repository.
      * 
-     * @param user must be entity from database.
-     * @param id   must be id of installation retrieved from GitHub.
-     * @return Mono with list of repositories and link. Can be empty.
+     * @param user               the user; must have an authorization to the
+     *                           repository
+     * @param project            the project
+     * @param repositoryFullName the repository full name
+     * @return the project integration
      */
-    public Mono<GitHubIntegrationInfo> newInstallation(User user, long id) {
-        return apiGetInstallation(id)
-                .map(installation -> installationRepository.save(new GitHubInstallation(id, user, installation)))
+    public Mono<ProjectIntegration> createProjectIntegration(User user, Project project, String repositoryFullName) {
+        return Flux.fromIterable(authorizationRepository.findByUser(user))
                 .flatMap(this::refreshToken)
-                .flatMap(this::apiGetInstallationRepositories)
-                .map(GitHubInstallationRepositories::getRepositories)
-                .map(repositories -> new GitHubIntegrationInfo(INTEGRATION_LINK, repositories));
-    }
-
-    /**
-     * Creates new integration for project.
-     * 
-     * @param user     must be entity from database.
-     * @param project  must be entity from database.
-     * @param fullName must be valid GitHub repository name.
-     * @return Mono with created integration. Can be empty when repository is not
-     *         found.
-     */
-    public Mono<GitHubIntegration> newIntegration(User user, Project project, String fullName) {
-        return Flux.fromIterable(installationRepository.findByUserAndSuspendedFalse(user))
+                .flatMap(this::getUserInstallations)
                 .flatMap(this::refreshToken)
-                .filterWhen(installation -> hasRepository(installation, fullName))
-                .reduce(Optional.<GitHubInstallation>empty(), (first, second) -> Optional.of(second))
+                .filterWhen(inst -> hasRepository(inst, repositoryFullName))
+                .reduce(Optional.<Installation>empty(), (acc, inst) -> Optional.of(inst))
                 .filter(Optional::isPresent)
-                .map(inst -> integrationRepository.save(new GitHubIntegration(project, inst.get(), fullName)));
+                .map(Optional::get)
+                .map(inst -> new ProjectIntegration(repositoryFullName, project, inst))
+                .map(projectIntegrationRepository::save);
     }
 
     /**
-     * Creates issue associated with task.
+     * Get issues for the given project.
      * 
-     * @param task must be entity from database.
-     * @return - Mono with issue.
-     */
-    public Mono<Issue> createIssue(Task task) {
-        Optional<GitHubIntegration> optional = integrationRepository
-                .findByProjectAndActiveNull(task.getStatus().getProject());
-        if (optional.isEmpty()) {
-            return Mono.empty();
-        }
-        GitHubIntegration integration = optional.get();
-        if (integration.getInstallation().getSuspended()) {
-            return Mono.empty();
-        }
-        List<GitHubInstallation> installations = new ArrayList<>();
-        if (task.getAssignee() != null) {
-            installations.addAll(installationRepository.findByUser(task.getAssignee()));
-        }
-        GitHubIssue issue = new GitHubIssue(task, List.of());
-        return refreshToken(integration.getInstallation())
-                .flatMap(inst -> hasCollaborator(inst, integration, issue, installations))
-                .flatMap(installation -> apiPostRepositoryIssue(installation, integration, issue))
-                .map(i -> {
-                    issueRepository.save(new GitHubTaskIssue(task, integration, i));
-                    return i.toIssue();
-                });
-    }
-
-    /**
-     * Modifies associated issue using GitHub api.
-     * 
-     * @param task must be entity from database.
-     * @return Mono with issue.
-     */
-    public Mono<Issue> patchIssue(Task task) {
-        Optional<GitHubTaskIssue> optional = issueRepository.findByTask(task);
-        if (optional.isEmpty()) {
-            return Mono.empty();
-        }
-        GitHubTaskIssue gitHubTask = optional.get();
-        if (gitHubTask.getGitHubIntegration().getInstallation().getSuspended()) {
-            return Mono.empty();
-        }
-        List<GitHubInstallation> installations = new ArrayList<>();
-        if (task.getAssignee() != null) {
-            installations.addAll(installationRepository.findByUser(task.getAssignee()));
-        }
-        GitHubIssue gitHubIssue = new GitHubIssue(task, List.of());
-        gitHubIssue.setNumber(gitHubTask.getIssueId());
-        return refreshToken(gitHubTask.getGitHubIntegration().getInstallation())
-                .flatMap(inst -> hasCollaborator(inst, gitHubTask.getGitHubIntegration(), gitHubIssue, installations))
-                .flatMap(inst -> apiPatchRepositoryIssue(inst, gitHubTask.getGitHubIntegration(), gitHubIssue))
-                .map(GitHubIssue::toIssue);
-    }
-
-    /**
-     * Retrieves issues for project from GitHub api.
-     * 
-     * @param project must be entity from database.
-     * @return Flux with issues. Can be empty.
+     * @param project the project
+     * @return the issues
      */
     public Flux<Issue> getIssues(Project project) {
-        Optional<GitHubIntegration> optional = integrationRepository.findByProjectAndActiveNull(project);
-        if (optional.isEmpty()) {
+        var integrationOptional = projectIntegrationRepository.findByProject(project);
+
+        if (integrationOptional.isEmpty()) {
             return Flux.empty();
         }
-        GitHubIntegration integration = optional.get();
-        if (integration.getInstallation().getSuspended()) {
-            return Flux.empty();
-        }
-        return refreshToken(integration.getInstallation())
-                .flatMapMany(installation -> apiGetRepositoryIssues(installation, integration))
+
+        var integration = integrationOptional.get();
+        var owner = integration.getRepositoryOwner();
+        var repo = integration.getRepositoryName();
+
+        return Mono.just(integration.getInstallation())
+                .filter(inst -> !inst.isSuspended())
+                .flatMap(this::refreshToken)
+                .map(Installation::getToken)
+                .map(token -> "Bearer " + token)
+                .flatMapMany(token -> client.getRepositoryIssues(token, owner, repo))
                 .map(GitHubIssue::toIssue);
     }
 
     /**
-     * Connects task to issue.
+     * Connect the given task to the given issue.
      * 
-     * @param task  must be entity from database.
-     * @param issue must be issue from GitHub api.
-     * @return Mono with issue. Can be empty.
+     * @param task the task
+     * @param id   the issue id
+     * @return the issue
      */
-    public Mono<Issue> connectIssue(Task task, Issue issue) {
-        Optional<GitHubIntegration> optional = integrationRepository
-                .findByProjectAndActiveNull(task.getStatus().getProject());
-        if (optional.isEmpty()) {
+    public Mono<Issue> connectIssue(Task task, long id) {
+        var integrationOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());
+
+        if (integrationOptional.isEmpty()) {
             return Mono.empty();
         }
-        GitHubIntegration integration = optional.get();
-        if (integration.getInstallation().getSuspended()) {
+
+        var integration = integrationOptional.get();
+        var owner = integration.getRepositoryOwner();
+        var repo = integration.getRepositoryName();
+
+        Set<Long> assignees = new HashSet<>();
+        if (task.getAssignee() != null) {
+            authorizationRepository.findByUser(task.getAssignee()).forEach(auth -> assignees.add(auth.getId()));
+        }
+
+        return Mono.just(integration.getInstallation())
+                .filter(inst -> !inst.isSuspended())
+                .flatMap(this::refreshToken)
+                .map(Installation::getToken)
+                .map(token -> "Bearer " + token)
+                .flatMap(token -> client.getRepositoryIssue(token, owner, repo, id))
+                .map(GitHubIssue::toIssue)
+                .map(issue -> new TaskIntegration(task, integration, id, TaskIntegration.Type.ISSUE))
+                .map(taskIntegrationRepository::save)
+                .then(patchIssue(task));
+    }
+
+    /**
+     * Create a GitHub issue for the given task.
+     * 
+     * @param task the task
+     * @return the issue
+     */
+    public Mono<Issue> createIssue(Task task) {
+        var integrationOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());
+
+        if (integrationOptional.isEmpty()) {
             return Mono.empty();
         }
-        return refreshToken(integration.getInstallation())
-                .flatMap(installation -> apiGetRepositoryIssue(installation, integration, issue.getId()))
-                .map(gitHubIssue -> {
-                    issueRepository.save(new GitHubTaskIssue(task, integration, gitHubIssue));
-                    return gitHubIssue.toIssue();
+
+        var integration = integrationOptional.get();
+        var owner = integration.getRepositoryOwner();
+        var repo = integration.getRepositoryName();
+
+        var issue = new GitHubIssue(0, null, null, task.getName(), task.getDescription(), new ArrayList<>());
+        Set<Long> assignees = new HashSet<>();
+        if (task.getAssignee() != null) {
+            authorizationRepository.findByUser(task.getAssignee()).forEach(auth -> assignees.add(auth.getId()));
+        }
+
+        return Mono.just(integration.getInstallation())
+                .filter(inst -> !inst.isSuspended())
+                .flatMap(this::refreshToken)
+                .flatMap(inst -> setCollaborators(inst, owner, repo, issue, assignees))
+                .flatMap(inst -> client.createRepositoryIssue("Bearer " + inst.getToken(), owner, repo, issue))
+                .map(newIssue -> {
+                    var i = new TaskIntegration(task, integration, newIssue.getNumber(), TaskIntegration.Type.ISSUE);
+                    taskIntegrationRepository.save(i);
+                    return newIssue.toIssue();
                 });
     }
 
     /**
-     * Deletes task connection to issue.
+     * Update the GitHub issue for the given task.
      * 
-     * @param task must be entity from database.
+     * @param task the task
+     * @return the issue
+     */
+    public Mono<Issue> patchIssue(Task task) {
+        var integrationProjectOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());
+
+        if (integrationProjectOptional.isEmpty()) {
+            return Mono.empty();
+        }
+
+        var integrationProject = integrationProjectOptional.get();
+
+        var integrationOptional = taskIntegrationRepository.findById(
+                new TaskIntegrationId(task.getId(), integrationProject.getId(), TaskIntegration.Type.ISSUE.ordinal()));
+
+        if (integrationOptional.isEmpty()) {
+            return Mono.empty();
+        }
+
+        var integration = integrationOptional.get();
+
+        var issue = new GitHubIssue(integration.getIssueId(), integration.link(),
+                task.getStatus().isFinal() ? "closed" : "open", task.getName(), task.getDescription(),
+                new ArrayList<>());
+        Set<Long> assignees = new HashSet<>();
+        if (task.getAssignee() != null) {
+            authorizationRepository.findByUser(task.getAssignee()).forEach(auth -> assignees.add(auth.getId()));
+        }
+
+        var owner = integrationProject.getRepositoryOwner();
+        var repo = integrationProject.getRepositoryName();
+
+        return Mono.just(integrationProject.getInstallation())
+                .filter(inst -> !inst.isSuspended())
+                .flatMap(this::refreshToken)
+                .flatMap(inst -> setCollaborators(inst, owner, repo, issue, assignees))
+                .flatMap(inst -> client.patchRepositoryIssue("Bearer " + inst.getToken(), owner, repo,
+                        issue.getNumber(), issue))
+                .map(gitIssue -> gitIssue.toIssue());
+    }
+
+    /**
+     * Delete the GitHub issue connection for the given task.
+     * 
+     * @param task the task
      */
     public void deleteIssue(Task task) {
-        issueRepository.findByTask(task).ifPresent(issueRepository::delete);
+        var integrationOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());
+
+        if (integrationOptional.isEmpty()) {
+            return;
+        }
+
+        var integration = integrationOptional.get();
+
+        taskIntegrationRepository
+                .findById(
+                        new TaskIntegrationId(task.getId(), integration.getId(), TaskIntegration.Type.ISSUE.ordinal()))
+                .ifPresent(taskIntegrationRepository::delete);
     }
 
     /**
-     * Retrieves pull requests for project from GitHub api.
+     * Get the GitHub pull requests for the given project.
      * 
-     * @param project must be entity from database.
-     * @return Flux with pull requests. Can be empty.
+     * @param project the project
+     * @return the pull requests
      */
     public Flux<PullRequest> getPullRequests(Project project) {
-        Optional<GitHubIntegration> optional = integrationRepository.findByProjectAndActiveNull(project);
-        if (optional.isEmpty()) {
+        var integrationOptional = projectIntegrationRepository.findByProject(project);
+
+        if (integrationOptional.isEmpty()) {
             return Flux.empty();
         }
-        GitHubIntegration integration = optional.get();
-        if (integration.getInstallation().getSuspended()) {
-            return Flux.empty();
-        }
-        return refreshToken(integration.getInstallation())
-                .flatMapMany(installation -> apiGetRepositoryPulls(installation, integration))
+
+        var integration = integrationOptional.get();
+        var owner = integration.getRepositoryOwner();
+        var repo = integration.getRepositoryName();
+
+        return Mono.just(integration.getInstallation())
+                .filter(inst -> !inst.isSuspended())
+                .flatMap(this::refreshToken)
+                .map(Installation::getToken)
+                .map(token -> "Bearer " + token)
+                .flatMapMany(token -> client.getRepositoryPullRequests(token, owner, repo))
                 .map(GitHubPullRequest::toPullRequest);
     }
 
     /**
-     * Connects task to pull request.
+     * Connect the given task to the given GitHub pull request.
      * 
-     * @param task        must be entity from database.
-     * @param pullRequest must be pull request from GitHub api.
-     * @return Mono with pull request. Can be empty.
+     * @param task the task
+     * @param id   the pull request id
+     * @return the pull request
      */
-    public Mono<PullRequest> connectPullRequest(Task task, PullRequest pullRequest) {
-        Optional<GitHubIntegration> optional = integrationRepository
-                .findByProjectAndActiveNull(task.getStatus().getProject());
-        if (optional.isEmpty()) {
+    public Mono<PullRequest> connectPullRequest(Task task, long id) {
+        var integrationOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());
+
+        if (integrationOptional.isEmpty()) {
             return Mono.empty();
         }
-        GitHubIntegration integration = optional.get();
-        if (integration.getInstallation().getSuspended()) {
-            return Mono.empty();
+
+        var integration = integrationOptional.get();
+        var owner = integration.getRepositoryOwner();
+        var repo = integration.getRepositoryName();
+
+        Set<Long> assignees = new HashSet<>();
+        if (task.getAssignee() != null) {
+            authorizationRepository.findByUser(task.getAssignee()).forEach(auth -> assignees.add(auth.getId()));
         }
-        return refreshToken(integration.getInstallation())
-                .flatMap(installation -> apiGetRepositoryPull(installation, integration, pullRequest.getId()))
-                .map(gitHubPullRequest -> {
-                    pullRepository.save(new GitHubTaskPull(task, integration, gitHubPullRequest));
-                    return gitHubPullRequest.toPullRequest();
-                });
+
+        return Mono.just(integration.getInstallation())
+                .filter(inst -> !inst.isSuspended())
+                .flatMap(this::refreshToken)
+                .map(Installation::getToken)
+                .map(token -> "Bearer " + token)
+                .flatMap(token -> client.getRepositoryPullRequest(token, owner, repo, id))
+                .map(pull -> {
+                    var i = new TaskIntegration(task, integration, id, TaskIntegration.Type.PULL_REQUEST);
+                    i.setMerged(pull.isMerged());
+                    taskIntegrationRepository.save(i);
+                    return pull;
+                })
+                .map(GitHubPullRequest::toPullRequest);
     }
 
     /**
-     * Modifies associated pull request using GitHub api.
+     * Patch the GitHub pull request for the given task.
      * 
-     * @param task must be entity from database.
-     * @return Mono with pull request.
+     * @param task the task
+     * @return the pull request
      */
-    public Mono<Issue> patchPullRequest(Task task) {
-        Optional<GitHubTaskPull> optional = pullRepository.findByTask(task);
-        if (optional.isEmpty()) {
+    public Mono<PullRequest> patchPullRequest(Task task) {
+        var integrationProjectOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());
+
+        if (integrationProjectOptional.isEmpty()) {
             return Mono.empty();
         }
-        GitHubTaskPull gitHubTask = optional.get();
-        GitHubIntegration integration = gitHubTask.getGitHubIntegration();
-        if (integration.getInstallation().getSuspended()) {
+
+        var integrationProject = integrationProjectOptional.get();
+
+        var integrationOptional = taskIntegrationRepository.findById(new TaskIntegrationId(task.getId(),
+                integrationProject.getId(), TaskIntegration.Type.PULL_REQUEST.ordinal()));
+
+        if (integrationOptional.isEmpty()) {
             return Mono.empty();
         }
-        GitHubPullRequest gitHubPullRequest = new GitHubPullRequest();
-        if (Boolean.TRUE.equals(task.getStatus().isFinal())) {
-            return refreshToken(integration.getInstallation())
-                    .flatMap(installation -> apiPutRepositoryPull(installation, integration, gitHubTask.getIssueId()))
-                    .map(mergeInfo -> {
-                        if (mergeInfo.isMerged()) {
-                            gitHubTask.setMerged(true);
-                            pullRepository.save(gitHubTask);
-                        }
-                        return new Issue(-1, gitHubTask.getLink(), mergeInfo.getMessage(), mergeInfo.getSha(),
-                                GITHUB);
+
+        var integration = integrationOptional.get();
+
+        var pullRequest = new GitHubPullRequest(integration.getIssueId(), null, null, task.getName(),
+                task.getDescription(), new ArrayList<>(), null, false);
+
+        Set<Long> assignees = new HashSet<>();
+        if (task.getAssignee() != null) {
+            authorizationRepository.findByUser(task.getAssignee()).forEach(auth -> assignees.add(auth.getId()));
+        }
+
+        var owner = integrationProject.getRepositoryOwner();
+        var repo = integrationProject.getRepositoryName();
+
+        if (task.getStatus().isFinal() && !integration.isMerged()) {
+            return refreshToken(integrationProject.getInstallation())
+                    .filter(inst -> !inst.isSuspended())
+                    .flatMap(this::refreshToken)
+                    .flatMap(inst -> client.mergePullRequest("Bearer " + inst.getToken(), owner, repo,
+                            integration.getIssueId()))
+                    .map(merge -> {
+                        integration.setMerged(merge.isMerged());
+                        return integration;
                     })
+                    .map(taskIntegrationRepository::save)
                     .then(Mono.empty());
         }
-        List<GitHubInstallation> installations = new ArrayList<>();
-        if (task.getAssignee() != null) {
-            installations.addAll(installationRepository.findByUser(task.getAssignee()));
-        }
-        if (!gitHubTask.getMerged()) {
-            gitHubPullRequest.setState("open");
-        }
-        gitHubPullRequest.setNumber(gitHubTask.getIssueId());
-        return refreshToken(integration.getInstallation())
-                .flatMap(inst -> hasCollaborator(inst, gitHubTask.getGitHubIntegration(), gitHubPullRequest,
-                        installations))
-                .flatMap(installation -> apiPatchRepositoryPull(installation, integration, gitHubPullRequest))
-                .map(GitHubPullRequest::toPullRequest);
+
+        return Mono.just(integrationProject.getInstallation())
+                .filter(inst -> !inst.isSuspended())
+                .flatMap(this::refreshToken)
+                .flatMap(inst -> setCollaborators(inst, owner, repo, (GitHubIssue) pullRequest, assignees))
+                .flatMap(inst -> client.patchRepositoryPullRequest("Bearer " + inst.getToken(), owner, repo,
+                        pullRequest.getNumber(), pullRequest))
+                .map(pull -> pull.toPullRequest());
     }
 
     /**
-     * Deletes task connection to pull request.
+     * Delete the GitHub pull request for the given task.
      * 
-     * @param task must be entity from database.
+     * @param task the task
      */
     public void deletePullRequest(Task task) {
-        pullRepository.findByTask(task).ifPresent(pullRepository::delete);
-    }
+        var integrationOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());
 
-    /**
-     * Checks if repository with given name belongs to installation.
-     * 
-     * @param installation must be entity from database. Must not be suspended.
-     *                     Token must be valid.
-     * @param fullName     full name of repository which is looked for.
-     * @return Mono with boolean.
-     */
-    private Mono<Boolean> hasRepository(GitHubInstallation installation, String fullName) {
-        return apiGetInstallationRepositories(installation)
-                .map(GitHubInstallationRepositories::getRepositories)
-                .map(repositories -> repositories.stream()
-                        .anyMatch(repository -> repository.getFullName().equals(fullName)));
-    }
-
-    /**
-     * Removes assigned user from issue if is not collaborator.
-     * 
-     * @param installation must be entity from database. Must not be suspended.
-     * @param integration  must be entity from database.
-     * @param issue        must be issue from GitHub api.
-     * @return Mono with installation.
-     */
-    private Mono<GitHubInstallation> hasCollaborator(GitHubInstallation installation, GitHubIntegration integration,
-            GitHubIssue issue, List<GitHubInstallation> installations) {
-        if (installations.isEmpty()) {
-            return Mono.just(installation);
+        if (integrationOptional.isEmpty()) {
+            return;
         }
-        return apiGetRepositoryCollaborators(installation, integration)
-                .any(collaborator -> {
-                    for (GitHubInstallation inst : installations) {
-                        if (collaborator.getLogin().equals(inst.getGitHubUsername())) {
-                            issue.setAssignees(List.of(inst.getGitHubUsername()));
-                            return true;
-                        }
-                    }
-                    return false;
-                })
-                .thenReturn(installation);
+
+        var integration = integrationOptional.get();
+
+        taskIntegrationRepository
+                .findById(new TaskIntegrationId(task.getId(), integration.getId(),
+                        TaskIntegration.Type.PULL_REQUEST.ordinal()))
+                .ifPresent(taskIntegrationRepository::delete);
     }
 
     /**
-     * Checks if token needs to be refreshed and refreshes it when
-     * needed. When token does not need refreshing it does nothing.
+     * Get git branches for the given project.
      * 
-     * @param installation must be entity from database.
-     * @return Mono with installation.
+     * @param project the project
+     * @return the branches
      */
-    private Mono<GitHubInstallation> refreshToken(GitHubInstallation installation) {
-        if (Instant.now().isAfter(installation.getExpiresAt().toInstant())) {
-            return apiPostInstallationToken(installation)
-                    .map(token -> {
-                        installation.updateToken(token);
-                        return installationRepository.save(installation);
-                    });
+    public Flux<Branch> getBranches(Project project) {
+        var integrationOptional = projectIntegrationRepository.findByProject(project);
+
+        if (integrationOptional.isEmpty()) {
+            return Flux.empty();
         }
-        return Mono.just(installation);
+
+        var integration = integrationOptional.get();
+        var owner = integration.getRepositoryOwner();
+        var repo = integration.getRepositoryName();
+
+        return Mono.just(integration.getInstallation())
+                .filter(inst -> !inst.isSuspended())
+                .flatMap(this::refreshToken)
+                .map(Installation::getToken)
+                .map(token -> "Bearer " + token)
+                .flatMapMany(token -> client.getRepositoryBranches(token, owner, repo))
+                .map(BranchName::toBranch);
     }
 
     /**
-     * Gets information about installation from GitHub api.
+     * Create new release for the given project.
      * 
-     * @param id must be given from GitHub.
-     * @return Mono with installation information.
+     * @param release the release
+     * @param branch  the branch
+     * @return the release
      */
-    private Mono<GitHubInstallationApi> apiGetInstallation(long id) {
-        return client.get()
-                .uri("/app/installations/{id}", id)
-                .header(AUTHORIZATION, BEARER + createJWT())
-                .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                .retrieve()
-                .bodyToMono(GitHubInstallationApi.class)
-                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
-    }
+    public Mono<Long> publishRelease(Release release, String branch) {
+        var integrationOptional = projectIntegrationRepository.findByProject(release.getProject());
 
-    /**
-     * Request GitHub api for new token.
-     * 
-     * @param installation must not be {@literal null}. Must be entity from
-     *                     database.
-     * @return Mono with new token.
-     */
-    private Mono<InstallationToken> apiPostInstallationToken(GitHubInstallation installation) {
-        return client.post()
-                .uri("/app/installations/{id}/access_tokens", installation.getInstallationId())
-                .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                .header(AUTHORIZATION, BEARER + createJWT())
-                .retrieve()
-                .bodyToMono(InstallationToken.class)
-                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
-    }
+        if (integrationOptional.isEmpty()) {
+            return Mono.empty();
+        }
 
-    /**
-     * Retrieves repositories for installation from GitHub api.
-     * 
-     * @param installation must not be {@literal null}. Must be entity from
-     *                     database.
-     * @return Mono with list of repositories; can be empty.
-     */
-    private Mono<GitHubInstallationRepositories> apiGetInstallationRepositories(GitHubInstallation installation) {
-        return client.get()
-                .uri("/installation/repositories")
-                .header(AUTHORIZATION, BEARER + installation.getToken())
-                .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                .retrieve()
-                .bodyToMono(GitHubInstallationRepositories.class)
-                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
-    }
+        var integration = integrationOptional.get();
+        var owner = integration.getRepositoryOwner();
+        var repo = integration.getRepositoryName();
 
-    /**
-     * Retrieves issue for repository from GitHub api.
-     * 
-     * @param installation must not be {@literal null}. Must be entity from
-     *                     database.
-     * @param integration  must not be {@literal null}. Must be entity from
-     *                     database.
-     * @return Flux with issues. Can be empty.
-     */
-    private Flux<GitHubIssue> apiGetRepositoryIssues(GitHubInstallation installation, GitHubIntegration integration) {
-        return client.get()
-                .uri("/repos/{owner}/{repo}/issues", integration.getRepositoryOwner(), integration.getRepositoryName())
-                .header(AUTHORIZATION, BEARER + installation.getToken())
-                .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                .retrieve()
-                .bodyToFlux(GitHubIssue.class)
-                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
-    }
-
-    /**
-     * Creates new issue for repository using GitHub api.
-     * 
-     * @param installation must not be {@literal null}. Must be entity from
-     *                     database.
-     * @param integration  must not be {@literal null}. Must be entity from
-     *                     database.
-     * @param issue        must not be {@literal null}.
-     * @return Mono with issue.
-     */
-    private Mono<GitHubIssue> apiPostRepositoryIssue(GitHubInstallation installation, GitHubIntegration integration,
-            GitHubIssue issue) {
-        return client.post()
-                .uri("/repos/{owner}/{repo}/issues", integration.getRepositoryOwner(), integration.getRepositoryName())
-                .header(AUTHORIZATION, BEARER + installation.getToken())
-                .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                .bodyValue(issue)
-                .retrieve()
-                .bodyToMono(GitHubIssue.class)
-                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
-    }
-
-    /**
-     * Modifies issue for repository using GitHub api.
-     * 
-     * @param installation must not be {@literal null}. Must be entity from
-     *                     database.
-     * @param integration  must not be {@literal null}. Must be entity from
-     *                     database.
-     * @param issue        must not be {@literal null}.
-     * @return Mono with issue.
-     */
-    private Mono<GitHubIssue> apiPatchRepositoryIssue(GitHubInstallation installation, GitHubIntegration integration,
-            GitHubIssue issue) {
-        return client.patch()
-                .uri("/repos/{owner}/{repo}/issues/{id}", integration.getRepositoryOwner(),
-                        integration.getRepositoryName(), issue.getNumber())
-                .header(AUTHORIZATION, BEARER + installation.getToken())
-                .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                .bodyValue(issue)
-                .retrieve()
-                .bodyToMono(GitHubIssue.class)
-                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
-    }
-
-    /**
-     * Retrieves issue for repository from GitHub api.
-     * 
-     * @param installation must not be {@literal null}. Must be entity from
-     *                     database.
-     * @param integration  must not be {@literal null}. Must be entity from
-     *                     database.
-     * @param issue        must not be {@literal null}.
-     * @return Mono with issue.
-     */
-    private Mono<GitHubIssue> apiGetRepositoryIssue(GitHubInstallation installation, GitHubIntegration integration,
-            long issue) {
-        return client.get()
-                .uri("/repos/{owner}/{repo}/issues/{id}", integration.getRepositoryOwner(),
-                        integration.getRepositoryName(), issue)
-                .header(AUTHORIZATION, BEARER + installation.getToken())
-                .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                .retrieve()
-                .bodyToMono(GitHubIssue.class)
-                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
-    }
-
-    /**
-     * Retrieves pull requests for repository from GitHub api.
-     * 
-     * @param installation must not be {@literal null}. Must be entity from
-     *                     database.
-     * @param integration  must not be {@literal null}. Must be entity from
-     *                     database.
-     * @return Flux with pull requests. Can be empty.
-     */
-    private Flux<GitHubPullRequest> apiGetRepositoryPulls(GitHubInstallation installation,
-            GitHubIntegration integration) {
-        return client.get()
-                .uri("/repos/{owner}/{repo}/pulls", integration.getRepositoryOwner(), integration.getRepositoryName())
-                .header(AUTHORIZATION, BEARER + installation.getToken())
-                .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                .retrieve()
-                .bodyToFlux(GitHubPullRequest.class)
-                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
-    }
-
-    /**
-     * Modifies pull request for repository using GitHub api.
-     * 
-     * @param installation must not be {@literal null}. Must be entity from
-     *                     database.
-     * @param integration  must not be {@literal null}. Must be entity from
-     *                     database.
-     * @param pull         must not be {@literal null}.
-     * @return Mono with pull request.
-     */
-    private Mono<GitHubPullRequest> apiPatchRepositoryPull(GitHubInstallation installation,
-            GitHubIntegration integration, GitHubPullRequest pull) {
-        return client.patch()
-                .uri("/repos/{owner}/{repo}/pulls/{id}", integration.getRepositoryOwner(),
-                        integration.getRepositoryName(), pull.getNumber())
-                .header(AUTHORIZATION, BEARER + installation.getToken())
-                .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                .bodyValue(pull)
-                .retrieve()
-                .bodyToMono(GitHubPullRequest.class)
-                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
-    }
-
-    /**
-     * Merges pull request for repository using GitHub api.
-     * 
-     * @param installation must not be {@literal null}. Must be entity from
-     *                     database.
-     * @param integration  must not be {@literal null}. Must be entity from
-     *                     database.
-     * @param pull         must not be {@literal null}.
-     * @return Mono with nothing.
-     */
-    private Mono<GitHubMergeInfo> apiPutRepositoryPull(GitHubInstallation installation, GitHubIntegration integration,
-            long pull) {
-        return client.put()
-                .uri("/repos/{owner}/{repo}/pulls/{id}/merge", integration.getRepositoryOwner(),
-                        integration.getRepositoryName(), pull)
-                .header(AUTHORIZATION, BEARER + installation.getToken())
-                .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                .retrieve()
-                .bodyToMono(GitHubMergeInfo.class)
-                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
-    }
-
-    /**
-     * Retrieves pull request for repository from GitHub api.
-     * 
-     * @param installation must not be {@literal null}. Must be entity from
-     *                     database.
-     * @param integration  must not be {@literal null}. Must be entity from
-     *                     database.
-     * @param pull         must not be {@literal null}.
-     * @return Mono with pull request.
-     */
-    private Mono<GitHubPullRequest> apiGetRepositoryPull(GitHubInstallation installation,
-            GitHubIntegration integration, long pull) {
-        return client.get()
-                .uri("/repos/{owner}/{repo}/pulls/{id}", integration.getRepositoryOwner(),
-                        integration.getRepositoryName(), pull)
-                .header(AUTHORIZATION, BEARER + installation.getToken())
-                .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                .retrieve()
-                .bodyToMono(GitHubPullRequest.class)
-                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
-    }
-
-    /**
-     * Retrieves collaborators for repository from GitHub api.
-     * 
-     * @param installation must be entity from database.
-     * @param integration  must be entity from database.
-     * @return Flux with collaborators. Can be empty.
-     */
-    private Flux<GitHubUser> apiGetRepositoryCollaborators(GitHubInstallation installation,
-            GitHubIntegration integration) {
-        return client.get()
-                .uri("/repos/{owner}/{repo}/collaborators", integration.getRepositoryOwner(),
-                        integration.getRepositoryName())
-                .header(AUTHORIZATION, BEARER + installation.getToken())
-                .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                .retrieve()
-                .bodyToFlux(GitHubUser.class)
-                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
-    }
-
-    private Mono<Long> apiCreateRelease(GitHubInstallation installation,
-            GitHubIntegration integration, GitHubRelease release) {
-        return client.post()
-                .uri("/repos/{owner}/{repo}/releases", integration.getRepositoryOwner(),
-                        integration.getRepositoryName())
-                .header(AUTHORIZATION, BEARER + installation.getToken())
-                .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                .bodyValue(release)
-                .retrieve()
-                .bodyToMono(GitHubRelease.class)
-                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()))
+        return Mono.just(integration.getInstallation())
+                .filter(inst -> !inst.isSuspended())
+                .flatMap(this::refreshToken)
+                .map(Installation::getToken)
+                .map(token -> "Bearer " + token)
+                .flatMap(token -> client.createRepositoryRelease(token, owner, repo, new GitHubRelease(release)))
                 .map(GitHubRelease::getId);
     }
 
-    private Flux<GitHubBranchRead> apiGetBranches(GitHubInstallation installation,
-            GitHubIntegration integration) {
-        return client.get()
-                .uri("/repos/{owner}/{repo}/branches", integration.getRepositoryOwner(),
-                        integration.getRepositoryName())
-                .header(AUTHORIZATION, BEARER + installation.getToken())
-                .header(ACCEPT, APPLICATION_JSON_GITHUB)
-                .retrieve()
-                .bodyToFlux(GitHubBranchRead.class)
-                .onErrorMap(error -> new ExternalApiException(GITHUB, error.getMessage()));
+    private Mono<Installation> refreshToken(Installation installation) {
+        return installation.shouldRefreshToken()
+                ? client.createInstallationAccessToken("Bearer " + createJWT(), installation.getId()).map(token -> {
+                    installation.refreshToken(token);
+                    return installationRepository.save(installation);
+                })
+                : Mono.just(installation);
     }
 
-    /**
-     * Creates Json Web Token from file with private key. Token created with this
-     * method lasts 10 minutes.
-     * 
-     * @return Json Web Token.
-     */
-    private static String createJWT() {
-        try {
-            PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(
-                    Files.readAllBytes(Path.of("vernite-2022.private-key.der")));
-            Key signingKey = KeyFactory.getInstance("RSA").generatePrivate(spec);
-            long now = System.currentTimeMillis();
-            return Jwts.builder()
-                    .setIssuedAt(new Date(now))
-                    .setIssuer(APP_ID)
-                    .signWith(signingKey)
-                    .setExpiration(new Date(now + 600000))
-                    .compact();
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to create JWT");
+    private Mono<Authorization> refreshToken(Authorization authorization) {
+        if (authorization.shouldRefreshToken()) {
+            var request = new OauthRefreshTokenRequest(authorization.getRefreshToken(), "refresh_token",
+                    config.getClientId(), config.getClientSecret());
+            return client.refreshOauthAccessToken(request).map(token -> {
+                authorization.refreshToken(token);
+                return authorizationRepository.save(authorization);
+            });
         }
+        return Mono.just(authorization);
     }
 
-    public Mono<Long> publishRelease(Release release, String branch) {
-        GitHubIntegration integration = release.getProject().getGitHubIntegrationEntity();
-        if (integration == null) {
-            return Mono.empty();
-        }
-        GitHubRelease gitHubRelease = new GitHubRelease(release);
-        if (branch != null) {
-            gitHubRelease.setTargetCommitish(branch);
-        }
-        return refreshToken(integration.getInstallation())
-                .flatMap(installation -> apiCreateRelease(installation, integration, gitHubRelease));
+    private Flux<Installation> getUserInstallations(Authorization authorization) {
+        return client.getUserInstallations("Bearer " + authorization.getAccessToken())
+                .map(Installations::getInstallationList)
+                .flatMapMany(Flux::fromIterable)
+                .filter(installation -> installation.getAppId() == config.getAppId())
+                .map(installation -> {
+                    var inst = installationRepository.findById(installation.getId()).orElseGet(Installation::new);
+                    inst.update(installation);
+                    return installationRepository.save(inst);
+                });
     }
 
-    public Flux<Branch> getBranches(Project project) {
-        GitHubIntegration integration = project.getGitHubIntegrationEntity();
-        if (integration == null) {
-            return Flux.empty();
-        }
-        return refreshToken(integration.getInstallation())
-                .flatMapMany(installation -> apiGetBranches(installation, integration))
-                .map(branch -> new Branch(branch.getName()));
+    private Mono<Boolean> hasRepository(Installation installation, String repositoryFullName) {
+        return client.getInstallationRepositories("Bearer " + installation.getToken())
+                .map(Repositories::getRepositoryList)
+                .flatMapMany(Flux::fromIterable)
+                .map(GitHubRepository::getFullName)
+                .any(repositoryFullName::equals);
     }
+
+    private Mono<Installation> setCollaborators(Installation installation, String owner, String name,
+            GitHubIssue issue, Set<Long> assignees) {
+        if (assignees.isEmpty()) {
+            return Mono.just(installation);
+        }
+        return client.getRepositoryCollaborators("Bearer " + installation.getToken(), owner, name)
+                .filter(user -> assignees.contains(user.getId()))
+                .map(user -> issue.getAssignees().add(user.getLogin()))
+                .then(Mono.just(installation));
+    }
+
+    private String createJWT() {
+        var now = Instant.now();
+        return Jwts.builder().setIssuedAt(Date.from(now)).setIssuer(Long.toString(config.getAppId()))
+                .signWith(config.getJwtKey()).setExpiration(Date.from(now.plusSeconds(60))).compact();
+    }
+
 }

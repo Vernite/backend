@@ -109,7 +109,7 @@ public class GitTaskService {
      */
     public Mono<Issue> connectIssue(Task task, Issue issue) {
         if ("github".equals(issue.getService())) {
-            return gitHubService.connectIssue(task, issue);
+            return gitHubService.connectIssue(task, issue.getId());
         }
         return Mono.empty();
     }
@@ -159,7 +159,7 @@ public class GitTaskService {
      */
     public Mono<PullRequest> connectPullRequest(Task task, PullRequest pullRequest) {
         if ("github".equals(pullRequest.getService())) {
-            return gitHubService.connectPullRequest(task, pullRequest);
+            return gitHubService.connectPullRequest(task, pullRequest.getId());
         }
         return Mono.empty();
     }
