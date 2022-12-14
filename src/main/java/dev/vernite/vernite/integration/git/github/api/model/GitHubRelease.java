@@ -27,6 +27,7 @@
 
 package dev.vernite.vernite.integration.git.github.api.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonProperty.Access;
 
@@ -39,6 +40,7 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class GitHubRelease {
 
     @JsonProperty(access = Access.WRITE_ONLY)
