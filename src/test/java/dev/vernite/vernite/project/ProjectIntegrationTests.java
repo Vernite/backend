@@ -37,18 +37,16 @@ import java.util.List;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.vernite.vernite.integration.git.GitTaskService;
 import dev.vernite.vernite.integration.git.Issue;
 import dev.vernite.vernite.integration.git.PullRequest;
-import dev.vernite.vernite.integration.git.github.GitHubService;
+import dev.vernite.vernite.integration.git.github.api.model.AppToken;
 import dev.vernite.vernite.integration.git.github.data.GitHubBranch;
 import dev.vernite.vernite.integration.git.github.data.GitHubIssue;
 import dev.vernite.vernite.integration.git.github.data.GitHubPullRequest;
-import dev.vernite.vernite.integration.git.github.data.InstallationToken;
-import dev.vernite.vernite.integration.git.github.entity.GitHubInstallation;
-import dev.vernite.vernite.integration.git.github.entity.GitHubInstallationRepository;
-import dev.vernite.vernite.integration.git.github.entity.GitHubIntegration;
-import dev.vernite.vernite.integration.git.github.entity.GitHubIntegrationRepository;
+import dev.vernite.vernite.integration.git.github.model.Installation;
+import dev.vernite.vernite.integration.git.github.model.InstallationRepository;
+import dev.vernite.vernite.integration.git.github.model.ProjectIntegration;
+import dev.vernite.vernite.integration.git.github.model.ProjectIntegrationRepository;
 import dev.vernite.vernite.projectworkspace.ProjectWorkspace;
 import dev.vernite.vernite.projectworkspace.ProjectWorkspaceRepository;
 import dev.vernite.vernite.status.Status;
@@ -69,10 +67,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -96,9 +94,9 @@ public class ProjectIntegrationTests {
     @Autowired
     private UserSessionRepository sessionRepository;
     @Autowired
-    private GitHubInstallationRepository installationRepository;
+    private InstallationRepository installationRepository;
     @Autowired
-    private GitHubIntegrationRepository integrationRepository;
+    private ProjectIntegrationRepository integrationRepository;
     @Autowired
     private WorkspaceRepository workspaceRepository;
     @Autowired
@@ -108,33 +106,32 @@ public class ProjectIntegrationTests {
     private UserSession session;
     private Project project;
     private Status[] statuses = new Status[2];
-    private GitHubInstallation installation;
+    private Installation installation;
     private Workspace workspace;
 
     void tokenCheck() throws JsonProcessingException {
         tokenCheck(installation);
     }
 
-    void tokenCheck(GitHubInstallation iGitHubInstallation) throws JsonProcessingException {
-        iGitHubInstallation = installationRepository.findByIdOrThrow(iGitHubInstallation.getId());
-        if (iGitHubInstallation.getExpiresAt().before(Date.from(Instant.now()))) {
+    void tokenCheck(Installation iGitHubInstallation) throws JsonProcessingException {
+        iGitHubInstallation = installationRepository.findById(iGitHubInstallation.getId()).orElseThrow();
+        if (iGitHubInstallation.getExpires().before(Date.from(Instant.now()))) {
             mockBackEnd.enqueue(new MockResponse()
                     .setBody(MAPPER.writeValueAsString(
-                            new InstallationToken("token" + iGitHubInstallation.getId(),
+                            new AppToken("token" + iGitHubInstallation.getId(),
                                     Instant.now().plus(30, ChronoUnit.MINUTES).toString())))
                     .addHeader("Content-Type", "application/json"));
         }
     }
 
+    @DynamicPropertySource
+    static void properties(DynamicPropertyRegistry r) throws IOException {
+        mockBackEnd = new MockWebServer();
+        r.add("github.api.url", () -> "http://localhost:" + mockBackEnd.getPort());
+    }
+
     @BeforeAll
     public void init() throws IOException {
-        mockBackEnd = new MockWebServer();
-        mockBackEnd.start();
-
-        GitTaskService service = (GitTaskService) ReflectionTestUtils.getField(controller, "service");
-        GitHubService gService = (GitHubService) ReflectionTestUtils.getField(service, "gitHubService");
-        ReflectionTestUtils.setField(gService, "client",
-                WebClient.create("http://localhost:" + mockBackEnd.getPort()));
 
         integrationRepository.deleteAll();
         installationRepository.deleteAll();
@@ -145,8 +142,15 @@ public class ProjectIntegrationTests {
         project = projectRepository.save(new Project("NAME"));
         statuses[0] = project.getStatuses().get(0);
         statuses[1] = project.getStatuses().get(2);
-        installation = installationRepository.save(new GitHubInstallation(1, user, "username"));
-        integrationRepository.save(new GitHubIntegration(project, installation, "username/repo"));
+        installation = new Installation();
+        installation.setId(1);
+        installation.setSuspended(false);
+        installation.setExpires(new Date(1));
+        installation.setTargetType("null");
+        installation = installationRepository.save(installation);
+
+        integrationRepository.save(new ProjectIntegration("username/repo", project, installation));
+
         session = new UserSession();
         session.setIp("127.0.0.1");
         session.setSession("session_token_git_tests");

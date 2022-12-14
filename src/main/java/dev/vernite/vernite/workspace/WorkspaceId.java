@@ -53,6 +53,7 @@ import lombok.ToString;
 @EqualsAndHashCode
 @AllArgsConstructor
 public class WorkspaceId implements Serializable {
+
     private static final long serialVersionUID = 1;
 
     @Setter

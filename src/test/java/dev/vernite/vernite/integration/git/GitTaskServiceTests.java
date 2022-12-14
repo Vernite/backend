@@ -29,10 +29,6 @@ package dev.vernite.vernite.integration.git;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import dev.vernite.vernite.integration.git.github.entity.GitHubInstallation;
-import dev.vernite.vernite.integration.git.github.entity.GitHubInstallationRepository;
-import dev.vernite.vernite.integration.git.github.entity.GitHubIntegration;
-import dev.vernite.vernite.integration.git.github.entity.GitHubIntegrationRepository;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.project.ProjectRepository;
 import dev.vernite.vernite.projectworkspace.ProjectWorkspace;
@@ -64,10 +60,6 @@ public class GitTaskServiceTests {
     @Autowired
     private ProjectRepository projectRepository;
     @Autowired
-    private GitHubInstallationRepository installationRepository;
-    @Autowired
-    private GitHubIntegrationRepository integrationRepository;
-    @Autowired
     private WorkspaceRepository workspaceRepository;
     @Autowired
     private ProjectWorkspaceRepository projectWorkspaceRepository;
@@ -77,13 +69,10 @@ public class GitTaskServiceTests {
     private User user;
     private Project project;
     private Status[] statuses = new Status[2];
-    private GitHubInstallation installation;
     private Workspace workspace;
 
     @BeforeAll
     public void init() {
-        integrationRepository.deleteAll();
-        installationRepository.deleteAll();
         this.user = userRepository.findByUsername("Username");
         if (this.user == null) {
             this.user = userRepository.save(new User("Name", "Surname", "Username", "Email@test.pl", "1"));
@@ -91,8 +80,6 @@ public class GitTaskServiceTests {
         project = projectRepository.save(new Project("NAME"));
         statuses[0] = project.getStatuses().get(0);
         statuses[1] = project.getStatuses().get(2);
-        installation = installationRepository.save(new GitHubInstallation(1, user, "username"));
-        integrationRepository.save(new GitHubIntegration(project, installation, "username/repo"));
         workspace = workspaceRepository.save(new Workspace(1, "Project Tests", user));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
     }

@@ -25,30 +25,37 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.common.exception;
+package dev.vernite.vernite.common.exception.handler;
 
-import lombok.Getter;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
+import dev.vernite.vernite.common.exception.ExternalApiException;
+import dev.vernite.vernite.common.exception.error.ExternalApiError;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /**
- * Exception thrown when entity with given id is not found in database.
+ * This class contains exception handler for {@link ExternalApiException}.
  */
-@Getter
-public class EntityNotFoundException extends RuntimeException {
-
-    private final String entityName;
-
-    private final long id;
+@ControllerAdvice
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public class ExternalApiExceptionHandler {
 
     /**
-     * Default constructor for {@link EntityNotFoundException}.
+     * Exception handler for {@link ExternalApiException}.
+     * Maps exception to {@link ExternalApiError}.
      * 
-     * @param entityName name of entity class that were not found
-     * @param id         id of entity which were not found
+     * @param ex exception thrown during request processing
+     * @return error message with service name
      */
-    public EntityNotFoundException(String entityName, long id) {
-        super(entityName + " not found");
-        this.entityName = entityName;
-        this.id = id;
+    @ExceptionHandler(ExternalApiException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public static @ResponseBody ExternalApiError handleException(ExternalApiException ex) {
+        return new ExternalApiError(ex.getService());
     }
 
 }

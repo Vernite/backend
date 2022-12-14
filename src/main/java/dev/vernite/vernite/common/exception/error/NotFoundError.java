@@ -36,13 +36,12 @@ import lombok.Getter;
  * Model for representing error when entity with given id is not found.
  * Its returned from endpoints when database query returns no results.
  */
+@Getter
 public class NotFoundError extends AbstractError {
 
-    @Getter
     @NotNull
     private final long id;
 
-    @Getter
     @NotBlank
     private final String name;
 

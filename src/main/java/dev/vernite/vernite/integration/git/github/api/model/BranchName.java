@@ -25,21 +25,26 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.git.github.data;
+package dev.vernite.vernite.integration.git.github.api.model;
 
-import java.util.List;
+import dev.vernite.vernite.integration.git.Branch;
+import lombok.Data;
 
 /**
- * Object to represent a GitHub Rest api repository list.
+ * Object to represent a GitHub Rest api branch.
  */
-public class GitHubInstallationRepositories {
-    private List<GitHubRepository> repositories = List.of();
+@Data
+public class BranchName {
 
-    public List<GitHubRepository> getRepositories() {
-        return repositories;
+    String name;
+
+    /**
+     * Converts GitHubBranch to Branch.
+     * 
+     * @return Branch
+     */
+    public Branch toBranch() {
+        return new Branch(name);
     }
 
-    public void setRepositories(List<GitHubRepository> repositories) {
-        this.repositories = repositories;
-    }
 }

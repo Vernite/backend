@@ -25,7 +25,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.git.github.entity.task;
+package dev.vernite.vernite.integration.git.github.model;
 
-public interface GitHubTaskPullRepository extends GitHubTaskRepository<GitHubTaskPull, GitHubTaskKey> {
+import org.springframework.data.repository.CrudRepository;
+
+/**
+ * CRUD repository for installation entity.
+ */
+public interface InstallationRepository extends CrudRepository<Installation, Long> {
+
 }

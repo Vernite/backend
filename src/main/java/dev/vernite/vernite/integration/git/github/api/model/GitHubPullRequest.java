@@ -25,30 +25,53 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.common.exception;
+package dev.vernite.vernite.integration.git.github.api.model;
 
-import lombok.Getter;
+import java.util.List;
+
+import dev.vernite.vernite.integration.git.PullRequest;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 /**
- * Exception thrown when entity with given id is not found in database.
+ * Object to represent a GitHub Rest api pull request.
  */
-@Getter
-public class EntityNotFoundException extends RuntimeException {
+@Data
+@NoArgsConstructor
+@ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true)
+public class GitHubPullRequest extends GitHubIssue {
 
-    private final String entityName;
+    private GitHubBranch head;
 
-    private final long id;
+    private boolean merged;
 
     /**
-     * Default constructor for {@link EntityNotFoundException}.
+     * Constructor for GitHubPullRequest.
      * 
-     * @param entityName name of entity class that were not found
-     * @param id         id of entity which were not found
+     * @param number    number of the pull request
+     * @param state     state of the pull request
+     * @param title     title of the pull request
+     * @param body      body of the pull request
+     * @param assignees list of assignees
+     * @param head      head of the pull request
+     * @param merged    merged status of the pull request
      */
-    public EntityNotFoundException(String entityName, long id) {
-        super(entityName + " not found");
-        this.entityName = entityName;
-        this.id = id;
+    public GitHubPullRequest(long number, String url, String state, String title, String body, List<String> assignees,
+            GitHubBranch head, boolean merged) {
+        super(number, url, state, title, body, assignees);
+        this.head = head;
+        this.merged = merged;
+    }
+
+    /**
+     * Converts the GitHubPullRequest to a PullRequest.
+     */
+    public PullRequest toPullRequest() {
+        return new PullRequest(getNumber(), getUrl().replace("api.", "").replace("/repos", ""), getTitle(), getBody(),
+                "github", getHead().getRef());
     }
 
 }

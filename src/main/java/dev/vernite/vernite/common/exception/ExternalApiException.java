@@ -30,25 +30,22 @@ package dev.vernite.vernite.common.exception;
 import lombok.Getter;
 
 /**
- * Exception thrown when entity with given id is not found in database.
+ * Exception thrown when external API returns error.
  */
 @Getter
-public class EntityNotFoundException extends RuntimeException {
+public class ExternalApiException extends RuntimeException {
 
-    private final String entityName;
-
-    private final long id;
+    private final String service;
 
     /**
-     * Default constructor for {@link EntityNotFoundException}.
+     * Default constructor for {@link ExternalApiException}.
      * 
-     * @param entityName name of entity class that were not found
-     * @param id         id of entity which were not found
+     * @param service name of service that returned error
+     * @param message error message
      */
-    public EntityNotFoundException(String entityName, long id) {
-        super(entityName + " not found");
-        this.entityName = entityName;
-        this.id = id;
+    public ExternalApiException(String service, String message) {
+        super(message);
+        this.service = service;
     }
 
 }

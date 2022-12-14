@@ -27,24 +27,19 @@
 
 package dev.vernite.vernite.integration.git.github.data;
 
+import java.util.List;
+
+import dev.vernite.vernite.integration.git.Repository;
+import lombok.Data;
+
 /**
- * Object to represent a GitHub Rest api branch.
+ * Represents a list of repositories with link to app.
  */
-public class GitHubBranchRead {
-    private String name;
+@Data
+public class Repositories {
 
-    public GitHubBranchRead() {
-    }
+    List<Repository> repositories;
 
-    public GitHubBranchRead(String name) {
-        this.name = name;
-    }
+    String link;
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
 }

@@ -25,48 +25,47 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.git.github.data;
+package dev.vernite.vernite.integration.git.github.api.model;
 
-import java.time.Instant;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty.Access;
+
+import dev.vernite.vernite.release.Release;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
- * Object to represent a GitHub Rest api installation token.
+ * Object to represent a GitHub Rest api release.
  */
-public class InstallationToken {
-    private String token;
-    private String expiresAt;
+@Data
+@NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class GitHubRelease {
 
-    public InstallationToken() {
+    @JsonProperty(access = Access.WRITE_ONLY)
+    private long id;
+
+    @JsonProperty("tag_name")
+    private String tagName;
+
+    private String body;
+
+    @JsonProperty("generate_release_notes")
+    private boolean generateReleaseNotes;
+
+    @JsonProperty("target_commitish")
+    private String targetCommitish;
+
+    /**
+     * Constructor to create a GitHubRelease object from a Release object.
+     * 
+     * @param release Release object to create a GitHubRelease object from.
+     */
+    public GitHubRelease(Release release) {
+        this.tagName = release.getName().replace(" ", "-");
+        this.body = release.getDescription();
+        this.generateReleaseNotes = true;
     }
 
-    public InstallationToken(String token, String expiresAt) {
-        this.token = token;
-        this.expiresAt = expiresAt;
-    }
-
-    @JsonProperty("expires_at")
-    public String getExpiresAt() {
-        return expiresAt;
-    }
-
-    @JsonProperty("expires_at")
-    public void setExpiresAt(String expiresAt) {
-        this.expiresAt = expiresAt;
-    }
-
-    public String getToken() {
-        return token;
-    }
-
-    public void setToken(String token) {
-        this.token = token;
-    }
-
-    @JsonIgnore
-    public Instant getExpiresInstant() {
-        return Instant.parse(expiresAt);
-    }
 }

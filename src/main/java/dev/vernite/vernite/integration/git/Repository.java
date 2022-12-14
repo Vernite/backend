@@ -25,30 +25,34 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.common.exception;
+package dev.vernite.vernite.integration.git;
 
-import lombok.Getter;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
- * Exception thrown when entity with given id is not found in database.
+ * Object representing generic git repository. Its common interface for various
+ * git services.
  */
-@Getter
-public class EntityNotFoundException extends RuntimeException {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Repository {
 
-    private final String entityName;
+    private long id;
 
-    private final long id;
+    private String name;
 
-    /**
-     * Default constructor for {@link EntityNotFoundException}.
-     * 
-     * @param entityName name of entity class that were not found
-     * @param id         id of entity which were not found
-     */
-    public EntityNotFoundException(String entityName, long id) {
-        super(entityName + " not found");
-        this.entityName = entityName;
-        this.id = id;
-    }
+    private String fullName;
+
+    private String link;
+
+    @JsonProperty("private")
+    private boolean isPrivate;
+
+    private String provider;
 
 }

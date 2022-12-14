@@ -25,30 +25,38 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.common.exception;
+package dev.vernite.vernite.integration.git.github.model;
 
-import lombok.Getter;
+import java.io.Serializable;
+
+import jakarta.persistence.Embeddable;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
- * Exception thrown when entity with given id is not found in database.
+ * Composite ID for task integration.
+ * 
+ * It contains connected task id, project integration id and id of issue in
+ * GitHub.
  */
-@Getter
-public class EntityNotFoundException extends RuntimeException {
+@Data
+@Embeddable
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskIntegrationId implements Serializable {
 
-    private final String entityName;
+    private static final long serialVersionUID = 1;
 
-    private final long id;
+    @Positive
+    private long taskId;
 
-    /**
-     * Default constructor for {@link EntityNotFoundException}.
-     * 
-     * @param entityName name of entity class that were not found
-     * @param id         id of entity which were not found
-     */
-    public EntityNotFoundException(String entityName, long id) {
-        super(entityName + " not found");
-        this.entityName = entityName;
-        this.id = id;
-    }
+    @Positive
+    private long integrationId;
+
+    @PositiveOrZero
+    private int type;
 
 }
