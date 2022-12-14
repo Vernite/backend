@@ -144,7 +144,7 @@ public class Status {
      * @param create  must not be {@literal null} and must be valid
      */
     public Status(Project project, CreateStatus create) {
-        this(create.getName(), create.getColor(), create.getOrdinal(), create.getBegin(), create.getIsFinal(), project);
+        this(create.getName(), create.getColor(), create.getOrdinal(), create.getIsFinal(), create.getBegin(), project);
     }
 
     /**
