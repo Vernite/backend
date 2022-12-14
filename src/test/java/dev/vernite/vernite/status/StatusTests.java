@@ -90,8 +90,8 @@ class StatusTests {
         assertEquals("Name", status.getName());
         assertEquals(1, status.getOrdinal());
         assertEquals(2, status.getColor());
-        assertFalse(status.isFinal());
-        assertTrue(status.isBegin());
+        assertTrue(status.isFinal());
+        assertFalse(status.isBegin());
     }
 
     @Test
