@@ -398,12 +398,13 @@ public class GitHubService {
                 .map(Installation::getToken)
                 .map(token -> "Bearer " + token)
                 .flatMap(token -> client.getRepositoryPullRequest(token, owner, repo, id))
-                .map(GitHubPullRequest::toPullRequest)
                 .map(pull -> {
                     var i = new TaskIntegration(task, integration, id, TaskIntegration.Type.PULL_REQUEST);
+                    i.setMerged(pull.isMerged());
                     taskIntegrationRepository.save(i);
                     return pull;
-                });
+                })
+                .map(GitHubPullRequest::toPullRequest);
     }
 
     /**
@@ -441,7 +442,7 @@ public class GitHubService {
         var owner = integrationProject.getRepositoryOwner();
         var repo = integrationProject.getRepositoryName();
 
-        if (task.getStatus().isFinal()) {
+        if (task.getStatus().isFinal() && !integration.isMerged()) {
             return refreshToken(integrationProject.getInstallation())
                     .filter(inst -> !inst.isSuspended())
                     .flatMap(this::refreshToken)
