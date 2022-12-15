@@ -27,14 +27,13 @@
 
 package dev.vernite.vernite.user.auth;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -271,8 +270,8 @@ public class AuthController {
         if (req.getEmail() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing username");
         }
-        return verifyCaptcha(req.getCaptcha(), request).thenApply(action -> {
-            if (!"login".equals(action)) {
+        return verifyCaptcha(req.getCaptcha(), request, "login").thenApply(success -> {
+            if (!success) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "invalid captcha");
             }
             if (req.getEmail().indexOf('@') != -1) {
@@ -348,8 +347,8 @@ public class AuthController {
         if (req.getEmail().indexOf('@') == -1) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing at sign in email");
         }
-        return verifyCaptcha(req.getCaptcha(), request).thenApply(action -> {
-            if (!"register".equals(action)) {
+        return verifyCaptcha(req.getCaptcha(), request, "register").thenApply(success -> {
+            if (!success) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "invalid captcha");
             }
             if (userRepository.findByUsername(req.getUsername()) != null) {
@@ -517,9 +516,10 @@ public class AuthController {
      * 
      * @param response response from recaptcha
      * @param request request
+     * @param expectedAction expected action
      * @return action if success or null if failed
      */
-    private CompletableFuture<String> verifyCaptcha(String response, HttpServletRequest request) {
+    private CompletableFuture<Boolean> verifyCaptcha(String response, HttpServletRequest request, String expectedAction) {
         String remoteip = request.getHeader("X-Forwarded-For");
         if (remoteip == null) {
             remoteip = request.getRemoteAddr();
@@ -527,9 +527,9 @@ public class AuthController {
 
         HttpClient client = HttpClient.newHttpClient();
         String data = String.format("secret=%s&response=%s&remoteip=%s",
-                URLEncoder.encode(recaptchaSecret, UTF_8),
-                URLEncoder.encode(response, UTF_8),
-                URLEncoder.encode(remoteip, UTF_8));
+                URLEncoder.encode(recaptchaSecret, StandardCharsets.UTF_8),
+                URLEncoder.encode(response, StandardCharsets.UTF_8),
+                URLEncoder.encode(remoteip, StandardCharsets.UTF_8));
         
         HttpRequest req = HttpRequest.newBuilder(RECAPTCHA_URI)
                 .header("Content-Type", "application/x-www-form-urlencoded")
@@ -537,18 +537,24 @@ public class AuthController {
                 .build();
         return client.sendAsync(req, BodyHandlers.ofString()).thenApply(n -> {
             if (n.statusCode() != 200) {
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Captcha verification failed");
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Captcha verification failed");
             }
             try {
                 JsonNode node = MAPPER.readTree(n.body());
                 if (node.get("success").asBoolean()) {
-                    return node.get("action").asText();
+                    if (node.has("action") && expectedAction.equals(node.get("action").asText())) {
+                        return true;
+                    }
+                    if (node.has("hostname") && "testkey.google.com".equals(node.get("hostname").asText())) {
+                        return true;
+                    }
+                    return false;
                 }
             } catch (JsonProcessingException e) {
                 e.printStackTrace();
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Captcha verification failed");
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Captcha verification failed");
             }
-            return null;
+            return false;
         });
     }
 
