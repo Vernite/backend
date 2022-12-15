@@ -270,6 +270,9 @@ public class AuthController {
         if (req.getEmail() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing username");
         }
+        if (req.getCaptcha() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing captcha");
+        }
         return verifyCaptcha(req.getCaptcha(), request, "login").thenApply(success -> {
             if (!success) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "invalid captcha");
@@ -340,6 +343,9 @@ public class AuthController {
         }
         if (req.getUsername() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing username");
+        }
+        if (req.getCaptcha() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing captcha");
         }
         if (req.getUsername().indexOf('@') != -1) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid character in username");
