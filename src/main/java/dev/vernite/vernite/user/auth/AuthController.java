@@ -353,6 +353,10 @@ public class AuthController {
         if (req.getEmail().indexOf('@') == -1) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing at sign in email");
         }
+
+        // workaround for Not provider of jakarta.mail.util.StreamProvider was found
+        // spring uses different classloader than http
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
         return verifyCaptcha(req.getCaptcha(), request, "register").thenApply(success -> {
             if (!success) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "invalid captcha");
@@ -374,6 +378,9 @@ public class AuthController {
             u.setCounterSequence(new CounterSequence());
             u = userRepository.save(u);
             createSession(request, response, u, false);
+
+            ClassLoader old = Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(cl);
             SimpleMailMessage msg = new SimpleMailMessage();
             msg.setTo(req.getEmail());
             msg.setFrom("contact@vernite.dev");
@@ -381,6 +388,7 @@ public class AuthController {
             msg.setSubject("Dziękujemy za rejestrację");
             msg.setText("Cześć, " + req.getName() + "!\nDziękujemy za zarejestrowanie się w naszym serwisie");
             javaMailSender.send(msg);
+            Thread.currentThread().setContextClassLoader(old);
             return u;
         });
     }
