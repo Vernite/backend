@@ -90,7 +90,7 @@ public class SocketHandler extends BinaryWebSocketHandler {
             if (s.getUser() == null) {
                 continue;
             }
-            if (task.getSprint().getProject().member(s.getUser()) != -1) {
+            if (task.getStatus().getProject().member(s.getUser()) != -1) {
                 s.send(message);
             }
         }
