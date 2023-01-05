@@ -34,6 +34,7 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -45,6 +46,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+
+import dev.vernite.vernite.auditlog.AuditLog;
+import dev.vernite.vernite.auditlog.AuditLogRepository;
+import dev.vernite.vernite.auditlog.JsonDiff;
 import dev.vernite.vernite.common.utils.counter.CounterSequenceRepository;
 import dev.vernite.vernite.integration.git.GitTaskService;
 import dev.vernite.vernite.project.Project;
@@ -79,11 +86,13 @@ public class TaskController {
     private static final String PARENT_FIELD = "parentTaskId";
 
     @Autowired
+    private MappingJackson2HttpMessageConverter converter;
+    @Autowired
     private TaskRepository taskRepository;
     @Autowired
     private StatusRepository statusRepository;
-
-
+    @Autowired
+    private AuditLogRepository auditLogRepository;
     @Autowired
     private ProjectRepository projectRepository;
     @Autowired
@@ -228,7 +237,22 @@ public class TaskController {
         List<Mono<Void>> results = new ArrayList<>();
         taskRequest.getIssue().ifPresent(issue -> results.add(service.handleIssueAction(issue, task).then()));
         taskRequest.getPull().ifPresent(pull -> results.add(service.handlePullAction(pull, task).then()));
-        return Flux.concat(results).then(Mono.just(savedTask));
+        return Flux.concat(results).doFinally((n) -> {
+            JsonNode newValue = converter.getObjectMapper().valueToTree(savedTask);
+            AuditLog log = new AuditLog();
+            log.setDate(new Date());
+            log.setUser(user);
+            // log.setProject(project);
+            log.setType("task");
+            log.setOldValues(null);
+            try {
+                log.setNewValues(converter.getObjectMapper().writeValueAsString(newValue));
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+            log.setSameValues(null);
+            auditLogRepository.save(log);
+        }).then(Mono.just(savedTask));
     }
 
     @Operation(summary = "Alter the task", description = "This method is used to modify existing task. On success returns task.")
@@ -244,6 +268,8 @@ public class TaskController {
             throw new ObjectNotFoundException();
         }
         Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
+        JsonNode oldValue = converter.getObjectMapper().valueToTree(task);
+
         task.update(taskRequest);
         taskRequest.getSprintId().ifPresent(sprintId -> handleSprint(sprintId.orElse(null), task, project));
         taskRequest.getAssigneeId().ifPresent(assigneeId -> handleAssignee(assigneeId, task));
@@ -263,7 +289,25 @@ public class TaskController {
         List<Mono<Void>> results = new ArrayList<>();
         taskRequest.getIssue().ifPresent(issue -> results.add(service.handleIssueAction(issue, task).then()));
         taskRequest.getPull().ifPresent(pull -> results.add(service.handlePullAction(pull, task).then()));
-        return Flux.concat(results).then(service.patchIssue(task).then()).thenReturn(savedTask);
+        return Flux.concat(results).then(service.patchIssue(task).then()).doFinally((n) -> {
+            JsonNode newValue = converter.getObjectMapper().valueToTree(savedTask);
+            JsonNode[] out = new JsonNode[3];
+            if (out[0] == null && out[1] == null) {
+                return;
+            }
+            JsonDiff.diff(oldValue, newValue, out);
+            AuditLog log = new AuditLog();
+            log.setDate(new Date());
+            log.setUser(user);
+            log.setProject(project);
+            log.setType("task");
+            try {
+                log.apply(converter.getObjectMapper(), out);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+            auditLogRepository.save(log);
+        }).thenReturn(savedTask);
     }
 
     @Operation(summary = "Delete task", description = "This method is used to delete task. On success does not return anything. Throws 404 when task or project does not exist.")
@@ -272,12 +316,24 @@ public class TaskController {
     @ApiResponse(description = "Project or task with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
     @DeleteMapping("/{id}")
     public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @PathVariable long id) {
+            @PathVariable long id) throws JsonProcessingException {
         Project project = projectRepository.findByIdOrThrow(projectId);
         if (project.member(user) == -1) {
             throw new ObjectNotFoundException();
         }
         Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
+        
+        JsonNode oldValue = converter.getObjectMapper().valueToTree(task);
+        AuditLog log = new AuditLog();
+        log.setDate(new Date());
+        log.setUser(user);
+        log.setProject(project);
+        log.setType("task");
+        log.setOldValues(converter.getObjectMapper().writeValueAsString(oldValue));
+        log.setNewValues(null);
+        log.setSameValues(null);
+        auditLogRepository.save(log);
+
         task.softDelete();
         taskRepository.save(task);
     }
