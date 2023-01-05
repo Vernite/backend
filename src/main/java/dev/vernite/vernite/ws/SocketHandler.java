@@ -44,6 +44,7 @@ import com.google.protobuf.Any;
 import com.google.protobuf.Message;
 
 import dev.vernite.protobuf.KeepAlive;
+import dev.vernite.vernite.task.Task;
 
 @Component
 public class SocketHandler extends BinaryWebSocketHandler {
@@ -73,6 +74,25 @@ public class SocketHandler extends BinaryWebSocketHandler {
     private static void bc(Collection<SocketSession> sessions, Message message) {
         for (SocketSession s : sessions) {
             s.send(message);
+        }
+    }
+
+    public static void bc(Task task, Message.Builder message) {
+        SocketHandler.bc(task, message.build());
+    }
+
+    public static void bc(Task task, Message message) {
+        SocketHandler.bc(task, SESSIONS, message);
+    }
+
+    private static void bc(Task task, Collection<SocketSession> sessions, Message message) {
+        for (SocketSession s : sessions) {
+            if (s.getUser() == null) {
+                continue;
+            }
+            if (task.getSprint().getProject().member(s.getUser()) != -1) {
+                s.send(message);
+            }
         }
     }
 

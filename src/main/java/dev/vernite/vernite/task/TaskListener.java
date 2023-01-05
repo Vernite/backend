@@ -27,13 +27,12 @@
 
 package dev.vernite.vernite.task;
 
-import jakarta.persistence.PostPersist;
-import jakarta.persistence.PostRemove;
-import jakarta.persistence.PostUpdate;
-
 import dev.vernite.protobuf.BasicAction;
 import dev.vernite.protobuf.Task.Builder;
 import dev.vernite.vernite.ws.SocketHandler;
+import jakarta.persistence.PostPersist;
+import jakarta.persistence.PostRemove;
+import jakarta.persistence.PostUpdate;
 
 public class TaskListener {
 
@@ -52,16 +51,16 @@ public class TaskListener {
 
     @PostPersist
     private void postPersist(Task task) {
-        SocketHandler.bc(serialize(task).setAction(BasicAction.ADDED).build());
+        SocketHandler.bc(task, serialize(task).setAction(BasicAction.ADDED).build());
     }
 
     @PostUpdate
     private void postUpdate(Task task) {
-        SocketHandler.bc(serialize(task).setAction(BasicAction.UPDATED).build());
+        SocketHandler.bc(task, serialize(task).setAction(BasicAction.UPDATED).build());
     }
 
     @PostRemove
     private void postRemove(Task task) {
-        SocketHandler.bc(serialize(task).setAction(BasicAction.REMOVED).build());
+        SocketHandler.bc(task, serialize(task).setAction(BasicAction.REMOVED).build());
     }
 }
