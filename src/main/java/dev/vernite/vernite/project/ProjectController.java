@@ -34,9 +34,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -52,6 +49,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import dev.vernite.vernite.auditlog.AuditLog;
+import dev.vernite.vernite.auditlog.AuditLogRepository;
 import dev.vernite.vernite.cdn.File;
 import dev.vernite.vernite.cdn.FileManager;
 import dev.vernite.vernite.event.Event;
@@ -81,6 +80,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import reactor.core.publisher.Flux;
 
@@ -107,6 +108,8 @@ public class ProjectController {
     private FileManager fileManager;
 
     private CalendarIntegrationRepository calendarRepository;
+
+    private AuditLogRepository auditLogRepository;
 
     private GitTaskService service;
 
@@ -432,6 +435,12 @@ public class ProjectController {
             calendarRepository.save(new CalendarIntegration(user, project, key));
         }
         return "https://vernite.dev/api/webhook/calendar?key=" + key;
+    }
+
+    @GetMapping("/{id}/auditlog")
+    public List<AuditLog> getAuditLog(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);
+        return auditLogRepository.findByProject(project);
     }
 
 }
