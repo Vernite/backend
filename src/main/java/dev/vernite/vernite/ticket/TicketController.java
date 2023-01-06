@@ -33,7 +33,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import dev.vernite.vernite.common.utils.counter.CounterSequenceRepository;
-import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.project.ProjectRepository;
 import dev.vernite.vernite.task.Task;
 import dev.vernite.vernite.task.TaskRepository;
@@ -41,11 +40,13 @@ import dev.vernite.vernite.user.User;
 import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 
 /**
  * The controller that handles ticket-related requests.
  */
 @RestController
+@AllArgsConstructor
 @RequestMapping("/ticket")
 public class TicketController {
 
@@ -53,15 +54,7 @@ public class TicketController {
 
     private CounterSequenceRepository counterSequenceRepository;
 
-    private final Project project;
-
-    public TicketController(ProjectRepository projectRepository, TaskRepository taskRepository,
-            CounterSequenceRepository counterSequenceRepository) {
-        this.taskRepository = taskRepository;
-        this.counterSequenceRepository = counterSequenceRepository;
-
-        this.project = projectRepository.findById(1L).orElseThrow();
-    }
+    private ProjectRepository projectRepository;
 
     /**
      * Creates a new ticket.
@@ -73,6 +66,7 @@ public class TicketController {
     @PostMapping
     public CreateTicket createTicket(@NotNull @Parameter(hidden = true) User user,
             @RequestBody @Valid CreateTicket createTicket) {
+        var project = projectRepository.findById(1L).orElseThrow();
         var id = counterSequenceRepository.getIncrementCounter(project.getTaskCounter().getId());
         var status = project.getStatuses().stream().filter(x -> x.isBegin()).findFirst().get();
         var title = createTicket.getTitle();
