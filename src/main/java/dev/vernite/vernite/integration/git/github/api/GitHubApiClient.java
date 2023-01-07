@@ -42,6 +42,7 @@ import dev.vernite.vernite.integration.git.github.api.model.request.OauthRefresh
 import dev.vernite.vernite.integration.git.github.api.model.request.OauthTokenRequest;
 import dev.vernite.vernite.integration.git.github.api.model.AppToken;
 import dev.vernite.vernite.integration.git.github.api.model.BranchName;
+import dev.vernite.vernite.integration.git.github.api.model.GitHubComment;
 import dev.vernite.vernite.integration.git.github.api.model.GitHubIssue;
 import dev.vernite.vernite.integration.git.github.api.model.GitHubPullRequest;
 import dev.vernite.vernite.integration.git.github.api.model.GitHubRelease;
@@ -253,5 +254,47 @@ public interface GitHubApiClient {
     @PostExchange("/repos/{owner}/{name}/releases")
     Mono<GitHubRelease> createRepositoryRelease(@RequestHeader("Authorization") String token,
             @PathVariable String owner, @PathVariable String name, @RequestBody GitHubRelease release);
+
+    /**
+     * Create a repository issue comment.
+     * 
+     * @param token       installation access token
+     * @param owner       owner of repository
+     * @param name        name of repository
+     * @param issueNumber issue number
+     * @param body        comment body
+     * @return the created comment
+     */
+    @PostExchange("/repos/{owner}/{name}/issues/{issueNumber}/comments")
+    Mono<GitHubComment> createIssueComment(@RequestHeader("Authorization") String token, @PathVariable String owner,
+            @PathVariable String name, @PathVariable long issueNumber, @RequestBody GitHubComment body);
+
+    /**
+     * Get the repository issue comments.
+     * 
+     * @param token       installation access token
+     * @param owner       owner of repository
+     * @param name        name of repository
+     * @param issueNumber issue number
+     * @return the repository issue comments
+     */
+    @GetExchange("/repos/{owner}/{name}/issues/{issueNumber}/comments")
+    Flux<GitHubComment> getIssueComments(@RequestHeader("Authorization") String token, @PathVariable String owner,
+            @PathVariable String name, @PathVariable long issueNumber);
+
+    /**
+     * Patch a repository issue comment.
+     * 
+     * @param token       installation access token
+     * @param owner       owner of repository
+     * @param name        name of repository
+     * @param issueNumber issue number
+     * @param commentId   comment id
+     * @param body        comment body
+     * @return the patched comment
+     */
+    @PatchExchange("/repos/{owner}/{name}/issues/comments/{commentId}")
+    Mono<GitHubComment> patchIssueComment(@RequestHeader("Authorization") String token, @PathVariable String owner,
+            @PathVariable String name, @PathVariable long commentId, @RequestBody GitHubComment body);
 
 }

@@ -25,40 +25,25 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.git.github.data;
+package dev.vernite.vernite.integration.git.github.model;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import org.springframework.data.repository.CrudRepository;
 
-import dev.vernite.vernite.integration.git.github.api.model.GitHubComment;
-import lombok.Data;
+import dev.vernite.vernite.task.comment.Comment;
 
 /**
- * Object to represent GitHub Rest api webhook data.
+ * CRUD repository for comment integration entity.
  */
-@Data
-public class GitHubWebhookData {
+public interface CommentIntegrationRepository extends CrudRepository<CommentIntegration, Long> {
 
-    private String action;
+    /**
+     * Find comment integrations by comment.
+     * 
+     * @param comment comment
+     * @return comment integrations
+     */
+    List<CommentIntegration> findByComment(Comment comment);
 
-    private GitHubRepository repository;
-
-    private GitHubInstallationApi installation;
-
-    @JsonProperty("repositories_removed")
-    private List<GitHubRepository> repositoriesRemoved;
-
-    private GitHubIssue issue;
-
-    private List<GitHubCommit> commits;
-
-    private String after;
-
-    @JsonProperty("pull_request")
-    private GitHubPullRequest pullRequest;
-
-    private GitHubUser assignee;
-
-    private GitHubComment comment;
 }
