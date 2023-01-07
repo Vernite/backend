@@ -242,7 +242,7 @@ public class TaskController {
             AuditLog log = new AuditLog();
             log.setDate(new Date());
             log.setUser(user);
-            // log.setProject(project);
+            log.setProject(project);
             log.setType("task");
             log.setOldValues(null);
             try {
@@ -292,10 +292,10 @@ public class TaskController {
         return Flux.concat(results).then(service.patchIssue(task).then()).then(Mono.fromRunnable(() -> {
             JsonNode newValue = converter.getObjectMapper().valueToTree(savedTask);
             JsonNode[] out = new JsonNode[3];
+            JsonDiff.diff(oldValue, newValue, out);
             if (out[0] == null && out[1] == null) {
                 return;
             }
-            JsonDiff.diff(oldValue, newValue, out);
             AuditLog log = new AuditLog();
             log.setDate(new Date());
             log.setUser(user);
