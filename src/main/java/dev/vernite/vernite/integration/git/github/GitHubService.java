@@ -51,6 +51,7 @@ import dev.vernite.vernite.integration.git.Repository;
 import dev.vernite.vernite.integration.git.github.api.GitHubApiClient;
 import dev.vernite.vernite.integration.git.github.api.GitHubConfiguration;
 import dev.vernite.vernite.integration.git.github.api.model.BranchName;
+import dev.vernite.vernite.integration.git.github.api.model.GitHubComment;
 import dev.vernite.vernite.integration.git.github.api.model.GitHubIssue;
 import dev.vernite.vernite.integration.git.github.api.model.GitHubPullRequest;
 import dev.vernite.vernite.integration.git.github.api.model.GitHubRelease;
@@ -61,6 +62,8 @@ import dev.vernite.vernite.integration.git.github.api.model.request.OauthRefresh
 import dev.vernite.vernite.integration.git.github.api.model.request.OauthTokenRequest;
 import dev.vernite.vernite.integration.git.github.model.Authorization;
 import dev.vernite.vernite.integration.git.github.model.AuthorizationRepository;
+import dev.vernite.vernite.integration.git.github.model.CommentIntegration;
+import dev.vernite.vernite.integration.git.github.model.CommentIntegrationRepository;
 import dev.vernite.vernite.integration.git.github.model.Installation;
 import dev.vernite.vernite.integration.git.github.model.InstallationRepository;
 import dev.vernite.vernite.integration.git.github.model.ProjectIntegration;
@@ -71,6 +74,7 @@ import dev.vernite.vernite.integration.git.github.model.TaskIntegrationRepositor
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.release.Release;
 import dev.vernite.vernite.task.Task;
+import dev.vernite.vernite.task.comment.Comment;
 import dev.vernite.vernite.user.User;
 import io.jsonwebtoken.Jwts;
 import reactor.core.publisher.Flux;
@@ -94,14 +98,18 @@ public class GitHubService {
 
     private TaskIntegrationRepository taskIntegrationRepository;
 
+    private CommentIntegrationRepository commentIntegrationRepository;
+
     public GitHubService(GitHubConfiguration config, AuthorizationRepository authorizationRepository,
             InstallationRepository installationRepository, ProjectIntegrationRepository projectIntegrationRepository,
-            TaskIntegrationRepository taskIntegrationRepository) {
+            TaskIntegrationRepository taskIntegrationRepository,
+            CommentIntegrationRepository commentIntegrationRepository) {
         this.config = config;
         this.authorizationRepository = authorizationRepository;
         this.installationRepository = installationRepository;
         this.projectIntegrationRepository = projectIntegrationRepository;
         this.taskIntegrationRepository = taskIntegrationRepository;
+        this.commentIntegrationRepository = commentIntegrationRepository;
 
         var webClient = WebClient.builder().baseUrl(config.getApiURL())
                 .defaultStatusHandler(HttpStatusCode::isError,
@@ -536,6 +544,96 @@ public class GitHubService {
                 .map(token -> "Bearer " + token)
                 .flatMap(token -> client.createRepositoryRelease(token, owner, repo, new GitHubRelease(release)))
                 .map(GitHubRelease::getId);
+    }
+
+    /**
+     * Create a new GitHub issue comment for given comment.
+     * 
+     * @param comment the comment
+     * @return the comment
+     */
+    public Mono<GitHubComment> createComment(Comment comment) {
+        var task = comment.getTask();
+        var integrationProjectOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());
+
+        if (integrationProjectOptional.isEmpty()) {
+            return Mono.empty();
+        }
+
+        var integrationProject = integrationProjectOptional.get();
+
+        var comments = new ArrayList<Mono<GitHubComment>>();
+
+        var integrationOptional = taskIntegrationRepository.findById(
+                new TaskIntegrationId(task.getId(), integrationProject.getId(), TaskIntegration.Type.ISSUE.ordinal()));
+
+        integrationOptional.ifPresent(integration -> comments.add(createCommentUtil(integrationProject, integration,
+                comment)));
+
+        integrationOptional = taskIntegrationRepository.findById(new TaskIntegrationId(task.getId(),
+                integrationProject.getId(), TaskIntegration.Type.PULL_REQUEST.ordinal()));
+
+        integrationOptional.ifPresent(integration -> comments.add(createCommentUtil(integrationProject, integration,
+                comment)));
+
+        return Flux.concat(comments).next();
+    }
+
+    private Mono<GitHubComment> createCommentUtil(ProjectIntegration integrationProject,
+            TaskIntegration taskIntegration, Comment comment) {
+        return Mono.just(integrationProject.getInstallation())
+                .filter(inst -> !inst.isSuspended())
+                .flatMap(this::refreshToken)
+                .flatMap(inst -> client.createIssueComment("Bearer " + inst.getToken(),
+                        integrationProject.getRepositoryOwner(),
+                        integrationProject.getRepositoryName(), taskIntegration.getIssueId(),
+                        new GitHubComment(comment)))
+                .map(gitComment -> {
+                    commentIntegrationRepository.save(new CommentIntegration(gitComment.getId(), comment));
+                    return gitComment;
+                });
+    }
+
+    /**
+     * Patch the GitHub issue comment for given comment.
+     * 
+     * @param comment the comment
+     * @return the comment
+     */
+    public Mono<GitHubComment> patchComment(Comment comment) {
+        var task = comment.getTask();
+        var integrationProjectOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());
+
+        if (integrationProjectOptional.isEmpty()) {
+            return Mono.empty();
+        }
+
+        var integrationProject = integrationProjectOptional.get();
+
+        var integrations = commentIntegrationRepository.findByComment(comment);
+
+        if (integrations.isEmpty()) {
+            return Mono.empty();
+        }
+
+        return Mono.just(integrationProject.getInstallation())
+                .filter(inst -> !inst.isSuspended())
+                .flatMap(this::refreshToken)
+                .flatMapMany(inst -> Flux.concat(integrations.stream()
+                        .map(integration -> client.patchIssueComment("Bearer " + inst.getToken(),
+                                integrationProject.getRepositoryOwner(), integrationProject.getRepositoryName(),
+                                integration.getId(), new GitHubComment(comment)))
+                        .toList()))
+                .next();
+    }
+
+    /**
+     * Delete the GitHub issue comment for given comment.
+     * 
+     * @param comment the comment
+     */
+    public void deleteComment(Comment comment) {
+        commentIntegrationRepository.findByComment(comment).forEach(commentIntegrationRepository::delete);
     }
 
     private Mono<Installation> refreshToken(Installation installation) {
