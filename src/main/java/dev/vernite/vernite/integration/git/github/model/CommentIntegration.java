@@ -25,40 +25,41 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.git.github.data;
+package dev.vernite.vernite.integration.git.github.model;
 
-import java.util.List;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import dev.vernite.vernite.integration.git.github.api.model.GitHubComment;
+import dev.vernite.vernite.task.comment.Comment;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 /**
- * Object to represent GitHub Rest api webhook data.
+ * Entity for representing GitHub comment integration.
  */
 @Data
-public class GitHubWebhookData {
+@Entity
+@NoArgsConstructor
+@AllArgsConstructor
+public class CommentIntegration {
 
-    private String action;
+    @Id
+    @Positive
+    private long id;
 
-    private GitHubRepository repository;
+    @NotNull
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private Comment comment;
 
-    private GitHubInstallationApi installation;
-
-    @JsonProperty("repositories_removed")
-    private List<GitHubRepository> repositoriesRemoved;
-
-    private GitHubIssue issue;
-
-    private List<GitHubCommit> commits;
-
-    private String after;
-
-    @JsonProperty("pull_request")
-    private GitHubPullRequest pullRequest;
-
-    private GitHubUser assignee;
-
-    private GitHubComment comment;
 }

@@ -25,40 +25,27 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.git.github.data;
-
-import java.util.List;
+package dev.vernite.vernite.integration.git.github.api.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import dev.vernite.vernite.integration.git.github.api.model.GitHubComment;
+import dev.vernite.vernite.task.comment.Comment;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
-/**
- * Object to represent GitHub Rest api webhook data.
- */
 @Data
-public class GitHubWebhookData {
+@NoArgsConstructor
+public class GitHubComment {
 
-    private String action;
+    private long id;
 
-    private GitHubRepository repository;
+    private String body;
 
-    private GitHubInstallationApi installation;
+    @JsonProperty("created_at")
+    private String createdAt;
 
-    @JsonProperty("repositories_removed")
-    private List<GitHubRepository> repositoriesRemoved;
+    public GitHubComment(Comment comment) {
+        this.body = comment.getContent();
+    }
 
-    private GitHubIssue issue;
-
-    private List<GitHubCommit> commits;
-
-    private String after;
-
-    @JsonProperty("pull_request")
-    private GitHubPullRequest pullRequest;
-
-    private GitHubUser assignee;
-
-    private GitHubComment comment;
 }

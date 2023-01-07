@@ -38,6 +38,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import dev.vernite.vernite.integration.git.github.GitHubService;
 import dev.vernite.vernite.project.ProjectRepository;
 import dev.vernite.vernite.task.TaskRepository;
 import dev.vernite.vernite.user.User;
@@ -45,6 +46,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
+import reactor.core.publisher.Mono;
 
 /**
  * Rest controller for performing CRUD operations on Comment entities.
@@ -60,6 +62,8 @@ public class CommentController {
 
     private CommentRepository commentRepository;
 
+    private GitHubService gitHubService;
+
     /**
      * Creates a new comment for a task.
      * 
@@ -70,12 +74,13 @@ public class CommentController {
      * @return newly created comment
      */
     @PostMapping
-    public Comment create(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+    public Mono<Comment> create(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long taskId, @RequestBody @Valid CreateComment create) {
         var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
         var task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
         var comment = new Comment(task, user, create);
-        return commentRepository.save(comment);
+        comment = commentRepository.save(comment);
+        return gitHubService.createComment(comment).thenReturn(comment);
     }
 
     /**
@@ -123,13 +128,14 @@ public class CommentController {
      * @return updated comment
      */
     @PutMapping("/{id}")
-    public Comment update(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+    public Mono<Comment> update(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long taskId, @PathVariable long id, @RequestBody @Valid UpdateComment update) {
         var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
         var task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
         var comment = commentRepository.findByIdAndTaskOrThrow(id, task);
         comment.update(update);
-        return commentRepository.save(comment);
+        comment = commentRepository.save(comment);
+        return gitHubService.patchComment(comment).thenReturn(comment);
     }
 
     /**
@@ -146,6 +152,7 @@ public class CommentController {
         var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
         var task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
         var comment = commentRepository.findByIdAndTaskOrThrow(id, task);
+        gitHubService.deleteComment(comment);
         commentRepository.delete(comment);
     }
 

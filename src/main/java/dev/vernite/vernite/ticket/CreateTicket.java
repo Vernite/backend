@@ -1,7 +1,7 @@
 /*
  * BSD 2-Clause License
  * 
- * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * Copyright (c) 2023, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -25,40 +25,30 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.git.github.data;
+package dev.vernite.vernite.ticket;
 
-import java.util.List;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import dev.vernite.vernite.integration.git.github.api.model.GitHubComment;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
- * Object to represent GitHub Rest api webhook data.
+ * The class that represents a ticket to be created.
  */
 @Data
-public class GitHubWebhookData {
+public class CreateTicket {
 
-    private String action;
+    /**
+     * The title of the ticket.
+     */
+    @NotBlank(message = "Title cannot be empty.")
+    @Size(min = 3, max = 50, message = "Title must be between 1 and 50 characters.")
+    private String title;
 
-    private GitHubRepository repository;
+    /**
+     * The description of the ticket.
+     */
+    @NotBlank(message = "Description cannot be empty.")
+    @Size(min = 3, max = 1000, message = "Description must be between 3 and 1000 characters.")
+    private String description;
 
-    private GitHubInstallationApi installation;
-
-    @JsonProperty("repositories_removed")
-    private List<GitHubRepository> repositoriesRemoved;
-
-    private GitHubIssue issue;
-
-    private List<GitHubCommit> commits;
-
-    private String after;
-
-    @JsonProperty("pull_request")
-    private GitHubPullRequest pullRequest;
-
-    private GitHubUser assignee;
-
-    private GitHubComment comment;
 }
