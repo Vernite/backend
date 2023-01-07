@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import dev.vernite.vernite.common.utils.counter.CounterSequenceRepository;
+import dev.vernite.vernite.integration.git.GitTaskService;
 import dev.vernite.vernite.project.ProjectRepository;
 import dev.vernite.vernite.task.Task;
 import dev.vernite.vernite.task.TaskRepository;
@@ -41,6 +42,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
+import reactor.core.publisher.Mono;
 
 /**
  * The controller that handles ticket-related requests.
@@ -56,6 +58,8 @@ public class TicketController {
 
     private ProjectRepository projectRepository;
 
+    private GitTaskService gitTaskService;
+
     /**
      * Creates a new ticket.
      * 
@@ -64,7 +68,7 @@ public class TicketController {
      * @return the created ticket
      */
     @PostMapping
-    public CreateTicket createTicket(@NotNull @Parameter(hidden = true) User user,
+    public Mono<CreateTicket> createTicket(@NotNull @Parameter(hidden = true) User user,
             @RequestBody @Valid CreateTicket createTicket) {
         var project = projectRepository.findById(1L).orElseThrow();
         var id = counterSequenceRepository.getIncrementCounter(project.getTaskCounter().getId());
@@ -73,7 +77,8 @@ public class TicketController {
         var description = createTicket.getDescription();
         var task = new Task(id, title, description, status, user, Task.TaskType.ISSUE.ordinal());
         taskRepository.save(task);
-        return createTicket;
+        gitTaskService.createIssue(task);
+        return gitTaskService.createIssue(task).then().thenReturn(createTicket);
     }
 
 }
