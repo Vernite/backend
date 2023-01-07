@@ -140,6 +140,9 @@ public class GitHubWebhookService {
         switch (data.getAction()) {
             case "created":
                 var name = data.getRepository().getFullName().split("/");
+                if (commentIntegrationRepository.findById(data.getComment().getId()).isPresent()) {
+                    return;
+                }
                 integrationRepository.findByRepositoryOwnerAndRepositoryName(name[0], name[1])
                         .forEach(projectIntegration -> {
                             var issues = issueRepository.findByProjectIntegrationAndIssueId(projectIntegration,
