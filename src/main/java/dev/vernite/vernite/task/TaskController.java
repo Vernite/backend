@@ -237,7 +237,7 @@ public class TaskController {
         List<Mono<Void>> results = new ArrayList<>();
         taskRequest.getIssue().ifPresent(issue -> results.add(service.handleIssueAction(issue, task).then()));
         taskRequest.getPull().ifPresent(pull -> results.add(service.handlePullAction(pull, task).then()));
-        return Flux.concat(results).doFinally((n) -> {
+        return Flux.concat(results).then(Mono.fromRunnable(() -> {
             JsonNode newValue = converter.getObjectMapper().valueToTree(savedTask);
             AuditLog log = new AuditLog();
             log.setDate(new Date());
@@ -252,7 +252,7 @@ public class TaskController {
             }
             log.setSameValues(null);
             auditLogRepository.save(log);
-        }).then(Mono.just(savedTask));
+        })).then(Mono.just(savedTask));
     }
 
     @Operation(summary = "Alter the task", description = "This method is used to modify existing task. On success returns task.")
@@ -289,7 +289,7 @@ public class TaskController {
         List<Mono<Void>> results = new ArrayList<>();
         taskRequest.getIssue().ifPresent(issue -> results.add(service.handleIssueAction(issue, task).then()));
         taskRequest.getPull().ifPresent(pull -> results.add(service.handlePullAction(pull, task).then()));
-        return Flux.concat(results).then(service.patchIssue(task).then()).doFinally((n) -> {
+        return Flux.concat(results).then(service.patchIssue(task).then()).then(Mono.fromRunnable(() -> {
             JsonNode newValue = converter.getObjectMapper().valueToTree(savedTask);
             JsonNode[] out = new JsonNode[3];
             if (out[0] == null && out[1] == null) {
@@ -307,7 +307,7 @@ public class TaskController {
                 throw new RuntimeException(e);
             }
             auditLogRepository.save(log);
-        }).thenReturn(savedTask);
+        })).thenReturn(savedTask);
     }
 
     @Operation(summary = "Delete task", description = "This method is used to delete task. On success does not return anything. Throws 404 when task or project does not exist.")
