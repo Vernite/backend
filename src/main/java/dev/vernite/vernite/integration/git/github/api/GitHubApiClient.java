@@ -288,7 +288,6 @@ public interface GitHubApiClient {
      * @param token       installation access token
      * @param owner       owner of repository
      * @param name        name of repository
-     * @param issueNumber issue number
      * @param commentId   comment id
      * @param body        comment body
      * @return the patched comment
