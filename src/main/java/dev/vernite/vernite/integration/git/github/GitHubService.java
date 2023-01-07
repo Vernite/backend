@@ -576,7 +576,7 @@ public class GitHubService {
         integrationOptional.ifPresent(integration -> comments.add(createCommentUtil(integrationProject, integration,
                 comment)));
 
-        return Flux.concat(comments).next();
+        return Flux.concat(comments).collectList().map(list -> list.get(0));
     }
 
     private Mono<GitHubComment> createCommentUtil(ProjectIntegration integrationProject,
@@ -624,7 +624,7 @@ public class GitHubService {
                                 integrationProject.getRepositoryOwner(), integrationProject.getRepositoryName(),
                                 integration.getId(), new GitHubComment(comment)))
                         .toList()))
-                .next();
+                .collectList().map(list -> list.get(0));
     }
 
     /**
