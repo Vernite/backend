@@ -27,7 +27,7 @@
 
 package dev.vernite.vernite.project;
 
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 import dev.vernite.vernite.common.constraints.NullOrNotBlank;
@@ -71,7 +71,7 @@ public class UpdateProject {
      */
     @Setter
     @Getter
-    @Positive(message = "workspace id must be positive")
+    @PositiveOrZero(message = "workspace id must be positive or zero")
     private Long workspaceId;
 
 }
