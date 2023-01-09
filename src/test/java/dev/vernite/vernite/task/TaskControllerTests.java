@@ -314,7 +314,7 @@ class TaskControllerTests {
 
         client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new TaskRequest("a".repeat(51), "desc", project.getStatuses().get(0).getId(), 0, "low"))
+                .bodyValue(new TaskRequest("a".repeat(101), "desc", project.getStatuses().get(0).getId(), 0, "low"))
                 .exchange().expectStatus().isBadRequest();
 
         client.post().uri("/project/{pId}/task", project.getId())
