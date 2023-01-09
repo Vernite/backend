@@ -315,6 +315,12 @@ public class AuthController {
         if (req.getDateFormat() != null) {
             loggedUser.setDateFormat(req.getDateFormat());
         }
+        if (req.getTimeFormat() != null) {
+            loggedUser.setTimeFormat(req.getTimeFormat());
+        }
+        if (req.getFirstDayOfWeek() != null) {
+            loggedUser.setFirstDayOfWeek(req.getFirstDayOfWeek());
+        }
         userRepository.save(loggedUser);
         return loggedUser;
     }

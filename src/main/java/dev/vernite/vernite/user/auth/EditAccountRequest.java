@@ -36,4 +36,6 @@ public class EditAccountRequest {
     private String surname;
     private String language;
     private String dateFormat;
+    private String timeFormat;
+    private Integer firstDayOfWeek;
 }
