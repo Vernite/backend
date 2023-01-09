@@ -69,8 +69,9 @@ public class TaskFilter {
         this.sprintId = Optional.of(sprintId);
     }
 
-    public void setAssigneeId(Long assigneeId) {
-        this.assigneeId = Optional.of(Optional.ofNullable(assigneeId));
+    public void setAssigneeId(String assigneeId) {
+        var longAssigneeId = "null".equalsIgnoreCase(assigneeId) ? null : Long.parseLong(assigneeId);
+        this.assigneeId = Optional.of(Optional.ofNullable(longAssigneeId));
     }
 
     public void setStatusId(List<Long> statusId) {
