@@ -46,6 +46,8 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.OrderBy;
 import jakarta.validation.constraints.NotNull;
+import lombok.Getter;
+import lombok.Setter;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -93,6 +95,14 @@ public class User {
 
     private String language;
     private String dateFormat;
+
+    @Getter
+    @Setter
+    private String timeFormat;
+
+    @Getter
+    @Setter
+    private Integer firstDayOfWeek;
 
     @JsonIgnore
     @OnDelete(action = OnDeleteAction.CASCADE)
@@ -281,7 +291,9 @@ public class User {
         // int result = 1;
         // result = prime * result + Arrays.hashCode(getHash());
         // result = prime * result + Arrays.hashCode(getSalt());
-        // result = prime * result + Objects.hash(getAvatar(), getCounterSequence(), getEmail(), getId(), getName(), getSurname(), getUsername(), getWorkspaces(), getDeleted(), getLanguage(), getDateFormat());
+        // result = prime * result + Objects.hash(getAvatar(), getCounterSequence(),
+        // getEmail(), getId(), getName(), getSurname(), getUsername(), getWorkspaces(),
+        // getDeleted(), getLanguage(), getDateFormat());
         return (int) getId();
     }
 
@@ -294,11 +306,17 @@ public class User {
             return false;
         User other = (User) obj;
         return getId() == other.getId();
-        // return Objects.equals(getAvatar(), other.getAvatar()) && Objects.equals(getCounterSequence(), other.getCounterSequence())
-        //         && Objects.equals(getEmail(), other.getEmail()) && Arrays.equals(getHash(), other.getHash()) && getId() == other.getId()
-        //         && Objects.equals(getName(), other.getName()) && Arrays.equals(getSalt(), other.getSalt())
-        //         && Objects.equals(getSurname(), other.getSurname()) && Objects.equals(getUsername(), other.getUsername())
-        //         && Objects.equals(getWorkspaces(), other.getWorkspaces()) && Objects.equals(getDeleted(), other.getDeleted())
-        //         && Objects.equals(getLanguage(), other.getLanguage()) && Objects.equals(getDateFormat(), other.getDateFormat());
+        // return Objects.equals(getAvatar(), other.getAvatar()) &&
+        // Objects.equals(getCounterSequence(), other.getCounterSequence())
+        // && Objects.equals(getEmail(), other.getEmail()) && Arrays.equals(getHash(),
+        // other.getHash()) && getId() == other.getId()
+        // && Objects.equals(getName(), other.getName()) && Arrays.equals(getSalt(),
+        // other.getSalt())
+        // && Objects.equals(getSurname(), other.getSurname()) &&
+        // Objects.equals(getUsername(), other.getUsername())
+        // && Objects.equals(getWorkspaces(), other.getWorkspaces()) &&
+        // Objects.equals(getDeleted(), other.getDeleted())
+        // && Objects.equals(getLanguage(), other.getLanguage()) &&
+        // Objects.equals(getDateFormat(), other.getDateFormat());
     }
 }
