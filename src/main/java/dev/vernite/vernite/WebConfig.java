@@ -30,6 +30,7 @@ package dev.vernite.vernite;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -59,6 +60,9 @@ public class WebConfig implements WebMvcConfigurer, WebSocketConfigurer {
     @Autowired
     private WebSocketInterceptor webSocketInterceptor;
 
+    @Value("${vernite.rate-limit.enabled}")
+    private Boolean rateLimitEnabled = true;
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
@@ -75,7 +79,9 @@ public class WebConfig implements WebMvcConfigurer, WebSocketConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new RateLimitInterceptor());
+        if (rateLimitEnabled) {
+            registry.addInterceptor(new RateLimitInterceptor());
+        }
     }
 
     @Override

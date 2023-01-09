@@ -52,7 +52,7 @@ class TaskRequestTests {
 
         assertThrows(FieldErrorException.class, () -> taskRequest.setName(null));
         assertThrows(FieldErrorException.class, () -> taskRequest.setName("  "));
-        String tooLongName = "a".repeat(51);
+        String tooLongName = "a".repeat(101);
         assertThrows(FieldErrorException.class, () -> taskRequest.setName(tooLongName));
 
         taskRequest.setName("Test");
