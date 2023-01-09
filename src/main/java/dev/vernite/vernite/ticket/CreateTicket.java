@@ -41,7 +41,7 @@ public class CreateTicket {
      * The title of the ticket.
      */
     @NotBlank(message = "Title cannot be empty.")
-    @Size(min = 3, max = 50, message = "Title must be between 1 and 50 characters.")
+    @Size(min = 3, max = 100, message = "Title must be between 1 and 50 characters.")
     private String title;
 
     /**

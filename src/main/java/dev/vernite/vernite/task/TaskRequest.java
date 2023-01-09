@@ -48,7 +48,7 @@ public class TaskRequest {
     private static final String NULL_VALUE = "null value";
     private static final String MISSING = "missing";
 
-    @Schema(maxLength = 50, minLength = 1, description = "The name of the task. Trailing and leading whitespace are removed.")
+    @Schema(maxLength = 100, minLength = 1, description = "The name of the task. Trailing and leading whitespace are removed.")
     private Optional<String> name = Optional.empty();
     @Schema(description = "The description of the task. Trailing and leading whitespace are removed.")
     private Optional<String> description = Optional.empty();
@@ -119,7 +119,7 @@ public class TaskRequest {
         if (name.isEmpty()) {
             throw new FieldErrorException("name", "empty value");
         }
-        if (name.length() > 50) {
+        if (name.length() > 100) {
             throw new FieldErrorException("name", "too long");
         }
         this.name = Optional.of(name);
