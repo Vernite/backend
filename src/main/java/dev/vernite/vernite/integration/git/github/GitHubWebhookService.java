@@ -47,15 +47,20 @@ import dev.vernite.vernite.integration.git.github.data.GitHubInstallationApi;
 import dev.vernite.vernite.integration.git.github.data.GitHubRepository;
 import dev.vernite.vernite.integration.git.github.data.GitHubWebhookData;
 import dev.vernite.vernite.integration.git.github.model.AuthorizationRepository;
+import dev.vernite.vernite.integration.git.github.model.CommentIntegration;
+import dev.vernite.vernite.integration.git.github.model.CommentIntegrationRepository;
 import dev.vernite.vernite.integration.git.github.model.Installation;
 import dev.vernite.vernite.integration.git.github.model.InstallationRepository;
 import dev.vernite.vernite.integration.git.github.model.ProjectIntegration;
 import dev.vernite.vernite.integration.git.github.model.ProjectIntegrationRepository;
 import dev.vernite.vernite.integration.git.github.model.TaskIntegrationRepository;
 import dev.vernite.vernite.integration.git.github.model.TaskIntegration;
+import dev.vernite.vernite.integration.git.github.model.TaskIntegrationId;
 import dev.vernite.vernite.status.Status;
 import dev.vernite.vernite.task.Task;
 import dev.vernite.vernite.task.TaskRepository;
+import dev.vernite.vernite.task.comment.Comment;
+import dev.vernite.vernite.task.comment.CommentRepository;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.user.UserRepository;
 import reactor.core.publisher.Flux;
@@ -82,6 +87,10 @@ public class GitHubWebhookService {
     private CounterSequenceRepository counterSequenceRepository;
     @Autowired
     private AuthorizationRepository authorizationRepository;
+    @Autowired
+    private CommentRepository commentRepository;
+    @Autowired
+    private CommentIntegrationRepository commentIntegrationRepository;
     private User systemUser;
 
     @Autowired
@@ -118,10 +127,57 @@ public class GitHubWebhookService {
             case "pull_request":
                 handlePullRequest(data);
                 break;
+            case "issue_comment":
+                handleIssueComment(data);
+                break;
             default:
                 break;
         }
         return Mono.empty();
+    }
+
+    private void handleIssueComment(GitHubWebhookData data) {
+        switch (data.getAction()) {
+            case "created":
+                var name = data.getRepository().getFullName().split("/");
+                if (commentIntegrationRepository.findById(data.getComment().getId()).isPresent()) {
+                    return;
+                }
+                integrationRepository.findByRepositoryOwnerAndRepositoryName(name[0], name[1])
+                        .forEach(projectIntegration -> {
+                            var issues = issueRepository.findByProjectIntegrationAndIssueId(projectIntegration,
+                                    data.getIssue().getNumber());
+                            issues.forEach(issue -> {
+                                var task = issue.getTask();
+                                var comment = new Comment(task, data.getComment().getBody(), systemUser);
+                                commentRepository.save(comment);
+                                var commentIntegration = new CommentIntegration(data.getComment().getId(), comment);
+                                commentIntegrationRepository.save(commentIntegration);
+                            });
+                        });
+
+                break;
+            case "edited":
+                var integration = commentIntegrationRepository.findById(data.getComment().getId());
+                if (integration.isEmpty()) {
+                    return;
+                }
+                var commentIntegration = integration.get();
+                var commentEntity = commentIntegration.getComment();
+                commentEntity.setContent(data.getComment().getBody());
+                commentRepository.save(commentEntity);
+                break;
+            case "deleted":
+                integration = commentIntegrationRepository.findById(data.getComment().getId());
+                if (integration.isEmpty()) {
+                    return;
+                }
+                commentIntegration = integration.get();
+                commentRepository.delete(commentIntegration.getComment());
+                break;
+            default:
+                break;
+        }
     }
 
     private void handleInstallation(GitHubWebhookData data) {

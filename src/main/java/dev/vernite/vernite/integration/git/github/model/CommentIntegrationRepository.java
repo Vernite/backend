@@ -25,53 +25,25 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.project;
+package dev.vernite.vernite.integration.git.github.model;
 
-import jakarta.validation.constraints.PositiveOrZero;
-import jakarta.validation.constraints.Size;
+import java.util.List;
 
-import dev.vernite.vernite.common.constraints.NullOrNotBlank;
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import org.springframework.data.repository.CrudRepository;
+
+import dev.vernite.vernite.task.comment.Comment;
 
 /**
- * Class containing information needed to update project entity.
- * Has required constraints annotated using Java Bean Validation.
- * It performs partial update using only present fields.
+ * CRUD repository for comment integration entity.
  */
-@ToString
-@NoArgsConstructor
-@EqualsAndHashCode
-@AllArgsConstructor
-public class UpdateProject {
+public interface CommentIntegrationRepository extends CrudRepository<CommentIntegration, Long> {
 
     /**
-     * New name for project. Must contain at least one non-whitespace character.
+     * Find comment integrations by comment.
+     * 
+     * @param comment comment
+     * @return comment integrations
      */
-    @Setter
-    @Getter
-    @Size(min = 1, max = 50, message = "project name must be shorter than 50 characters")
-    @NullOrNotBlank(message = "project name must contain at least one non-whitespace character")
-    private String name;
-
-    /**
-     * New description for new project.
-     */
-    @Setter
-    @Getter
-    @Size(max = 1000, message = "project description must be shorter than 1000 characters")
-    private String description;
-
-    /**
-     * New workspace id for project.
-     */
-    @Setter
-    @Getter
-    @PositiveOrZero(message = "workspace id must be positive or zero")
-    private Long workspaceId;
+    List<CommentIntegration> findByComment(Comment comment);
 
 }

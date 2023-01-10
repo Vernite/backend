@@ -25,53 +25,27 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.project;
+package dev.vernite.vernite.integration.git.github.api.model;
 
-import jakarta.validation.constraints.PositiveOrZero;
-import jakarta.validation.constraints.Size;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import dev.vernite.vernite.common.constraints.NullOrNotBlank;
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
+import dev.vernite.vernite.task.comment.Comment;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
 
-/**
- * Class containing information needed to update project entity.
- * Has required constraints annotated using Java Bean Validation.
- * It performs partial update using only present fields.
- */
-@ToString
+@Data
 @NoArgsConstructor
-@EqualsAndHashCode
-@AllArgsConstructor
-public class UpdateProject {
+public class GitHubComment {
 
-    /**
-     * New name for project. Must contain at least one non-whitespace character.
-     */
-    @Setter
-    @Getter
-    @Size(min = 1, max = 50, message = "project name must be shorter than 50 characters")
-    @NullOrNotBlank(message = "project name must contain at least one non-whitespace character")
-    private String name;
+    private long id;
 
-    /**
-     * New description for new project.
-     */
-    @Setter
-    @Getter
-    @Size(max = 1000, message = "project description must be shorter than 1000 characters")
-    private String description;
+    private String body;
 
-    /**
-     * New workspace id for project.
-     */
-    @Setter
-    @Getter
-    @PositiveOrZero(message = "workspace id must be positive or zero")
-    private Long workspaceId;
+    @JsonProperty("created_at")
+    private String createdAt;
+
+    public GitHubComment(Comment comment) {
+        this.body = comment.getContent();
+    }
 
 }

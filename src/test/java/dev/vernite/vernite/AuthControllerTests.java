@@ -65,7 +65,7 @@ public class AuthControllerTests {
     @BeforeEach
     void reset() {
         userSessionRepository.deleteAll();
-        userRepository.deleteAllByEmailNot("contact@vernite.dev");
+        // userRepository.deleteAllByEmailNot("contact@vernite.dev");
     }
 
     // @Test

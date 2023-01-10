@@ -25,53 +25,41 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.project;
+package dev.vernite.vernite.integration.git.github.model;
 
-import jakarta.validation.constraints.PositiveOrZero;
-import jakarta.validation.constraints.Size;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
-import dev.vernite.vernite.common.constraints.NullOrNotBlank;
+import dev.vernite.vernite.task.comment.Comment;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.ToString;
 
 /**
- * Class containing information needed to update project entity.
- * Has required constraints annotated using Java Bean Validation.
- * It performs partial update using only present fields.
+ * Entity for representing GitHub comment integration.
  */
-@ToString
+@Data
+@Entity
 @NoArgsConstructor
-@EqualsAndHashCode
 @AllArgsConstructor
-public class UpdateProject {
+public class CommentIntegration {
 
-    /**
-     * New name for project. Must contain at least one non-whitespace character.
-     */
-    @Setter
-    @Getter
-    @Size(min = 1, max = 50, message = "project name must be shorter than 50 characters")
-    @NullOrNotBlank(message = "project name must contain at least one non-whitespace character")
-    private String name;
+    @Id
+    @Positive
+    private long id;
 
-    /**
-     * New description for new project.
-     */
-    @Setter
-    @Getter
-    @Size(max = 1000, message = "project description must be shorter than 1000 characters")
-    private String description;
-
-    /**
-     * New workspace id for project.
-     */
-    @Setter
-    @Getter
-    @PositiveOrZero(message = "workspace id must be positive or zero")
-    private Long workspaceId;
+    @NotNull
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private Comment comment;
 
 }

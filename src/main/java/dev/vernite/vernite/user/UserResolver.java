@@ -30,12 +30,6 @@ package dev.vernite.vernite.user;
 import java.util.Date;
 import java.util.Optional;
 
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.constraints.NotNull;
-
-import dev.vernite.vernite.user.auth.AuthController;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
@@ -46,6 +40,11 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 import org.springframework.web.server.ResponseStatusException;
+
+import dev.vernite.vernite.user.auth.AuthController;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.NotNull;
 
 @Component
 public class UserResolver implements HandlerMethodArgumentResolver {
@@ -74,6 +73,7 @@ public class UserResolver implements HandlerMethodArgumentResolver {
                     if (us.getUser().isDeleted() && parameter.hasParameterAnnotation(NotNull.class)) {
                         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "user deleted");
                     }
+                    req.setAttribute("userID", us.getId());
                     return us.getUser();
                 }
             }
