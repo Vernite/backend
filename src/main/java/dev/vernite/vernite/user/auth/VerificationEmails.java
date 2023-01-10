@@ -41,7 +41,7 @@ import lombok.Data;
 
 @Component
 public class VerificationEmails {
-    private static final long CODE_MAX_TIME = TimeUnit.HOURS.toMillis(1);
+    private static final long CODE_MAX_TIME = TimeUnit.MINUTES.toMillis(30);
     private static final HashMap<String, VerificationEntry> code2user = new HashMap<>();
     private static final HashMap<String, VerificationEntry> email2user = new HashMap<>();
 

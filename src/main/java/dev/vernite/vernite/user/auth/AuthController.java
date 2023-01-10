@@ -413,7 +413,10 @@ public class AuthController {
             msg.setFrom("contact@vernite.dev");
             // TODO activation link
             msg.setSubject("Dziękujemy za rejestrację");
-            msg.setText("Cześć, " + req.getName() + "!\nDziękujemy za zarejestrowanie się w naszym serwisie. Aby dokończyć rejestrację, potwierdź swój adres e-mail:\nhttps://vernite.dev/api/auth/verify/" + code);
+            msg.setText("Cześć, " + req.getName() + "!\n"
+                    + "Dziękujemy za zarejestrowanie się w naszym serwisie. Aby dokończyć rejestrację, potwierdź swój adres e-mail:\n"
+                    + "https://vernite.dev/api/auth/verify/" + code + "\n"
+                    + "Link ten wygaśnie za 30 minut.");
             javaMailSender.send(msg);
             Thread.currentThread().setContextClassLoader(old);
             return u;
@@ -555,12 +558,13 @@ public class AuthController {
     /**
      * Verify captcha response
      * 
-     * @param response response from recaptcha
-     * @param request request
+     * @param response       response from recaptcha
+     * @param request        request
      * @param expectedAction expected action
      * @return action if success or null if failed
      */
-    private CompletableFuture<Boolean> verifyCaptcha(String response, HttpServletRequest request, String expectedAction) {
+    private CompletableFuture<Boolean> verifyCaptcha(String response, HttpServletRequest request,
+            String expectedAction) {
         String remoteip = request.getHeader("X-Forwarded-For");
         if (remoteip == null) {
             remoteip = request.getRemoteAddr();
@@ -571,7 +575,7 @@ public class AuthController {
                 URLEncoder.encode(recaptchaSecret, StandardCharsets.UTF_8),
                 URLEncoder.encode(response, StandardCharsets.UTF_8),
                 URLEncoder.encode(remoteip, StandardCharsets.UTF_8));
-        
+
         HttpRequest req = HttpRequest.newBuilder(RECAPTCHA_URI)
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString(data))
