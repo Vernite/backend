@@ -54,7 +54,7 @@ public class VerificationEmails {
         long t = System.currentTimeMillis();
         String code = SecureRandomUtils.generateSecureRandomString();
         VerificationEntry entry = email2user.get(user.getEmail().toLowerCase());
-        if (entry.destroyed) {
+        if (entry != null && entry.destroyed) {
             entry = null;
         }
         if (entry != null) {
