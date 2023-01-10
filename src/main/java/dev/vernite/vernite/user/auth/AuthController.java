@@ -51,6 +51,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -58,6 +59,7 @@ import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -325,6 +327,25 @@ public class AuthController {
         return loggedUser;
     }
 
+    @GetMapping("/verify/{code}")
+    public ResponseEntity<Void> verify(@Parameter(hidden = true) User loggedUser, @PathVariable String code) {
+        if (loggedUser != null) {
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .location(URI.create("https://vernite.dev/?path=/dashboard"))
+                    .build();
+        }
+        User u = VerificationEmails.pollUser(code);
+        if (u != null) {
+            userRepository.save(u);
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .location(URI.create("https://vernite.dev/?path=/auth/register/token-success"))
+                    .build();
+        }
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create("https://vernite.dev/?path=/auth/register/token-expired"))
+                .build();
+    }
+
     @Operation(summary = "Register account", description = "This method registers a new account. On success returns newly created user.")
     @ApiResponse(responseCode = "200", description = "Newly created user.")
     @ApiResponse(responseCode = "403", description = "User is already logged or invalid captcha.", content = @Content())
@@ -382,8 +403,8 @@ public class AuthController {
             u.setLanguage(req.getLanguage());
             u.setDateFormat(req.getDateFormat());
             u.setCounterSequence(new CounterSequence());
-            u = userRepository.save(u);
-            createSession(request, response, u, false);
+
+            String code = VerificationEmails.prepareUser(u);
 
             ClassLoader old = Thread.currentThread().getContextClassLoader();
             Thread.currentThread().setContextClassLoader(cl);
@@ -392,7 +413,7 @@ public class AuthController {
             msg.setFrom("contact@vernite.dev");
             // TODO activation link
             msg.setSubject("Dziękujemy za rejestrację");
-            msg.setText("Cześć, " + req.getName() + "!\nDziękujemy za zarejestrowanie się w naszym serwisie");
+            msg.setText("Cześć, " + req.getName() + "!\nDziękujemy za zarejestrowanie się w naszym serwisie. Aby dokończyć rejestrację, potwierdź swój adres e-mail:\nhttps://vernite.dev/api/auth/verify/" + code);
             javaMailSender.send(msg);
             Thread.currentThread().setContextClassLoader(old);
             return u;
@@ -403,7 +424,7 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "User logged out")
     @PostMapping("/logout")
     public void destroySession(HttpServletRequest req, HttpServletResponse resp,
-            @Parameter(hidden = true) @CookieValue(AuthController.COOKIE_NAME) String session) {
+            @Parameter(hidden = true) @CookieValue(value = AuthController.COOKIE_NAME, required = false) String session) {
         if (session != null) {
             this.userSessionRepository.deleteBySession(session);
             Cookie cookie = new Cookie(COOKIE_NAME, null);
