@@ -27,15 +27,59 @@
 
 package dev.vernite.vernite.user.auth;
 
+import dev.vernite.vernite.common.constraints.NullOrNotBlank;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+/**
+ * Class containing information needed to edit user entity.
+ * Has required constraints annotated using Java Bean Validation.
+ */
 @Data
 public class EditAccountRequest {
+
+    /**
+     * Avatar for user. Must be a valid URL.
+     */
+    @NullOrNotBlank(message = "avatar must be specified")
     private String avatar;
+
+    /**
+     * Name for user. Must be at least 2 characters long.
+     */
+    @NullOrNotBlank(message = "name must be specified")
+    @Size(min = 2, max = 100, message = "name must be at least 2 characters long and shorter than 100 characters")
     private String name;
+
+    /**
+     * Surname for user. Must be at least 2 characters long.
+     */
+    @NullOrNotBlank(message = "surname must be specified")
+    @Size(min = 2, max = 100, message = "surname must be at least 2 characters long and shorter than 100 characters")
     private String surname;
+
+    /**
+     * Language for user.
+     */
+    @Size(max = 5, message = "language must be shorter than 5 characters")
     private String language;
+
+    /**
+     * Date format for user.
+     */
+    @Size(max = 10, message = "date format must be shorter than 10 characters")
     private String dateFormat;
+
+    /**
+     * Time format for user.
+     */
+    @Size(max = 10, message = "time format must be shorter than 10 characters")
     private String timeFormat;
+
+    /**
+     * First day of week for user.
+     */
+    @PositiveOrZero(message = "first day of week must be a positive number")
     private Integer firstDayOfWeek;
 }
