@@ -450,4 +450,8 @@ public class Task extends SoftDeleteEntity {
         }
         return null;
     }
+
+    public long getProjectId() {
+        return this.getStatus().getProject().getId();
+    }
 }

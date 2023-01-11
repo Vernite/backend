@@ -174,4 +174,7 @@ public interface TaskRepository extends SoftDeleteRepository<Task, Long>, JpaSpe
             return cb.and(predicates.toArray(new Predicate[0]));
         });
     }
+
+    List<Task> findByAssigneeAndStatusIsFinalFalseAndActiveNull(User loggedUser);
+
 }
