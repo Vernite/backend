@@ -69,8 +69,8 @@ public class Status {
     private long id;
 
     @Column(nullable = false, length = 50)
-    @Size(min = 1, max = 50, message = "project name must be shorter than 50 characters")
-    @NotBlank(message = "project name must contain at least one non-whitespace character")
+    @Size(min = 1, max = 50, message = "status name must be shorter than 50 characters")
+    @NotBlank(message = "status name must contain at least one non-whitespace character")
     private String name;
 
     @Column(nullable = false)

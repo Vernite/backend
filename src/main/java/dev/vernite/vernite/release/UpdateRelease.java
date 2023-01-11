@@ -1,7 +1,7 @@
 /*
  * BSD 2-Clause License
  * 
- * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * Copyright (c) 2023, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -25,33 +25,42 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.status;
+package dev.vernite.vernite.release;
 
-import org.springframework.data.repository.CrudRepository;
+import jakarta.validation.constraints.Size;
 
-import dev.vernite.vernite.common.exception.EntityNotFoundException;
-import dev.vernite.vernite.project.Project;
+import java.util.Date;
+
+import dev.vernite.vernite.common.constraints.NullOrNotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
- * CRUD repository for status entity.
+ * Class containing information needed to update release entity.
+ * Has required constraints annotated using Java Bean Validation.
  */
-public interface StatusRepository extends CrudRepository<Status, Long> {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UpdateRelease {
 
     /**
-     * Finds status by ID and project.
-     * 
-     * @param id      status ID
-     * @param project project
-     * @return status with given ID and project
-     * @throws EntityNotFoundException thrown when status is not found or project is
-     *                                 not equal to status project
+     * Name for release. Must contain at least one non-whitespace character.
      */
-    default Status findByIdAndProjectOrThrow(long id, Project project) throws EntityNotFoundException {
-        var status = findById(id).orElseThrow(() -> new EntityNotFoundException("status", id));
-        if (status.getProject().getId() != project.getId()) {
-            throw new EntityNotFoundException("status", id);
-        }
-        return status;
-    }
+    @Size(min = 1, max = 50, message = "release name must be between 1 and 50 characters long")
+    @NullOrNotBlank(message = "release name must contain at least one non-whitespace character")
+    private String name;
+
+    /**
+     * Description for release. Must contain at least one non-whitespace character.
+     */
+    @Size(max = 1000, message = "release description must be at most 1000 characters long")
+    private String description;
+
+    /**
+     * Date for release.
+     */
+    private Date deadline;
 
 }

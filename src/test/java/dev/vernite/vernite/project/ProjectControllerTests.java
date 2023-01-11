@@ -614,8 +614,7 @@ class ProjectControllerTests {
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBodyList(Event.class).hasSize(2);
 
-        Release release = new Release("Name", project);
-        release.setDeadline(new Date(500));
+        Release release = new Release("Name", "description", new Date(500), project);
         releaseRepository.save(release);
 
         client.get().uri("/project/{id}/events?from=1&to=1000", project.getId())

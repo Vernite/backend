@@ -27,6 +27,7 @@
 
 package dev.vernite.vernite.release;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -35,10 +36,16 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
@@ -47,115 +54,116 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.task.Task;
-import dev.vernite.vernite.utils.SoftDeleteEntity;
 
+/**
+ * Entity representing a release of a project.
+ */
+@Data
+@NoArgsConstructor
 @Entity(name = "releases")
-public class Release extends SoftDeleteEntity {
+public class Release {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @PositiveOrZero(message = "release id must be non negative number")
     private long id;
 
     @Column(nullable = false, length = 50)
+    @Size(min = 1, max = 50, message = "release name must be shorter than 50 characters")
+    @NotBlank(message = "release name must contain at least one non-whitespace character")
     private String name;
 
-    @Lob
+    @Column(nullable = false, length = 1000)
+    @NotNull(message = "release description must not be null")
+    @Size(max = 1000, message = "release description must be shorter than 1000 characters")
     private String description;
 
+    @NotNull(message = "release deadline must not be null")
     private Date deadline;
 
     private boolean released = false;
 
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @ManyToOne(optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
+    @NotNull(message = "release must belong to a project")
     private Project project;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "release")
-    private List<Task> tasks;
+    @NotNull(message = "release must have tasks")
+    private List<Task> tasks = new ArrayList<>();
 
     @JsonIgnore
     private long gitReleaseId = 0;
 
-    public Release() {
-    }
-
-    public Release(String name, Project project) {
-        this.name = name;
+    /**
+     * Creates release with given name, description, deadline and project.
+     * 
+     * @param name        must not be {@literal null} and have at least one
+     *                    non-whitespace
+     * @param description must not be {@literal null} and have less than 1000
+     *                    characters
+     * @param deadline    must not be {@literal null}
+     * @param project     must not be {@literal null} and must exist in database
+     */
+    public Release(String name, String description, Date deadline, Project project) {
+        setName(name);
+        setDescription(description);
+        this.deadline = deadline;
         this.project = project;
     }
 
     /**
-     * Updates release with non-empty request fields.
+     * Constructs release from create release request.
      * 
-     * @param request must not be {@literal null}. When fields are not present in
-     *                request, they are not updated.
+     * @param project must not be {@literal null} and must exist in database
+     * @param create  must not be {@literal null} and must have valid fields
      */
-    public void update(@NotNull ReleaseRequest request) {
-        request.getName().ifPresent(this::setName);
-        request.getDescription().ifPresent(this::setDescription);
-        request.getDeadline().ifPresent(this::setDeadline);
+    public Release(Project project, CreateRelease create) {
+        this(create.getName(), create.getDescription(), create.getDeadline(), project);
     }
 
-    public long getId() {
-        return id;
+    /**
+     * Updates release with non-empty update fields.
+     * 
+     * @param update must not be {@literal null}. When fields are not present in
+     *               update, they are not updated.
+     */
+    public void update(UpdateRelease update) {
+        if (update.getName() != null) {
+            this.setName(update.getName());
+        }
+        if (update.getDescription() != null) {
+            this.setDescription(update.getDescription());
+        }
+        if (update.getDeadline() != null) {
+            this.setDeadline(update.getDeadline());
+        }
     }
 
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
+    /**
+     * Setter for name value. It performs {@link String#trim()} on its argument.
+     * 
+     * @param name must not be {@literal null} and have at least one non-whitespace
+     *             character and less than 50 characters
+     */
     public void setName(String name) {
-        this.name = name;
+        this.name = name.trim();
     }
 
-    public String getDescription() {
-        return description;
-    }
-
+    /**
+     * Setter for description value. It performs {@link String#trim()} on its
+     * argument.
+     * 
+     * @param name must not be {@literal null} and have at least one non-whitespace
+     *             character and less than 1000 characters
+     */
     public void setDescription(String description) {
-        this.description = description;
+        this.description = description.trim();
     }
 
-    public Date getDeadline() {
-        return deadline;
-    }
-
-    public void setDeadline(Date deadline) {
-        this.deadline = deadline;
-    }
-
-    public boolean getReleased() {
-        return released;
-    }
-
-    public void setReleased(boolean released) {
-        this.released = released;
-    }
-
-    public Project getProject() {
-        return project;
-    }
-
-    public void setProject(Project project) {
-        this.project = project;
-    }
-
-    public List<Task> getTasks() {
-        return tasks;
-    }
-
-    public void setTasks(List<Task> tasks) {
-        this.tasks = tasks;
-    }
-
-    public long getGitReleaseId() {
-        return gitReleaseId;
-    }
-
-    public void setGitReleaseId(long gitReleaseI) {
-        this.gitReleaseId = gitReleaseI;
-    }
 }
