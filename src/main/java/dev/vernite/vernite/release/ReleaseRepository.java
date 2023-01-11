@@ -31,26 +31,61 @@ import java.util.Date;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.repository.CrudRepository;
 
+import dev.vernite.vernite.common.exception.EntityNotFoundException;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.user.User;
-import dev.vernite.vernite.utils.SoftDeleteRepository;
 
-public interface ReleaseRepository extends SoftDeleteRepository<Release, Long>, JpaSpecificationExecutor<Release> {
-    List<Release> findAllByProjectAndActiveNullOrderByDeadlineDescName(Project project);
+/**
+ * CRUD repository for release entity.
+ */
+public interface ReleaseRepository extends CrudRepository<Release, Long>, JpaSpecificationExecutor<Release> {
 
+    /**
+     * Find release by ID and project.
+     * 
+     * @param id      release ID
+     * @param project project
+     * @return release with given ID and project
+     * @throws EntityNotFoundException thrown when release is not found or project
+     *                                 is not equal to release project
+     */
+    default Release findByIdAndProjectOrThrow(long id, Project project) {
+        var release = findById(id).orElseThrow(() -> new EntityNotFoundException("release", id));
+        if (release.getProject().getId() != project.getId()) {
+            throw new EntityNotFoundException("release", id);
+        }
+        return release;
+    }
+
+    /**
+     * Find all releases from user and date range.
+     * 
+     * @param user      user
+     * @param startDate start date
+     * @param endDate   end date
+     * @return list of releases
+     */
     default List<Release> findAllFromUserAndDate(User user, Date startDate, Date endDate) {
         return findAll((root, query, cb) -> cb.and(
                 cb.between(root.get("deadline"), startDate, endDate),
-                cb.equal(root.join("project").join("projectWorkspaces").join("workspace").join("user"), user),
-                cb.isNull(root.get("active"))));
+                cb.equal(root.join("project").join("projectWorkspaces").join("workspace").join("user"), user)));
     }
 
+    /**
+     * Find all releases from project and date range.
+     * 
+     * @param project   project
+     * @param startDate start date
+     * @param endDate   end date
+     * @return list of releases
+     */
     default List<Release> findAllFromProjectAndDate(Project project, Date startDate, Date endDate) {
         return findAll((root, query, cb) -> {
             return cb.and(cb.equal(root.get("project"), project),
-                    cb.between(root.get("deadline"), startDate, endDate),
-                    cb.isNull(root.get("active")));
+                    cb.between(root.get("deadline"), startDate, endDate));
         });
     }
+
 }

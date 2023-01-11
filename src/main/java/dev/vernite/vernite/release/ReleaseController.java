@@ -29,10 +29,10 @@ package dev.vernite.vernite.release;
 
 import java.util.List;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,129 +41,122 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import dev.vernite.vernite.common.exception.ConflictStateException;
 import dev.vernite.vernite.integration.git.GitTaskService;
-import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.project.ProjectRepository;
 import dev.vernite.vernite.task.Task;
 import dev.vernite.vernite.user.User;
-import dev.vernite.vernite.utils.ErrorType;
-import dev.vernite.vernite.utils.ObjectNotFoundException;
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import reactor.core.publisher.Mono;
 
+/**
+ * Rest controller for performing CRUD operations on Release entities.
+ */
 @RestController
+@AllArgsConstructor
 @RequestMapping("/project/{projectId}/release")
 public class ReleaseController {
-    @Autowired
+
     private ProjectRepository projectRepository;
-    @Autowired
+
     private ReleaseRepository releaseRepository;
-    @Autowired
+
     private GitTaskService gitTaskService;
 
-    @Operation(summary = "Retrieve all releases", description = "Retrieve all releases for a given project. Results are sorted by deadline.")
-    @ApiResponse(description = "List of releases", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Retrieves all releases for a given project. Results are sorted by deadline.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of the project
+     * @return list of releases
+     */
     @GetMapping
     public List<Release> getAll(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        return releaseRepository.findAllByProjectAndActiveNullOrderByDeadlineDescName(project);
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        return project.getReleases();
     }
 
-    @Operation(summary = "Create a new release", description = "Create a new release for a given project.")
-    @ApiResponse(description = "Release created", responseCode = "200")
-    @ApiResponse(description = "Some field are not correct.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Creates a new release for a given project.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of the project
+     * @param create    data for new release
+     * @return newly created release
+     */
     @PostMapping
     public Release create(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @RequestBody ReleaseRequest request) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        return releaseRepository.save(request.createEntity(project));
+            @RequestBody @Valid CreateRelease create) {
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        return releaseRepository.save(new Release(project, create));
     }
 
-    @Operation(summary = "Retrieve a release", description = "Retrieve a release for a given project.")
-    @ApiResponse(description = "Release", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project or release not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Retrieves a release with a given ID.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of the project
+     * @param id        ID of the release
+     * @return release with given ID
+     */
     @GetMapping("/{id}")
     public Release get(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long id) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        Release release = releaseRepository.findByIdOrThrow(id);
-        if (release.getProject().getId() != projectId) {
-            throw new ObjectNotFoundException();
-        }
-        return release;
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        return releaseRepository.findByIdAndProjectOrThrow(id, project);
     }
 
-    @Operation(summary = "Update a release", description = "Update a release for a given project.")
-    @ApiResponse(description = "Release updated", responseCode = "200")
-    @ApiResponse(description = "Some field are not correct.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project or release not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Updates a release with a given ID. Performs partial update using the provided
+     * data.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of the project
+     * @param id        ID of the release
+     * @param update    data to update
+     * @return updated release
+     */
     @PutMapping("/{id}")
     public Release update(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @PathVariable long id, @RequestBody ReleaseRequest request) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
+            @PathVariable long id, @RequestBody @Valid UpdateRelease update) {
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        var release = releaseRepository.findByIdAndProjectOrThrow(id, project);
+        if (release.isReleased()) {
+            throw new ConflictStateException("Cannot update a released release.");
         }
-        Release release = releaseRepository.findByIdOrThrow(id);
-        if (release.getProject().getId() != projectId) {
-            throw new ObjectNotFoundException();
-        }
-        if (release.getReleased()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot update a released release.");
-        }
-        release.update(request);
+        release.update(update);
         return releaseRepository.save(release);
     }
 
-    @Operation(summary = "Publish a release", description = "Publish a release for a given project.")
-    @ApiResponse(description = "Release published", responseCode = "200", content = @Content(schema = @Schema(implementation = Release.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project or release not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Publishes a release for a given project. Creates a new release on the git
+     * service and updates the release with the new git release ID.
+     * 
+     * @param user              logged in user
+     * @param projectId         ID of the project
+     * @param id                ID of the release
+     * @param publishGitService if true, publish the release on the git service
+     * @param branch            branch to publish the release on; default is master
+     * @return updated release
+     */
     @PutMapping("/{id}/publish")
     public Mono<Release> publish(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long id, boolean publishGitService,
             @Parameter(required = false, in = ParameterIn.QUERY, description = "Not required") String branch) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        Release release = releaseRepository.findByIdOrThrow(id);
-        if (release.getProject().getId() != projectId) {
-            throw new ObjectNotFoundException();
-        }
-        if (release.getReleased() && release.getGitReleaseId() > 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Release already published");
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        var release = releaseRepository.findByIdAndProjectOrThrow(id, project);
+        if (release.isReleased() && release.getGitReleaseId() > 0) {
+            throw new ConflictStateException("Release already published");
         }
         for (Task task : release.getTasks()) {
             if (!task.getStatus().isFinal()) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Release contains tasks not done");
+                throw new ConflictStateException("Release contains tasks not done");
             }
         }
         release.setReleased(true);
-        Release finalRelease = releaseRepository.save(release);
+        var finalRelease = releaseRepository.save(release);
         if (publishGitService) {
             return gitTaskService.publishRelease(finalRelease, branch).map(gitId -> {
                 finalRelease.setGitReleaseId(gitId);
@@ -174,25 +167,22 @@ public class ReleaseController {
         }
     }
 
-    @Operation(summary = "Delete a release", description = "Delete a release for a given project.")
-    @ApiResponse(description = "Release deleted", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project or release not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Deletes a release with a given ID.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of the project
+     * @param id        ID of the release
+     */
     @DeleteMapping("/{id}")
     public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long id) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        Release release = releaseRepository.findByIdOrThrow(id);
-        if (release.getProject().getId() != projectId) {
-            throw new ObjectNotFoundException();
-        }
-        if (release.getReleased()) {
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        var release = releaseRepository.findByIdAndProjectOrThrow(id, project);
+        if (release.isReleased()) {
             throw new ConflictStateException("cannot delete release that has already been released");
         }
-        release.softDelete();
-        releaseRepository.save(release);
+        releaseRepository.delete(release);
     }
+
 }

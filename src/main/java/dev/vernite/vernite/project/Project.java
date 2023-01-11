@@ -61,6 +61,7 @@ import dev.vernite.vernite.cdn.File;
 import dev.vernite.vernite.common.utils.counter.CounterSequence;
 import dev.vernite.vernite.integration.git.github.model.ProjectIntegration;
 import dev.vernite.vernite.projectworkspace.ProjectWorkspace;
+import dev.vernite.vernite.release.Release;
 import dev.vernite.vernite.sprint.Sprint;
 import dev.vernite.vernite.status.Status;
 import dev.vernite.vernite.user.User;
@@ -170,6 +171,17 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     @NotNull(message = "counter must be set")
     @OnDelete(action = OnDeleteAction.CASCADE)
     private List<Sprint> sprints = new ArrayList<>();
+
+    @Setter
+    @Getter
+    @JsonIgnore
+    @ToString.Exclude
+    @OrderBy("deadline DESC")
+    @EqualsAndHashCode.Exclude
+    @OneToMany(mappedBy = "project")
+    @NotNull(message = "releases must be set")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private List<Release> releases = new ArrayList<>();
 
     @Setter
     @Getter
