@@ -159,8 +159,8 @@ public class Release {
      * Setter for description value. It performs {@link String#trim()} on its
      * argument.
      * 
-     * @param name must not be {@literal null} and have at least one non-whitespace
-     *             character and less than 1000 characters
+     * @param description must not be {@literal null} and have at least one
+     *                    non-whitespace character and less than 1000 characters
      */
     public void setDescription(String description) {
         this.description = description.trim();
