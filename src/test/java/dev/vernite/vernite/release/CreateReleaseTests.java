@@ -1,7 +1,7 @@
 /*
  * BSD 2-Clause License
  * 
- * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * Copyright (c) 2023, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -25,10 +25,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.status;
+package dev.vernite.vernite.release;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.Date;
 
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -37,7 +39,7 @@ import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-class UpdateStatusTests {
+class CreateReleaseTests {
 
     private static Validator validator;
 
@@ -49,24 +51,19 @@ class UpdateStatusTests {
 
     @Test
     void validationValidTest() {
-        assertTrue(validator.validate(new UpdateStatus("Name", 1, 1, false, true)).isEmpty());
-        assertTrue(validator.validate(new UpdateStatus("  Name ", 1, 14, false, false)).isEmpty());
-        assertTrue(validator.validate(new UpdateStatus("  Name ", 65, 1, true, false)).isEmpty());
-        assertEquals(0, validator.validate(new UpdateStatus()).size());
-        assertEquals(0, validator.validate(new UpdateStatus("Name", null, 1, false, true)).size());
-        assertEquals(0, validator.validate(new UpdateStatus("Name", 1, null, false, true)).size());
-        assertEquals(0, validator.validate(new UpdateStatus("Name", 1, 1, null, true)).size());
-        assertEquals(0, validator.validate(new UpdateStatus("Name", 1, 1, false, null)).size());
-        assertEquals(0, validator.validate(new UpdateStatus(null, 1, 1, false, true)).size());
+        assertTrue(validator.validate(new CreateRelease("Name", "description", new Date())).isEmpty());
+        assertTrue(validator.validate(new CreateRelease("  Name ", "  description", new Date())).isEmpty());
+        assertTrue(validator.validate(new CreateRelease("  Name ", "", new Date())).isEmpty());
     }
 
     @Test
     void validationInvalidTest() {
-        assertEquals(1, validator.validate(new UpdateStatus(null, -1, 1, false, true)).size());
-        assertEquals(1, validator.validate(new UpdateStatus(null, 1, -1, false, true)).size());
-        assertEquals(2, validator.validate(new UpdateStatus("", 1, 1, false, true)).size());
-        assertEquals(1, validator.validate(new UpdateStatus("  ", 1, 1, false, true)).size());
-        assertEquals(1, validator.validate(new UpdateStatus("a".repeat(51), 1, 1, false, true)).size());
+        assertFalse(validator.validate(new CreateRelease()).isEmpty());
+        assertFalse(validator.validate(new CreateRelease("", "description", new Date())).isEmpty());
+        assertFalse(validator.validate(new CreateRelease("a".repeat(51), "description", new Date())).isEmpty());
+        assertFalse(validator.validate(new CreateRelease("Name", "a".repeat(1001), new Date())).isEmpty());
+        assertFalse(validator.validate(new CreateRelease("Name", null, new Date())).isEmpty());
+        assertFalse(validator.validate(new CreateRelease("Name", "null", null)).isEmpty());
     }
 
 }
