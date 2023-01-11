@@ -50,7 +50,7 @@ public class TaskRequest {
 
     @Schema(maxLength = 100, minLength = 1, description = "The name of the task. Trailing and leading whitespace are removed.")
     private Optional<String> name = Optional.empty();
-    @Schema(description = "The description of the task. Trailing and leading whitespace are removed.")
+    @Schema(maxLength = 100, description = "The description of the task. Trailing and leading whitespace are removed.")
     private Optional<String> description = Optional.empty();
     @Schema(description = "New status of the task.")
     private Optional<Long> statusId = Optional.empty();
@@ -132,6 +132,9 @@ public class TaskRequest {
     public void setDescription(String description) {
         if (description == null) {
             throw new FieldErrorException("description", NULL_VALUE);
+        }
+        if (description.length() > 1000) {
+            throw new FieldErrorException("description", "too long");
         }
         this.description = Optional.of(description.trim());
     }
