@@ -34,28 +34,21 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import dev.vernite.vernite.common.constraints.NullOrNotBlank;
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
-
 /**
  * Class containing information needed to update status entity.
  * Has required constraints annotated using Java Bean Validation.
  * It performs partial update using only present fields.
  */
-@ToString
+@Data
 @NoArgsConstructor
-@EqualsAndHashCode
 @AllArgsConstructor
 public class UpdateStatus {
 
     /**
      * New name for status. Must contain at least one non-whitespace character.
      */
-    @Setter
-    @Getter
     @Size(min = 1, max = 50, message = "status name must be shorter than 50 characters")
     @NullOrNotBlank(message = "status name must contain at least one non-whitespace character")
     private String name;
@@ -63,31 +56,23 @@ public class UpdateStatus {
     /**
      * New color for status. Must be a non negative number.
      */
-    @Setter
-    @Getter
     @PositiveOrZero(message = "status color must be a non negative number")
     private Integer color;
 
     /**
      * New order for status. Must be a non negative number.
      */
-    @Setter
-    @Getter
     @PositiveOrZero(message = "status order must be a non negative number")
     private Integer ordinal;
 
     /**
      * Flag indicating if status is begin status. Must be a boolean value.
      */
-    @Setter
-    @Getter
     private Boolean begin;
 
     /**
      * Flag indicating if status is final status. Must be a boolean value.
      */
-    @Setter
-    @Getter
     @JsonProperty("final")
     private Boolean isFinal;
 
