@@ -97,13 +97,13 @@ class StatusTests {
     @Test
     void updateTest() {
         Status status = new Status("Name", 0, 0, false, false, project);
-        status.update(new UpdateStatus("New Name", 1, 2, true, true));
+        status.update(new UpdateStatus("New Name", 1, 2, false, true));
 
         assertEquals("New Name", status.getName());
         assertEquals(1, status.getColor());
         assertEquals(2, status.getOrdinal());
         assertTrue(status.isFinal());
-        assertTrue(status.isBegin());
+        assertFalse(status.isBegin());
 
         status.update(new UpdateStatus("  New Name  ", 3, 4, false, false));
 

@@ -43,12 +43,13 @@ import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import dev.vernite.vernite.common.exception.ConflictStateException;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.task.Task;
+import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.ToString;
 
 import org.hibernate.annotations.OnDelete;
@@ -57,49 +58,35 @@ import org.hibernate.annotations.OnDeleteAction;
 /**
  * Entity representing a status of a task in project workflow.
  */
+@Data
 @Entity
-@ToString
 @NoArgsConstructor
-@EqualsAndHashCode
 public class Status {
 
     @Id
-    @Setter
-    @Getter
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @PositiveOrZero(message = "status id must be non negative number")
     private long id;
 
-    @Getter
     @Column(nullable = false, length = 50)
     @Size(min = 1, max = 50, message = "project name must be shorter than 50 characters")
     @NotBlank(message = "project name must contain at least one non-whitespace character")
     private String name;
 
-    @Setter
-    @Getter
     @Column(nullable = false)
     @PositiveOrZero(message = "status color must be non negative number")
     private int color;
 
-    @Setter
-    @Getter
     @Column(nullable = false)
     @PositiveOrZero(message = "status color must be non negative number")
     private int ordinal;
 
-    @Setter
-    @Getter
     @Column(nullable = false)
     private boolean isBegin;
 
-    @Setter
-    @Getter
     @Column(nullable = false)
     private boolean isFinal;
 
-    @Setter
-    @Getter
     @JsonIgnore
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
@@ -108,8 +95,6 @@ public class Status {
     @NotNull(message = "status must belong to a project")
     private Project project;
 
-    @Setter
-    @Getter
     @JsonIgnore
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
@@ -145,6 +130,9 @@ public class Status {
      */
     public Status(Project project, CreateStatus create) {
         this(create.getName(), create.getColor(), create.getOrdinal(), create.getIsFinal(), create.getBegin(), project);
+        if (this.isBegin() && this.isFinal()) {
+            throw new ConflictStateException("status cannot be begin and final at the same time");
+        }
     }
 
     /**
@@ -167,6 +155,9 @@ public class Status {
         }
         if (update.getIsFinal() != null) {
             setFinal(update.getIsFinal());
+        }
+        if (this.isBegin() && this.isFinal()) {
+            throw new ConflictStateException("status cannot be begin and final at the same time");
         }
     }
 

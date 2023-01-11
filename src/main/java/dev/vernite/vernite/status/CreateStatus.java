@@ -35,27 +35,21 @@ import jakarta.validation.constraints.Size;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
 
 /**
  * Class containing information needed to create new status entity.
  * Has required constraints annotated using Java Bean Validation.
  */
-@ToString
+@Data
 @NoArgsConstructor
-@EqualsAndHashCode
 @AllArgsConstructor
 public class CreateStatus {
 
     /**
      * Name for new status. Must contain at least one non-whitespace character.
      */
-    @Setter
-    @Getter
     @Size(min = 1, max = 50, message = "status name must be shorter than 50 characters")
     @NotBlank(message = "status name must contain at least one non-whitespace character")
     private String name;
@@ -63,8 +57,6 @@ public class CreateStatus {
     /**
      * Color for new status. Must be a non negative number.
      */
-    @Setter
-    @Getter
     @NotNull(message = "status color must be specified")
     @PositiveOrZero(message = "status color must be a non negative number")
     private Integer color;
@@ -72,8 +64,6 @@ public class CreateStatus {
     /**
      * Order for new status. Must be a non negative number.
      */
-    @Setter
-    @Getter
     @NotNull(message = "status order must be specified")
     @PositiveOrZero(message = "status order must be a non negative number")
     private Integer ordinal;
@@ -81,16 +71,12 @@ public class CreateStatus {
     /**
      * Flag indicating if new status is begin status. Must be a boolean value.
      */
-    @Setter
-    @Getter
     @NotNull(message = "begin status must be specified")
     private Boolean begin;
 
     /**
      * Flag indicating if new status is final status. Must be a boolean value.
      */
-    @Setter
-    @Getter
     @JsonProperty("final")
     @NotNull(message = "final status must be specified")
     private Boolean isFinal;
