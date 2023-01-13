@@ -83,7 +83,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 @RestController
 public class SlackController {
     private static final StateManager states = new StateManager();
-    private static final String FORMAT_URL = "https://vernite.slack.com/oauth?client_id=%s&scope=&user_scope=%s&state=%s&redirect_uri=&granular_bot_scope=1";
+    private static final String FORMAT_URL = "https://slack.com/oauth/v2/authorize?client_id=%s&scope=&user_scope=%s&state=%s&redirect_uri=&granular_bot_scope=1";
 
     @Autowired
     private App app;

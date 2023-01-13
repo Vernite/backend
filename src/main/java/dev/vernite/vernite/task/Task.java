@@ -165,7 +165,7 @@ public class Task extends SoftDeleteEntity {
     @OneToMany(mappedBy = "parentTask")
     @Where(clause = "active is null")
     @OrderBy("name, id")
-    private Set<Task> subTasks = new HashSet<>();
+    private List<Task> subTasks = new ArrayList<>();
 
     private Date deadline;
     private Date estimatedDate;
@@ -357,11 +357,11 @@ public class Task extends SoftDeleteEntity {
         this.parentTask = superTask;
     }
 
-    public Set<Task> getSubTasks() {
-        return type == TaskType.EPIC.ordinal() ? Set.of() : subTasks;
+    public List<Task> getSubTasks() {
+        return type == TaskType.EPIC.ordinal() ? List.of() : subTasks;
     }
 
-    public void setSubTasks(Set<Task> subTasks) {
+    public void setSubTasks(List<Task> subTasks) {
         this.subTasks = subTasks;
     }
 
