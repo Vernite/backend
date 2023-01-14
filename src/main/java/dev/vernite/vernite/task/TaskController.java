@@ -156,6 +156,9 @@ public class TaskController {
         User assignee = null;
         if (assigneeId.isPresent()) {
             assignee = userRepository.findById(assigneeId.get()).orElse(null);
+            if (!task.getStatus().getProject().isMember(assignee)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid assignee");
+            }
         }
         task.setAssignee(assignee);
     }
