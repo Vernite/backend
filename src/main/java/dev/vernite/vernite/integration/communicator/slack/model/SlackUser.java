@@ -42,7 +42,7 @@ public class SlackUser extends ChatUser {
      * @param user Slack user.
      */
     public SlackUser(User user) {
-        super(user.getColor(), user.getTeamId(), user.getName(), user.getProfile().getDisplayName(), user.isBot(),
+        super(user.getId(), user.getTeamId(), user.getName(), user.getProfile().getDisplayName(), user.isBot(),
                 user.getProfile().getImageOriginal(), "slack");
     }
 
