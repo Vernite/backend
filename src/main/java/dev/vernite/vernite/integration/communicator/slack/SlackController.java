@@ -52,6 +52,7 @@ import com.slack.api.methods.request.conversations.ConversationsListRequest;
 import com.slack.api.methods.request.conversations.ConversationsMembersRequest;
 import com.slack.api.methods.request.oauth.OAuthV2AccessRequest;
 import com.slack.api.methods.request.users.UsersInfoRequest;
+import com.slack.api.methods.request.users.UsersListRequest;
 import com.slack.api.methods.response.auth.AuthRevokeResponse;
 import com.slack.api.methods.response.conversations.ConversationsHistoryResponse;
 import com.slack.api.methods.response.conversations.ConversationsListResponse;
@@ -82,7 +83,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 @RestController
 public class SlackController {
     private static final StateManager states = new StateManager();
-    private static final String FORMAT_URL = "https://vernite.slack.com/oauth?client_id=%s&scope=&user_scope=%s&state=%s&redirect_uri=&granular_bot_scope=1";
+    private static final String FORMAT_URL = "https://slack.com/oauth/v2/authorize?client_id=%s&scope=&user_scope=%s&state=%s&redirect_uri=&granular_bot_scope=1";
 
     @Autowired
     private App app;
@@ -193,6 +194,25 @@ public class SlackController {
             throw new ExternalApiException("slack", "Cannot get user details");
         }
         return new SlackUser(response.getUser());
+    }
+
+    @Operation(summary = "Get usesrs", description = "Get users info")
+    @ApiResponse(description = "Slack users", responseCode = "200", content = @Content(schema = @Schema(implementation = ChatUser.class)))
+    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = "Integration with given id not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @GetMapping("/user/integration/slack/{id}/user")
+    public List<ChatUser> getUsers(@NotNull @Parameter(hidden = true) User user, @PathVariable long id)
+            throws IOException, SlackApiException {
+        SlackInstallation installation = installationRepository.findById(id).orElseThrow(ObjectNotFoundException::new);
+        if (installation.getUser().getId() != user.getId()) {
+            throw new ObjectNotFoundException();
+        }
+        var response = app.client()
+                .usersList(UsersListRequest.builder().token(installation.getToken()).build());
+        if (!response.isOk()) {
+            throw new ExternalApiException("slack", "Cannot get users");
+        }
+        return response.getMembers().stream().map(SlackUser::new).map(ChatUser.class::cast).toList();
     }
 
     @Operation(summary = "Get messages", description = "Get messages for slack channel")

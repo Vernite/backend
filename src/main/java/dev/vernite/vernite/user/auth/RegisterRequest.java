@@ -27,16 +27,68 @@
 
 package dev.vernite.vernite.user.auth;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+/**
+ * Class containing information needed to create new user entity.
+ * Has required constraints annotated using Java Bean Validation.
+ */
 @Data
 public class RegisterRequest {
+
+    /**
+     * Email for new user. Must be valid email.
+     */
+    @NotBlank(message = "email must be specified")
+    @Size(max = 320, message = "email must be shorter than 320 characters")
     private String email;
+
+    /**
+     * Password for new user. Must be at least 8 characters long.
+     */
+    @NotBlank(message = "password must be specified")
+    @Size(min = 8, max = 100, message = "password must be at least 8 characters long and shorter than 100 characters")
     private String password;
+
+    /**
+     * Name for new user. Must be at least 2 characters long.
+     */
+    @NotBlank(message = "name must be specified")
+    @Size(min = 2, max = 100, message = "name must be at least 2 characters long and shorter than 100 characters")
     private String name;
+
+    /**
+     * Surname for new user. Must be at least 2 characters long.
+     */
+    @NotBlank(message = "surname must be specified")
+    @Size(min = 2, max = 100, message = "surname must be at least 2 characters long and shorter than 100 characters")
     private String surname;
+
+    /**
+     * Username for new user. Must be at least 2 characters long.
+     */
+    @NotBlank(message = "username must be specified")
+    @Size(min = 1, max = 100, message = "username must be at least 2 characters long and shorter than 100 characters")
     private String username;
+
+    /**
+     * Language for new user.
+     */
+    @Size(max = 5, message = "language must be shorter than 5 characters")
     private String language;
+
+    /**
+     * Date format for new user.
+     */
+    @Size(max = 10, message = "date format must be shorter than 10 characters")
     private String dateFormat;
+
+    /**
+     * Solving of captcha for new user.
+     */
+    @NotBlank(message = "captcha must be specified")
+    @Size(max = 10000, message = "captcha must be shorter than 10000 characters")
     private String captcha;
 }

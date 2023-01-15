@@ -98,6 +98,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.Setter;
 
@@ -301,7 +302,7 @@ public class AuthController {
     @Operation(summary = "Modify user account", description = "This method edits the account.")
     @ApiResponse(responseCode = "200", description = "User after changes.")
     @PutMapping("/edit")
-    public User edit(@NotNull @Parameter(hidden = true) User loggedUser, @RequestBody EditAccountRequest req) {
+    public User edit(@NotNull @Parameter(hidden = true) User loggedUser, @RequestBody @Valid EditAccountRequest req) {
         if (req.getAvatar() != null) {
             loggedUser.setAvatar(req.getAvatar());
         }
@@ -351,28 +352,10 @@ public class AuthController {
     @ApiResponse(responseCode = "403", description = "User is already logged or invalid captcha.", content = @Content())
     @ApiResponse(responseCode = "422", description = "Username or email is already taken.", content = @Content())
     @PostMapping("/register")
-    public Future<User> register(@Parameter(hidden = true) User loggedUser, @RequestBody RegisterRequest req,
+    public Future<User> register(@Parameter(hidden = true) User loggedUser, @RequestBody @Valid RegisterRequest req,
             HttpServletRequest request, HttpServletResponse response) {
         if (loggedUser != null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "already logged");
-        }
-        if (req.getEmail() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing email");
-        }
-        if (req.getName() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing name");
-        }
-        if (req.getPassword() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing password");
-        }
-        if (req.getSurname() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing surname");
-        }
-        if (req.getUsername() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing username");
-        }
-        if (req.getCaptcha() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missing captcha");
         }
         if (req.getUsername().indexOf('@') != -1) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid character in username");

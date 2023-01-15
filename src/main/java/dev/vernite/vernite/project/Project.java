@@ -61,46 +61,40 @@ import dev.vernite.vernite.cdn.File;
 import dev.vernite.vernite.common.utils.counter.CounterSequence;
 import dev.vernite.vernite.integration.git.github.model.ProjectIntegration;
 import dev.vernite.vernite.projectworkspace.ProjectWorkspace;
+import dev.vernite.vernite.release.Release;
 import dev.vernite.vernite.sprint.Sprint;
 import dev.vernite.vernite.status.Status;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.utils.SoftDeleteEntity;
+import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.ToString;
 
 /**
  * Entity for representing project.
  */
+@Data
 @Entity
-@ToString
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class Project extends SoftDeleteEntity implements Comparable<Project> {
 
     @Id
-    @Setter
-    @Getter
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @PositiveOrZero(message = "project ID must be non negative number")
     private long id;
 
-    @Getter
     @Column(nullable = false, length = 50)
     @Size(min = 1, max = 50, message = "project name must be shorter than 50 characters")
     @NotBlank(message = "project name must contain at least one non-whitespace character")
     private String name;
 
-    @Getter
     @Column(nullable = false, length = 1000)
     @NotNull(message = "project description cannot be null")
     @Size(max = 1000, message = "project description must be shorter than 1000 characters")
     private String description;
 
-    @Setter
-    @Getter
     @JsonIgnore
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
@@ -109,8 +103,6 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     @NotNull(message = "project workspaces connection must be set")
     private List<ProjectWorkspace> projectWorkspaces = new ArrayList<>();
 
-    @Setter
-    @Getter
     @ManyToMany
     @JsonIgnore
     @ToString.Exclude
@@ -119,9 +111,6 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     @JoinTable(name = "project_workspace", joinColumns = @JoinColumn(name = "project_id", referencedColumnName = "id"), inverseJoinColumns = @JoinColumn(name = "workspace_user_id", referencedColumnName = "id"))
     private Set<User> users = new HashSet<>();
 
-    @Setter
-    @Getter
-    @JsonIgnore
     @ToString.Exclude
     @OrderBy("ordinal")
     @EqualsAndHashCode.Exclude
@@ -130,8 +119,6 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     @OneToMany(cascade = CascadeType.PERSIST, mappedBy = "project")
     private List<Status> statuses = new ArrayList<>();
 
-    @Setter
-    @Getter
     @JsonIgnore
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
@@ -140,8 +127,6 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     @OneToOne(cascade = CascadeType.PERSIST, optional = false)
     private CounterSequence taskCounter;
 
-    @Setter
-    @Getter
     @JsonIgnore
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
@@ -150,8 +135,6 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     @OneToOne(cascade = CascadeType.PERSIST, optional = false)
     private CounterSequence sprintCounter;
 
-    @Getter
-    @Setter
     @NotNull
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
@@ -159,8 +142,6 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private List<ProjectIntegration> githubProjectIntegrations = new ArrayList<>();
 
-    @Setter
-    @Getter
     @JsonIgnore
     @ToString.Exclude
     @OrderBy("number")
@@ -171,8 +152,15 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private List<Sprint> sprints = new ArrayList<>();
 
-    @Setter
-    @Getter
+    @JsonIgnore
+    @ToString.Exclude
+    @OrderBy("deadline DESC")
+    @EqualsAndHashCode.Exclude
+    @OneToMany(mappedBy = "project")
+    @NotNull(message = "releases must be set")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private List<Release> releases = new ArrayList<>();
+
     @ManyToOne
     @ToString.Exclude
     @EqualsAndHashCode.Exclude

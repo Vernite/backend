@@ -1,7 +1,7 @@
 /*
  * BSD 2-Clause License
  * 
- * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * Copyright (c) 2023, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -25,25 +25,42 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.communicator.slack.model;
+package dev.vernite.vernite.release;
 
-import com.slack.api.model.User;
+import jakarta.validation.constraints.Size;
 
-import dev.vernite.vernite.integration.communicator.model.ChatUser;
+import java.util.Date;
+
+import dev.vernite.vernite.common.constraints.NullOrNotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
- * Model representing a Slack user.
+ * Class containing information needed to update release entity.
+ * Has required constraints annotated using Java Bean Validation.
  */
-public class SlackUser extends ChatUser {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UpdateRelease {
 
     /**
-     * Creates a new Slack user.
-     * 
-     * @param user Slack user.
+     * Name for release. Must contain at least one non-whitespace character.
      */
-    public SlackUser(User user) {
-        super(user.getId(), user.getTeamId(), user.getName(), user.getProfile().getDisplayName(), user.isBot(),
-                user.getProfile().getImageOriginal(), "slack");
-    }
+    @Size(min = 1, max = 50, message = "release name must be between 1 and 50 characters long")
+    @NullOrNotBlank(message = "release name must contain at least one non-whitespace character")
+    private String name;
+
+    /**
+     * Description for release. Must contain at least one non-whitespace character.
+     */
+    @Size(max = 1000, message = "release description must be at most 1000 characters long")
+    private String description;
+
+    /**
+     * Date for release.
+     */
+    private Date deadline;
 
 }

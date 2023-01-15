@@ -1,7 +1,7 @@
 /*
  * BSD 2-Clause License
  * 
- * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * Copyright (c) 2023, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -25,25 +25,39 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.integration.communicator.slack.model;
+package dev.vernite.vernite.user;
 
-import com.slack.api.model.User;
+import java.util.List;
 
-import dev.vernite.vernite.integration.communicator.model.ChatUser;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import dev.vernite.vernite.task.Task;
+import dev.vernite.vernite.task.TaskRepository;
+import io.swagger.v3.oas.annotations.Parameter;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 
 /**
- * Model representing a Slack user.
+ * Controller responsible for logged user connected operations.
  */
-public class SlackUser extends ChatUser {
+@RestController
+@AllArgsConstructor
+@RequestMapping("/me")
+public class MeController {
+
+    private TaskRepository taskRepository;
 
     /**
-     * Creates a new Slack user.
+     * This method gets tasks assigned for logged in user.
      * 
-     * @param user Slack user.
+     * @param loggedUser logged user
+     * @return list with tasks
      */
-    public SlackUser(User user) {
-        super(user.getId(), user.getTeamId(), user.getName(), user.getProfile().getDisplayName(), user.isBot(),
-                user.getProfile().getImageOriginal(), "slack");
+    @GetMapping("/tasks")
+    public List<Task> getTasks(@NotNull @Parameter(hidden = true) User loggedUser) {
+        return taskRepository.findByAssigneeAndStatusIsFinalFalseAndActiveNull(loggedUser);
     }
 
 }

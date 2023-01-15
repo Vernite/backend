@@ -47,7 +47,7 @@ public interface StatusRepository extends CrudRepository<Status, Long> {
      *                                 not equal to status project
      */
     default Status findByIdAndProjectOrThrow(long id, Project project) throws EntityNotFoundException {
-        Status status = findById(id).orElseThrow(() -> new EntityNotFoundException("status", id));
+        var status = findById(id).orElseThrow(() -> new EntityNotFoundException("status", id));
         if (status.getProject().getId() != project.getId()) {
             throw new EntityNotFoundException("status", id);
         }
