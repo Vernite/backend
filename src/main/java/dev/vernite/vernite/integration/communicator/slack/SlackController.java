@@ -60,6 +60,7 @@ import com.slack.api.methods.response.oauth.OAuthV2AccessResponse;
 import com.slack.api.methods.response.users.UsersInfoResponse;
 import com.slack.api.model.ConversationType;
 
+import dev.vernite.vernite.common.utils.SecureRandomUtils;
 import dev.vernite.vernite.integration.communicator.model.Channel;
 import dev.vernite.vernite.integration.communicator.model.ChatUser;
 import dev.vernite.vernite.integration.communicator.slack.entity.SlackInstallation;
@@ -71,7 +72,6 @@ import dev.vernite.vernite.user.UserRepository;
 import dev.vernite.vernite.utils.ErrorType;
 import dev.vernite.vernite.utils.ExternalApiException;
 import dev.vernite.vernite.utils.ObjectNotFoundException;
-import dev.vernite.vernite.utils.SecureStringUtils;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.Operation;
@@ -101,7 +101,7 @@ public class SlackController {
             throws IOException {
         String userScope = app.config().getUserScope();
         String clientId = app.config().getClientId();
-        String state = SecureStringUtils.generateRandomSecureString();
+        String state = SecureRandomUtils.generateSecureRandomString();
         states.put(state, user.getId());
         httpServletResponse.sendRedirect(
                 String.format(FORMAT_URL, clientId, URLEncoder.encode(userScope, StandardCharsets.UTF_8), state));
