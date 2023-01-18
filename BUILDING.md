@@ -37,11 +37,25 @@ spring.mail.password=...
 spring.datasource.password=...
 githubKey=...
 maxmindPassword=...
+staticFolder=...
+slack.signingSecret=...
+slack.clientId=...
+slack.clientSecret=...
+slack.app.level.token=...
+github.client.secret=...
+recaptcha.secret=...
 ```
 - `spring.mail.password` - it's password to SMTP for sending emails. Other SMTP settings can be configured in `./src/main/resources/application.properties`.
 - `spring.datasource.password` - password to connect to the database. The default username when connecting is `vernite` (host `localhost:3306`)
 - `githubKey` - you need to create [GitHub App](https://docs.github.com/en/developers/apps/building-github-apps) and copy key
 - `maxmindPassword` - it is used to check the user location on the session list screen. You can generate a license key on the official [MaxMind](https://www.maxmind.com/en/accounts/current/license-key) website.
+- `staticFolder` - path to where static files will be stored
+- `slack.signingSecret` - slack application signing secret obtained from: [Slack apps](https://api.slack.com/apps)
+- `slack.clientId` - slack application client id obtained from: [Slack apps](https://api.slack.com/apps)
+- `slack.clientSecret` - slack application client secret obtained from: [Slack apps](https://api.slack.com/apps)
+- `slack.app.level.token` - slack application app level token obtained from: [Slack apps](https://api.slack.com/apps)
+- `github.client.secret` - github app client secret obtained from [Github apps](https://github.com/settings/apps)
+- `recaptcha.secret` - TODO: add description
 
 ### GitHub Application
 
@@ -62,6 +76,24 @@ From the `general` section go to `private keys` and `generate private key`. Conv
 openssl x509 -in cert.pem -out cert.der -outform DER
 ```
 Rename der file to `vernite-2022.private-key.der` and copy it to the working directory.
+
+### Slack Application
+
+To create a Slack application you need a Slack account.
+
+Go to [link](https://api.slack.com/apps) and create new app.
+In basic information tab create App-Level token and add it to `application.properties`.
+In `Add features and functionality` configure `Event subscriptions`:
+- Turn them on
+- Set request url to `YOUR_URL/api/integration/slack/events`
+- In section `Subscribe to events on behalf of users` select: `message.channels`, `message.groups`, `message.im`
+
+In `OAuth & Permission` section add redirect url: `YOUR_URL/api/integration/slack/oauth_redirect`.
+In `User Token Scopes` choose: `message.channels`, `message.groups`, `message.im`.
+
+### ReCaptcha setup
+
+TODO: add description
 
 ## Building
 
