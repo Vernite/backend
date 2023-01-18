@@ -28,10 +28,12 @@
 package dev.vernite.vernite;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.CacheControl;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
@@ -40,6 +42,7 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.mvc.WebContentInterceptor;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
@@ -82,6 +85,10 @@ public class WebConfig implements WebMvcConfigurer, WebSocketConfigurer {
         if (rateLimitEnabled) {
             registry.addInterceptor(new RateLimitInterceptor());
         }
+        var interceptor = new WebContentInterceptor();
+        interceptor.addCacheMapping(CacheControl.maxAge(30, TimeUnit.SECONDS)
+                .noTransform().mustRevalidate(), "/user/integration/slack/*/user");
+        registry.addInterceptor(interceptor);
     }
 
     @Override

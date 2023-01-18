@@ -25,22 +25,38 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.ws.packets;
+package dev.vernite.vernite.integration.communicator.slack;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
-import dev.vernite.protobuf.KeepAlive;
-import dev.vernite.vernite.ws.IHandler;
-import dev.vernite.vernite.ws.SocketSession;
+import com.slack.api.methods.SlackApiException;
 
-public class KeepAliveHandler implements IHandler<KeepAlive> {
+import dev.vernite.vernite.common.exception.error.ExternalApiError;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
-    private static final Logger L = LoggerFactory.getLogger(KeepAliveHandler.class);
+/**
+ * This class contains exception handler for {@link SlackApiException}.
+ */
+@ControllerAdvice
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public class SlackExceptionHandler {
 
-    @Override
-    public void handle(SocketSession session, KeepAlive packet) {
-        long t = System.currentTimeMillis() - packet.getId();
-        L.debug("KeepAlive from " + session + ": " + t + " ms");
+    /**
+     * Exception handler for {@link SlackApiException}.
+     * Maps exception to {@link ExternalApiError} with status code 503.
+     * 
+     * @param exception exception thrown during request processing
+     * @return error message with service name
+     */
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    @ExceptionHandler(SlackApiException.class)
+    public static @ResponseBody ExternalApiError handleSlackApiException(SlackApiException exception) {
+        return new ExternalApiError("slack");
     }
+
 }
