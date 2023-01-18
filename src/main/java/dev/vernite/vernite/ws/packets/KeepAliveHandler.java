@@ -27,7 +27,8 @@
 
 package dev.vernite.vernite.ws.packets;
 
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import dev.vernite.protobuf.KeepAlive;
 import dev.vernite.vernite.ws.IHandler;
@@ -35,11 +36,11 @@ import dev.vernite.vernite.ws.SocketSession;
 
 public class KeepAliveHandler implements IHandler<KeepAlive> {
 
-    private static final Logger L = Logger.getLogger("KeepAliveHandler");
+    private static final Logger L = LoggerFactory.getLogger(KeepAliveHandler.class);
 
     @Override
     public void handle(SocketSession session, KeepAlive packet) {
         long t = System.currentTimeMillis() - packet.getId();
-        L.info("KeepAlive from " + session + ": " + t + " ms");
+        L.debug("KeepAlive from " + session + ": " + t + " ms");
     }
 }
