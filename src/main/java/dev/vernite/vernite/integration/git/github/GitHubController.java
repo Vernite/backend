@@ -106,9 +106,13 @@ public class GitHubController {
      */
     @Hidden
     @GetMapping("/user/integration/git/github/authorize_callback")
-    public Mono<Void> authorizeCallback(@RequestParam String code, @RequestParam String state,
-            HttpServletResponse response) {
+    public Mono<Void> authorizeCallback(@RequestParam(required = false) String code,
+            @RequestParam(required = false) String state, HttpServletResponse response) throws IOException {
         Mono<Authorization> result = Mono.empty();
+        if (state == null || code == null) {
+            response.sendRedirect("/?path=/github?status=error");
+            return result.then();
+        }
         var id = STATE_MANAGER.retrieveState(state);
 
         if (id != null) {
@@ -120,9 +124,9 @@ public class GitHubController {
         }
 
         return result.map(value -> "/?path=/github&status=success")
-                .onErrorResume(error -> Mono.just("/?path=/github&status=error")).map(url -> {
+                .onErrorResume(error -> Mono.just("/?path=/github?status=error")).map(url -> {
                     try {
-                        response.sendRedirect("/?path=/github&status=success");
+                        response.sendRedirect("/?path=/github?status=success");
                     } catch (IOException e) {
                         throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                                 "Failed to redirect to " + url, e);
@@ -204,7 +208,8 @@ public class GitHubController {
     public void deleteProjectIntegration(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long id) {
         var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
-        var integration = projectIntegrationRepository.findByProject(project).orElseThrow(() -> new EntityNotFoundException("integration", id));
+        var integration = projectIntegrationRepository.findByProject(project)
+                .orElseThrow(() -> new EntityNotFoundException("integration", id));
         projectIntegrationRepository.delete(integration);
     }
 
