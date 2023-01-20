@@ -64,12 +64,23 @@ public class UserResolver implements HandlerMethodArgumentResolver {
                         break;
                     }
                     UserSession us = session.get();
-                    us.setIp(req.getHeader("X-Forwarded-For"));
-                    if (us.getIp() == null) {
-                        us.setIp(req.getRemoteAddr());
+                    boolean dirty = false;
+                    long now = System.currentTimeMillis();
+                    if (us.getLastUsed() == null || now - us.getLastUsed().getTime() >= 60_000) {
+                        us.setLastUsed(new Date(now));
+                        dirty = true;
                     }
-                    us.setLastUsed(new Date());
-                    userSessionRepository.save(us);
+                    String ip = req.getHeader("X-Forwarded-For");
+                    if (ip == null) {
+                        ip = req.getRemoteAddr();
+                    }
+                    if (!ip.equals(us.getIp())) {
+                        us.setIp(ip);
+                        dirty = true;
+                    }
+                    if (dirty) {
+                        userSessionRepository.save(us);
+                    }
                     if (us.getUser().isDeleted() && parameter.hasParameterAnnotation(NotNull.class)) {
                         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "user deleted");
                     }
