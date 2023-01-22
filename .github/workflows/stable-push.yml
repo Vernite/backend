@@ -13,3 +13,5 @@ jobs:
     uses: ./.github/workflows/deploy.yml
     with:
       configuration: vernite
+    secrets:
+      AUTO_DEPLOY_KEY: ${{ secrets.AUTO_DEPLOY_KEY }}

@@ -6,7 +6,7 @@ on:
 jobs:
   build:
     uses: ./.github/workflows/build-app.yml
-    with:
+    secrets:
       MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
       SPRING_APPLICATION_PROPERTIES: ${{ secrets.SPRING_APPLICATION_PROPERTIES }}
       VERNITE_2022_PRIVATE_KEY_PEM: ${{ secrets.VERNITE_2022_PRIVATE_KEY_PEM }}
@@ -16,12 +16,13 @@ jobs:
     uses: ./.github/workflows/deploy.yml
     with:
       configuration: vernite-dev
+    secrets:
       AUTO_DEPLOY_KEY: ${{ secrets.AUTO_DEPLOY_KEY }}
   
   sonar:
     needs: [build]
     uses: ./.github/workflows/sonar.yml
-    with:
+    secrets:
       MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
       SPRING_APPLICATION_PROPERTIES: ${{ secrets.SPRING_APPLICATION_PROPERTIES }}
       VERNITE_2022_PRIVATE_KEY_PEM: ${{ secrets.VERNITE_2022_PRIVATE_KEY_PEM }}
@@ -31,7 +32,7 @@ jobs:
   docs:
     needs: [build]
     uses: ./.github/workflows/docs.yml
-    with:
+    secrets:
       MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
       SPRING_APPLICATION_PROPERTIES: ${{ secrets.SPRING_APPLICATION_PROPERTIES }}
       VERNITE_2022_PRIVATE_KEY_PEM: ${{ secrets.VERNITE_2022_PRIVATE_KEY_PEM }}
