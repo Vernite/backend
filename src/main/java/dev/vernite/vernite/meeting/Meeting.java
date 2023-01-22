@@ -114,8 +114,8 @@ public class Meeting {
      */
     public Meeting(Project project, String name, String description, Date startDate, Date endDate) {
         this.project = project;
-        this.name = name;
-        this.description = description;
+        this.name = name.trim();
+        this.description = description.trim();
 
         if (startDate.after(endDate)) {
             throw new FieldErrorException("startDate", "start date must be before end date");
@@ -133,7 +133,7 @@ public class Meeting {
      */
     public Meeting(Project project, CreateMeeting create) {
         this(project, create.getName(), create.getDescription(), create.getStartDate(), create.getEndDate());
-        setLocation(location);
+        setLocation(create.getLocation());
     }
 
     /**
