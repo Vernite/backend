@@ -1,0 +1,36 @@
+name: Deploy to vernite server
+
+on:
+  workflow_call:
+    inputs:
+      config:
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    # needs: [build]
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout repository
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # Download cache
+      - name: Download cache
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: ${{ runner.os }}-build-${{ github.run_id }}
+
+      # Deploy to server using rsync
+      - name: Deploy app
+        run: |
+          eval $(ssh-agent -s)
+          echo "${{ secrets.AUTO_DEPLOY_KEY }}" | tr -d '\r' | ssh-add - > /dev/null
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -t rsa -p 2224 51.83.255.98 >> ~/.ssh/known_hosts
+          rsync -a -e 'ssh -p 2224' target/vernite*jar backend@51.83.255.98:~/${{ inputs.config }}.jar
+          ssh -p 2224 backend@51.83.255.98 "sudo /usr/bin/systemctl restart ${{ inputs.config }}.service"

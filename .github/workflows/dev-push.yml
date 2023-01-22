@@ -1,0 +1,25 @@
+name: Development checks
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build:
+    uses: ./.github/workflows/build-app.yml
+
+  deploy:
+    needs: [build]
+    uses: ./.github/workflows/deploy.yml
+    with:
+      configuration: vernite-dev
+  
+  sonar:
+    needs: [build]
+    uses: ./.github/workflows/sonar.yml
+
+  docs:
+    needs: [build]
+    uses: ./.github/workflows/docs.yml

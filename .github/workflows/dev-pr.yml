@@ -1,0 +1,11 @@
+name: Development PR checks
+
+on:
+  pull_request:
+    branches: [dev]
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build:
+    uses: ./.github/workflows/build-app.yml
