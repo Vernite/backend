@@ -5,9 +5,8 @@ on:
   workflow_call:
 
 jobs:
-  runs-on: ubuntu-latest
-
   build:
+    runs-on: ubuntu-latest
     steps:
       # Checkout repository
       - name: Checkout
