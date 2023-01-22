@@ -256,7 +256,7 @@ class WorkspaceControllerTests {
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk();
         assertNotEquals(false, workspaceRepository.findById(workspace.getId()).isEmpty());
 
-        Project project = new Project("DELETE");
+        Project project = new Project("DELETE", "");
         project.setActive(new Date());
         project = pRepo.save(project);
         Workspace workspace2 = workspaceRepository.save(new Workspace(1, "DELETE", user));
@@ -269,7 +269,7 @@ class WorkspaceControllerTests {
 
     @Test
     void deleteConflict(@Autowired ProjectRepository pRepo, @Autowired ProjectWorkspaceRepository pwRepo) {
-        Project project = pRepo.save(new Project("DELETE"));
+        Project project = pRepo.save(new Project("DELETE", ""));
         Workspace workspace = workspaceRepository.save(new Workspace(1, "DELETE", user));
         pwRepo.save(new ProjectWorkspace(project, workspace, 1L));
 

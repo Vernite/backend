@@ -104,7 +104,7 @@ class StatusControllerTests {
             session = userSessionRepository.findBySession("session_token_status_tests").orElseThrow();
         }
         workspace = workspaceRepository.save(new Workspace(1, "Project Tests", user));
-        project = projectRepository.save(new Project("Sprint Tests"));
+        project = projectRepository.save(new Project("Sprint Tests", ""));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
     }
 
@@ -159,7 +159,7 @@ class StatusControllerTests {
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange().expectStatus().isNotFound();
 
-        Project project2 = projectRepository.save(new Project("Sprint Tests 2"));
+        Project project2 = projectRepository.save(new Project("Sprint Tests 2", ""));
         client.get().uri("/project/{projectId}/status", project2.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange().expectStatus().isNotFound();
@@ -232,7 +232,7 @@ class StatusControllerTests {
                 .bodyValue(new CreateStatus("name", 1, 0, false, true))
                 .exchange().expectStatus().isNotFound();
 
-        Project project2 = projectRepository.save(new Project("Sprint Tests 2"));
+        Project project2 = projectRepository.save(new Project("Sprint Tests 2", ""));
         client.post().uri("/project/{projectId}/status", project2.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(new CreateStatus("name", 1, 0, false, true))
@@ -264,7 +264,7 @@ class StatusControllerTests {
         client.get().uri("/project/{projectId}/status/{statusId}", project.getId(), -1)
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
 
-        Project project2 = projectRepository.save(new Project("Sprint Tests 2"));
+        Project project2 = projectRepository.save(new Project("Sprint Tests 2", ""));
         client.get().uri("/project/{projectId}/status/{statusId}", project2.getId(), 1)
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
     }
@@ -314,7 +314,7 @@ class StatusControllerTests {
                 .bodyValue(new UpdateStatus("new name", 2, 1, true, false))
                 .exchange().expectStatus().isNotFound();
 
-        Project project2 = projectRepository.save(new Project("Sprint Tests 2"));
+        Project project2 = projectRepository.save(new Project("Sprint Tests 2", ""));
         client.put().uri("/project/{projectId}/status/{statusId}", project2.getId(), status.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(new UpdateStatus("new name", 2, 1, true, false))
@@ -347,7 +347,7 @@ class StatusControllerTests {
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange().expectStatus().isNotFound();
 
-        Project project2 = projectRepository.save(new Project("Sprint Tests 2"));
+        Project project2 = projectRepository.save(new Project("Sprint Tests 2", ""));
         Status status2 = statusRepository.save(new Status("name", 1, 0, false, true, project2));
         client.delete().uri("/project/{projectId}/status/{statusId}", project2.getId(), status2.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
