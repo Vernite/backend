@@ -48,7 +48,7 @@ public class MeetingEventProvider implements EventProvider {
 
     private static Event convert(Meeting meeting) {
         return new Event(meeting.getProject().getId(), Event.Type.MEETING, meeting.getId(), meeting.getName(),
-                meeting.getDescription(), meeting.getStartDate(), meeting.getEndDate(), null);
+                meeting.getDescription(), meeting.getStartDate(), meeting.getEndDate(), meeting.getLocation());
     }
 
     private MeetingRepository repository;

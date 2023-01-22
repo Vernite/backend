@@ -28,6 +28,7 @@
 package dev.vernite.vernite.meeting;
 
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Set;
 
 import jakarta.persistence.CascadeType;
@@ -38,137 +39,162 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.utils.FieldErrorException;
-import dev.vernite.vernite.utils.SoftDeleteEntity;
 
+/**
+ * Entity for representing meeting in project.
+ */
+@Data
 @Entity
-@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
-@JsonInclude(Include.NON_NULL)
-public class Meeting extends SoftDeleteEntity {
+@NoArgsConstructor
+public class Meeting {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @PositiveOrZero(message = "Id must be positive or zero")
     private long id;
 
     @Column(nullable = false, length = 50)
+    @Size(min = 1, max = 50, message = "name must be shorter than 50 characters")
+    @NotBlank(message = "name must contain at least one non-whitespace character")
     private String name;
 
     @Column(nullable = false, length = 1000)
+    @NotNull(message = "description cannot be null")
+    @Size(max = 1000, message = "description must be shorter than 1000 characters")
     private String description;
 
     @Column(length = 1000)
+    @Size(max = 1000, message = "location must be shorter than 1000 characters")
     private String location;
 
     @Column(nullable = false)
+    @NotNull(message = "start date cannot be null")
     private Date startDate;
 
     @Column(nullable = false)
+    @NotNull(message = "end date cannot be null")
     private Date endDate;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @ManyToOne(optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
+    @NotNull(message = "project connection must be set")
     private Project project;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @ManyToMany(cascade = CascadeType.MERGE)
-    private Set<User> participants;
+    @NotNull(message = "users connection must be set")
+    private Set<User> participants = new HashSet<>();
 
-    public Meeting() {
-    }
-
+    /**
+     * Default constructor for meeting.
+     * 
+     * @param project     project to which meeting belongs
+     * @param name        name of meeting
+     * @param description description of meeting
+     * @param startDate   start date of meeting
+     * @param endDate     end date of meeting
+     */
     public Meeting(Project project, String name, String description, Date startDate, Date endDate) {
         this.project = project;
         this.name = name;
         this.description = description;
+
+        if (startDate.after(endDate)) {
+            throw new FieldErrorException("startDate", "start date must be before end date");
+        }
+
         this.startDate = startDate;
         this.endDate = endDate;
     }
 
     /**
-     * Update meeting entity with request data.
+     * Constructor for meeting from create request.
      * 
-     * @param request request data
+     * @param project project to which meeting belongs
+     * @param create  create request
      */
-    public void update(MeetingRequest request) {
-        request.getName().ifPresent(this::setName);
-        request.getDescription().ifPresent(this::setDescription);
-        request.getLocation().ifPresent(this::setLocation);
-        request.getStartDate().ifPresent(this::setStartDate);
-        request.getEndDate().ifPresent(this::setEndDate);
+    public Meeting(Project project, CreateMeeting create) {
+        this(project, create.getName(), create.getDescription(), create.getStartDate(), create.getEndDate());
+        setLocation(location);
+    }
+
+    /**
+     * Update meeting from update request.
+     * 
+     * @param update update request
+     */
+    public void update(UpdateMeeting update) {
+        if (update.getName() != null) {
+            setName(update.getName());
+        }
+
+        if (update.getDescription() != null) {
+            setDescription(update.getDescription());
+        }
+
+        if (update.getLocation() != null) {
+            setLocation(update.getLocation());
+        }
+
+        if (update.getStartDate() != null) {
+            setStartDate(update.getStartDate());
+        }
+
+        if (update.getEndDate() != null) {
+            setEndDate(update.getEndDate());
+        }
 
         if (getStartDate().after(getEndDate())) {
             throw new FieldErrorException("date", "Start date must be before end date");
         }
     }
 
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
+    /**
+     * Set name of meeting. Trimmed to remove whitespace.
+     * 
+     * @param name name of meeting
+     */
     public void setName(String name) {
-        this.name = name;
+        this.name = name.trim();
     }
 
-    public String getDescription() {
-        return description;
-    }
-
+    /**
+     * Set description of meeting. Trimmed to remove whitespace.
+     * 
+     * @param description description of meeting
+     */
     public void setDescription(String description) {
-        this.description = description;
+        this.description = description.trim();
     }
 
-    public Date getStartDate() {
-        return startDate;
-    }
-
-    public void setStartDate(Date startDate) {
-        this.startDate = startDate;
-    }
-
-    public Date getEndDate() {
-        return endDate;
-    }
-
-    public void setEndDate(Date endDate) {
-        this.endDate = endDate;
-    }
-
-    public String getLocation() {
-        return location;
-    }
-
+    /**
+     * Set location of meeting. Trimmed to remove whitespace.
+     * 
+     * @param location location of meeting
+     */
     public void setLocation(String location) {
         this.location = location;
+        if (this.location != null) {
+            this.location = this.location.trim();
+        }
     }
 
-    public Set<User> getParticipants() {
-        return participants;
-    }
-
-    public void setParticipants(Set<User> participants) {
-        this.participants = participants;
-    }
-
-    public Project getProject() {
-        return project;
-    }
-
-    public void setProject(Project project) {
-        this.project = project;
-    }
 }

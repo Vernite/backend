@@ -28,6 +28,7 @@
 package dev.vernite.vernite.meeting;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.time.Instant;
@@ -104,7 +105,7 @@ public class MeetingControllerTests {
             session = userSessionRepository.findBySession("session_token_meeting_tests").orElseThrow();
         }
         workspace = workspaceRepository.save(new Workspace(1, "Project Tests", user));
-        project = projectRepository.save(new Project("Meeting Tests"));
+        project = projectRepository.save(new Project("Meeting Tests", ""));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
         user2 = userRepository.findByUsername("Username2Meetings");
         if (user2 == null) {
@@ -163,7 +164,7 @@ public class MeetingControllerTests {
         client.get().uri("/project/{projectId}/meeting", -1).cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange().expectStatus().isNotFound();
 
-        Project project2 = projectRepository.save(new Project("Sprint Tests 2"));
+        Project project2 = projectRepository.save(new Project("Sprint Tests 2", ""));
 
         client.get().uri("/project/{projectId}/meeting", project2.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
@@ -173,12 +174,12 @@ public class MeetingControllerTests {
     void createSuccess() {
         Meeting meeting = client.post().uri("/project/{projectId}/meeting", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new MeetingRequest("name", "desc", null, new Date(), Date.from(Instant.now().plusMillis(22)),
+                .bodyValue(new CreateMeeting("name", "desc", null, new Date(), Date.from(Instant.now().plusMillis(22)),
                         List.of(user2.getId(), user3.getId())))
                 .exchange()
                 .expectStatus().isOk().expectBody(Meeting.class).returnResult().getResponseBody();
         assertNotNull(meeting);
-        Meeting result = meetingRepository.findByIdOrThrow(meeting.getId());
+        Meeting result = meetingRepository.findByIdAndProjectOrThrow(meeting.getId(), project);
         meetingEquals(meeting, result);
         assertEquals(1, result.getParticipants().size());
     }
@@ -188,13 +189,13 @@ public class MeetingControllerTests {
         client.post().uri("/project/{projectId}/meeting", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(
-                        new MeetingRequest("name", "desc", null, new Date(), Date.from(Instant.now().minusMillis(22)),
+                        new CreateMeeting("name", "desc", null, new Date(), Date.from(Instant.now().minusMillis(22)),
                                 null))
                 .exchange().expectStatus().isBadRequest();
 
         client.post().uri("/project/{projectId}/meeting", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new MeetingRequest(null, "desc", null, Date.from(Instant.now().plusMillis(22)), new Date(),
+                .bodyValue(new CreateMeeting(null, "desc", null, Date.from(Instant.now().plusMillis(22)), new Date(),
                         null))
                 .exchange().expectStatus().isBadRequest();
     }
@@ -203,11 +204,11 @@ public class MeetingControllerTests {
     void createUnauthorized() {
         client.post().uri("/project/{projectId}/meeting", project.getId())
                 .cookie(AuthController.COOKIE_NAME, "invalid_session_token")
-                .bodyValue(new MeetingRequest("name", "desc", null, new Date(), Date.from(Instant.now().plusMillis(22)),
+                .bodyValue(new CreateMeeting("name", "desc", null, new Date(), Date.from(Instant.now().plusMillis(22)),
                         null))
                 .exchange().expectStatus().isUnauthorized();
         client.post().uri("/project/{projectId}/meeting", project.getId())
-                .bodyValue(new MeetingRequest("name", "desc", null, new Date(), Date.from(Instant.now().plusMillis(22)),
+                .bodyValue(new CreateMeeting("name", "desc", null, new Date(), Date.from(Instant.now().plusMillis(22)),
                         null))
                 .exchange().expectStatus().isUnauthorized();
     }
@@ -216,15 +217,15 @@ public class MeetingControllerTests {
     void createNotFound() {
         client.post().uri("/project/{projectId}/meeting", -1)
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new MeetingRequest("name", "desc", null, new Date(), Date.from(Instant.now().plusMillis(22)),
+                .bodyValue(new CreateMeeting("name", "desc", null, new Date(), Date.from(Instant.now().plusMillis(22)),
                         null))
                 .exchange().expectStatus().isNotFound();
 
-        Project project2 = projectRepository.save(new Project("Sprint Tests 2"));
+        Project project2 = projectRepository.save(new Project("Sprint Tests 2", ""));
 
         client.post().uri("/project/{projectId}/meeting", project2.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new MeetingRequest("name", "desc", null, new Date(), Date.from(Instant.now().plusMillis(22)),
+                .bodyValue(new CreateMeeting("name", "desc", null, new Date(), Date.from(Instant.now().plusMillis(22)),
                         null))
                 .exchange().expectStatus().isNotFound();
     }
@@ -259,7 +260,7 @@ public class MeetingControllerTests {
         client.get().uri("/project/{projectId}/meeting/{meetingId}", project.getId(), -1)
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
 
-        Project project2 = projectRepository.save(new Project("Sprint Tests 2"));
+        Project project2 = projectRepository.save(new Project("Sprint Tests 2", ""));
 
         client.get().uri("/project/{projectId}/meeting/{meetingId}", project2.getId(), meeting.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
@@ -278,7 +279,7 @@ public class MeetingControllerTests {
         meeting.setDescription("desc");
         Meeting result = client.put().uri("/project/{projectId}/meeting/{meetingId}", project.getId(), meeting.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new MeetingRequest("name", "desc", null, null, null, List.of(user2.getId(), user3.getId())))
+                .bodyValue(new UpdateMeeting("name", "desc", null, null, null, List.of(user2.getId(), user3.getId())))
                 .exchange()
                 .expectStatus().isOk().expectBody(Meeting.class).returnResult().getResponseBody();
         assertNotNull(result);
@@ -292,17 +293,17 @@ public class MeetingControllerTests {
                 Date.from(Instant.now().plusMillis(1000))));
         client.put().uri("/project/{projectId}/meeting/{meetingId}", project.getId(), meeting.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new MeetingRequest("", "desc", null, null, null, null))
+                .bodyValue(new UpdateMeeting("", "desc", null, null, null, null))
                 .exchange().expectStatus().isBadRequest();
 
         client.put().uri("/project/{projectId}/meeting/{meetingId}", project.getId(), meeting.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new MeetingRequest("a".repeat(51), null, null, null, null, null))
+                .bodyValue(new UpdateMeeting("a".repeat(51), null, null, null, null, null))
                 .exchange().expectStatus().isBadRequest();
 
         client.put().uri("/project/{projectId}/meeting/{meetingId}", project.getId(), meeting.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new MeetingRequest("name", null, null, new Date(),
+                .bodyValue(new UpdateMeeting("name", null, null, new Date(),
                         Date.from(Instant.now().minusMillis(1000)), null))
                 .exchange().expectStatus().isBadRequest();
     }
@@ -313,10 +314,10 @@ public class MeetingControllerTests {
                 Date.from(Instant.now().plusMillis(1000))));
         client.put().uri("/project/{projectId}/meeting/{meetingId}", project.getId(), meeting.getId())
                 .cookie(AuthController.COOKIE_NAME, "invalid_session_token")
-                .bodyValue(new MeetingRequest("name", "desc", null, null, null, null))
+                .bodyValue(new UpdateMeeting("name", "desc", null, null, null, null))
                 .exchange().expectStatus().isUnauthorized();
         client.put().uri("/project/{projectId}/meeting/{meetingId}", project.getId(), meeting.getId())
-                .bodyValue(new MeetingRequest("name", "desc", null, null, null, null))
+                .bodyValue(new UpdateMeeting("name", "desc", null, null, null, null))
                 .exchange().expectStatus().isUnauthorized();
     }
 
@@ -326,25 +327,25 @@ public class MeetingControllerTests {
                 Date.from(Instant.now().plusMillis(1000))));
         client.put().uri("/project/{projectId}/meeting/{meetingId}", -1, meeting.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new MeetingRequest("name", "desc", null, null, null, null))
+                .bodyValue(new UpdateMeeting("name", "desc", null, null, null, null))
                 .exchange().expectStatus().isNotFound();
         client.put().uri("/project/{projectId}/meeting/{meetingId}", project.getId(), -1)
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new MeetingRequest("name", "desc", null, null, null, null))
+                .bodyValue(new UpdateMeeting("name", "desc", null, null, null, null))
                 .exchange().expectStatus().isNotFound();
 
-        Project project2 = projectRepository.save(new Project("Sprint Tests 2"));
+        Project project2 = projectRepository.save(new Project("Sprint Tests 2", ""));
 
         client.put().uri("/project/{projectId}/meeting/{meetingId}", project2.getId(), meeting.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new MeetingRequest("name", "desc", null, null, null, null))
+                .bodyValue(new UpdateMeeting("name", "desc", null, null, null, null))
                 .exchange().expectStatus().isNotFound();
 
         projectWorkspaceRepository.save(new ProjectWorkspace(project2, workspace, 1L));
 
         client.put().uri("/project/{projectId}/meeting/{meetingId}", project2.getId(), meeting.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new MeetingRequest("name", "desc", null, null, null, null))
+                .bodyValue(new UpdateMeeting("name", "desc", null, null, null, null))
                 .exchange().expectStatus().isNotFound();
     }
 
@@ -354,7 +355,7 @@ public class MeetingControllerTests {
                 Date.from(Instant.now().plusMillis(1000))));
         client.delete().uri("/project/{projectId}/meeting/{meetingId}", project.getId(), meeting.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk();
-        assertNotNull(meetingRepository.findById(meeting.getId()).get().getActive());
+        assertFalse(meetingRepository.findById(meeting.getId()).isPresent());
     }
 
     @Test
@@ -376,7 +377,7 @@ public class MeetingControllerTests {
         client.delete().uri("/project/{projectId}/meeting/{meetingId}", project.getId(), -1)
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
 
-        Project project2 = projectRepository.save(new Project("Sprint Tests 2"));
+        Project project2 = projectRepository.save(new Project("Sprint Tests 2", ""));
 
         client.delete().uri("/project/{projectId}/meeting/{meetingId}", project2.getId(), meeting.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
