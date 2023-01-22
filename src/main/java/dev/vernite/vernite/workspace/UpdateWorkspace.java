@@ -31,28 +31,22 @@ import jakarta.validation.constraints.Size;
 
 import dev.vernite.vernite.common.constraints.NullOrNotBlank;
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
 
 /**
  * Class containing information needed to update workspace entity.
  * Has required constraints annotated using Java Bean Validation.
  * It performs partial update using only present fields.
  */
-@ToString
+@Data
 @NoArgsConstructor
-@EqualsAndHashCode
 @AllArgsConstructor
 public class UpdateWorkspace {
 
     /**
      * New name for workspace. Must contain at least one non-whitespace character.
      */
-    @Setter
-    @Getter
     @Size(min = 1, max = 50, message = "workspace name must be shorter than 50 characters")
     @NullOrNotBlank(message = "workspace name must contain at least one non-whitespace character")
     private String name;

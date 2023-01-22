@@ -31,27 +31,21 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
 
 /**
  * Class containing information needed to create new workspace entity.
  * Has required constraints annotated using Java Bean Validation.
  */
-@ToString
+@Data
 @NoArgsConstructor
-@EqualsAndHashCode
 @AllArgsConstructor
 public class CreateWorkspace {
 
     /**
      * Name for new workspace. Must contain at least one non-whitespace character.
      */
-    @Setter
-    @Getter
     @Size(min = 1, max = 50, message = "workspace name must be shorter than 50 characters")
     @NotBlank(message = "workspace name must contain at least one non-whitespace character")
     private String name;

@@ -30,26 +30,33 @@ package dev.vernite.vernite.meeting;
 import java.util.Date;
 import java.util.List;
 
-import org.springframework.data.domain.Sort;
-import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.repository.CrudRepository;
 
+import dev.vernite.vernite.common.exception.EntityNotFoundException;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.user.User;
-import dev.vernite.vernite.utils.SoftDeleteRepository;
 
-public interface MeetingRepository extends SoftDeleteRepository<Meeting, Long>, JpaSpecificationExecutor<Meeting> {
+/**
+ * CRUD repository for meeting entity.
+ */
+public interface MeetingRepository extends CrudRepository<Meeting, Long>, JpaSpecificationExecutor<Meeting> {
+
     /**
-     * Finds a meeting by its id and project sorted by date.
+     * Finds a meeting by its ID and project.
      * 
-     * @param project the project.
-     * @return list of meetings.
+     * @param id      meeting ID
+     * @param project project
+     * @return meeting with given ID and project
+     * @throws EntityNotFoundException thrown when meeting with given ID and project
+     *                                 does not exist
      */
-    default List<Meeting> findAllByProjectAndActiveNullSorted(Project project) {
-        return findAll((root, query, cb) -> {
-            return cb.and(cb.equal(root.get("project"), project),
-                    cb.isNull(root.get("active")));
-        }, Sort.by(Direction.ASC, "startDate", "endDate", "name"));
+    default Meeting findByIdAndProjectOrThrow(Long id, Project project) throws EntityNotFoundException {
+        var meeting = findById(id).orElseThrow(() -> new EntityNotFoundException("meeting", id));
+        if (meeting.getProject().getId() != project.getId()) {
+            throw new EntityNotFoundException("meeting", id);
+        }
+        return meeting;
     }
 
     /**
@@ -63,8 +70,7 @@ public interface MeetingRepository extends SoftDeleteRepository<Meeting, Long>, 
     default List<Meeting> findMeetingsByProjectAndDate(Project project, Date startDate, Date endDate) {
         return findAll((root, query, cb) -> {
             return cb.and(cb.equal(root.get("project"), project),
-                    cb.between(root.get("startDate"), startDate, endDate),
-                    cb.isNull(root.get("active")));
+                    cb.between(root.get("startDate"), startDate, endDate));
         });
     }
 
@@ -79,8 +85,8 @@ public interface MeetingRepository extends SoftDeleteRepository<Meeting, Long>, 
     default List<Meeting> findMeetingsByUserAndDate(User user, Date startDate, Date endDate) {
         return findAll((root, query, cb) -> {
             return cb.and(cb.equal(root.join("participants"), user),
-                    cb.between(root.get("startDate"), startDate, endDate),
-                    cb.isNull(root.get("active")));
+                    cb.between(root.get("startDate"), startDate, endDate));
         });
     }
+
 }

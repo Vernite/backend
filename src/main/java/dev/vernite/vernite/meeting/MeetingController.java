@@ -29,10 +29,12 @@ package dev.vernite.vernite.meeting;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -46,128 +48,119 @@ import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.project.ProjectRepository;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.user.UserRepository;
-import dev.vernite.vernite.utils.ErrorType;
-import dev.vernite.vernite.utils.ObjectNotFoundException;
 
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
+/**
+ * Rest controller for performing CRUD operations on Meeting entities.
+ */
 @RestController
+@AllArgsConstructor
 @RequestMapping("project/{projectId}/meeting")
 public class MeetingController {
-    @Autowired
+
     private ProjectRepository projectRepository;
 
-    @Autowired
     private MeetingRepository meetingRepository;
 
-    @Autowired
     private UserRepository userRepository;
 
-    @Operation(summary = "Get all meetings of a project", description = "Get all meetings of a project. The user must be a member of the project.")
-    @ApiResponse(description = "The list of meetings.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "The project does not exist.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Get all meetings of a project. The user must be a member of the project.
+     * 
+     * @param user      logged in user
+     * @param projectId id of the project
+     * @return list of meetings sorted by date
+     */
     @GetMapping
     public List<Meeting> getAll(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        return meetingRepository.findAllByProjectAndActiveNullSorted(project);
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        return project.getMeetings();
     }
 
-    @Operation(summary = "Create a meeting", description = "Create a meeting. The user must be a member of the project.")
-    @ApiResponse(description = "The meeting.", responseCode = "200")
-    @ApiResponse(description = "Some fields are not correct.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "The project does not exist.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Create a meeting. The user must be a member of the project.
+     * 
+     * @param user      logged in user
+     * @param projectId id of the project
+     * @param create    meeting to create
+     * @return created meeting
+     */
     @PostMapping
     public Meeting create(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @RequestBody MeetingRequest request) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
+            @RequestBody @Valid CreateMeeting create) {
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        var meeting = new Meeting(project, create);
+
+        if (create.getParticipantIds() != null) {
+            meeting.setParticipants(findParticipants(project, create.getParticipantIds()));
         }
-        Meeting meeting = request.createEntity(project);
-        request.getParticipantIds().ifPresent(participantIds -> {
-            HashSet<User> participants = new HashSet<>();
-            userRepository.findAllById(participantIds).forEach(participant -> {
-                if (project.member(participant) != -1) {
-                    participants.add(participant);
-                }
-            });
-            meeting.setParticipants(participants);
-        });
+
         return meetingRepository.save(meeting);
     }
 
-    @Operation(summary = "Get a meeting", description = "Get a meeting. The user must be a member of the project.")
-    @ApiResponse(description = "The meeting.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "The project or the meeting does not exist.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @GetMapping("/{meetingId}")
+    /**
+     * Get a meeting. The user must be a member of the project.
+     * 
+     * @param user      logged in user
+     * @param projectId id of the project
+     * @param id        id of the meeting
+     * @return the meeting
+     */
+    @GetMapping("/{id}")
     public Meeting get(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @PathVariable long meetingId) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        Meeting meeting = meetingRepository.findByIdOrThrow(meetingId);
-        if (meeting.getProject().getId() != projectId) {
-            throw new ObjectNotFoundException();
-        }
-        return meeting;
+            @PathVariable long id) {
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        return meetingRepository.findByIdAndProjectOrThrow(id, project);
     }
 
-    @Operation(summary = "Update a meeting", description = "Update a meeting. The user must be a member of the project.")
-    @ApiResponse(description = "The meeting.", responseCode = "200")
-    @ApiResponse(description = "Some fields are not correct.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "The project or the meeting does not exist.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @PutMapping("/{meetingId}")
+    /**
+     * Update a meeting. The user must be a member of the project.
+     * 
+     * @param user      logged in user
+     * @param projectId id of the project
+     * @param id        id of the meeting
+     * @param update    data to update
+     * @return updated meeting
+     */
+    @PutMapping("/{id}")
     public Meeting update(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @PathVariable long meetingId, @RequestBody MeetingRequest request) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
+            @PathVariable long id, @RequestBody @Valid UpdateMeeting update) {
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        var meeting = meetingRepository.findByIdAndProjectOrThrow(id, project);
+
+        meeting.update(update);
+
+        if (update.getParticipantIds() != null) {
+            meeting.setParticipants(findParticipants(project, update.getParticipantIds()));
         }
-        Meeting meeting = meetingRepository.findByIdOrThrow(meetingId);
-        if (meeting.getProject().getId() != projectId) {
-            throw new ObjectNotFoundException();
-        }
-        meeting.update(request);
-        request.getParticipantIds().ifPresent(participantIds -> {
-            HashSet<User> participants = new HashSet<>();
-            userRepository.findAllById(participantIds).forEach(participant -> {
-                if (project.member(participant) != -1) {
-                    participants.add(participant);
-                }
-            });
-            meeting.setParticipants(participants);
-        });
+
         return meetingRepository.save(meeting);
     }
 
-    @Operation(summary = "Delete a meeting", description = "Delete a meeting. The user must be a member of the project.")
-    @ApiResponse(description = "The meeting deleted.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "The project or the meeting does not exist.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @DeleteMapping("/{meetingId}")
-    public Meeting delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @PathVariable long meetingId) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        Meeting meeting = meetingRepository.findByIdOrThrow(meetingId);
-        if (meeting.getProject().getId() != projectId) {
-            throw new ObjectNotFoundException();
-        }
-        meeting.softDelete();
-        return meetingRepository.save(meeting);
+    /**
+     * Delete a meeting. The user must be a member of the project.
+     * 
+     * @param user      logged in user
+     * @param projectId id of the project
+     * @param id        id of the meeting
+     */
+    @DeleteMapping("/{id}")
+    public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long id) {
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        var meeting = meetingRepository.findByIdAndProjectOrThrow(id, project);
+        meetingRepository.delete(meeting);
     }
+
+    private Set<User> findParticipants(Project project, List<Long> participantIds) {
+        var participants = new HashSet<User>();
+        userRepository.findAllById(participantIds).forEach(participant -> {
+            if (project.isMember(participant)) {
+                participants.add(participant);
+            }
+        });
+        return participants;
+    }
+
 }

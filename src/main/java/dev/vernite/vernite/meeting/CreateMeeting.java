@@ -1,7 +1,7 @@
 /*
  * BSD 2-Clause License
  * 
- * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * Copyright (c) 2023, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -25,45 +25,62 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.project;
+package dev.vernite.vernite.meeting;
+
+import java.util.Date;
+import java.util.List;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Class containing information needed to create new project entity.
+ * Class containing information needed to create new meeting entity.
  * Has required constraints annotated using Java Bean Validation.
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateProject {
+public class CreateMeeting {
 
     /**
-     * Name for new project. Must contain at least one non-whitespace character.
+     * Name for new meeting. Must contain at least one non-whitespace character.
      */
-    @Size(min = 1, max = 50, message = "project name must be shorter than 50 characters")
-    @NotBlank(message = "project name must contain at least one non-whitespace character")
+    @Size(min = 1, max = 50, message = "meeting name must be shorter than 50 characters")
+    @NotBlank(message = "meeting name must contain at least one non-whitespace character")
     private String name;
 
     /**
-     * Description for new project.
+     * Description for new meeting.
      */
-    @NotNull(message = "description cannot be null")
-    @Size(max = 1000, message = "project description must be shorter than 1000 characters")
+    @NotNull(message = "meeting description must not be null")
+    @Size(max = 1000, message = "meeting description must be shorter than 1000 characters")
     private String description;
 
     /**
-     * Workspace ID for new project.
+     * Location for new meeting.
      */
-    @NotNull(message = "workspace ID cannot be null")
-    @Positive(message = "workspace ID must be positive")
-    private Long workspaceId;
+    @Size(max = 1000, message = "meeting location must be shorter than 1000 characters")
+    private String location;
+
+    /**
+     * Start date for new meeting.
+     */
+    @NotNull(message = "meeting start date must not be null")
+    private Date startDate;
+
+    /**
+     * End date for new meeting.
+     */
+    @NotNull(message = "meeting end date must not be null")
+    private Date endDate;
+
+    /**
+     * List of participants for new meeting.
+     */
+    private List<Long> participantIds;
 
 }

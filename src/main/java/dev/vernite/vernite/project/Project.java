@@ -60,6 +60,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import dev.vernite.vernite.cdn.File;
 import dev.vernite.vernite.common.utils.counter.CounterSequence;
 import dev.vernite.vernite.integration.git.github.model.ProjectIntegration;
+import dev.vernite.vernite.meeting.Meeting;
 import dev.vernite.vernite.projectworkspace.ProjectWorkspace;
 import dev.vernite.vernite.release.Release;
 import dev.vernite.vernite.sprint.Sprint;
@@ -160,6 +161,15 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     @NotNull(message = "releases must be set")
     @OnDelete(action = OnDeleteAction.CASCADE)
     private List<Release> releases = new ArrayList<>();
+
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @OrderBy("startDate, endDate")
+    @OneToMany(mappedBy = "project")
+    @NotNull(message = "meetings must be set")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private List<Meeting> meetings = new ArrayList<>();
 
     @ManyToOne
     @ToString.Exclude
