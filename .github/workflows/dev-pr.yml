@@ -1,0 +1,13 @@
+name: Development PR checks
+
+on:
+  pull_request:
+    branches: [dev]
+
+jobs:
+  build:
+    uses: ./.github/workflows/build-app.yml
+    secrets:
+      MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+      SPRING_APPLICATION_PROPERTIES: ${{ secrets.SPRING_APPLICATION_PROPERTIES }}
+      VERNITE_2022_PRIVATE_KEY_PEM: ${{ secrets.VERNITE_2022_PRIVATE_KEY_PEM }}
