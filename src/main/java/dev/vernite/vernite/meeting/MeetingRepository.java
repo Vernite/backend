@@ -30,8 +30,6 @@ package dev.vernite.vernite.meeting;
 import java.util.Date;
 import java.util.List;
 
-import org.springframework.data.domain.Sort;
-import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.repository.CrudRepository;
 
@@ -59,18 +57,6 @@ public interface MeetingRepository extends CrudRepository<Meeting, Long>, JpaSpe
             throw new EntityNotFoundException("meeting", id);
         }
         return meeting;
-    }
-
-    /**
-     * Finds a meeting by its id and project sorted by date.
-     * 
-     * @param project the project.
-     * @return list of meetings.
-     */
-    default List<Meeting> findAllByProjectAndActiveNullSorted(Project project) {
-        return findAll((root, query, cb) -> {
-            return cb.equal(root.get("project"), project);
-        }, Sort.by(Direction.ASC, "startDate", "endDate", "name"));
     }
 
     /**

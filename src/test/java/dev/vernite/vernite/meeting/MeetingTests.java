@@ -114,6 +114,14 @@ class MeetingTests {
         assertEquals(new Date(1000), meeting.getStartDate());
         assertEquals(new Date(2000), meeting.getEndDate());
 
+        meeting.update(new UpdateMeeting());
+
+        assertEquals("NewName", meeting.getName());
+        assertEquals("NewDescription", meeting.getDescription());
+        assertEquals("NewLocation", meeting.getLocation());
+        assertEquals(new Date(1000), meeting.getStartDate());
+        assertEquals(new Date(2000), meeting.getEndDate());
+
         assertThrows(FieldErrorException.class,
                 () -> meeting.update(new UpdateMeeting("", "", null, null, new Date(1), null)));
     }
