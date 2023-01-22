@@ -3,9 +3,6 @@ name: Development checks
 on:
   push:
     branches: [dev]
-  workflow_dispatch:
-  workflow_call:
-
 jobs:
   build:
     uses: ./.github/workflows/build-app.yml
