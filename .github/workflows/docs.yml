@@ -64,14 +64,14 @@ jobs:
 
       # Upload code coverage
       - name: Generate code coverage
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: target/site/jacoco/jacoco.xml
 
       # Deploy to GitHub Pages
       - name: Deploy
-        uses: JamesIves/github-pages-deploy-action@4.1.7
+        uses: JamesIves/github-pages-deploy-action@4
         with:
           branch: gh-pages
           folder: target/site
