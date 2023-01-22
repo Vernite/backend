@@ -33,27 +33,21 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
 
 /**
  * Class containing information needed to create new project entity.
  * Has required constraints annotated using Java Bean Validation.
  */
-@ToString
+@Data
 @NoArgsConstructor
-@EqualsAndHashCode
 @AllArgsConstructor
 public class CreateProject {
 
     /**
      * Name for new project. Must contain at least one non-whitespace character.
      */
-    @Setter
-    @Getter
     @Size(min = 1, max = 50, message = "project name must be shorter than 50 characters")
     @NotBlank(message = "project name must contain at least one non-whitespace character")
     private String name;
@@ -61,8 +55,6 @@ public class CreateProject {
     /**
      * Description for new project.
      */
-    @Setter
-    @Getter
     @NotNull(message = "description cannot be null")
     @Size(max = 1000, message = "project description must be shorter than 1000 characters")
     private String description;
@@ -70,8 +62,6 @@ public class CreateProject {
     /**
      * Workspace ID for new project.
      */
-    @Setter
-    @Getter
     @NotNull(message = "workspace ID cannot be null")
     @Positive(message = "workspace ID must be positive")
     private Long workspaceId;
