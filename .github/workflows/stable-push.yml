@@ -12,6 +12,6 @@ jobs:
     needs: [build]
     uses: ./.github/workflows/deploy.yml
     with:
-      configuration: vernite
+      config: vernite
     secrets:
       AUTO_DEPLOY_KEY: ${{ secrets.AUTO_DEPLOY_KEY }}
