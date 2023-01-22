@@ -9,8 +9,6 @@ on:
         required: true
       VERNITE_2022_PRIVATE_KEY_PEM:
         required: true
-      GITHUB_TOKEN:
-        required: true
       SONAR_TOKEN:
         required: true
       SONAR_HOST_URL:
