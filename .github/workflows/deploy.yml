@@ -6,6 +6,9 @@ on:
       config:
         required: true
         type: string
+    secrets:
+      AUTO_DEPLOY_KEY:
+        required: true
 
 jobs:
   deploy:

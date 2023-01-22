@@ -3,6 +3,13 @@ name: Build app and run tests with Maven
 on:
   workflow_dispatch:
   workflow_call:
+    secrets:
+        MYSQL_PASSWORD:
+          required: true
+        SPRING_APPLICATION_PROPERTIES:
+          required: true
+        VERNITE_2022_PRIVATE_KEY_PEM:
+          required: true
 
 jobs:
   build:

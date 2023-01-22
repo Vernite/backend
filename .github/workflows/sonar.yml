@@ -2,6 +2,20 @@ name: Run Sonar analysis
 on:
   workflow_dispatch:
   workflow_call:
+    secrets:
+      MYSQL_PASSWORD:
+          required: true
+      SPRING_APPLICATION_PROPERTIES:
+        required: true
+      VERNITE_2022_PRIVATE_KEY_PEM:
+        required: true
+      GITHUB_TOKEN:
+        required: true
+      SONAR_TOKEN:
+        required: true
+      SONAR_HOST_URL:
+        required: true
+
 
 jobs:
   analyze:
