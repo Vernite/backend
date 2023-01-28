@@ -64,14 +64,12 @@ class ProjectTests {
         assertEquals("Name", project.getName());
         assertEquals("Description", project.getDescription());
         assertNotNull(project.getTaskCounter());
-        assertNotNull(project.getSprintCounter());
 
         project = new Project("  Name ", "   Description  ");
 
         assertEquals("Name", project.getName());
         assertEquals("Description", project.getDescription());
         assertNotNull(project.getTaskCounter());
-        assertNotNull(project.getSprintCounter());
     }
 
     @Test
@@ -81,14 +79,12 @@ class ProjectTests {
         assertEquals("Name", project.getName());
         assertEquals("Description", project.getDescription());
         assertNotNull(project.getTaskCounter());
-        assertNotNull(project.getSprintCounter());
 
         project = new Project(new CreateProject("  Name ", "   Description  ", 1L));
 
         assertEquals("Name", project.getName());
         assertEquals("Description", project.getDescription());
         assertNotNull(project.getTaskCounter());
-        assertNotNull(project.getSprintCounter());
     }
 
     @Test

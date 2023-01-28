@@ -28,6 +28,7 @@
 package dev.vernite.vernite.sprint;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.time.Instant;
@@ -103,7 +104,7 @@ public class SprintControllerTests {
             session = userSessionRepository.findBySession("session_token_sprint_tests").orElseThrow();
         }
         workspace = workspaceRepository.save(new Workspace(1, "Project Tests", user));
-        project = projectRepository.save(new Project("Sprint Tests"));
+        project = projectRepository.save(new Project("Sprint Tests", ""));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
     }
 
@@ -117,7 +118,7 @@ public class SprintControllerTests {
         assertEquals(s1.getDescription(), s2.getDescription());
         assertEquals(s1.getStartDate(), s2.getStartDate());
         assertEquals(s1.getFinishDate(), s2.getFinishDate());
-        assertEquals(s1.getNumber(), s2.getNumber());
+        assertEquals(s1.getId(), s2.getId());
     }
 
     @Test
@@ -128,9 +129,9 @@ public class SprintControllerTests {
                 .expectBodyList(Sprint.class).hasSize(0);
         // Test non-empty return list
         List<Sprint> sprints = List.of(
-                new Sprint(1, "Sprint 1", new Date(), new Date(), Sprint.Status.CREATED, "desc", project),
-                new Sprint(2, "Sprint 2", new Date(), new Date(), Sprint.Status.ACTIVE, "desc", project),
-                new Sprint(3, "Sprint 3", new Date(), new Date(), Sprint.Status.CLOSED, "desc", project));
+                new Sprint("Sprint 1", new Date(), new Date(), Sprint.Status.CREATED, "desc", project),
+                new Sprint("Sprint 2", new Date(), new Date(), Sprint.Status.ACTIVE, "desc", project),
+                new Sprint("Sprint 3", new Date(), new Date(), Sprint.Status.CLOSED, "desc", project));
         sprintRepository.saveAll(sprints);
         List<Sprint> result = client.get().uri("/project/{projectId}/sprint", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
@@ -171,7 +172,7 @@ public class SprintControllerTests {
         client.get().uri("/project/{projectId}/sprint", -1).cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange().expectStatus().isNotFound();
 
-        Project project2 = projectRepository.save(new Project("Sprint Tests 2"));
+        Project project2 = projectRepository.save(new Project("Sprint Tests 2", ""));
 
         client.get().uri("/project/{projectId}/sprint", project2.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
@@ -181,11 +182,12 @@ public class SprintControllerTests {
     void createSuccess() {
         Sprint sprint = client.post().uri("/project/{projectId}/sprint", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new SprintRequest("Sprint 1", "desc", new Date(), new Date(), Sprint.Status.CREATED))
+                .bodyValue(
+                        new CreateSprint("Sprint 1", "desc", new Date(), new Date(), Sprint.Status.CREATED.ordinal()))
                 .exchange()
                 .expectStatus().isOk().expectBody(Sprint.class).returnResult().getResponseBody();
         assertNotNull(sprint);
-        Sprint result = sprintRepository.findByProjectAndNumberOrThrow(project, sprint.getNumber());
+        Sprint result = sprintRepository.findByIdAndProjectOrThrow(sprint.getId(), project);
         sprintEquals(sprint, result);
     }
 
@@ -194,55 +196,60 @@ public class SprintControllerTests {
         // Test missing name
         client.post().uri("/project/{projectId}/sprint", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new SprintRequest(null, "", new Date(), new Date(), Sprint.Status.CREATED)).exchange()
+                .bodyValue(new CreateSprint(null, "", new Date(), new Date(), Sprint.Status.CREATED.ordinal()))
+                .exchange()
                 .expectStatus()
                 .isBadRequest();
         // Test empty name
         client.post().uri("/project/{projectId}/sprint", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new SprintRequest("  ", "", new Date(), new Date(), Sprint.Status.CREATED)).exchange()
+                .bodyValue(new CreateSprint("  ", "", new Date(), new Date(), Sprint.Status.CREATED.ordinal()))
+                .exchange()
                 .expectStatus()
                 .isBadRequest();
         // Test too long name
         client.post().uri("/project/{projectId}/sprint", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new SprintRequest("a".repeat(51), "", new Date(), new Date(), Sprint.Status.CREATED))
+                .bodyValue(
+                        new CreateSprint("a".repeat(51), "", new Date(), new Date(), Sprint.Status.CREATED.ordinal()))
                 .exchange()
                 .expectStatus().isBadRequest();
         // Test missing description
         client.post().uri("/project/{projectId}/sprint", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new SprintRequest("Sprint 1", null, new Date(), new Date(), Sprint.Status.CREATED))
+                .bodyValue(new CreateSprint("Sprint 1", null, new Date(), new Date(), Sprint.Status.CREATED.ordinal()))
                 .exchange()
                 .expectStatus().isBadRequest();
         // Test missing start date
         client.post().uri("/project/{projectId}/sprint", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new SprintRequest("Sprint 1", "", null, new Date(), Sprint.Status.CREATED)).exchange()
+                .bodyValue(new CreateSprint("Sprint 1", "", null, new Date(), Sprint.Status.CREATED.ordinal()))
+                .exchange()
                 .expectStatus().isBadRequest();
         // Test missing finish date
         client.post().uri("/project/{projectId}/sprint", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new SprintRequest("Sprint 1", "", new Date(), null, Sprint.Status.CREATED)).exchange()
+                .bodyValue(new CreateSprint("Sprint 1", "", new Date(), null, Sprint.Status.CREATED.ordinal()))
+                .exchange()
                 .expectStatus().isBadRequest();
         // Test invalid dates
         client.post().uri("/project/{projectId}/sprint", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new SprintRequest("Sprint 1", "", new Date(),
-                        Date.from(Instant.now().minus(1, ChronoUnit.DAYS)), Sprint.Status.CREATED))
+                .bodyValue(new CreateSprint("Sprint 1", "", new Date(),
+                        Date.from(Instant.now().minus(1, ChronoUnit.DAYS)), Sprint.Status.CREATED.ordinal()))
                 .exchange()
                 .expectStatus().isBadRequest();
         // Test missing status
         client.post().uri("/project/{projectId}/sprint", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new SprintRequest("Sprint 1", "", new Date(), new Date(), null)).exchange()
+                .bodyValue(new CreateSprint("Sprint 1", "", new Date(), new Date(), null)).exchange()
                 .expectStatus().isBadRequest();
     }
 
     @Test
     void createUnauthorized() {
-        Project project2 = projectRepository.save(new Project("Sprint Tests 2"));
-        SprintRequest request = new SprintRequest("Sprint 1", "desc", new Date(), new Date(), Sprint.Status.CREATED);
+        Project project2 = projectRepository.save(new Project("Sprint Tests 2", ""));
+        var request = new CreateSprint("Sprint 1", "desc", new Date(), new Date(), Sprint.Status.CREATED.ordinal());
         client.post().uri("/project/{projectId}/sprint", project2.getId())
                 .cookie(AuthController.COOKIE_NAME, "invalid_session_token").bodyValue(request).exchange()
                 .expectStatus().isUnauthorized();
@@ -252,8 +259,8 @@ public class SprintControllerTests {
 
     @Test
     void createNotFound() {
-        Project project2 = projectRepository.save(new Project("Sprint Tests 2"));
-        SprintRequest request = new SprintRequest("Sprint 1", "desc", new Date(), new Date(), Sprint.Status.CREATED);
+        Project project2 = projectRepository.save(new Project("Sprint Tests 2", ""));
+        var request = new CreateSprint("Sprint 1", "desc", new Date(), new Date(), Sprint.Status.CREATED.ordinal());
         client.post().uri("/project/{projectId}/sprint", -1).cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(request).exchange().expectStatus().isNotFound();
         client.post().uri("/project/{projectId}/sprint", project2.getId())
@@ -264,8 +271,8 @@ public class SprintControllerTests {
     @Test
     void getSuccess() {
         Sprint sprint = sprintRepository
-                .save(new Sprint(1, "S 1", new Date(), new Date(), Sprint.Status.CREATED, "desc", project));
-        Sprint result = client.get().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getNumber())
+                .save(new Sprint("S 1", new Date(), new Date(), Sprint.Status.CREATED, "desc", project));
+        Sprint result = client.get().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBody(Sprint.class).returnResult().getResponseBody();
         sprintEquals(sprint, result);
@@ -274,10 +281,10 @@ public class SprintControllerTests {
     @Test
     void getUnauthorized() {
         Sprint sprint = sprintRepository
-                .save(new Sprint(1, "S 1", new Date(), new Date(), Sprint.Status.CREATED, "desc", project));
-        client.get().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getNumber())
+                .save(new Sprint("S 1", new Date(), new Date(), Sprint.Status.CREATED, "desc", project));
+        client.get().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getId())
                 .cookie(AuthController.COOKIE_NAME, "invalid_session_token").exchange().expectStatus().isUnauthorized();
-        client.get().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getNumber())
+        client.get().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getId())
                 .exchange().expectStatus().isUnauthorized();
     }
 
@@ -286,9 +293,9 @@ public class SprintControllerTests {
         client.get().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), -1)
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
 
-        Project project2 = projectRepository.save(new Project("Sprint Tests 2"));
+        Project project2 = projectRepository.save(new Project("Sprint Tests 2", ""));
         Sprint sprint2 = sprintRepository
-                .save(new Sprint(1, "S 2", new Date(), new Date(), Sprint.Status.CREATED, "desc", project2));
+                .save(new Sprint("S 2", new Date(), new Date(), Sprint.Status.CREATED, "desc", project2));
         client.get().uri("/project/{projectId}/sprint/{sprintId}", project2.getId(), sprint2.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
     }
@@ -296,44 +303,44 @@ public class SprintControllerTests {
     @Test
     void updateSuccess() {
         Sprint sprint = sprintRepository
-                .save(new Sprint(1, "S1", new Date(), new Date(), Sprint.Status.CREATED, "desc", project));
-        SprintRequest request = new SprintRequest("S2", "desc2", new Date(), new Date(), Sprint.Status.CREATED);
+                .save(new Sprint("S1", new Date(), new Date(), Sprint.Status.CREATED, "desc", project));
+        var request = new UpdateSprint("S2", "desc2", new Date(), new Date(), Sprint.Status.CREATED.ordinal());
         sprint.update(request);
-        client.put().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getNumber())
+        client.put().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
                 .isOk();
-        Sprint updatedSprint = sprintRepository.findByProjectAndNumberOrThrow(project, sprint.getNumber());
+        Sprint updatedSprint = sprintRepository.findByIdAndProjectOrThrow(sprint.getId(), project);
         sprintEquals(sprint, updatedSprint);
     }
 
     @Test
     void updateBadRequest() {
-        Sprint sprint = sprintRepository
-                .save(new Sprint(1, "S1", new Date(), new Date(), Sprint.Status.CREATED, "desc", project));
-        client.put().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getNumber())
+        var sprint = sprintRepository
+                .save(new Sprint("S1", new Date(), new Date(), Sprint.Status.CREATED, "desc", project));
+        client.put().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new SprintRequest("  ", null, null, null, null))
+                .bodyValue(new UpdateSprint("  ", null, null, null, null))
                 .exchange().expectStatus().isBadRequest();
-        client.put().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getNumber())
+        client.put().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new SprintRequest("a".repeat(51), null, null, null, null))
+                .bodyValue(new UpdateSprint("a".repeat(51), null, null, null, null))
                 .exchange().expectStatus().isBadRequest();
-        client.put().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getNumber())
+        client.put().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(
-                        new SprintRequest(null, null, null, Date.from(Instant.now().minus(1, ChronoUnit.DAYS)), null))
+                        new UpdateSprint(null, null, null, Date.from(Instant.now().minus(1, ChronoUnit.DAYS)), null))
                 .exchange().expectStatus().isBadRequest();
-        client.put().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getNumber())
+        client.put().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new SprintRequest(null, null, Date.from(Instant.now().plus(1, ChronoUnit.DAYS)), null, null))
+                .bodyValue(new UpdateSprint(null, null, Date.from(Instant.now().plus(1, ChronoUnit.DAYS)), null, null))
                 .exchange().expectStatus().isBadRequest();
     }
 
     @Test
     void updateUnauthorized() {
         Sprint sprint = sprintRepository
-                .save(new Sprint(1, "S 1", new Date(), new Date(), Sprint.Status.CREATED, "desc", project));
-        SprintRequest request = new SprintRequest("Sprint 2", "desc", new Date(), new Date(), Sprint.Status.CREATED);
+                .save(new Sprint("S 1", new Date(), new Date(), Sprint.Status.CREATED, "desc", project));
+        var request = new UpdateSprint("Sprint 2", "desc", new Date(), new Date(), Sprint.Status.CREATED.ordinal());
         client.put().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getId())
                 .cookie(AuthController.COOKIE_NAME, "invalid_session_token").bodyValue(request).exchange()
                 .expectStatus().isUnauthorized();
@@ -343,18 +350,18 @@ public class SprintControllerTests {
 
     @Test
     void updateNotFound() {
-        SprintRequest request = new SprintRequest("Sprint 1", "desc", new Date(), new Date(), Sprint.Status.CREATED);
+        var request = new UpdateSprint("Sprint 1", "desc", new Date(), new Date(), Sprint.Status.CREATED.ordinal());
         client.put().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), -1)
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
                 .isNotFound();
-        Project project2 = projectRepository.save(new Project("Sprint Tests 2"));
+        Project project2 = projectRepository.save(new Project("Sprint Tests 2", ""));
         Sprint sprint2 = sprintRepository
-                .save(new Sprint(1, "S 2", new Date(), new Date(), Sprint.Status.CREATED, "desc", project2));
-        client.put().uri("/project/{projectId}/sprint/{sprintId}", project2.getId(), sprint2.getNumber())
+                .save(new Sprint("S 2", new Date(), new Date(), Sprint.Status.CREATED, "desc", project2));
+        client.put().uri("/project/{projectId}/sprint/{sprintId}", project2.getId(), sprint2.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
                 .isNotFound();
 
-        client.put().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint2.getNumber())
+        client.put().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint2.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
                 .isNotFound();
     }
@@ -362,20 +369,20 @@ public class SprintControllerTests {
     @Test
     void deleteSuccess() {
         Sprint sprint = sprintRepository
-                .save(new Sprint(1, "S 1", new Date(), new Date(), Sprint.Status.CREATED, "desc", project));
-        client.delete().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getNumber())
+                .save(new Sprint("S 1", new Date(), new Date(), Sprint.Status.CREATED, "desc", project));
+        client.delete().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
                 .exchange().expectStatus().isOk();
-        assertNotNull(sprintRepository.findById(sprint.getId()).get().getActive());
+        assertFalse(sprintRepository.findById(sprint.getId()).isPresent());
     }
 
     @Test
     void deleteUnauthorized() {
         Sprint sprint = sprintRepository
-                .save(new Sprint(1, "S 1", new Date(), new Date(), Sprint.Status.CREATED, "desc", project));
-        client.delete().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getNumber())
+                .save(new Sprint("S 1", new Date(), new Date(), Sprint.Status.CREATED, "desc", project));
+        client.delete().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getId())
                 .cookie(AuthController.COOKIE_NAME, "invalid_session_token").exchange().expectStatus().isUnauthorized();
-        client.delete().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getNumber())
+        client.delete().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint.getId())
                 .exchange().expectStatus().isUnauthorized();
     }
 
@@ -383,12 +390,12 @@ public class SprintControllerTests {
     void deleteNotFound() {
         client.delete().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), -1)
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
-        Project project2 = projectRepository.save(new Project("Sprint Tests 2"));
+        Project project2 = projectRepository.save(new Project("Sprint Tests 2", ""));
         Sprint sprint2 = sprintRepository
-                .save(new Sprint(1, "S 2", new Date(), new Date(), Sprint.Status.CREATED, "desc", project2));
-        client.delete().uri("/project/{projectId}/sprint/{sprintId}", project2.getId(), sprint2.getNumber())
+                .save(new Sprint("S 2", new Date(), new Date(), Sprint.Status.CREATED, "desc", project2));
+        client.delete().uri("/project/{projectId}/sprint/{sprintId}", project2.getId(), sprint2.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
-        client.delete().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint2.getNumber())
+        client.delete().uri("/project/{projectId}/sprint/{sprintId}", project.getId(), sprint2.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
     }
 }

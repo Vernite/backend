@@ -53,7 +53,6 @@ import jakarta.validation.constraints.Size;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-import org.hibernate.annotations.Where;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -128,14 +127,6 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
     @OneToOne(cascade = CascadeType.PERSIST, optional = false)
     private CounterSequence taskCounter;
 
-    @JsonIgnore
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    @NotNull(message = "counter must be set")
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    @OneToOne(cascade = CascadeType.PERSIST, optional = false)
-    private CounterSequence sprintCounter;
-
     @NotNull
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
@@ -145,10 +136,9 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
 
     @JsonIgnore
     @ToString.Exclude
-    @OrderBy("number")
+    @OrderBy("startDate")
     @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "project")
-    @Where(clause = "active is null")
     @NotNull(message = "counter must be set")
     @OnDelete(action = OnDeleteAction.CASCADE)
     private List<Sprint> sprints = new ArrayList<>();
@@ -187,7 +177,6 @@ public class Project extends SoftDeleteEntity implements Comparable<Project> {
         setName(name);
         setDescription(description);
         this.taskCounter = new CounterSequence();
-        this.sprintCounter = new CounterSequence();
     }
 
     /**

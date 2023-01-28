@@ -607,8 +607,8 @@ class ProjectControllerTests {
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBodyList(Event.class).hasSize(1);
 
-        sprintRepository.save(new Sprint(1, "n", new Date(1), new Date(1000), Sprint.Status.CREATED, "d", project));
-        sprintRepository.save(new Sprint(2, "n", new Date(2000), new Date(3000), Sprint.Status.CREATED, "d", project));
+        sprintRepository.save(new Sprint("n", new Date(1), new Date(1000), Sprint.Status.CREATED, "d", project));
+        sprintRepository.save(new Sprint("n", new Date(2000), new Date(3000), Sprint.Status.CREATED, "d", project));
 
         client.get().uri("/project/{id}/events?from=1&to=1000", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()

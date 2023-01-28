@@ -29,35 +29,34 @@ package dev.vernite.vernite.sprint;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.repository.CrudRepository;
 
+import dev.vernite.vernite.common.exception.EntityNotFoundException;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.user.User;
-import dev.vernite.vernite.utils.ObjectNotFoundException;
-import dev.vernite.vernite.utils.SoftDeleteRepository;
 
-public interface SprintRepository extends SoftDeleteRepository<Sprint, Long>, JpaSpecificationExecutor<Sprint> {
-    /**
-     * Finds a sprint by its number and project.
-     * 
-     * @param project the project.
-     * @param number  the number of the sprint.
-     * @return optional of the sprint.
-     */
-    Optional<Sprint> findByProjectAndNumberAndActiveNull(Project project, long number);
+/**
+ * CRUD repository for sprint entity.
+ */
+public interface SprintRepository extends CrudRepository<Sprint, Long>, JpaSpecificationExecutor<Sprint> {
 
     /**
-     * Finds a sprint by its number and project or throws error when not found.
+     * Finds sprint by ID and project.
      * 
-     * @param project the project.
-     * @param number  the number of the sprint.
-     * @return the sprint.
-     * @throws ObjectNotFoundException when not found.
+     * @param id      sprint ID
+     * @param project project
+     * @return sprint with given ID and project
+     * @throws EntityNotFoundException thrown when sprint is not found or project is
+     *                                 not equal to sprint project
      */
-    default Sprint findByProjectAndNumberOrThrow(Project project, long number) {
-        return findByProjectAndNumberAndActiveNull(project, number).orElseThrow(ObjectNotFoundException::new);
+    default Sprint findByIdAndProjectOrThrow(long id, Project project) throws EntityNotFoundException {
+        var sprint = findById(id).orElseThrow(() -> new EntityNotFoundException("sprint", id));
+        if (sprint.getProject().getId() != project.getId()) {
+            throw new EntityNotFoundException("sprint", id);
+        }
+        return sprint;
     }
 
     /**
@@ -73,14 +72,13 @@ public interface SprintRepository extends SoftDeleteRepository<Sprint, Long>, Jp
                 cb.or(
                         cb.between(root.get("startDate"), startDate, endDate),
                         cb.between(root.get("finishDate"), startDate, endDate)),
-                cb.equal(root.join("project").join("projectWorkspaces").join("workspace").join("user"), user),
-                cb.isNull(root.get("active"))));
+                cb.equal(root.join("project").join("projectWorkspaces").join("workspace").join("user"), user)));
     }
 
     /**
      * Finds sprints in projects and between dates.
      * 
-     * @param project  the project.
+     * @param project   the project.
      * @param startDate the start date.
      * @param endDate   the end date.
      * @return the sprints.
@@ -90,9 +88,8 @@ public interface SprintRepository extends SoftDeleteRepository<Sprint, Long>, Jp
                 cb.or(
                         cb.between(root.get("startDate"), startDate, endDate),
                         cb.between(root.get("finishDate"), startDate, endDate)),
-                cb.equal(root.get("project"), project),
-                cb.isNull(root.get("active"))));
+                cb.equal(root.get("project"), project)));
     }
 
-    List<Sprint> findAllByProjectAndStatusAndActiveNull(Project project, int status);
+    List<Sprint> findAllByProjectAndStatus(Project project, int status);
 }

@@ -133,9 +133,9 @@ class TaskControllerTests {
             session = sessionRepository.findBySession("session_token_tasks_tests").orElseThrow();
         }
         project = projectRepository.save(new Project("Tasks project"));
-        sprint = sprintRepository.save(new Sprint(1, "name", new Date(), new Date(), Sprint.Status.ACTIVE, "description", project));
-        closedSprint = sprintRepository.save(new Sprint(10, "name", new Date(), new Date(), Sprint.Status.CLOSED, "description", project));
-        createdSprint = sprintRepository.save(new Sprint(11, "name", new Date(), new Date(), Sprint.Status.CREATED, "description", project));
+        sprint = sprintRepository.save(new Sprint("name", new Date(), new Date(), Sprint.Status.ACTIVE, "description", project));
+        closedSprint = sprintRepository.save(new Sprint("name", new Date(), new Date(), Sprint.Status.CLOSED, "description", project));
+        createdSprint = sprintRepository.save(new Sprint("name", new Date(), new Date(), Sprint.Status.CREATED, "description", project));
         forbiddenProject = projectRepository.save(new Project("Tasks project forbidden"));
         Workspace workspace = workspaceRepository.save(new Workspace(1, "tasks test workspace", user));
         projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));
@@ -199,7 +199,7 @@ class TaskControllerTests {
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBodyList(Task.class).hasSize(3);
 
-        List<Task> result = client.get().uri("/project/{pId}/task?sprintId={sId}", project.getId(), sprint.getNumber())
+        List<Task> result = client.get().uri("/project/{pId}/task?sprintId={sId}", project.getId(), sprint.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
                 .expectBodyList(Task.class).hasSize(1).returnResult().getResponseBody();
         assertNotNull(result);
@@ -285,7 +285,7 @@ class TaskControllerTests {
         assertNotNull(task);
         taskEquals(task, taskRepository.findByProjectAndNumberOrThrow(project, task.getNumber()));
 
-        request.setSprintId(sprint.getNumber());
+        request.setSprintId(sprint.getId());
         task = client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
                 .isOk().expectBody(Task.class).returnResult().getResponseBody();
@@ -382,7 +382,7 @@ class TaskControllerTests {
         client.post().uri("/project/{pId}/task", -1).cookie(AuthController.COOKIE_NAME, session.getSession())
                 .bodyValue(request).exchange().expectStatus().isNotFound();
 
-        request.setSprintId(sprint.getNumber() + 1);
+        request.setSprintId(Long.MAX_VALUE);
         client.post().uri("/project/{pId}/task", project.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
                 .isNotFound();
@@ -421,8 +421,8 @@ class TaskControllerTests {
     void updateSuccess() {
         Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
         Task parentTask = taskRepository.save(new Task(2, "NAME 2", "D", project.getStatuses().get(0), user, 0, "low"));
-        Sprint openSprint = sprintRepository.save(new Sprint(4, "NAME", new Date(), new Date(), Sprint.Status.CREATED, "DESC", project));
-        Sprint closedSprint = sprintRepository.save(new Sprint(5, "NAME", new Date(), new Date(), Sprint.Status.CLOSED, "DESC", project));
+        Sprint openSprint = sprintRepository.save(new Sprint("NAME", new Date(), new Date(), Sprint.Status.CREATED, "DESC", project));
+        Sprint closedSprint = sprintRepository.save(new Sprint("NAME", new Date(), new Date(), Sprint.Status.CLOSED, "DESC", project));
 
         Task result = client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new TaskRequest()).exchange()
@@ -455,7 +455,7 @@ class TaskControllerTests {
         request.setType(Task.TaskType.SUBTASK.ordinal());
         task.setType(Task.TaskType.SUBTASK.ordinal());
 
-        request.setSprintId(sprint.getNumber());
+        request.setSprintId(sprint.getId());
         task.setSprint(sprint);
 
         request.setAssigneeId(user.getId());
@@ -480,7 +480,7 @@ class TaskControllerTests {
         assertTrue(taskRepository.findByIdOrThrow(task.getId()).getSprint() == null);
         assertNull(taskRepository.findByIdOrThrow(task.getId()).getAssignee());
 
-        request.setSprintId(openSprint.getNumber());
+        request.setSprintId(openSprint.getId());
         task.setSprint(openSprint);
 
         taskRepository.save(task);
@@ -496,9 +496,9 @@ class TaskControllerTests {
         Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 1, "low"));
         Task parentTask = new Task(2, "NAME 2", "DESC", project.getStatuses().get(0), user, 1, "low");
         Task parentParentTask = taskRepository.save(new Task(3, "2", "D", project.getStatuses().get(0), user, 3, "l"));
-        Sprint closedSprint = sprintRepository.save(new Sprint(3, "NAME", new Date(), new Date(), Sprint.Status.CLOSED, "DESC", project));
-        Sprint closedSprint2 = sprintRepository.save(new Sprint(2, "NAME", new Date(), new Date(), Sprint.Status.CLOSED, "DESC", project));
-        Sprint openSprint = sprintRepository.save(new Sprint(6, "NAME", new Date(), new Date(), Sprint.Status.CREATED, "DESC", project));
+        Sprint closedSprint = sprintRepository.save(new Sprint("NAME", new Date(), new Date(), Sprint.Status.CLOSED, "DESC", project));
+        Sprint closedSprint2 = sprintRepository.save(new Sprint("NAME", new Date(), new Date(), Sprint.Status.CLOSED, "DESC", project));
+        Sprint openSprint = sprintRepository.save(new Sprint("NAME", new Date(), new Date(), Sprint.Status.CREATED, "DESC", project));
 
 
         parentTask.setParentTask(parentParentTask);
@@ -529,7 +529,7 @@ class TaskControllerTests {
                 .isBadRequest();
 
         request = new TaskRequest();
-        request.setSprintId(closedSprint2.getNumber());
+        request.setSprintId(closedSprint2.getId());
 
         client.put().uri("/project/{pId}/task/{id}", project.getId(), task.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(request).exchange().expectStatus()
