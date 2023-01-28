@@ -66,7 +66,7 @@ import dev.vernite.vernite.common.constraints.NullOrNotBlank;
      /**
       * End date for sprint.
       */
-     private Date endDate;
+     private Date finishDate;
  
      /**
       * Status for sprint.

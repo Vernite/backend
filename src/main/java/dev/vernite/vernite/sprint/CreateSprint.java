@@ -70,7 +70,7 @@ public class CreateSprint {
      * End date for new sprint.
      */
     @NotNull(message = "end date must not be null")
-    private Date endDate;
+    private Date finishDate;
 
     /**
      * Status for new sprint.

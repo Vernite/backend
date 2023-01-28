@@ -150,7 +150,7 @@ public class Sprint {
      * @param create  must not be {@literal null} and must be valid
      */
     public Sprint(Project project, CreateSprint create) {
-        this(create.getName(), create.getStartDate(), create.getEndDate(), Status.values()[create.getStatus()],
+        this(create.getName(), create.getStartDate(), create.getFinishDate(), Status.values()[create.getStatus()],
                 create.getDescription(), project);
     }
 
@@ -172,8 +172,8 @@ public class Sprint {
             setStartDate(update.getStartDate());
         }
 
-        if (update.getEndDate() != null) {
-            setFinishDate(update.getEndDate());
+        if (update.getFinishDate() != null) {
+            setFinishDate(update.getFinishDate());
         }
 
         if (update.getStatus() != null) {
