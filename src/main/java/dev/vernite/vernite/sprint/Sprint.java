@@ -53,7 +53,9 @@ import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.task.Task;
 import dev.vernite.vernite.utils.FieldErrorException;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
@@ -98,16 +100,22 @@ public class Sprint {
 
     @ManyToOne
     @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OnDelete(action = OnDeleteAction.CASCADE)
     @NotNull(message = "Project must not be null")
     private Project project;
 
+    @ToString.Exclude
     @OrderBy("name ASC")
+    @EqualsAndHashCode.Exclude
     @NotNull(message = "Tasks must not be null")
     @OneToMany(mappedBy = "sprint", cascade = CascadeType.PERSIST)
     private List<Task> tasks = new ArrayList<>();
 
+    @ToString.Exclude
     @OrderBy("name ASC")
+    @EqualsAndHashCode.Exclude
     @NotNull(message = "Archive tasks must not be null")
     @ManyToMany(mappedBy = "archiveSprints", cascade = CascadeType.PERSIST)
     private List<Task> archiveTasks = new ArrayList<>();
