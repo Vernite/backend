@@ -36,158 +36,168 @@ import java.util.Set;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.task.Task;
-import dev.vernite.vernite.utils.SoftDeleteEntity;
-import lombok.Getter;
-import lombok.Setter;
+import dev.vernite.vernite.utils.FieldErrorException;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+/**
+ * Entity representing a scrum sprint.
+ */
+@Data
 @Entity
-public class Sprint extends SoftDeleteEntity {
+@NoArgsConstructor
+public class Sprint {
 
     public enum Status {
         CREATED, ACTIVE, CLOSED
     }
 
     @Id
-    @JsonIgnore
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @PositiveOrZero(message = "Id must be positive or zero")
     private long id;
 
-    @JsonProperty("id")
-    @Column(nullable = false)
-    private long number;
-
     @Column(nullable = false, length = 50)
+    @NotBlank(message = "Name must not be blank")
+    @Size(min = 1, max = 50, message = "status name must be shorter than 50 characters")
     private String name;
 
     @Column(nullable = false)
+    @NotNull(message = "Start date must not be null")
     private Date startDate;
 
     @Column(nullable = false)
+    @NotNull(message = "Finish date must not be null")
     private Date finishDate;
 
+    @PositiveOrZero(message = "Status must be positive or zero")
     private int status;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, length = 1000)
+    @NotNull(message = "description cannot be null")
+    @Size(max = 1000, message = "description must be shorter than 1000 characters")
     private String description;
 
-    @JsonIgnore
     @ManyToOne
-    @JoinColumn(name = "project_id", foreignKey = @ForeignKey(name = "fk_sprint_project"))
+    @JsonIgnore
     @OnDelete(action = OnDeleteAction.CASCADE)
+    @NotNull(message = "Project must not be null")
     private Project project;
 
     @OrderBy("name ASC")
+    @NotNull(message = "Tasks must not be null")
     @OneToMany(mappedBy = "sprint", cascade = CascadeType.PERSIST)
     private List<Task> tasks = new ArrayList<>();
 
-    @Getter
-    @Setter
     @OrderBy("name ASC")
+    @NotNull(message = "Archive tasks must not be null")
     @ManyToMany(mappedBy = "archiveSprints", cascade = CascadeType.PERSIST)
     private List<Task> archiveTasks = new ArrayList<>();
 
-    public Sprint() {
-    }
-
-    public Sprint(long id, String name, Date start, Date finish, Status status, String description, Project project) {
-        this.number = id;
-        this.name = name;
+    /**
+     * Default constructor for Sprint.
+     * 
+     * @param name        must not be {@literal null} or empty
+     * @param start       must not be {@literal null}
+     * @param finish      must not be {@literal null}
+     * @param status      must not be {@literal null}
+     * @param description must not be {@literal null}
+     * @param project     must not be {@literal null}
+     */
+    public Sprint(String name, Date start, Date finish, Status status, String description, Project project) {
+        setName(name);
         this.startDate = start;
         this.finishDate = finish;
         this.status = status.ordinal();
-        this.description = description;
+        setDescription(description);
         this.project = project;
+
+        if (getStartDate().after(getFinishDate())) {
+            throw new FieldErrorException("date", "Start date must be before end date");
+        }
     }
 
     /**
-     * Updates sprint with non-empty request fields.
+     * Constructor for Sprint from create request.
      * 
-     * @param request must not be {@literal null}. When fields are not present in
-     *                request, they are not updated.
+     * @param project must not be {@literal null}
+     * @param create  must not be {@literal null} and must be valid
      */
-    public void update(@NotNull SprintRequest request) {
-        request.getName().ifPresent(this::setName);
-        request.getDescription().ifPresent(this::setDescription);
-        request.getStartDate().ifPresent(this::setStartDate);
-        request.getFinishDate().ifPresent(this::setFinishDate);
-        request.getStatus().ifPresent(this::setStatus);
+    public Sprint(Project project, CreateSprint create) {
+        this(create.getName(), create.getStartDate(), create.getEndDate(), Status.values()[create.getStatus()],
+                create.getDescription(), project);
     }
 
-    public long getId() {
-        return id;
-    }
+    /**
+     * Updates sprint with update request.
+     * 
+     * @param update must not be {@literal null} and must be valid
+     */
+    public void update(UpdateSprint update) {
+        if (update.getName() != null) {
+            setName(update.getName());
+        }
 
-    public void setId(long id) {
-        this.id = id;
-    }
+        if (update.getDescription() != null) {
+            setDescription(update.getDescription());
+        }
 
-    public long getNumber() {
-        return number;
-    }
+        if (update.getStartDate() != null) {
+            setStartDate(update.getStartDate());
+        }
 
-    public void setNumber(long number) {
-        this.number = number;
-    }
+        if (update.getEndDate() != null) {
+            setFinishDate(update.getEndDate());
+        }
 
-    public String getName() {
-        return name;
-    }
+        if (update.getStatus() != null) {
+            setStatus(update.getStatus());
+        }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Date getStartDate() {
-        return startDate;
-    }
-
-    public void setStartDate(Date startDate) {
-        this.startDate = startDate;
-    }
-
-    public Date getFinishDate() {
-        return finishDate;
-    }
-
-    public void setFinishDate(Date finishDate) {
-        this.finishDate = finishDate;
-    }
-
-    public Project getProject() {
-        return project;
-    }
-
-    public void setProject(Project project) {
-        this.project = project;
-    }
-
-    public int getStatus() {
-        return status;
+        if (getStartDate().after(getFinishDate())) {
+            throw new FieldErrorException("date", "Start date must be before end date");
+        }
     }
 
     @JsonIgnore
     public Status getStatusEnum() {
         return Status.values()[status];
+    }
+
+    /**
+     * Sets name and trims it.
+     * 
+     * @param name must not be {@literal null}
+     */
+    public void setName(String name) {
+        this.name = name.trim();
+    }
+
+    /**
+     * Sets description and trims it.
+     * 
+     * @param description must not be {@literal null}
+     */
+    public void setDescription(String description) {
+        this.description = description.trim();
     }
 
     public void setStatus(Integer status) {
@@ -202,22 +212,6 @@ public class Sprint extends SoftDeleteEntity {
             }).toList()));
             this.setTasks(new ArrayList<>());
         }
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public List<Task> getTasks() {
-        return tasks;
-    }
-
-    public void setTasks(List<Task> tasks) {
-        this.tasks = tasks;
     }
 
 }

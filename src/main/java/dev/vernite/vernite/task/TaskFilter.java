@@ -100,8 +100,8 @@ public class TaskFilter {
             predicates.add(builder.isNull(root.get("active")));
             predicates.add(builder.notEqual(root.get("type"), TaskType.SUBTASK.ordinal()));
             sprintId.ifPresent(id -> predicates
-                    .add(builder.or(builder.in(root.join("archiveSprints", JoinType.LEFT).get(NUMBER)).value(id),
-                            builder.equal(root.get("sprint").get(NUMBER), id))));
+                    .add(builder.or(builder.in(root.join("archiveSprints", JoinType.LEFT).get("id")).value(id),
+                            builder.equal(root.get("sprint").get("id"), id))));
             assigneeIds.ifPresent(id -> {
                 List<Predicate> assigneePredicates = new ArrayList<>();
                 if (id.contains(null)) {

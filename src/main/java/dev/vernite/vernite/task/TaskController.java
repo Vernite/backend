@@ -118,8 +118,7 @@ public class TaskController {
     private void handleSprint(Long sprintId, Task task, Project project) {
         Sprint sprint = null;
         if (sprintId != null) {
-            sprint = sprintRepository.findByProjectAndNumberAndActiveNull(project, sprintId)
-                    .orElseThrow(() -> new ObjectNotFoundException());
+            sprint = sprintRepository.findByIdAndProjectOrThrow(sprintId, project);
             if (sprint.getStatusEnum() == Sprint.Status.CLOSED) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "cannot assign task to closed sprint");
             }
@@ -325,7 +324,7 @@ public class TaskController {
             throw new ObjectNotFoundException();
         }
         Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
-        
+
         JsonNode oldValue = converter.getObjectMapper().valueToTree(task);
         AuditLog log = new AuditLog();
         log.setDate(new Date());

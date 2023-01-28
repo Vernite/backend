@@ -47,7 +47,7 @@ import lombok.AllArgsConstructor;
 public class SprintEventProvider implements EventProvider {
 
     private static Event convert(Sprint sprint) {
-        return new Event(sprint.getProject().getId(), Event.Type.SPRINT, sprint.getNumber(), sprint.getName(),
+        return new Event(sprint.getProject().getId(), Event.Type.SPRINT, sprint.getId(), sprint.getName(),
                 sprint.getDescription(), sprint.getStartDate(), sprint.getFinishDate(), null);
     }
 

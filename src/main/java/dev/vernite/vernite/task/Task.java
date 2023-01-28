@@ -414,12 +414,12 @@ public class Task extends SoftDeleteEntity {
     }
 
     public Long getSprintId() {
-        return this.getSprint() == null ? null : this.getSprint().getNumber();
+        return this.getSprint() == null ? null : this.getSprint().getId();
     }
 
     @JsonProperty(access = Access.READ_ONLY)
     public List<Long> getArchivedSprintIds() {
-        return this.getArchiveSprints().stream().map(Sprint::getNumber).toList();
+        return this.getArchiveSprints().stream().map(Sprint::getId).toList();
     }
 
     @PrePersist

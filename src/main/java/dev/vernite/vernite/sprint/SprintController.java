@@ -28,10 +28,12 @@
 package dev.vernite.vernite.sprint;
 
 import java.util.List;
+import java.util.Optional;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,129 +43,108 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import dev.vernite.vernite.common.utils.counter.CounterSequenceRepository;
-import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.project.ProjectRepository;
-import dev.vernite.vernite.task.Task;
 import dev.vernite.vernite.task.TaskRepository;
 import dev.vernite.vernite.user.User;
-import dev.vernite.vernite.utils.ErrorType;
-import dev.vernite.vernite.utils.FieldErrorException;
-import dev.vernite.vernite.utils.ObjectNotFoundException;
 
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
+/**
+ * Rest controller for performing CRUD operations on Sprint entities.
+ */
 @RestController
+@AllArgsConstructor
 @RequestMapping("/project/{projectId}/sprint")
 public class SprintController {
-    private static final String BAD_DATE = "start date after finish date";
-    @Autowired
+
     private ProjectRepository projectRepository;
-    @Autowired
+
     private SprintRepository sprintRepository;
-    @Autowired
-    private CounterSequenceRepository counterSequenceRepository;
-    @Autowired
+
     private TaskRepository taskRepository;
 
-    @Operation(summary = "Retrieve all sprints", description = "Retrieves all sprints for project. Results are ordered by id.")
-    @ApiResponse(description = "List with sprints. Can be empty.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Returns all sprints for project. If status is provided, returns only sprints
+     * with given status. Otherwise returns all sprints for project. Results are
+     * ordered by start date.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param status    status of sprints to return
+     * @return list of sprints
+     */
     @GetMapping
     public List<Sprint> getAll(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @Parameter(allowEmptyValue = true) Integer status) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        if (status == null) {
-            return project.getSprints();
-        }
-        return sprintRepository.findAllByProjectAndStatusAndActiveNull(project, status.intValue());
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        return Optional.ofNullable(status)
+                .map(s -> sprintRepository.findAllByProjectAndStatus(project, s.intValue()))
+                .orElseGet(project::getSprints);
     }
 
-    @Operation(summary = "Create a sprint", description = "Creates a new sprint for project.")
-    @ApiResponse(description = "Sprint created.", responseCode = "200")
-    @ApiResponse(description = "Some fields are missing or failed to satisfy requirements.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Creates a new sprint for project.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param create    data for new sprint
+     * @return newly created sprint
+     */
     @PostMapping
     public Sprint create(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @RequestBody SprintRequest request) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        long id = counterSequenceRepository.getIncrementCounter(project.getSprintCounter().getId());
-        return sprintRepository.save(request.createEntity(id, project));
+            @RequestBody @Valid CreateSprint create) {
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        return sprintRepository.save(new Sprint(project, create));
     }
 
-    @Operation(summary = "Retrieve a sprint", description = "Retrieves a sprint for project.")
-    @ApiResponse(description = "Sprint with given id.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project or sprint not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Returns sprint with given id for project.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param id        ID of sprint
+     * @return sprint with given id
+     */
     @GetMapping("/{id}")
     public Sprint get(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long id) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        return sprintRepository.findByProjectAndNumberOrThrow(project, id);
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        return sprintRepository.findByIdAndProjectOrThrow(id, project);
     }
 
-    @Operation(summary = "Update a sprint", description = "Updates a sprint for project.")
-    @ApiResponse(description = "Sprint updated.", responseCode = "200")
-    @ApiResponse(description = "Some fields are missing or failed to satisfy requirements.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project or sprint not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Updates sprint with given id for project.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param id        ID of sprint
+     * @param update    data to update
+     * @return updated sprint
+     */
     @PutMapping("/{id}")
     public Sprint update(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @PathVariable long id, @RequestBody SprintRequest request) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        Sprint sprint = sprintRepository.findByProjectAndNumberOrThrow(project, id);
-
-        request.getStartDate().ifPresent(start -> {
-            if (request.getFinishDate().isEmpty() && start.after(sprint.getFinishDate())) {
-                throw new FieldErrorException("startDate", BAD_DATE);
-            }
-        });
-
-        request.getFinishDate().ifPresent(finish -> {
-            if (request.getStartDate().isEmpty() && finish.before(sprint.getStartDate())) {
-                throw new FieldErrorException("finishDate", BAD_DATE);
-
-            }
-        });
-
-        sprint.update(request);
+            @PathVariable long id, @RequestBody @Valid UpdateSprint update) {
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        var sprint = sprintRepository.findByIdAndProjectOrThrow(id, project);
+        sprint.update(update);
         return sprintRepository.save(sprint);
     }
 
-    @Operation(summary = "Delete a sprint", description = "Deletes a sprint for project.")
-    @ApiResponse(description = "Sprint deleted.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project or sprint not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Deletes sprint with given id for project.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param id        ID of sprint
+     */
     @DeleteMapping("/{id}")
     public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long id) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        Sprint sprint = sprintRepository.findByProjectAndNumberOrThrow(project, id);
-        sprint.softDelete();
-        List<Task> tasks = sprint.getTasks();
-        sprintRepository.save(sprint);
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        var sprint = sprintRepository.findByIdAndProjectOrThrow(id, project);
+        var tasks = sprint.getTasks();
         tasks.forEach(t -> t.setSprint(null));
         taskRepository.saveAll(tasks);
+        sprintRepository.delete(sprint);
     }
 }
