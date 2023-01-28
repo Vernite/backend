@@ -53,7 +53,7 @@ public class TaskFilter {
     @Parameter(description = "Id of sprint to filter by (filters are combined with 'and')")
     private Optional<Long> sprintId = Optional.empty();
     @Parameter(description = "Id of assignee to filter by (filters are combined with 'and')")
-    private Optional<Optional<Long>> assigneeId = Optional.empty();
+    private Optional<List<Long>> assigneeIds = Optional.empty();
     @Parameter(description = "Id of status to filter by (filters are combined with 'and'); multiple values are allowed")
     private Optional<List<Long>> statusId = Optional.empty();
     @Parameter(description = "Type of filtered tasks (filters are combined with 'and'); multiple values are allowed")
@@ -69,9 +69,8 @@ public class TaskFilter {
         this.sprintId = Optional.of(sprintId);
     }
 
-    public void setAssigneeId(String assigneeId) {
-        var longAssigneeId = "null".equalsIgnoreCase(assigneeId) ? null : Long.parseLong(assigneeId);
-        this.assigneeId = Optional.of(Optional.ofNullable(longAssigneeId));
+    public void setAssigneeId(List<String> assigneeId) {
+        this.assigneeIds = Optional.of(assigneeId.stream().map(x -> "null".equalsIgnoreCase(x) ? null : Long.parseLong(x)).toList());
     }
 
     public void setStatusId(List<Long> statusId) {
@@ -103,12 +102,13 @@ public class TaskFilter {
             sprintId.ifPresent(id -> predicates
                     .add(builder.or(builder.in(root.join("archiveSprints", JoinType.LEFT).get(NUMBER)).value(id),
                             builder.equal(root.get("sprint").get(NUMBER), id))));
-            assigneeId.ifPresent(id -> {
-                if (id.isPresent()) {
-                    predicates.add(builder.equal(root.get("assignee").get("id"), id.get()));
-                } else {
-                    predicates.add(builder.isNull(root.get("assignee")));
+            assigneeIds.ifPresent(id -> {
+                List<Predicate> assigneePredicates = new ArrayList<>();
+                if (id.contains(null)) {
+                    assigneePredicates.add(builder.isNull(root.get("assignee")));
                 }
+                id.stream().filter(x -> x != null).forEach(x -> assigneePredicates.add(builder.equal(root.get("assignee").get("id"), x)));
+                predicates.add(builder.or(assigneePredicates.toArray(new Predicate[0])));
             });
             statusId.ifPresent(ids -> predicates.add(builder.in(root.get(STATUS).get("id")).value(ids)));
             type.ifPresent(types -> predicates.add(builder.in(root.get("type")).value(types)));
