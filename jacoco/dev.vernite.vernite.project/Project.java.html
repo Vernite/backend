@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Project.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.project</a> &gt; <span class="el_source">Project.java</span></div><h1>Project.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.project;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Set;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.OrderBy;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import dev.vernite.vernite.cdn.File;
+import dev.vernite.vernite.common.utils.counter.CounterSequence;
+import dev.vernite.vernite.integration.git.github.model.ProjectIntegration;
+import dev.vernite.vernite.meeting.Meeting;
+import dev.vernite.vernite.projectworkspace.ProjectWorkspace;
+import dev.vernite.vernite.release.Release;
+import dev.vernite.vernite.sprint.Sprint;
+import dev.vernite.vernite.status.Status;
+import dev.vernite.vernite.user.User;
+import dev.vernite.vernite.utils.SoftDeleteEntity;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+/**
+ * Entity for representing project.
+ */
+@Data
+@Entity
+@NoArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+public class Project extends SoftDeleteEntity implements Comparable&lt;Project&gt; {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @PositiveOrZero(message = &quot;project ID must be non negative number&quot;)
+    private long id;
+
+    @Column(nullable = false, length = 50)
+    @Size(min = 1, max = 50, message = &quot;project name must be shorter than 50 characters&quot;)
+    @NotBlank(message = &quot;project name must contain at least one non-whitespace character&quot;)
+    private String name;
+
+    @Column(nullable = false, length = 1000)
+    @NotNull(message = &quot;project description cannot be null&quot;)
+    @Size(max = 1000, message = &quot;project description must be shorter than 1000 characters&quot;)
+    private String description;
+
+<span class="fc" id="L98">    @JsonIgnore</span>
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @OneToMany(mappedBy = &quot;project&quot;)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @NotNull(message = &quot;project workspaces connection must be set&quot;)
+    private List&lt;ProjectWorkspace&gt; projectWorkspaces = new ArrayList&lt;&gt;();
+
+<span class="fc" id="L106">    @ManyToMany</span>
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @NotNull(message = &quot;users connection must be set&quot;)
+    @JoinTable(name = &quot;project_workspace&quot;, joinColumns = @JoinColumn(name = &quot;project_id&quot;, referencedColumnName = &quot;id&quot;), inverseJoinColumns = @JoinColumn(name = &quot;workspace_user_id&quot;, referencedColumnName = &quot;id&quot;))
+    private Set&lt;User&gt; users = new HashSet&lt;&gt;();
+
+<span class="fc" id="L114">    @ToString.Exclude</span>
+    @OrderBy(&quot;ordinal&quot;)
+    @EqualsAndHashCode.Exclude
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @NotNull(message = &quot;project must have statuses&quot;)
+    @OneToMany(cascade = CascadeType.PERSIST, mappedBy = &quot;project&quot;)
+    private List&lt;Status&gt; statuses = new ArrayList&lt;&gt;();
+
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @NotNull(message = &quot;counter must be set&quot;)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @OneToOne(cascade = CascadeType.PERSIST, optional = false)
+    private CounterSequence taskCounter;
+
+<span class="fc" id="L130">    @NotNull</span>
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @OneToMany(mappedBy = &quot;project&quot;)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private List&lt;ProjectIntegration&gt; githubProjectIntegrations = new ArrayList&lt;&gt;();
+
+<span class="fc" id="L137">    @JsonIgnore</span>
+    @ToString.Exclude
+    @OrderBy(&quot;startDate&quot;)
+    @EqualsAndHashCode.Exclude
+    @OneToMany(mappedBy = &quot;project&quot;)
+    @NotNull(message = &quot;counter must be set&quot;)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private List&lt;Sprint&gt; sprints = new ArrayList&lt;&gt;();
+
+<span class="fc" id="L146">    @JsonIgnore</span>
+    @ToString.Exclude
+    @OrderBy(&quot;deadline DESC&quot;)
+    @EqualsAndHashCode.Exclude
+    @OneToMany(mappedBy = &quot;project&quot;)
+    @NotNull(message = &quot;releases must be set&quot;)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private List&lt;Release&gt; releases = new ArrayList&lt;&gt;();
+
+<span class="fc" id="L155">    @JsonIgnore</span>
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @OrderBy(&quot;startDate, endDate&quot;)
+    @OneToMany(mappedBy = &quot;project&quot;)
+    @NotNull(message = &quot;meetings must be set&quot;)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private List&lt;Meeting&gt; meetings = new ArrayList&lt;&gt;();
+
+    @ManyToOne
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private File logo;
+
+    /**
+     * Default constructor for project.
+     * 
+     * @param name        must not be {@literal null} and have size between 1 and 50
+     * @param description must not be {@literal null} and must be shorter than 1000
+     *                    characters.
+     */
+<span class="fc" id="L176">    public Project(String name, String description) {</span>
+<span class="fc" id="L177">        setName(name);</span>
+<span class="fc" id="L178">        setDescription(description);</span>
+<span class="fc" id="L179">        this.taskCounter = new CounterSequence();</span>
+<span class="fc" id="L180">    }</span>
+
+    /**
+     * Constructor for project from create request.
+     * 
+     * @param create must not be {@literal null} and must be valid
+     */
+    public Project(CreateProject create) {
+<span class="fc" id="L188">        this(create.getName(), create.getDescription());</span>
+<span class="fc" id="L189">    }</span>
+
+    /**
+     * Updates project entity with data from update.
+     * 
+     * @param update must not be {@literal null} and be valid
+     */
+    public void update(UpdateProject update) {
+<span class="fc bfc" id="L197" title="All 2 branches covered.">        if (update.getName() != null) {</span>
+<span class="fc" id="L198">            setName(update.getName());</span>
+        }
+<span class="fc bfc" id="L200" title="All 2 branches covered.">        if (update.getDescription() != null) {</span>
+<span class="fc" id="L201">            setDescription(update.getDescription());</span>
+        }
+<span class="fc" id="L203">    }</span>
+
+    /**
+     * Checks whether user is member of project.
+     * 
+     * @param user potential project member
+     * @return {@literal true} if given user is member of project; {@literal false}
+     *         otherwise
+     */
+    public boolean isMember(User user) {
+<span class="fc" id="L213">        return getUsers().contains(user);</span>
+    }
+
+    /**
+     * Remove user from project members.
+     * 
+     * @param user must not be {@literal null}
+     * @return removed connection; can be null if user wasn't member
+     */
+    public ProjectWorkspace removeMember(User user) {
+<span class="fc" id="L223">        ProjectWorkspace removed = getProjectWorkspaces().stream()</span>
+<span class="pc bpc" id="L224" title="1 of 2 branches missed.">                .filter(pw -&gt; pw.getId().getWorkspaceId().getUserId() == user.getId()).findFirst().orElse(null);</span>
+<span class="fc" id="L225">        getProjectWorkspaces().remove(removed);</span>
+<span class="fc" id="L226">        return removed;</span>
+    }
+
+    /**
+     * Find index of user in project workspace list.
+     * 
+     * @param user must not be {@literal null}. Must be value returned by
+     *             repository.
+     * @return index in project workspaces with given user or -1 when not found.
+     */
+    @Deprecated
+    public int member(User user) {
+<span class="fc" id="L238">        ListIterator&lt;ProjectWorkspace&gt; iterator = projectWorkspaces.listIterator();</span>
+<span class="fc bfc" id="L239" title="All 2 branches covered.">        while (iterator.hasNext()) {</span>
+<span class="pc bpc" id="L240" title="1 of 2 branches missed.">            if (iterator.next().getId().getWorkspaceId().getUserId() == user.getId()) {</span>
+<span class="fc" id="L241">                return iterator.nextIndex() - 1;</span>
+            }
+        }
+<span class="fc" id="L244">        return -1;</span>
+    }
+
+    /**
+     * Setter for name value. It performs {@link String#trim()} on its argument.
+     * 
+     * @param name must not be {@literal null} and have at least one non-whitespace
+     *             character and less than 50 characters
+     */
+    public void setName(String name) {
+<span class="fc" id="L254">        this.name = name.trim();</span>
+<span class="fc" id="L255">    }</span>
+
+    /**
+     * Setter for description value. It performs {@link String#trim()} on its
+     * argument.
+     * 
+     * @param description must not be {@literal null} and have at least one
+     *                    non-whitespace character and less than 50 characters
+     */
+    public void setDescription(String description) {
+<span class="fc" id="L265">        this.description = description.trim();</span>
+<span class="fc" id="L266">    }</span>
+
+    @Override
+    @Deprecated
+    public int compareTo(Project other) {
+<span class="fc bfc" id="L271" title="All 2 branches covered.">        return getName().equals(other.getName()) ? Long.compare(getId(), other.getId())</span>
+<span class="fc" id="L272">                : getName().compareTo(other.getName());</span>
+    }
+
+    @Deprecated
+    public Project(String name) {
+<span class="fc" id="L277">        this(name, &quot;&quot;);</span>
+<span class="fc" id="L278">        this.statuses.add(new Status(&quot;To Do&quot;, 0, 0, false, true, this));</span>
+<span class="fc" id="L279">        this.statuses.add(new Status(&quot;In Progress&quot;, 0, 1, false, false, this));</span>
+<span class="fc" id="L280">        this.statuses.add(new Status(&quot;Done&quot;, 0, 2, true, false, this));</span>
+<span class="fc" id="L281">    }</span>
+
+    @Deprecated
+    public String getGitHubIntegration() {
+<span class="pc bpc" id="L285" title="1 of 2 branches missed.">        if (githubProjectIntegrations.isEmpty()) {</span>
+<span class="fc" id="L286">            return null;</span>
+        } else {
+<span class="nc" id="L288">            return githubProjectIntegrations.get(0).getRepositoryFullName();</span>
+        }
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

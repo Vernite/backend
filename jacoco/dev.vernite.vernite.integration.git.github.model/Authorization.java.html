@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Authorization.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.integration.git.github.model</a> &gt; <span class="el_source">Authorization.java</span></div><h1>Authorization.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.integration.git.github.model;
+
+import java.time.Instant;
+import java.util.Date;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import dev.vernite.vernite.integration.git.github.api.model.GitHubUser;
+import dev.vernite.vernite.integration.git.github.api.model.OauthToken;
+import dev.vernite.vernite.user.User;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+
+/**
+ * Entity for representing GitHub authorization.
+ */
+@Data
+@Schema(name = &quot;GitHubAuthorization&quot;)
+@Entity(name = &quot;github_authorization&quot;)
+public class Authorization {
+
+    @Id
+    @Positive
+    private long id;
+
+    @NotBlank
+    @Column(nullable = false)
+    private String login;
+
+    @NotBlank
+    @Column(nullable = false)
+    private String avatarUrl;
+
+    @NotBlank
+    @JsonIgnore
+    @Column(unique = true, nullable = false)
+    private String accessToken;
+
+    @NotNull
+    @JsonIgnore
+    @Column(nullable = false)
+    private Date expires;
+
+    @NotBlank
+    @JsonIgnore
+    @Column(nullable = false)
+    private String refreshToken;
+
+    @NotNull
+    @JsonIgnore
+    @Column(nullable = false)
+    private Date refreshTokenExpires;
+
+    @NotBlank
+    @JsonIgnore
+    @Column(nullable = false)
+    private String tokenType;
+
+    @NotNull
+    @JsonIgnore
+    @Column(nullable = false)
+    private String scope;
+
+    @NotNull
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private User user;
+
+    /**
+     * Updates authorization with new data.
+     * 
+     * @param token      OAuth token
+     * @param user       GitHub user
+     * @param userEntity user entity
+     */
+    public void update(OauthToken token, GitHubUser user, User userEntity) {
+<span class="nc" id="L119">        refreshToken(token);</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">        if (getId() == 0) {</span>
+<span class="nc" id="L121">            setId(user.getId());</span>
+        }
+<span class="nc" id="L123">        this.login = user.getLogin();</span>
+<span class="nc" id="L124">        this.avatarUrl = user.getAvatarUrl();</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">        if (getUser() == null) {</span>
+<span class="nc" id="L126">            setUser(userEntity);</span>
+        }
+<span class="nc" id="L128">    }</span>
+
+    /**
+     * Refresh token.
+     * 
+     * @param token Oauth token
+     */
+    public void refreshToken(OauthToken token) {
+<span class="nc" id="L136">        setAccessToken(token.getAccessToken());</span>
+<span class="nc" id="L137">        setExpires(Date.from(Instant.now().plusSeconds(token.getExpiresIn())));</span>
+<span class="nc" id="L138">        setRefreshToken(token.getRefreshToken());</span>
+<span class="nc" id="L139">        setRefreshTokenExpires(Date.from(Instant.now().plusSeconds(token.getRefreshTokenExpiresIn())));</span>
+<span class="nc" id="L140">        setTokenType(token.getTokenType());</span>
+<span class="nc" id="L141">        setScope(token.getScope());</span>
+<span class="nc" id="L142">    }</span>
+
+    /**
+     * @return true if token should be refreshed
+     */
+    public boolean shouldRefreshToken() {
+<span class="nc" id="L148">        return Instant.now().isAfter(getExpires().toInstant());</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ImageConverter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.utils</a> &gt; <span class="el_source">ImageConverter.java</span></div><h1>ImageConverter.java</h1><pre class="source lang-java linenums">package dev.vernite.vernite.utils;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+
+import org.bytedeco.ffmpeg.avcodec.AVCodec;
+import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
+import org.bytedeco.ffmpeg.avcodec.AVPacket;
+import org.bytedeco.ffmpeg.avformat.AVFormatContext;
+import org.bytedeco.ffmpeg.avformat.AVIOContext;
+import org.bytedeco.ffmpeg.avutil.AVDictionary;
+import org.bytedeco.ffmpeg.avutil.AVFrame;
+import org.bytedeco.ffmpeg.global.avcodec;
+import org.bytedeco.ffmpeg.global.avformat;
+import org.bytedeco.ffmpeg.global.avutil;
+import org.bytedeco.ffmpeg.global.swscale;
+import org.bytedeco.ffmpeg.swscale.SwsContext;
+import org.bytedeco.javacpp.BytePointer;
+import org.bytedeco.javacpp.Pointer;
+
+<span class="nc" id="L21">public class ImageConverter {</span>
+
+    /**
+     * converts any video/image/picture to webp. Default settings: 75% quality,
+     * lossy, YUVA420P
+     * 
+     * @param b
+     * @return byte array
+     */
+    public static byte[] convertImage(String filename, byte[] b) throws IOException {
+<span class="nc" id="L31">        Pointer mem = null;</span>
+<span class="nc" id="L32">        AVIOContext pb = null;</span>
+<span class="nc" id="L33">        AVFormatContext ifCtx = null;</span>
+<span class="nc" id="L34">        AVCodecContext decCtx = null;</span>
+<span class="nc" id="L35">        AVFrame src = null;</span>
+<span class="nc" id="L36">        AVFrame dst = null;</span>
+<span class="nc" id="L37">        AVPacket pkt = null;</span>
+<span class="nc" id="L38">        SwsContext swsCtx = null;</span>
+<span class="nc" id="L39">        AVCodecContext encCtx = null;</span>
+<span class="nc" id="L40">        BytePointer data = null;</span>
+        try {
+<span class="nc" id="L42">            mem = avutil.av_malloc(b.length + 16);</span>
+<span class="nc bnc" id="L43" title="All 4 branches missed.">            if (mem == null || mem.address() == 0) {</span>
+<span class="nc" id="L44">                throw new IOException(&quot;Could not allocate memory&quot;);</span>
+            }
+<span class="nc" id="L46">            mem.capacity(b.length + 16);</span>
+<span class="nc" id="L47">            data = new BytePointer(mem);</span>
+            // 0: cursor
+            // 8: capacity
+            // 16: data
+<span class="nc" id="L51">            data.position(16);</span>
+<span class="nc" id="L52">            data.put(b);</span>
+<span class="nc" id="L53">            data.putLong(-16, 0); // cursor</span>
+<span class="nc" id="L54">            data.putLong(-8, b.length); // capacity</span>
+<span class="nc" id="L55">            pb = avformat.avio_alloc_context((BytePointer) null, 0, 0, mem, null, null, null);</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">            if (pb == null) {</span>
+<span class="nc" id="L57">                throw new IOException(&quot;Could not allocate AVIOContext&quot;);</span>
+            }
+<span class="nc" id="L59">            pb.direct(1);</span>
+<span class="nc" id="L60">            pb.seekable(1);</span>
+<span class="nc" id="L61">            pb.read_packet(ReadPointer.INSTANCE);</span>
+<span class="nc" id="L62">            pb.seek(SeekPointer.INSTANCE);</span>
+<span class="nc" id="L63">            ifCtx = avformat.avformat_alloc_context();</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">            if (ifCtx == null) {</span>
+<span class="nc" id="L65">                throw new IOException(&quot;Could not allocate AVFormatContext&quot;);</span>
+            }
+<span class="nc" id="L67">            ifCtx.pb(pb);</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">            if (avformat.avformat_open_input(ifCtx, filename, null, (AVDictionary) null) &lt; 0) {</span>
+<span class="nc" id="L69">                throw new IOException(&quot;Could not open input&quot;);</span>
+            }
+<span class="nc" id="L71">            int stream = avformat.av_find_best_stream(ifCtx, avutil.AVMEDIA_TYPE_VIDEO, -1, -1, (AVCodec) null, 0);</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">            if (stream &lt; 0) {</span>
+<span class="nc" id="L73">                throw new IOException(&quot;Could not find video stream&quot;);</span>
+            }
+<span class="nc" id="L75">            AVCodec decoder = avcodec.avcodec_find_decoder(ifCtx.streams(stream).codecpar().codec_id());</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">            if (decoder == null) {</span>
+<span class="nc" id="L77">                throw new IOException(&quot;Could not find decoder&quot;);</span>
+            }
+<span class="nc" id="L79">            decCtx = avcodec.avcodec_alloc_context3(decoder);</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">            if (avcodec.avcodec_parameters_to_context(decCtx, ifCtx.streams(stream).codecpar()) &lt; 0) {</span>
+<span class="nc" id="L81">                throw new IOException(&quot;Could not copy codec parameters to decoder context&quot;);</span>
+            }
+<span class="nc bnc" id="L83" title="All 2 branches missed.">            if (avcodec.avcodec_open2(decCtx, decoder, (AVDictionary) null) &lt; 0) {</span>
+<span class="nc" id="L84">                throw new IOException(&quot;Could not open decoder&quot;);</span>
+            }
+<span class="nc" id="L86">            src = avutil.av_frame_alloc();</span>
+<span class="nc" id="L87">            dst = avutil.av_frame_alloc();</span>
+<span class="nc bnc" id="L88" title="All 4 branches missed.">            if (src == null || dst == null) {</span>
+<span class="nc" id="L89">                throw new IOException(&quot;Could not allocate frame&quot;);</span>
+            }
+<span class="nc" id="L91">            pkt = avcodec.av_packet_alloc();</span>
+<span class="nc" id="L92">            boolean gotFrame = false;</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">            while (!gotFrame) {</span>
+<span class="nc" id="L94">                int ret2 = avformat.av_read_frame(ifCtx, pkt);</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">                if (ret2 &lt; 0) {</span>
+<span class="nc" id="L96">                    break;</span>
+                }
+<span class="nc bnc" id="L98" title="All 2 branches missed.">                if (pkt.stream_index() != stream) {</span>
+<span class="nc" id="L99">                    avcodec.av_packet_unref(pkt);</span>
+<span class="nc" id="L100">                    continue;</span>
+                }
+<span class="nc" id="L102">                int ret = avcodec.avcodec_send_packet(decCtx, pkt);</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">                if (ret &lt; 0) {</span>
+<span class="nc" id="L104">                    throw new IOException(&quot;Could not send packet to decoder&quot;);</span>
+                }
+<span class="nc" id="L106">                avcodec.av_packet_unref(pkt);</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">                while (ret &gt;= 0) {</span>
+<span class="nc" id="L108">                    ret = avcodec.avcodec_receive_frame(decCtx, src);</span>
+<span class="nc bnc" id="L109" title="All 4 branches missed.">                    if (ret == avutil.AVERROR_EAGAIN() || ret == avutil.AVERROR_EOF()) {</span>
+<span class="nc" id="L110">                        break;</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">                    } else if (ret &lt; 0) {</span>
+<span class="nc" id="L112">                        throw new IOException(&quot;Could not receive frame from decoder&quot;);</span>
+                    }
+<span class="nc" id="L114">                    gotFrame = true;</span>
+                    break;
+                }
+<span class="nc" id="L117">            }</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">            if (!gotFrame) {</span>
+<span class="nc" id="L119">                throw new IOException(&quot;Could not read frame&quot;);</span>
+            }
+<span class="nc" id="L121">            dst.width(400);</span>
+<span class="nc" id="L122">            dst.height(400);</span>
+<span class="nc" id="L123">            dst.format(avutil.AV_PIX_FMT_YUVA420P);</span>
+<span class="nc" id="L124">            swsCtx = swscale.sws_getContext(</span>
+<span class="nc" id="L125">                    src.width(), src.height(), src.format(),</span>
+<span class="nc" id="L126">                    dst.width(), dst.height(), dst.format(),</span>
+                    swscale.SWS_BICUBIC, null, null, (double[]) null);
+<span class="nc bnc" id="L128" title="All 2 branches missed.">            if (swsCtx == null) {</span>
+<span class="nc" id="L129">                throw new IOException(&quot;Could not initialize the conversion context&quot;);</span>
+            }
+<span class="nc bnc" id="L131" title="All 2 branches missed.">            if (swscale.sws_scale_frame(swsCtx, dst, src) &lt; 0) {</span>
+<span class="nc" id="L132">                throw new IOException(&quot;Error while converting&quot;);</span>
+            }
+<span class="nc" id="L134">            AVCodec encoder = avcodec.avcodec_find_encoder_by_name(&quot;libwebp&quot;);</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">            if (encoder == null) {</span>
+<span class="nc" id="L136">                throw new IOException(&quot;Could not find encoder&quot;);</span>
+            }
+<span class="nc" id="L138">            encCtx = avcodec.avcodec_alloc_context3(encoder);</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">            if (encCtx == null) {</span>
+<span class="nc" id="L140">                throw new IOException(&quot;Could not allocate the encoder context&quot;);</span>
+            }
+<span class="nc" id="L142">            encCtx.time_base().num(1);</span>
+<span class="nc" id="L143">            encCtx.time_base().den(1);</span>
+<span class="nc" id="L144">            encCtx.width(dst.width());</span>
+<span class="nc" id="L145">            encCtx.height(dst.height());</span>
+<span class="nc" id="L146">            encCtx.pix_fmt(dst.format());</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">            if (avcodec.avcodec_open2(encCtx, encoder, (AVDictionary) null) &lt; 0) {</span>
+<span class="nc" id="L148">                throw new IOException(&quot;Could not open encoder&quot;);</span>
+            }
+<span class="nc bnc" id="L150" title="All 2 branches missed.">            if (avcodec.avcodec_send_frame(encCtx, dst) &lt; 0) {</span>
+<span class="nc" id="L151">                throw new IOException(&quot;Error while sending a frame to the encoder&quot;);</span>
+            }
+<span class="nc" id="L153">            ByteArrayOutputStream baos = new ByteArrayOutputStream();</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">            while (avcodec.avcodec_receive_packet(encCtx, pkt) &gt;= 0) {</span>
+<span class="nc" id="L155">                BytePointer d = pkt.data();</span>
+<span class="nc" id="L156">                byte[] bytes = new byte[pkt.size()];</span>
+<span class="nc" id="L157">                d.get(bytes);</span>
+<span class="nc" id="L158">                baos.write(bytes, 0, bytes.length);</span>
+<span class="nc" id="L159">            }</span>
+            // flush packet
+<span class="nc bnc" id="L161" title="All 2 branches missed.">            if (avcodec.avcodec_send_frame(encCtx, null) &lt; 0) {</span>
+<span class="nc" id="L162">                throw new IOException(&quot;Error while sending a frame to the encoder&quot;);</span>
+            }
+<span class="nc bnc" id="L164" title="All 2 branches missed.">            while (avcodec.avcodec_receive_packet(encCtx, pkt) &gt;= 0) {</span>
+<span class="nc" id="L165">                BytePointer d = pkt.data();</span>
+<span class="nc" id="L166">                byte[] bytes = new byte[pkt.size()];</span>
+<span class="nc" id="L167">                d.get(bytes);</span>
+<span class="nc" id="L168">                baos.write(bytes, 0, bytes.length);</span>
+<span class="nc" id="L169">            }</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">            if (baos.size() == 0) {</span>
+<span class="nc" id="L171">                throw new IOException(&quot;Could not encode&quot;);</span>
+            }
+<span class="nc" id="L173">            return baos.toByteArray();</span>
+        } finally {
+<span class="nc bnc" id="L175" title="All 2 branches missed.">            if (encCtx != null) {</span>
+<span class="nc" id="L176">                avcodec.avcodec_free_context(encCtx);</span>
+            }
+<span class="nc bnc" id="L178" title="All 2 branches missed.">            if (swsCtx != null) {</span>
+<span class="nc" id="L179">                swscale.sws_freeContext(swsCtx);</span>
+            }
+<span class="nc bnc" id="L181" title="All 2 branches missed.">            if (pkt != null) {</span>
+<span class="nc" id="L182">                avcodec.av_packet_free(pkt);</span>
+            }
+<span class="nc bnc" id="L184" title="All 2 branches missed.">            if (dst != null) {</span>
+<span class="nc" id="L185">                avutil.av_frame_free(dst);</span>
+            }
+<span class="nc bnc" id="L187" title="All 2 branches missed.">            if (src != null) {</span>
+<span class="nc" id="L188">                avutil.av_frame_free(src);</span>
+            }
+<span class="nc bnc" id="L190" title="All 2 branches missed.">            if (decCtx != null) {</span>
+<span class="nc" id="L191">                avcodec.avcodec_free_context(decCtx);</span>
+            }
+<span class="nc bnc" id="L193" title="All 2 branches missed.">            if (ifCtx != null) {</span>
+<span class="nc" id="L194">                avformat.avformat_free_context(ifCtx);</span>
+            }
+<span class="nc bnc" id="L196" title="All 2 branches missed.">            if (pb != null) {</span>
+                /* note: the internal buffer could have changed, and be != avio_ctx_buffer */
+<span class="nc" id="L198">                avutil.av_free(pb.buffer());</span>
+<span class="nc" id="L199">                pb.buffer(null);</span>
+<span class="nc" id="L200">                avformat.avio_context_free(pb);</span>
+            }
+<span class="nc bnc" id="L202" title="All 2 branches missed.">            if (mem != null) {</span>
+<span class="nc" id="L203">                avutil.av_free(mem);</span>
+<span class="nc" id="L204">                mem.close();</span>
+            }
+<span class="nc bnc" id="L206" title="All 2 branches missed.">            if (data != null) {</span>
+<span class="nc" id="L207">                data.close();</span>
+            }
+        }
+    }
+
+    private static final class ReadPointer extends AVIOContext.Read_packet_Pointer_BytePointer_int {
+<span class="nc" id="L213">        public static final ReadPointer INSTANCE = new ReadPointer();</span>
+
+        @Override
+        public int call(Pointer opaque, BytePointer buf, int buf_size) {
+<span class="nc" id="L217">            BytePointer p = new BytePointer(opaque);</span>
+            try {
+<span class="nc" id="L219">                long pos = p.getLong(0);</span>
+<span class="nc" id="L220">                long count = p.getLong(8);</span>
+<span class="nc bnc" id="L221" title="All 2 branches missed.">                if (pos &gt;= count) {</span>
+<span class="nc" id="L222">                    return avutil.AVERROR_EOF();</span>
+                }
+<span class="nc" id="L224">                long avail = count - pos;</span>
+<span class="nc bnc" id="L225" title="All 2 branches missed.">                if (buf_size &gt; avail) {</span>
+<span class="nc" id="L226">                    buf_size = (int) avail;</span>
+                }
+<span class="nc bnc" id="L228" title="All 2 branches missed.">                if (buf_size &lt;= 0) {</span>
+<span class="nc" id="L229">                    return 0;</span>
+                }
+<span class="nc" id="L231">                Pointer.memcpy(buf, p.getPointer(16 + pos), buf_size);</span>
+<span class="nc" id="L232">                p.putLong(0, pos + buf_size);</span>
+<span class="nc" id="L233">                return buf_size;</span>
+            } finally {
+<span class="nc" id="L235">                p.close();</span>
+            }
+        }
+    }
+
+    private static final class SeekPointer extends AVIOContext.Seek_Pointer_long_int {
+<span class="nc" id="L241">        public static final SeekPointer INSTANCE = new SeekPointer();</span>
+
+        public long call(Pointer opaque, long offset, int whence) {
+<span class="nc" id="L244">            BytePointer p = new BytePointer(opaque);</span>
+            try {
+<span class="nc" id="L246">                long pos = p.getLong(0);</span>
+<span class="nc" id="L247">                long size = p.getLong(8);</span>
+<span class="nc bnc" id="L248" title="All 2 branches missed.">                if ((whence &amp; avformat.AVSEEK_SIZE) != 0) {</span>
+<span class="nc" id="L249">                    return size;</span>
+                }
+<span class="nc bnc" id="L251" title="All 4 branches missed.">                switch (whence) {</span>
+<span class="nc" id="L252">                    case 0 -&gt; pos = offset; // SEEK_SET</span>
+<span class="nc" id="L253">                    case 1 -&gt; pos = pos + offset; // SEEK_CUR</span>
+<span class="nc" id="L254">                    case 2 -&gt; pos = capacity + offset; // SEEK_END</span>
+                }
+<span class="nc bnc" id="L256" title="All 4 branches missed.">                if (offset &lt; 0 || offset &gt; size) {</span>
+<span class="nc" id="L257">                    return avutil.AVERROR_EOF();</span>
+                }
+<span class="nc" id="L259">                p.putLong(0, pos);</span>
+<span class="nc" id="L260">                return 0;</span>
+            } finally {
+<span class="nc" id="L262">                p.close();</span>
+            }
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

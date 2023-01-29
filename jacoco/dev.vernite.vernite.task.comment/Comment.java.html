@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Comment.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.task.comment</a> &gt; <span class="el_source">Comment.java</span></div><h1>Comment.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.task.comment;
+
+import java.util.Date;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
+
+import dev.vernite.vernite.task.Task;
+import dev.vernite.vernite.user.User;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+/**
+ * Entity for representing comment for task.
+ */
+@Data
+@Entity
+@NoArgsConstructor
+public class Comment {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @PositiveOrZero(message = &quot;comment ID must be non negative number&quot;)
+    private long id;
+
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @NotNull(message = &quot;comment must be connected to task&quot;)
+    private Task task;
+
+    @Column(nullable = false, length = 1000)
+    @NotNull(message = &quot;comment content cannot be null&quot;)
+    @NotBlank(message = &quot;comment content cannot be blank&quot;)
+    @Size(min = 1, max = 1000, message = &quot;comment must be shorter than 1000 characters&quot;)
+    private String content;
+
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @NotNull(message = &quot;comment must have an author&quot;)
+    private User user;
+
+    @NotNull(message = &quot;comment must have creation date&quot;)
+    private Date createdAt;
+
+    /**
+     * Creates comment with given content and author. Sets creation date to current
+     * time.
+     * 
+     * @param task    task to which comment is connected
+     * @param content content of comment
+     * @param user    author of comment
+     */
+<span class="fc" id="L100">    public Comment(Task task, String content, User user) {</span>
+<span class="fc" id="L101">        this.task = task;</span>
+<span class="fc" id="L102">        setContent(content);</span>
+<span class="fc" id="L103">        this.user = user;</span>
+<span class="fc" id="L104">        this.createdAt = new Date();</span>
+<span class="fc" id="L105">    }</span>
+
+    /**
+     * Creates comment with given content and author. Sets creation date to current
+     * time. Gets content from create request.
+     * 
+     * @param task   task to which comment is connected
+     * @param user   author of comment
+     * @param create create request
+     */
+    public Comment(Task task, User user, CreateComment create) {
+<span class="fc" id="L116">        this(task, create.getContent(), user);</span>
+<span class="fc" id="L117">    }</span>
+
+    /**
+     * Updates comment entity with data from update.
+     * 
+     * @param update must not be {@literal null} and be valid
+     */
+    public void update(UpdateComment update) {
+<span class="fc bfc" id="L125" title="All 2 branches covered.">        if (update.getContent() != null) {</span>
+<span class="fc" id="L126">            setContent(update.getContent());</span>
+        }
+<span class="fc" id="L128">    }</span>
+
+    /**
+     * Sets content of comment. Trims content before setting it.
+     * 
+     * @param content content of comment
+     */
+    public void setContent(String content) {
+<span class="fc" id="L136">        this.content = content.trim();</span>
+<span class="fc" id="L137">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

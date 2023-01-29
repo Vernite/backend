@@ -1,0 +1,601 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.user.auth</a> &gt; <span class="el_source">AuthController.java</span></div><h1>AuthController.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.user.auth;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import dev.vernite.vernite.common.utils.counter.CounterSequence;
+import dev.vernite.vernite.event.Event;
+import dev.vernite.vernite.event.EventFilter;
+import dev.vernite.vernite.event.EventService;
+import dev.vernite.vernite.integration.calendar.CalendarIntegration;
+import dev.vernite.vernite.integration.calendar.CalendarIntegrationRepository;
+import dev.vernite.vernite.task.time.TimeTrack;
+import dev.vernite.vernite.task.time.TimeTrackRepository;
+import dev.vernite.vernite.user.DeleteAccountRequest;
+import dev.vernite.vernite.user.DeleteAccountRequestRepository;
+import dev.vernite.vernite.user.PasswordRecovery;
+import dev.vernite.vernite.user.PasswordRecoveryRepository;
+import dev.vernite.vernite.user.User;
+import dev.vernite.vernite.user.UserRepository;
+import dev.vernite.vernite.user.UserSession;
+import dev.vernite.vernite.user.UserSessionRepository;
+import dev.vernite.vernite.utils.ErrorType;
+import dev.vernite.vernite.utils.ObjectNotFoundException;
+import dev.vernite.vernite.utils.SecureStringUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import lombok.Setter;
+
+@RestController
+@RequestMapping(&quot;/auth&quot;)
+<span class="fc" id="L107">public class AuthController {</span>
+
+    public static final String COOKIE_NAME = &quot;session&quot;;
+    private static final URI RECAPTCHA_URI;
+    static {
+        try {
+<span class="fc" id="L113">            RECAPTCHA_URI = new URI(&quot;https://www.google.com/recaptcha/api/siteverify&quot;);</span>
+<span class="nc" id="L114">        } catch (URISyntaxException e) {</span>
+<span class="nc" id="L115">            throw new RuntimeException(e);</span>
+<span class="fc" id="L116">        }</span>
+    }
+<span class="fc" id="L118">    private static final SecureRandom RANDOM = new SecureRandom();</span>
+<span class="fc" id="L119">    private static final ScheduledExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadScheduledExecutor();</span>
+<span class="fc" id="L120">    private static final ObjectMapper MAPPER = new ObjectMapper();</span>
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private UserSessionRepository userSessionRepository;
+
+    @Autowired
+    private JavaMailSender javaMailSender;
+
+    @Autowired
+    private DeleteAccountRequestRepository deleteAccountRepository;
+
+    @Autowired
+    private PasswordRecoveryRepository passwordRecoveryRepository;
+
+    @Autowired
+    private TimeTrackRepository timeTrackRepository;
+
+    @Autowired
+    private EventService eventService;
+
+    @Autowired
+    private CalendarIntegrationRepository calendarRepository;
+
+    @Setter
+    @Value(&quot;${server.servlet.context-path}&quot;)
+    private String cookiePath;
+
+    @Value(&quot;${recaptcha.secret}&quot;)
+    private String recaptchaSecret;
+
+    @Operation(summary = &quot;Logged user&quot;, description = &quot;This method returns currently logged user.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Logged user.&quot;)
+    @ApiResponse(responseCode = &quot;401&quot;, description = &quot;User is not logged.&quot;, content = @Content())
+    @GetMapping(&quot;/me&quot;)
+    public User me(@NotNull @Parameter(hidden = true) User loggedUser) {
+<span class="nc" id="L158">        return loggedUser;</span>
+    }
+
+    @Operation(summary = &quot;Get time tracks&quot;, description = &quot;This method gets time tracks for logged in user.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Time tracks.&quot;)
+    @ApiResponse(responseCode = &quot;401&quot;, description = &quot;User is not logged.&quot;, content = @Content())
+    @GetMapping(&quot;/me/track&quot;)
+    public List&lt;TimeTrack&gt; getTimeTracks(@NotNull @Parameter(hidden = true) User loggedUser) {
+<span class="nc" id="L166">        return timeTrackRepository.findByUser(loggedUser);</span>
+    }
+
+    @Operation(summary = &quot;Get user events&quot;, description = &quot;This method gets events for logged in user. `From` and `to` are required timestamps.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;List with events for current user. Empty list if no events. Tasks are only displayed if they are not finished and assigned to user.&quot;)
+    @ApiResponse(responseCode = &quot;401&quot;, description = &quot;User is not logged.&quot;, content = @Content())
+    @GetMapping(&quot;/me/events&quot;)
+    public Set&lt;Event&gt; getEvents(@NotNull @Parameter(hidden = true) User loggedUser, long from, long to,
+            @ModelAttribute EventFilter filter) {
+<span class="fc" id="L175">        return eventService.getUserEvents(loggedUser, new Date(from), new Date(to), filter);</span>
+    }
+
+    @Operation(summary = &quot;Create synchronization link&quot;, description = &quot;Creates synchronization link for user events calendar&quot;)
+    @ApiResponse(description = &quot;Link.&quot;, responseCode = &quot;200&quot;)
+    @ApiResponse(description = &quot;No user logged in.&quot;, responseCode = &quot;401&quot;, content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @PostMapping(&quot;/me/events/sync&quot;)
+    public String createCalendarSync(@NotNull @Parameter(hidden = true) User loggedUser) {
+<span class="nc" id="L183">        String key = SecureStringUtils.generateRandomSecureString();</span>
+<span class="nc bnc" id="L184" title="All 2 branches missed.">        while (calendarRepository.findByKey(key).isPresent()) {</span>
+<span class="nc" id="L185">            key = SecureStringUtils.generateRandomSecureString();</span>
+        }
+<span class="nc" id="L187">        Optional&lt;CalendarIntegration&gt; integration = calendarRepository.findByUserAndProjectNull(loggedUser);</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">        if (integration.isPresent()) {</span>
+<span class="nc" id="L189">            key = integration.get().getKey();</span>
+        } else {
+<span class="nc" id="L191">            calendarRepository.save(new CalendarIntegration(loggedUser, key));</span>
+        }
+<span class="nc" id="L193">        return &quot;https://vernite.dev/api/webhook/calendar?key=&quot; + key;</span>
+    }
+
+    @Operation(summary = &quot;Delete account&quot;, description = &quot;This method deletes currently logged user by sending an e-mail with a confirmation link.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;)
+    @DeleteMapping(&quot;/delete&quot;)
+    public void delete(@NotNull @Parameter(hidden = true) User loggedUser) {
+<span class="nc" id="L200">        DeleteAccountRequest d = new DeleteAccountRequest();</span>
+<span class="nc" id="L201">        d.setUser(loggedUser);</span>
+<span class="nc" id="L202">        d.setActive(Date.from(Instant.now().plus(30, ChronoUnit.MINUTES)));</span>
+<span class="nc" id="L203">        d.setToken(SecureStringUtils.generateRandomSecureString());</span>
+        while (true) {
+            try {
+<span class="nc" id="L206">                d = deleteAccountRepository.save(d);</span>
+<span class="nc" id="L207">                break;</span>
+<span class="nc" id="L208">            } catch (DataIntegrityViolationException ex) {</span>
+<span class="nc" id="L209">                d.setToken(SecureStringUtils.generateRandomSecureString());</span>
+<span class="nc" id="L210">            }</span>
+        }
+
+<span class="nc" id="L213">        SimpleMailMessage message = new SimpleMailMessage();</span>
+<span class="nc" id="L214">        message.setTo(loggedUser.getEmail());</span>
+<span class="nc" id="L215">        message.setSubject(&quot;Potwierdzenie usunięcia Twojego konta&quot;);</span>
+<span class="nc" id="L216">        message.setText(&quot;Aby potwierdzić usuwanie Twojego konta, kliknij w poniższy link:\n&quot; +</span>
+<span class="nc" id="L217">                &quot;https://vernite.dev/pl-PL/auth/delete-account?token=&quot; + d.getToken() + &quot;\n&quot; +</span>
+                &quot;Link wygaśnie po 30 minutach&quot;);
+<span class="nc" id="L219">        javaMailSender.send(message);</span>
+<span class="nc" id="L220">    }</span>
+
+    @Operation(summary = &quot;Delete account&quot;, description = &quot;This method deletes currently logged user after clicking on the confirmation link.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Account deleted.&quot;)
+    @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Token is not compatible with the currently logged in user.&quot;, content = @Content())
+    @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Token is invalid.&quot;, content = @Content())
+    @DeleteMapping(&quot;/delete/confirm&quot;)
+    public void deleteConfirm(@NotNull @Parameter(hidden = true) User loggedUser, @RequestBody DeleteRequest request) {
+<span class="nc" id="L228">        DeleteAccountRequest d = deleteAccountRepository.findByToken(request.getToken());</span>
+<span class="nc bnc" id="L229" title="All 2 branches missed.">        if (d == null) {</span>
+<span class="nc" id="L230">            throw new ObjectNotFoundException();</span>
+        }
+<span class="nc bnc" id="L232" title="All 2 branches missed.">        if (d.getUser().getId() != loggedUser.getId()) {</span>
+<span class="nc" id="L233">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;invalid user&quot;);</span>
+        }
+<span class="nc" id="L235">        deleteAccountRepository.delete(d);</span>
+<span class="nc" id="L236">        loggedUser.setDeleted(new Date());</span>
+<span class="nc" id="L237">        userRepository.save(loggedUser);</span>
+<span class="nc" id="L238">    }</span>
+
+    @Operation(summary = &quot;Recover deleted account&quot;, description = &quot;This method recovers a deleted account if it was deleted in less than 1 week.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Recovered user.&quot;, content = {
+            @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = User.class))
+    })
+    @ApiResponse(responseCode = &quot;401&quot;, description = &quot;User is not logged.&quot;, content = @Content())
+    @PostMapping(&quot;/delete/recover&quot;)
+    public User recoverDeleted(@Parameter(hidden = true) User loggedUser) {
+<span class="nc bnc" id="L247" title="All 2 branches missed.">        if (loggedUser == null) {</span>
+<span class="nc" id="L248">            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;user not logged&quot;);</span>
+        }
+<span class="nc bnc" id="L250" title="All 2 branches missed.">        if (loggedUser.getDeleted() == null) {</span>
+<span class="nc" id="L251">            return loggedUser;</span>
+        }
+<span class="nc" id="L253">        loggedUser.setDeleted(null);</span>
+<span class="nc" id="L254">        this.userRepository.save(loggedUser);</span>
+<span class="nc" id="L255">        return loggedUser;</span>
+    }
+
+    @Operation(summary = &quot;Logging in&quot;, description = &quot;This method logs the user in.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Logged user.&quot;, content = {
+            @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = User.class))
+    })
+    @ApiResponse(responseCode = &quot;403&quot;, description = &quot;User is already logged or invalid captcha.&quot;, content = @Content())
+    @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Username or password is incorrect.&quot;, content = @Content())
+    @PostMapping(&quot;/login&quot;)
+    public Future&lt;User&gt; login(@Parameter(hidden = true) User loggedUser, @RequestBody LoginRequest req,
+            HttpServletRequest request, HttpServletResponse response) {
+<span class="nc bnc" id="L267" title="All 2 branches missed.">        if (loggedUser != null) {</span>
+<span class="nc" id="L268">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;already logged&quot;);</span>
+        }
+<span class="nc bnc" id="L270" title="All 2 branches missed.">        if (req.getPassword() == null) {</span>
+<span class="nc" id="L271">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;missing password&quot;);</span>
+        }
+<span class="nc bnc" id="L273" title="All 2 branches missed.">        if (req.getEmail() == null) {</span>
+<span class="nc" id="L274">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;missing username&quot;);</span>
+        }
+<span class="nc bnc" id="L276" title="All 2 branches missed.">        if (req.getCaptcha() == null) {</span>
+<span class="nc" id="L277">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;missing captcha&quot;);</span>
+        }
+<span class="nc" id="L279">        return verifyCaptcha(req.getCaptcha(), request, &quot;login&quot;).thenApply(success -&gt; {</span>
+<span class="nc bnc" id="L280" title="All 2 branches missed.">            if (!success) {</span>
+<span class="nc" id="L281">                throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;invalid captcha&quot;);</span>
+            }
+<span class="nc bnc" id="L283" title="All 2 branches missed.">            if (req.getEmail().indexOf('@') != -1) {</span>
+<span class="nc" id="L284">                return userRepository.findByEmail(req.getEmail());</span>
+            }
+<span class="nc" id="L286">            return userRepository.findByUsername(req.getEmail());</span>
+<span class="nc" id="L287">        }).thenCompose(u -&gt; {</span>
+<span class="nc" id="L288">            CompletableFuture&lt;User&gt; f = new CompletableFuture&lt;&gt;();</span>
+<span class="nc" id="L289">            EXECUTOR_SERVICE.schedule(() -&gt; {</span>
+<span class="nc bnc" id="L290" title="All 4 branches missed.">                if (u == null || !u.checkPassword(req.getPassword())) {</span>
+<span class="nc" id="L291">                    f.completeExceptionally(</span>
+                            new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;username or password incorrect&quot;));
+                } else {
+<span class="nc" id="L294">                    createSession(request, response, u, req.isRemember());</span>
+<span class="nc" id="L295">                    f.complete(u);</span>
+                }
+<span class="nc" id="L297">            }, 500 + RANDOM.nextInt(500), TimeUnit.MILLISECONDS);</span>
+<span class="nc" id="L298">            return f;</span>
+        });
+    }
+
+    @Operation(summary = &quot;Modify user account&quot;, description = &quot;This method edits the account.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;User after changes.&quot;)
+    @PutMapping(&quot;/edit&quot;)
+    public User edit(@NotNull @Parameter(hidden = true) User loggedUser, @RequestBody @Valid EditAccountRequest req) {
+<span class="nc bnc" id="L306" title="All 2 branches missed.">        if (req.getAvatar() != null) {</span>
+<span class="nc" id="L307">            loggedUser.setAvatar(req.getAvatar());</span>
+        }
+<span class="nc bnc" id="L309" title="All 2 branches missed.">        if (req.getName() != null) {</span>
+<span class="nc" id="L310">            loggedUser.setName(req.getName());</span>
+        }
+<span class="nc bnc" id="L312" title="All 2 branches missed.">        if (req.getSurname() != null) {</span>
+<span class="nc" id="L313">            loggedUser.setSurname(req.getSurname());</span>
+        }
+<span class="nc bnc" id="L315" title="All 2 branches missed.">        if (req.getLanguage() != null) {</span>
+<span class="nc" id="L316">            loggedUser.setLanguage(req.getLanguage());</span>
+        }
+<span class="nc bnc" id="L318" title="All 2 branches missed.">        if (req.getDateFormat() != null) {</span>
+<span class="nc" id="L319">            loggedUser.setDateFormat(req.getDateFormat());</span>
+        }
+<span class="nc bnc" id="L321" title="All 2 branches missed.">        if (req.getTimeFormat() != null) {</span>
+<span class="nc" id="L322">            loggedUser.setTimeFormat(req.getTimeFormat());</span>
+        }
+<span class="nc bnc" id="L324" title="All 2 branches missed.">        if (req.getFirstDayOfWeek() != null) {</span>
+<span class="nc" id="L325">            loggedUser.setFirstDayOfWeek(req.getFirstDayOfWeek());</span>
+        }
+<span class="nc" id="L327">        userRepository.save(loggedUser);</span>
+<span class="nc" id="L328">        return loggedUser;</span>
+    }
+
+    @GetMapping(&quot;/verify/{code}&quot;)
+    public ResponseEntity&lt;Void&gt; verify(@Parameter(hidden = true) User loggedUser, @PathVariable String code) {
+<span class="nc bnc" id="L333" title="All 2 branches missed.">        if (loggedUser != null) {</span>
+<span class="nc" id="L334">            return ResponseEntity.status(HttpStatus.FOUND)</span>
+<span class="nc" id="L335">                    .location(URI.create(&quot;https://vernite.dev/?path=/dashboard&quot;))</span>
+<span class="nc" id="L336">                    .build();</span>
+        }
+<span class="nc" id="L338">        User u = VerificationEmails.pollUser(code);</span>
+<span class="nc bnc" id="L339" title="All 2 branches missed.">        if (u != null) {</span>
+<span class="nc" id="L340">            userRepository.save(u);</span>
+<span class="nc" id="L341">            return ResponseEntity.status(HttpStatus.FOUND)</span>
+<span class="nc" id="L342">                    .location(URI.create(&quot;https://vernite.dev/?path=/auth/register/token-success&quot;))</span>
+<span class="nc" id="L343">                    .build();</span>
+        }
+<span class="nc" id="L345">        return ResponseEntity.status(HttpStatus.FOUND)</span>
+<span class="nc" id="L346">                .location(URI.create(&quot;https://vernite.dev/?path=/auth/register/token-expired&quot;))</span>
+<span class="nc" id="L347">                .build();</span>
+    }
+
+    @Operation(summary = &quot;Register account&quot;, description = &quot;This method registers a new account. On success returns newly created user.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Newly created user.&quot;)
+    @ApiResponse(responseCode = &quot;403&quot;, description = &quot;User is already logged or invalid captcha.&quot;, content = @Content())
+    @ApiResponse(responseCode = &quot;422&quot;, description = &quot;Username or email is already taken.&quot;, content = @Content())
+    @PostMapping(&quot;/register&quot;)
+    public Future&lt;User&gt; register(@Parameter(hidden = true) User loggedUser, @RequestBody @Valid RegisterRequest req,
+            HttpServletRequest request, HttpServletResponse response) {
+<span class="nc bnc" id="L357" title="All 2 branches missed.">        if (loggedUser != null) {</span>
+<span class="nc" id="L358">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;already logged&quot;);</span>
+        }
+<span class="nc bnc" id="L360" title="All 2 branches missed.">        if (req.getUsername().indexOf('@') != -1) {</span>
+<span class="nc" id="L361">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;invalid character in username&quot;);</span>
+        }
+<span class="nc bnc" id="L363" title="All 2 branches missed.">        if (req.getEmail().indexOf('@') == -1) {</span>
+<span class="nc" id="L364">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;missing at sign in email&quot;);</span>
+        }
+
+        // workaround for Not provider of jakarta.mail.util.StreamProvider was found
+        // spring uses different classloader than http
+<span class="nc" id="L369">        ClassLoader cl = Thread.currentThread().getContextClassLoader();</span>
+<span class="nc" id="L370">        return verifyCaptcha(req.getCaptcha(), request, &quot;register&quot;).thenApply(success -&gt; {</span>
+<span class="nc bnc" id="L371" title="All 2 branches missed.">            if (!success) {</span>
+<span class="nc" id="L372">                throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;invalid captcha&quot;);</span>
+            }
+<span class="nc bnc" id="L374" title="All 2 branches missed.">            if (userRepository.findByUsername(req.getUsername()) != null) {</span>
+<span class="nc" id="L375">                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, &quot;this username is already taken&quot;);</span>
+            }
+<span class="nc bnc" id="L377" title="All 2 branches missed.">            if (userRepository.findByEmail(req.getEmail()) != null) {</span>
+<span class="nc" id="L378">                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, &quot;this email is already taken&quot;);</span>
+            }
+<span class="nc" id="L380">            User u = new User();</span>
+<span class="nc" id="L381">            u.setEmail(req.getEmail());</span>
+<span class="nc" id="L382">            u.setName(req.getName());</span>
+<span class="nc" id="L383">            u.setPassword(req.getPassword());</span>
+<span class="nc" id="L384">            u.setSurname(req.getSurname());</span>
+<span class="nc" id="L385">            u.setUsername(req.getUsername());</span>
+<span class="nc" id="L386">            u.setLanguage(req.getLanguage());</span>
+<span class="nc" id="L387">            u.setDateFormat(req.getDateFormat());</span>
+<span class="nc" id="L388">            u.setCounterSequence(new CounterSequence());</span>
+
+<span class="nc" id="L390">            String code = VerificationEmails.prepareUser(u);</span>
+
+<span class="nc" id="L392">            ClassLoader old = Thread.currentThread().getContextClassLoader();</span>
+<span class="nc" id="L393">            Thread.currentThread().setContextClassLoader(cl);</span>
+<span class="nc" id="L394">            SimpleMailMessage msg = new SimpleMailMessage();</span>
+<span class="nc" id="L395">            msg.setTo(req.getEmail());</span>
+<span class="nc" id="L396">            msg.setFrom(&quot;contact@vernite.dev&quot;);</span>
+            // TODO activation link
+<span class="nc" id="L398">            msg.setSubject(&quot;Dziękujemy za rejestrację&quot;);</span>
+<span class="nc" id="L399">            msg.setText(&quot;Cześć, &quot; + req.getName() + &quot;!\n&quot;</span>
+                    + &quot;Dziękujemy za zarejestrowanie się w naszym serwisie. Aby dokończyć rejestrację, potwierdź swój adres e-mail:\n&quot;
+                    + &quot;https://vernite.dev/api/auth/verify/&quot; + code + &quot;\n&quot;
+                    + &quot;Link ten wygaśnie za 30 minut.&quot;);
+<span class="nc" id="L403">            javaMailSender.send(msg);</span>
+<span class="nc" id="L404">            Thread.currentThread().setContextClassLoader(old);</span>
+<span class="nc" id="L405">            return u;</span>
+        });
+    }
+
+    @Operation(summary = &quot;Log out&quot;, description = &quot;This method log outs the user.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;User logged out&quot;)
+    @PostMapping(&quot;/logout&quot;)
+    public void destroySession(HttpServletRequest req, HttpServletResponse resp,
+            @Parameter(hidden = true) @CookieValue(value = AuthController.COOKIE_NAME, required = false) String session) {
+<span class="nc bnc" id="L414" title="All 2 branches missed.">        if (session != null) {</span>
+<span class="nc" id="L415">            this.userSessionRepository.deleteBySession(session);</span>
+<span class="nc" id="L416">            Cookie cookie = new Cookie(COOKIE_NAME, null);</span>
+<span class="nc" id="L417">            cookie.setPath(&quot;/api&quot;);</span>
+<span class="nc" id="L418">            cookie.setMaxAge(0);</span>
+<span class="nc" id="L419">            resp.addCookie(cookie);</span>
+        }
+<span class="nc" id="L421">    }</span>
+
+    @Operation(summary = &quot;Change a password&quot;, description = &quot;This method is used to change a password.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Password changed&quot;)
+    @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Old password is incorrect.&quot;, content = @Content())
+    @PostMapping(&quot;/password/change&quot;)
+    public void changePassword(@NotNull @Parameter(hidden = true) User loggedUser,
+            @RequestBody ChangePasswordRequest req) {
+<span class="nc bnc" id="L429" title="All 4 branches missed.">        if (req.getOldPassword() == null || req.getOldPassword().isEmpty()) {</span>
+<span class="nc" id="L430">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;missing old password&quot;);</span>
+        }
+<span class="nc bnc" id="L432" title="All 4 branches missed.">        if (req.getNewPassword() == null || req.getNewPassword().isEmpty()) {</span>
+<span class="nc" id="L433">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;missing new password&quot;);</span>
+        }
+<span class="nc bnc" id="L435" title="All 2 branches missed.">        if (req.getNewPassword().length() &lt; 8) {</span>
+<span class="nc" id="L436">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;password too short&quot;);</span>
+        }
+<span class="nc bnc" id="L438" title="All 2 branches missed.">        if (!loggedUser.checkPassword(req.getOldPassword())) {</span>
+<span class="nc" id="L439">            throw new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;old password is incorrect&quot;);</span>
+        }
+<span class="nc" id="L441">        loggedUser.setPassword(req.getNewPassword());</span>
+<span class="nc" id="L442">        userRepository.save(loggedUser);</span>
+<span class="nc" id="L443">    }</span>
+
+    @Operation(summary = &quot;Send email with link to reset password&quot;, description = &quot;This method sends an e-mail to the user with a link that allows the user to reset the password.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;E-mail address has been sent&quot;)
+    @ApiResponse(responseCode = &quot;403&quot;, description = &quot;User already logged&quot;)
+    @ApiResponse(responseCode = &quot;404&quot;, description = &quot;E-mail not found&quot;)
+    @PostMapping(&quot;/password/recover&quot;)
+    public void recoverPassword(@Parameter(hidden = true) User loggedUser, @RequestBody PasswordRecoveryRequest req) {
+<span class="nc bnc" id="L451" title="All 2 branches missed.">        if (loggedUser != null) {</span>
+<span class="nc" id="L452">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;already logged&quot;);</span>
+        }
+<span class="nc bnc" id="L454" title="All 2 branches missed.">        if (req.getEmail() == null) {</span>
+<span class="nc" id="L455">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;missing email&quot;);</span>
+        }
+<span class="nc" id="L457">        User u = userRepository.findByEmail(req.getEmail());</span>
+<span class="nc bnc" id="L458" title="All 2 branches missed.">        if (u == null) {</span>
+<span class="nc" id="L459">            throw new ObjectNotFoundException();</span>
+        }
+<span class="nc" id="L461">        PasswordRecovery p = new PasswordRecovery();</span>
+<span class="nc" id="L462">        p.setUser(u);</span>
+<span class="nc" id="L463">        p.setActive(Date.from(Instant.now().plus(30, ChronoUnit.MINUTES)));</span>
+<span class="nc" id="L464">        p.setToken(SecureStringUtils.generateRandomSecureString());</span>
+        while (true) {
+            try {
+<span class="nc" id="L467">                p = passwordRecoveryRepository.save(p);</span>
+<span class="nc" id="L468">                break;</span>
+<span class="nc" id="L469">            } catch (DataIntegrityViolationException ex) {</span>
+<span class="nc" id="L470">                p.setToken(SecureStringUtils.generateRandomSecureString());</span>
+<span class="nc" id="L471">            }</span>
+        }
+<span class="nc" id="L473">        SimpleMailMessage msg = new SimpleMailMessage();</span>
+<span class="nc" id="L474">        msg.setTo(req.getEmail());</span>
+<span class="nc" id="L475">        msg.setFrom(&quot;contact@vernite.dev&quot;);</span>
+<span class="nc" id="L476">        msg.setSubject(&quot;Zapomniałeś hasła?&quot;);</span>
+<span class="nc" id="L477">        msg.setText(&quot;Cześć, &quot; + u.getName()</span>
+                + &quot;!\nJeśli zapomniałeś hasła to wejdź w link: https://vernite.dev/pl-PL/auth/set-new-password?token=&quot;
+<span class="nc" id="L479">                + p.getToken() + &quot;\nLink wygaśnie po 30 minutach&quot;);</span>
+<span class="nc" id="L480">        javaMailSender.send(msg);</span>
+<span class="nc" id="L481">    }</span>
+
+    @Operation(summary = &quot;Check token and reset password&quot;, description = &quot;This method allows to check if the token is valid and reset the password.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;The token is valid and the password (if provided) has been changed.&quot;)
+    @ApiResponse(responseCode = &quot;403&quot;, description = &quot;User is already logged.&quot;)
+    @ApiResponse(responseCode = &quot;404&quot;, description = &quot;The token is not valid or has expired.&quot;)
+    @PostMapping(&quot;/password/reset&quot;)
+    public void resetPassword(@Parameter(hidden = true) User loggedUser, @RequestBody ResetPasswordRequest req) {
+<span class="nc bnc" id="L489" title="All 2 branches missed.">        if (loggedUser != null) {</span>
+<span class="nc" id="L490">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;already logged&quot;);</span>
+        }
+<span class="nc bnc" id="L492" title="All 2 branches missed.">        if (req.getToken() == null) {</span>
+<span class="nc" id="L493">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;missing token&quot;);</span>
+        }
+<span class="nc" id="L495">        PasswordRecovery p = passwordRecoveryRepository.findByToken(req.getToken());</span>
+<span class="nc bnc" id="L496" title="All 2 branches missed.">        if (p == null) {</span>
+<span class="nc" id="L497">            throw new ObjectNotFoundException();</span>
+        }
+<span class="nc bnc" id="L499" title="All 2 branches missed.">        if (p.getActive().before(new Date())) {</span>
+<span class="nc" id="L500">            passwordRecoveryRepository.delete(p);</span>
+<span class="nc" id="L501">            throw new ObjectNotFoundException();</span>
+        }
+<span class="nc bnc" id="L503" title="All 2 branches missed.">        if (req.getPassword() == null) {</span>
+<span class="nc" id="L504">            return;</span>
+        }
+<span class="nc" id="L506">        User u = p.getUser();</span>
+<span class="nc" id="L507">        passwordRecoveryRepository.delete(p);</span>
+<span class="nc" id="L508">        u.setPassword(req.getPassword());</span>
+<span class="nc" id="L509">        userRepository.save(u);</span>
+<span class="nc" id="L510">    }</span>
+
+    private void createSession(HttpServletRequest req, HttpServletResponse resp, User user, boolean remembered) {
+<span class="nc" id="L513">        UserSession us = new UserSession();</span>
+<span class="nc" id="L514">        us.setSession(SecureStringUtils.generateRandomSecureString());</span>
+<span class="nc" id="L515">        us.setIp(req.getHeader(&quot;X-Forwarded-For&quot;));</span>
+<span class="nc bnc" id="L516" title="All 2 branches missed.">        if (us.getIp() == null) {</span>
+<span class="nc" id="L517">            us.setIp(req.getRemoteAddr());</span>
+        }
+<span class="nc" id="L519">        us.setLastUsed(new Date());</span>
+<span class="nc" id="L520">        us.setRemembered(remembered);</span>
+<span class="nc" id="L521">        us.setUserAgent(req.getHeader(&quot;User-Agent&quot;));</span>
+<span class="nc" id="L522">        us.setUser(user);</span>
+        while (true) {
+            try {
+<span class="nc" id="L525">                us = userSessionRepository.save(us);</span>
+<span class="nc" id="L526">                break;</span>
+<span class="nc" id="L527">            } catch (DataIntegrityViolationException ex) {</span>
+<span class="nc" id="L528">                us.setSession(SecureStringUtils.generateRandomSecureString());</span>
+<span class="nc" id="L529">            }</span>
+        }
+<span class="nc" id="L531">        Cookie c = new Cookie(COOKIE_NAME, us.getSession());</span>
+<span class="nc" id="L532">        c.setPath(cookiePath);</span>
+<span class="nc bnc" id="L533" title="All 2 branches missed.">        if (req.getHeader(&quot;X-Forwarded-For&quot;) != null) {</span>
+<span class="nc" id="L534">            c.setSecure(true);</span>
+        } else {
+<span class="nc" id="L536">            c.setHttpOnly(true);</span>
+        }
+<span class="nc" id="L538">        resp.addCookie(c);</span>
+<span class="nc" id="L539">    }</span>
+
+    /**
+     * Verify captcha response
+     * 
+     * @param response       response from recaptcha
+     * @param request        request
+     * @param expectedAction expected action
+     * @return action if success or null if failed
+     */
+    private CompletableFuture&lt;Boolean&gt; verifyCaptcha(String response, HttpServletRequest request,
+            String expectedAction) {
+<span class="nc" id="L551">        String remoteip = request.getHeader(&quot;X-Forwarded-For&quot;);</span>
+<span class="nc bnc" id="L552" title="All 2 branches missed.">        if (remoteip == null) {</span>
+<span class="nc" id="L553">            remoteip = request.getRemoteAddr();</span>
+        }
+
+<span class="nc" id="L556">        HttpClient client = HttpClient.newHttpClient();</span>
+<span class="nc" id="L557">        String data = String.format(&quot;secret=%s&amp;response=%s&amp;remoteip=%s&quot;,</span>
+<span class="nc" id="L558">                URLEncoder.encode(recaptchaSecret, StandardCharsets.UTF_8),</span>
+<span class="nc" id="L559">                URLEncoder.encode(response, StandardCharsets.UTF_8),</span>
+<span class="nc" id="L560">                URLEncoder.encode(remoteip, StandardCharsets.UTF_8));</span>
+
+<span class="nc" id="L562">        HttpRequest req = HttpRequest.newBuilder(RECAPTCHA_URI)</span>
+<span class="nc" id="L563">                .header(&quot;Content-Type&quot;, &quot;application/x-www-form-urlencoded&quot;)</span>
+<span class="nc" id="L564">                .POST(HttpRequest.BodyPublishers.ofString(data))</span>
+<span class="nc" id="L565">                .build();</span>
+<span class="nc" id="L566">        return client.sendAsync(req, BodyHandlers.ofString()).thenApply(n -&gt; {</span>
+<span class="nc bnc" id="L567" title="All 2 branches missed.">            if (n.statusCode() != 200) {</span>
+<span class="nc" id="L568">                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, &quot;Captcha verification failed&quot;);</span>
+            }
+            try {
+<span class="nc" id="L571">                JsonNode node = MAPPER.readTree(n.body());</span>
+<span class="nc bnc" id="L572" title="All 2 branches missed.">                if (node.get(&quot;success&quot;).asBoolean()) {</span>
+<span class="nc bnc" id="L573" title="All 4 branches missed.">                    if (node.has(&quot;action&quot;) &amp;&amp; expectedAction.equals(node.get(&quot;action&quot;).asText())) {</span>
+<span class="nc" id="L574">                        return true;</span>
+                    }
+<span class="nc bnc" id="L576" title="All 4 branches missed.">                    if (node.has(&quot;hostname&quot;) &amp;&amp; &quot;testkey.google.com&quot;.equals(node.get(&quot;hostname&quot;).asText())) {</span>
+<span class="nc" id="L577">                        return true;</span>
+                    }
+<span class="nc" id="L579">                    return false;</span>
+                }
+<span class="nc" id="L581">            } catch (JsonProcessingException e) {</span>
+<span class="nc" id="L582">                e.printStackTrace();</span>
+<span class="nc" id="L583">                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, &quot;Captcha verification failed&quot;);</span>
+<span class="nc" id="L584">            }</span>
+<span class="nc" id="L585">            return false;</span>
+        });
+    }
+
+    @Scheduled(cron = &quot;0 * * * * *&quot;)
+    public void deleteOldAccount() {
+<span class="fc" id="L591">        Date d = Date.from(Instant.now().minus(7, ChronoUnit.DAYS));</span>
+<span class="fc" id="L592">        List&lt;User&gt; users = this.userRepository.findByDeletedPermanentlyFalseAndDeletedLessThan(d);</span>
+<span class="pc bpc" id="L593" title="1 of 2 branches missed.">        for (User u : users) {</span>
+<span class="nc" id="L594">            u.setDeletedPermanently(true);</span>
+<span class="nc" id="L595">            u.setUsername(&quot;(deleted) &quot; + SecureStringUtils.generateRandomSecureString());</span>
+<span class="nc" id="L596">            u.setEmail(&quot;(deleted) &quot; + SecureStringUtils.generateRandomSecureString());</span>
+<span class="nc" id="L597">        }</span>
+<span class="fc" id="L598">        this.userRepository.saveAll(users);</span>
+<span class="fc" id="L599">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

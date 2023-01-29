@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TaskDeadlineEventProvider.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.task</a> &gt; <span class="el_source">TaskDeadlineEventProvider.java</span></div><h1>TaskDeadlineEventProvider.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.task;
+
+import java.util.Collection;
+import java.util.Date;
+
+import org.springframework.stereotype.Service;
+
+import dev.vernite.vernite.event.Event;
+import dev.vernite.vernite.event.EventFilter;
+import dev.vernite.vernite.event.EventProvider;
+import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.user.User;
+import lombok.AllArgsConstructor;
+
+/**
+ * Event provider for task deadlines.
+ */
+@Service
+@AllArgsConstructor
+public class TaskDeadlineEventProvider implements EventProvider {
+
+    private static Event convert(Task task) {
+<span class="fc" id="L50">        return new Event(task.getStatus().getProject().getId(), Event.Type.TASK_DEADLINE, task.getNumber(),</span>
+<span class="fc" id="L51">                task.getName(), task.getDescription(), null, task.getDeadline(), null);</span>
+    }
+
+    private TaskRepository repository;
+
+    @Override
+    public Collection&lt;Event&gt; provideUserEvents(User user, Date startDate, Date endDate, EventFilter filter) {
+<span class="fc" id="L58">        return repository.findAllFromUserAndDateDeadline(user, startDate, endDate, filter).stream()</span>
+<span class="fc" id="L59">                .map(TaskDeadlineEventProvider::convert).toList();</span>
+    }
+
+    @Override
+    public Collection&lt;Event&gt; provideProjectEvents(Project project, Date startDate, Date endDate, EventFilter filter) {
+<span class="fc" id="L64">        return repository.findAllFromProjectAndDateDeadline(project, startDate, endDate, filter).stream()</span>
+<span class="fc" id="L65">                .map(TaskDeadlineEventProvider::convert).toList();</span>
+    }
+
+    @Override
+    public String getType() {
+<span class="fc" id="L70">        return Event.Type.TASK_DEADLINE.name();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

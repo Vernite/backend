@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserResolver.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.user</a> &gt; <span class="el_source">UserResolver.java</span></div><h1>UserResolver.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.user;
+
+import java.util.Date;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.MethodParameter;
+import org.springframework.http.HttpStatus;
+import org.springframework.lang.Nullable;
+import org.springframework.stereotype.Component;
+import org.springframework.web.bind.support.WebDataBinderFactory;
+import org.springframework.web.context.request.NativeWebRequest;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.method.support.ModelAndViewContainer;
+import org.springframework.web.server.ResponseStatusException;
+
+import dev.vernite.vernite.user.auth.AuthController;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.NotNull;
+
+@Component
+<span class="fc" id="L50">public class UserResolver implements HandlerMethodArgumentResolver {</span>
+
+    @Autowired
+    private UserSessionRepository userSessionRepository;
+
+    @Override
+    public Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
+            NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception {
+<span class="fc" id="L58">        HttpServletRequest req = webRequest.getNativeRequest(HttpServletRequest.class);</span>
+<span class="pc bpc" id="L59" title="1 of 4 branches missed.">        if (req != null &amp;&amp; req.getCookies() != null) {</span>
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">            for (Cookie c : req.getCookies()) {</span>
+<span class="pc bpc" id="L61" title="1 of 2 branches missed.">                if (c.getName().equals(AuthController.COOKIE_NAME)) {</span>
+<span class="fc" id="L62">                    Optional&lt;UserSession&gt; session = userSessionRepository.findBySession(c.getValue());</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">                    if (!session.isPresent()) {</span>
+<span class="fc" id="L64">                        break;</span>
+                    }
+<span class="fc" id="L66">                    UserSession us = session.get();</span>
+<span class="fc" id="L67">                    boolean dirty = false;</span>
+<span class="fc" id="L68">                    long now = System.currentTimeMillis();</span>
+<span class="pc bpc" id="L69" title="2 of 4 branches missed.">                    if (us.getLastUsed() == null || now - us.getLastUsed().getTime() &gt;= 60_000) {</span>
+<span class="nc" id="L70">                        us.setLastUsed(new Date(now));</span>
+<span class="nc" id="L71">                        dirty = true;</span>
+                    }
+<span class="fc" id="L73">                    String ip = req.getHeader(&quot;X-Forwarded-For&quot;);</span>
+<span class="pc bpc" id="L74" title="1 of 2 branches missed.">                    if (ip == null) {</span>
+<span class="fc" id="L75">                        ip = req.getRemoteAddr();</span>
+                    }
+<span class="pc bpc" id="L77" title="1 of 2 branches missed.">                    if (!ip.equals(us.getIp())) {</span>
+<span class="nc" id="L78">                        us.setIp(ip);</span>
+<span class="nc" id="L79">                        dirty = true;</span>
+                    }
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">                    if (dirty) {</span>
+<span class="nc" id="L82">                        userSessionRepository.save(us);</span>
+                    }
+<span class="pc bpc" id="L84" title="3 of 4 branches missed.">                    if (us.getUser().isDeleted() &amp;&amp; parameter.hasParameterAnnotation(NotNull.class)) {</span>
+<span class="nc" id="L85">                        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;user deleted&quot;);</span>
+                    }
+<span class="fc" id="L87">                    req.setAttribute(&quot;userID&quot;, us.getId());</span>
+<span class="fc" id="L88">                    return us.getUser();</span>
+                }
+            }
+        }
+<span class="pc bpc" id="L92" title="1 of 2 branches missed.">        if (parameter.hasParameterAnnotation(NotNull.class)) {</span>
+<span class="fc" id="L93">            throw new AuthException();</span>
+        } else {
+<span class="nc" id="L95">            return null;</span>
+        }
+    }
+
+    @Override
+    public boolean supportsParameter(MethodParameter parameter) {
+<span class="fc bfc" id="L101" title="All 2 branches covered.">        return parameter.getParameterType() == User.class;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

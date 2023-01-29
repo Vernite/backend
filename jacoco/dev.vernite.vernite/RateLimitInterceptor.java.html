@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RateLimitInterceptor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite</a> &gt; <span class="el_source">RateLimitInterceptor.java</span></div><h1>RateLimitInterceptor.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite;
+
+import java.util.ArrayDeque;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.HandlerInterceptor;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+/**
+ * Rate limit interceptor. Limits GET requests to 1000 per minute and
+ * POST/PUT/DELETE to 100 per minute.
+ */
+@Component
+<span class="fc" id="L50">public class RateLimitInterceptor implements HandlerInterceptor {</span>
+
+<span class="fc" id="L52">    private static final long TIME_LIMIT = TimeUnit.MINUTES.toMillis(1);</span>
+    private static final int READ_LIMIT = 1000;
+    private static final int WRITE_LIMIT = 100;
+
+<span class="fc" id="L56">    private static final Map&lt;Long, ArrayDeque&lt;Long&gt;&gt; userReadLimit = new ConcurrentHashMap&lt;&gt;();</span>
+<span class="fc" id="L57">    private static final Map&lt;Long, ArrayDeque&lt;Long&gt;&gt; userWriteLimit = new ConcurrentHashMap&lt;&gt;();</span>
+<span class="fc" id="L58">    private static final Map&lt;String, ArrayDeque&lt;Long&gt;&gt; ipReadLimit = new ConcurrentHashMap&lt;&gt;();</span>
+<span class="fc" id="L59">    private static final Map&lt;String, ArrayDeque&lt;Long&gt;&gt; ipWriteLimit = new ConcurrentHashMap&lt;&gt;();</span>
+
+    private static boolean isWriteMethod(String method) {
+<span class="nc bnc" id="L62" title="All 3 branches missed.">        switch (method) {</span>
+            case &quot;GET&quot;:
+            case &quot;HEAD&quot;:
+            case &quot;OPTIONS&quot;:
+<span class="nc" id="L66">                return false;</span>
+            case &quot;PUT&quot;:
+            case &quot;PATCH&quot;:
+            case &quot;DELETE&quot;:
+            case &quot;POST&quot;:
+<span class="nc" id="L71">                return true;</span>
+            default:
+<span class="nc" id="L73">                return true;</span>
+        }
+    }
+
+    private static &lt;T&gt; int increment(T key, Map&lt;T, ArrayDeque&lt;Long&gt;&gt; map, long time, int maxSize)
+            throws TooManyRequestsException {
+<span class="nc" id="L79">        ArrayDeque&lt;Long&gt; deque = map.get(key);</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">        if (deque == null) {</span>
+            // do not add empty ArrayDeque to map - thread safety
+<span class="nc" id="L82">            deque = new ArrayDeque&lt;&gt;();</span>
+<span class="nc" id="L83">            deque.addLast(time);</span>
+<span class="nc" id="L84">            map.put(key, deque);</span>
+<span class="nc" id="L85">            return maxSize - 1;</span>
+        } else {
+<span class="nc" id="L87">            synchronized (deque) {</span>
+<span class="nc bnc" id="L88" title="All 4 branches missed.">                while (!deque.isEmpty() &amp;&amp; time - deque.getFirst() &gt; TIME_LIMIT) {</span>
+<span class="nc" id="L89">                    deque.removeFirst();</span>
+                }
+<span class="nc bnc" id="L91" title="All 2 branches missed.">                if (deque.size() &gt;= maxSize) {</span>
+<span class="nc" id="L92">                    throw new TooManyRequestsException(TIME_LIMIT + deque.getFirst() - time);</span>
+                }
+<span class="nc" id="L94">                deque.addLast(time);</span>
+<span class="nc" id="L95">                map.putIfAbsent(key, deque);</span>
+<span class="nc" id="L96">                return maxSize - deque.size();</span>
+            }
+        }
+    }
+
+    private static String getIP(HttpServletRequest request) {
+<span class="nc" id="L102">        String ip = request.getHeader(&quot;X-Forwarded-For&quot;);</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">        if (ip == null) {</span>
+<span class="nc" id="L104">            ip = request.getRemoteAddr();</span>
+        }
+<span class="nc" id="L106">        return ip;</span>
+    }
+
+    // this interceptor is called before and after UserResolver
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
+            throws Exception {
+<span class="nc" id="L113">        boolean writeMethod = isWriteMethod(request.getMethod());</span>
+<span class="nc" id="L114">        long now = System.currentTimeMillis();</span>
+        try {
+            int remaining;
+
+<span class="nc bnc" id="L118" title="All 2 branches missed.">            if (request.getAttribute(&quot;ratelimit&quot;) != null) {</span>
+                // after user resolver:
+<span class="nc" id="L120">                Long userID = (Long) request.getAttribute(&quot;userID&quot;);</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">                if (userID == null) {</span>
+<span class="nc" id="L122">                    return true;</span>
+                }
+<span class="nc bnc" id="L124" title="All 2 branches missed.">                remaining = writeMethod ? increment(userID, userWriteLimit, now, WRITE_LIMIT)</span>
+<span class="nc" id="L125">                        : increment(userID, userReadLimit, now, READ_LIMIT);</span>
+<span class="nc" id="L126">                remaining = Math.min((int) request.getAttribute(&quot;ratelimit&quot;), remaining);</span>
+<span class="nc" id="L127">            } else {</span>
+                // before user resolver:
+<span class="nc" id="L129">                String ip = getIP(request);</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">                remaining = writeMethod ? increment(ip, ipWriteLimit, now, WRITE_LIMIT)</span>
+<span class="nc" id="L131">                        : increment(ip, ipReadLimit, now, READ_LIMIT);</span>
+<span class="nc" id="L132">                request.setAttribute(&quot;ratelimit&quot;, remaining);</span>
+            }
+<span class="nc" id="L134">            response.setHeader(&quot;X-Rate-Limit-Remaining&quot;, Integer.toString(remaining));</span>
+<span class="nc" id="L135">            return true;</span>
+<span class="nc" id="L136">        } catch (TooManyRequestsException e) {</span>
+            // round up
+<span class="nc" id="L138">            long seconds = (e.retryAfter + 999L) / 1000L;</span>
+<span class="nc" id="L139">            response.setHeader(&quot;X-Rate-Limit-Retry-After-Seconds&quot;, Long.toString(seconds));</span>
+<span class="nc" id="L140">            response.sendError(429, &quot;You have exhausted your API Request Quota&quot;);</span>
+<span class="nc" id="L141">            return false;</span>
+        }
+    }
+
+    private static &lt;T&gt; void clearMap(Map&lt;T, ArrayDeque&lt;Long&gt;&gt; map, long now) {
+<span class="fc" id="L146">        Iterator&lt;ArrayDeque&lt;Long&gt;&gt; it = map.values().iterator();</span>
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">        while (it.hasNext()) {</span>
+<span class="nc" id="L148">            ArrayDeque&lt;Long&gt; deque = it.next();</span>
+<span class="nc bnc" id="L149" title="All 4 branches missed.">            while (!deque.isEmpty() &amp;&amp; now - deque.getFirst() &gt; TIME_LIMIT) {</span>
+<span class="nc" id="L150">                deque.removeFirst();</span>
+            }
+<span class="nc bnc" id="L152" title="All 2 branches missed.">            if (deque.isEmpty()) {</span>
+<span class="nc" id="L153">                it.remove();</span>
+            }
+<span class="nc" id="L155">        }</span>
+<span class="fc" id="L156">    }</span>
+
+    @Scheduled(cron = &quot;0 * * * * *&quot;)
+    public void cleanDeques() {
+<span class="fc" id="L160">        long now = System.currentTimeMillis();</span>
+<span class="fc" id="L161">        clearMap(ipWriteLimit, now);</span>
+<span class="fc" id="L162">        clearMap(ipReadLimit, now);</span>
+<span class="fc" id="L163">        clearMap(userWriteLimit, now);</span>
+<span class="fc" id="L164">        clearMap(userReadLimit, now);</span>
+<span class="fc" id="L165">    }</span>
+
+    @AllArgsConstructor
+    private static class TooManyRequestsException extends Exception {
+        @Getter
+        private long retryAfter;
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

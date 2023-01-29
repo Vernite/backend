@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SlackController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.integration.communicator.slack</a> &gt; <span class="el_source">SlackController.java</span></div><h1>SlackController.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.integration.communicator.slack;
+
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.constraints.NotNull;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+import com.slack.api.bolt.App;
+import com.slack.api.methods.SlackApiException;
+import com.slack.api.methods.request.auth.AuthRevokeRequest;
+import com.slack.api.methods.request.conversations.ConversationsHistoryRequest;
+import com.slack.api.methods.request.conversations.ConversationsInfoRequest;
+import com.slack.api.methods.request.conversations.ConversationsListRequest;
+import com.slack.api.methods.request.conversations.ConversationsMembersRequest;
+import com.slack.api.methods.request.oauth.OAuthV2AccessRequest;
+import com.slack.api.methods.request.users.UsersInfoRequest;
+import com.slack.api.methods.request.users.UsersListRequest;
+import com.slack.api.methods.response.auth.AuthRevokeResponse;
+import com.slack.api.methods.response.conversations.ConversationsHistoryResponse;
+import com.slack.api.methods.response.conversations.ConversationsListResponse;
+import com.slack.api.methods.response.oauth.OAuthV2AccessResponse;
+import com.slack.api.methods.response.users.UsersInfoResponse;
+import com.slack.api.model.ConversationType;
+
+import dev.vernite.vernite.common.utils.SecureRandomUtils;
+import dev.vernite.vernite.integration.communicator.model.Channel;
+import dev.vernite.vernite.integration.communicator.model.ChatUser;
+import dev.vernite.vernite.integration.communicator.slack.entity.SlackInstallation;
+import dev.vernite.vernite.integration.communicator.slack.entity.SlackInstallationRepository;
+import dev.vernite.vernite.integration.communicator.slack.model.SlackChannel;
+import dev.vernite.vernite.integration.communicator.slack.model.SlackUser;
+import dev.vernite.vernite.user.User;
+import dev.vernite.vernite.user.UserRepository;
+import dev.vernite.vernite.utils.ErrorType;
+import dev.vernite.vernite.utils.ExternalApiException;
+import dev.vernite.vernite.utils.ObjectNotFoundException;
+import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+
+@RestController
+<span class="fc" id="L84">public class SlackController {</span>
+<span class="fc" id="L85">    private static final StateManager states = new StateManager();</span>
+    private static final String FORMAT_URL = &quot;https://slack.com/oauth/v2/authorize?client_id=%s&amp;scope=&amp;user_scope=%s&amp;state=%s&amp;redirect_uri=&amp;granular_bot_scope=1&quot;;
+
+    @Autowired
+    private App app;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private SlackInstallationRepository installationRepository;
+
+    @Operation(summary = &quot;Install slack&quot;, description = &quot;This link redirects user to slack. After installation user will be redirected to https://vernite.dev/slack&quot;)
+    @ApiResponse(description = &quot;No user logged in.&quot;, responseCode = &quot;401&quot;, content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @GetMapping(&quot;/integration/slack/install&quot;)
+    public void install(@NotNull @Parameter(hidden = true) User user, HttpServletResponse httpServletResponse)
+            throws IOException {
+<span class="nc" id="L102">        String userScope = app.config().getUserScope();</span>
+<span class="nc" id="L103">        String clientId = app.config().getClientId();</span>
+<span class="nc" id="L104">        String state = SecureRandomUtils.generateSecureRandomString();</span>
+<span class="nc" id="L105">        states.put(state, user.getId());</span>
+<span class="nc" id="L106">        httpServletResponse.sendRedirect(</span>
+<span class="nc" id="L107">                String.format(FORMAT_URL, clientId, URLEncoder.encode(userScope, StandardCharsets.UTF_8), state));</span>
+<span class="nc" id="L108">    }</span>
+
+    @Hidden
+    @GetMapping(&quot;/integration/slack/oauth_redirect&quot;)
+    public void confirm(String code, String state, HttpServletResponse httpServletResponse)
+            throws IOException, SlackApiException {
+<span class="nc" id="L114">        Long userId = states.remove(state);</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">        if (userId == null) {</span>
+<span class="nc" id="L116">            throw new ResponseStatusException(HttpStatus.NOT_FOUND);</span>
+        }
+<span class="nc" id="L118">        User user = userRepository.findById(userId).orElseThrow();</span>
+<span class="nc" id="L119">        OAuthV2AccessRequest request = OAuthV2AccessRequest.builder()</span>
+<span class="nc" id="L120">                .clientId(app.config().getClientId())</span>
+<span class="nc" id="L121">                .clientSecret(app.config().getClientSecret())</span>
+<span class="nc" id="L122">                .code(code)</span>
+<span class="nc" id="L123">                .build();</span>
+<span class="nc" id="L124">        OAuthV2AccessResponse response = app.client().oauthV2Access(request);</span>
+        try {
+<span class="nc" id="L126">            installationRepository.save(new SlackInstallation(response.getAuthedUser().getAccessToken(),</span>
+<span class="nc" id="L127">                    response.getAuthedUser().getId(), response.getTeam().getId(), response.getTeam().getName(), user));</span>
+<span class="nc" id="L128">        } catch (Exception ex) {</span>
+            // TODO: log this or something
+<span class="nc" id="L130">        }</span>
+<span class="nc" id="L131">        httpServletResponse.sendRedirect(&quot;https://vernite.dev/slack&quot;);</span>
+<span class="nc" id="L132">    }</span>
+
+    @Operation(summary = &quot;Get slack integrations&quot;, description = &quot;Gets all slack integrations for given user&quot;)
+    @GetMapping(&quot;/user/integration/slack&quot;)
+    public List&lt;SlackInstallation&gt; getInstallation(@NotNull @Parameter(hidden = true) User user) {
+<span class="nc" id="L137">        return installationRepository.findByUser(user);</span>
+    }
+
+    @Operation(summary = &quot;Delete slack integration&quot;, description = &quot;Delete slack integration with given id&quot;)
+    @ApiResponse(description = &quot;No user logged in.&quot;, responseCode = &quot;401&quot;, content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = &quot;Integration with given id not found.&quot;, responseCode = &quot;404&quot;, content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @DeleteMapping(&quot;/user/integration/slack/{id}&quot;)
+    public void deleteInstallation(@NotNull @Parameter(hidden = true) User user, @PathVariable long id)
+            throws IOException, SlackApiException {
+<span class="nc" id="L146">        SlackInstallation installation = installationRepository.findById(id).orElseThrow(ObjectNotFoundException::new);</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">        if (installation.getUser().getId() != user.getId()) {</span>
+<span class="nc" id="L148">            throw new ObjectNotFoundException();</span>
+        }
+<span class="nc" id="L150">        AuthRevokeResponse response = app.client()</span>
+<span class="nc" id="L151">                .authRevoke(AuthRevokeRequest.builder().token(installation.getToken()).build());</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">        if (!response.isOk()) {</span>
+            // TODO: log this
+        }
+<span class="nc" id="L155">        installationRepository.delete(installation);</span>
+<span class="nc" id="L156">    }</span>
+
+    @Operation(summary = &quot;Get channels&quot;, description = &quot;Get channels for slack integration&quot;)
+    @ApiResponse(description = &quot;Slack channels&quot;, responseCode = &quot;200&quot;, content = @Content(array = @ArraySchema(schema = @Schema(implementation = Channel.class))))
+    @ApiResponse(description = &quot;No user logged in.&quot;, responseCode = &quot;401&quot;, content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = &quot;Integration with given id not found.&quot;, responseCode = &quot;404&quot;, content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @GetMapping(&quot;/user/integration/slack/{id}/channel&quot;)
+    public List&lt;Channel&gt; channels(@NotNull @Parameter(hidden = true) User user, @PathVariable long id)
+            throws IOException, SlackApiException {
+<span class="nc" id="L165">        SlackInstallation installation = installationRepository.findById(id).orElseThrow(ObjectNotFoundException::new);</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">        if (installation.getUser().getId() != user.getId()) {</span>
+<span class="nc" id="L167">            throw new ObjectNotFoundException();</span>
+        }
+<span class="nc" id="L169">        ConversationsListResponse response = app.client()</span>
+<span class="nc" id="L170">                .conversationsList(ConversationsListRequest.builder().token(installation.getToken())</span>
+<span class="nc" id="L171">                        .types(List.of(ConversationType.PRIVATE_CHANNEL, ConversationType.PUBLIC_CHANNEL,</span>
+                                ConversationType.IM, ConversationType.MPIM))
+<span class="nc" id="L173">                        .build());</span>
+<span class="nc bnc" id="L174" title="All 2 branches missed.">        if (!response.isOk()) {</span>
+<span class="nc" id="L175">            throw new ExternalApiException(&quot;slack&quot;, &quot;Cannot get list of channels&quot;);</span>
+        }
+<span class="nc" id="L177">        return response.getChannels().stream().map(c -&gt; (Channel) new SlackChannel(c)).toList();</span>
+    }
+
+    @Operation(summary = &quot;Get user&quot;, description = &quot;Get user info&quot;)
+    @ApiResponse(description = &quot;Slack user&quot;, responseCode = &quot;200&quot;, content = @Content(schema = @Schema(implementation = ChatUser.class)))
+    @ApiResponse(description = &quot;No user logged in.&quot;, responseCode = &quot;401&quot;, content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = &quot;Integration with given id not found.&quot;, responseCode = &quot;404&quot;, content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @GetMapping(&quot;/user/integration/slack/{id}/user/{userId}&quot;)
+    public ChatUser getUser(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+            @PathVariable String userId) throws IOException, SlackApiException {
+<span class="nc" id="L187">        SlackInstallation installation = installationRepository.findById(id).orElseThrow(ObjectNotFoundException::new);</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">        if (installation.getUser().getId() != user.getId()) {</span>
+<span class="nc" id="L189">            throw new ObjectNotFoundException();</span>
+        }
+<span class="nc" id="L191">        UsersInfoResponse response = app.client()</span>
+<span class="nc" id="L192">                .usersInfo(UsersInfoRequest.builder().token(installation.getToken()).user(userId).build());</span>
+<span class="nc bnc" id="L193" title="All 2 branches missed.">        if (!response.isOk()) {</span>
+<span class="nc" id="L194">            throw new ExternalApiException(&quot;slack&quot;, &quot;Cannot get user details&quot;);</span>
+        }
+<span class="nc" id="L196">        return new SlackUser(response.getUser());</span>
+    }
+
+    @Operation(summary = &quot;Get usesrs&quot;, description = &quot;Get users info&quot;)
+    @ApiResponse(description = &quot;Slack users&quot;, responseCode = &quot;200&quot;, content = @Content(schema = @Schema(implementation = ChatUser.class)))
+    @ApiResponse(description = &quot;No user logged in.&quot;, responseCode = &quot;401&quot;, content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = &quot;Integration with given id not found.&quot;, responseCode = &quot;404&quot;, content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @GetMapping(&quot;/user/integration/slack/{id}/user&quot;)
+    public List&lt;ChatUser&gt; getUsers(@NotNull @Parameter(hidden = true) User user, @PathVariable long id)
+            throws IOException, SlackApiException {
+<span class="nc" id="L206">        SlackInstallation installation = installationRepository.findById(id).orElseThrow(ObjectNotFoundException::new);</span>
+<span class="nc bnc" id="L207" title="All 2 branches missed.">        if (installation.getUser().getId() != user.getId()) {</span>
+<span class="nc" id="L208">            throw new ObjectNotFoundException();</span>
+        }
+<span class="nc" id="L210">        var response = app.client()</span>
+<span class="nc" id="L211">                .usersList(UsersListRequest.builder().token(installation.getToken()).build());</span>
+<span class="nc bnc" id="L212" title="All 2 branches missed.">        if (!response.isOk()) {</span>
+<span class="nc" id="L213">            throw new ExternalApiException(&quot;slack&quot;, &quot;Cannot get users&quot;);</span>
+        }
+<span class="nc" id="L215">        return response.getMembers().stream().map(SlackUser::new).map(ChatUser.class::cast).toList();</span>
+    }
+
+    @Operation(summary = &quot;Get messages&quot;, description = &quot;Get messages for slack channel&quot;)
+    @ApiResponse(description = &quot;Slack messages&quot;, responseCode = &quot;200&quot;, content = @Content(schema = @Schema(implementation = MessageContainer.class)))
+    @ApiResponse(description = &quot;No user logged in.&quot;, responseCode = &quot;401&quot;, content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @ApiResponse(description = &quot;Integration or channel with given id not found.&quot;, responseCode = &quot;404&quot;, content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    @GetMapping(&quot;/user/integration/slack/{id}/channel/{channelId}&quot;)
+    public MessageContainer messages(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+            @PathVariable String channelId, @Parameter(required = false) String cursor)
+            throws IOException, SlackApiException {
+<span class="nc" id="L226">        SlackInstallation installation = installationRepository.findById(id).orElseThrow(ObjectNotFoundException::new);</span>
+<span class="nc bnc" id="L227" title="All 2 branches missed.">        if (installation.getUser().getId() != user.getId()) {</span>
+<span class="nc" id="L228">            throw new ObjectNotFoundException();</span>
+        }
+<span class="nc" id="L230">        ConversationsHistoryResponse response = app.client().conversationsHistory(</span>
+<span class="nc" id="L231">                ConversationsHistoryRequest.builder().token(installation.getToken()).channel(channelId).cursor(cursor)</span>
+<span class="nc" id="L232">                        .build());</span>
+<span class="nc bnc" id="L233" title="All 2 branches missed.">        if (!response.isOk()) {</span>
+<span class="nc" id="L234">            throw new ExternalApiException(&quot;slack&quot;, &quot;Cannot get list of channels&quot;);</span>
+        }
+<span class="nc" id="L236">        return new MessageContainer(response);</span>
+    }
+
+    /**
+     * Get channel members.
+     * 
+     * @param user      logged in user
+     * @param id        slack integration id
+     * @param channelId slack channel id
+     * @return list of channel members
+     * @throws SlackApiException
+     * @throws IOException
+     */
+    @GetMapping(&quot;/user/integration/slack/{id}/channel/{channelId}/members&quot;)
+    public List&lt;ChatUser&gt; channelMembers(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+            @PathVariable String channelId) throws IOException, SlackApiException {
+<span class="nc" id="L252">        SlackInstallation installation = installationRepository.findById(id).orElseThrow(ObjectNotFoundException::new);</span>
+<span class="nc bnc" id="L253" title="All 2 branches missed.">        if (installation.getUser().getId() != user.getId()) {</span>
+<span class="nc" id="L254">            throw new ObjectNotFoundException();</span>
+        }
+<span class="nc" id="L256">        var response = app.client().conversationsMembers(</span>
+<span class="nc" id="L257">                ConversationsMembersRequest.builder().token(installation.getToken()).channel(channelId).build());</span>
+<span class="nc bnc" id="L258" title="All 2 branches missed.">        if (!response.isOk()) {</span>
+<span class="nc" id="L259">            throw new ExternalApiException(&quot;slack&quot;, &quot;Cannot get list of channel members&quot;);</span>
+        }
+<span class="nc" id="L261">        return response.getMembers().stream().map(userId -&gt; {</span>
+            UsersInfoResponse userResponse;
+            try {
+<span class="nc" id="L264">                userResponse = app.client()</span>
+<span class="nc" id="L265">                        .usersInfo(UsersInfoRequest.builder().token(installation.getToken()).user(userId).build());</span>
+<span class="nc" id="L266">            } catch (IOException | SlackApiException e) {</span>
+<span class="nc" id="L267">                throw new ExternalApiException(&quot;slack&quot;, &quot;Cannot get list of channel members&quot;);</span>
+<span class="nc" id="L268">            }</span>
+<span class="nc bnc" id="L269" title="All 2 branches missed.">            if (!userResponse.isOk()) {</span>
+<span class="nc" id="L270">                throw new ExternalApiException(&quot;slack&quot;, &quot;Cannot get user details&quot;);</span>
+            }
+<span class="nc" id="L272">            return (ChatUser) new SlackUser(userResponse.getUser());</span>
+<span class="nc" id="L273">        }).toList();</span>
+    }
+
+    /**
+     * Get channel.
+     * 
+     * @param user      logged in user
+     * @param id        slack integration id
+     * @param channelId slack channel id
+     * @return slack channel
+     * @throws IOException
+     * @throws SlackApiException
+     */
+    @GetMapping(&quot;/user/integration/slack/{id}/channel/{channelId}/info&quot;)
+    public Channel channel(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+            @PathVariable String channelId)
+            throws IOException, SlackApiException {
+<span class="nc" id="L290">        SlackInstallation installation = installationRepository.findById(id).orElseThrow(ObjectNotFoundException::new);</span>
+<span class="nc bnc" id="L291" title="All 2 branches missed.">        if (installation.getUser().getId() != user.getId()) {</span>
+<span class="nc" id="L292">            throw new ObjectNotFoundException();</span>
+        }
+<span class="nc" id="L294">        var response = app.client().conversationsInfo(</span>
+<span class="nc" id="L295">                ConversationsInfoRequest.builder().token(installation.getToken()).channel(channelId).build());</span>
+<span class="nc bnc" id="L296" title="All 2 branches missed.">        if (!response.isOk()) {</span>
+<span class="nc" id="L297">            throw new ExternalApiException(&quot;slack&quot;, &quot;Cannot get list of channels&quot;);</span>
+        }
+<span class="nc" id="L299">        return (Channel) new SlackChannel(response.getChannel());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

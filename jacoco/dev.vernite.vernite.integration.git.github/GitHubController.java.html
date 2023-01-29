@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GitHubController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.integration.git.github</a> &gt; <span class="el_source">GitHubController.java</span></div><h1>GitHubController.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.integration.git.github;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.List;
+
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.constraints.NotNull;
+import kotlin.NotImplementedError;
+import dev.vernite.vernite.common.exception.EntityNotFoundException;
+import dev.vernite.vernite.common.utils.StateManager;
+import dev.vernite.vernite.integration.git.Repository;
+import dev.vernite.vernite.integration.git.github.data.Repositories;
+import dev.vernite.vernite.integration.git.github.model.Authorization;
+import dev.vernite.vernite.integration.git.github.model.AuthorizationRepository;
+import dev.vernite.vernite.integration.git.github.model.ProjectIntegrationRepository;
+import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.project.ProjectRepository;
+import dev.vernite.vernite.user.User;
+import dev.vernite.vernite.user.UserRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.Parameter;
+import reactor.core.publisher.Mono;
+
+@RestController
+<span class="fc" id="L65">public class GitHubController {</span>
+
+<span class="fc" id="L67">    private static final StateManager STATE_MANAGER = new StateManager();</span>
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private ProjectRepository projectRepository;
+
+    @Autowired
+    private GitHubService service;
+
+    @Autowired
+    private AuthorizationRepository authorizationRepository;
+
+    @Autowired
+    private ProjectIntegrationRepository projectIntegrationRepository;
+
+    /**
+     * Redirects user to GitHub authorization page. Should not be used as rest
+     * endpoint.
+     * 
+     * @param user     logged in user
+     * @param response response to redirect
+     * @throws URISyntaxException if URI is malformed
+     * @throws IOException        if redirect fails
+     */
+    @GetMapping(&quot;/user/integration/git/github/authorize&quot;)
+    public void authorize(@NotNull @Parameter(hidden = true) User user, HttpServletResponse response)
+            throws URISyntaxException, IOException {
+<span class="nc" id="L96">        response.sendRedirect(service.getAuthorizationUrl(STATE_MANAGER.createState(user.getId())).toString());</span>
+<span class="nc" id="L97">    }</span>
+
+    /**
+     * Callback for redirect from success GitHub user authorization.
+     * 
+     * @param code     code to get user access token
+     * @param state    the state
+     * @param response response
+     * @return mono that will call redirect when finished
+     */
+    @Hidden
+    @GetMapping(&quot;/user/integration/git/github/authorize_callback&quot;)
+    public Mono&lt;Void&gt; authorizeCallback(@RequestParam(required = false) String code,
+            @RequestParam(required = false) String state, HttpServletResponse response) throws IOException {
+<span class="nc" id="L111">        Mono&lt;Authorization&gt; result = Mono.empty();</span>
+<span class="nc bnc" id="L112" title="All 4 branches missed.">        if (state == null || code == null) {</span>
+<span class="nc" id="L113">            response.sendRedirect(&quot;/?path=/github?status=error&quot;);</span>
+<span class="nc" id="L114">            return result.then();</span>
+        }
+<span class="nc" id="L116">        var id = STATE_MANAGER.retrieveState(state);</span>
+
+<span class="nc bnc" id="L118" title="All 2 branches missed.">        if (id != null) {</span>
+<span class="nc" id="L119">            var user = userRepository.findById(id).orElse(null);</span>
+
+<span class="nc bnc" id="L121" title="All 2 branches missed.">            if (user != null) {</span>
+<span class="nc" id="L122">                result = service.createAuthorization(user, code);</span>
+            }
+        }
+
+<span class="nc" id="L126">        return result.map(value -&gt; &quot;/?path=/github&amp;status=success&quot;)</span>
+<span class="nc" id="L127">                .onErrorResume(error -&gt; Mono.just(&quot;/?path=/github?status=error&quot;)).map(url -&gt; {</span>
+                    try {
+<span class="nc" id="L129">                        response.sendRedirect(&quot;/?path=/github?status=success&quot;);</span>
+<span class="nc" id="L130">                    } catch (IOException e) {</span>
+<span class="nc" id="L131">                        throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,</span>
+                                &quot;Failed to redirect to &quot; + url, e);
+<span class="nc" id="L133">                    }</span>
+<span class="nc" id="L134">                    return url;</span>
+                })
+<span class="nc" id="L136">                .then();</span>
+    }
+
+    /**
+     * Retrieves all GitHub authorizations for logged in user.
+     * 
+     * @param user logged in user
+     * @return list of GitHub authorizations
+     */
+    @GetMapping(&quot;/user/integration/git/github&quot;)
+    public List&lt;Authorization&gt; getAuthorizations(@NotNull @Parameter(hidden = true) User user) {
+<span class="nc" id="L147">        return authorizationRepository.findByUser(user);</span>
+    }
+
+    /**
+     * Deletes GitHub authorization.
+     * 
+     * @param user logged in user
+     * @param id   id of authorization
+     */
+    @DeleteMapping(&quot;/user/integration/git/github/{id}&quot;)
+    public void deleteAuthorization(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+<span class="nc" id="L158">        var authorization = authorizationRepository.findByIdAndUserOrThrow(id, user);</span>
+<span class="nc" id="L159">        authorizationRepository.delete(authorization);</span>
+<span class="nc" id="L160">    }</span>
+
+    /**
+     * Retrieve repositories. Retrieves all GitHub repositories available to user.
+     * 
+     * @param user logged in user
+     * @return list of GitHub repositories
+     */
+    @GetMapping(&quot;/user/integration/git/github/repository&quot;)
+    public Mono&lt;Repositories&gt; getRepositories(@NotNull @Parameter(hidden = true) User user) {
+<span class="nc" id="L170">        return service.getUserRepositories(user).collectList().map(list -&gt; {</span>
+<span class="nc" id="L171">            var repos = new Repositories();</span>
+<span class="nc" id="L172">            repos.setRepositories(list);</span>
+<span class="nc" id="L173">            repos.setLink(&quot;https://github.com/apps/vernite/installations/new&quot;);</span>
+<span class="nc" id="L174">            return repos;</span>
+        });
+    }
+
+    /**
+     * Creates project integration. Creates project integration with GitHub
+     * repository.
+     * 
+     * @param user       logged in user
+     * @param id         id of project
+     * @param repository GitHub repository
+     * @return updated project
+     */
+    @PostMapping(&quot;/project/{id}/integration/git/github&quot;)
+    public Mono&lt;Project&gt; createProjectIntegration(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+            @RequestBody Repository repository) {
+<span class="nc" id="L190">        var project = projectRepository.findByIdAndMemberOrThrow(id, user);</span>
+<span class="nc bnc" id="L191" title="All 2 branches missed.">        if (!project.getGithubProjectIntegrations().isEmpty()) {</span>
+<span class="nc" id="L192">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Project already has GitHub integration&quot;);</span>
+        }
+<span class="nc" id="L194">        return service.createProjectIntegration(user, project, repository.getFullName())</span>
+<span class="nc" id="L195">                .switchIfEmpty(Mono.error(new NotImplementedError()))</span>
+<span class="nc" id="L196">                .thenReturn(projectRepository.findByIdAndMemberOrThrow(id, user));</span>
+    }
+
+    /**
+     * Deletes project integration. Deletes project integration with GitHub
+     * repository.
+     * 
+     * @param user      logged in user
+     * @param projectId id of project
+     * @param id        id of project integration
+     */
+    @DeleteMapping(&quot;/project/{projectId}/integration/git/github&quot;)
+    public void deleteProjectIntegration(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long id) {
+<span class="nc" id="L210">        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);</span>
+<span class="nc" id="L211">        var integration = projectIntegrationRepository.findByProject(project)</span>
+<span class="nc" id="L212">                .orElseThrow(() -&gt; new EntityNotFoundException(&quot;integration&quot;, id));</span>
+<span class="nc" id="L213">        projectIntegrationRepository.delete(integration);</span>
+<span class="nc" id="L214">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

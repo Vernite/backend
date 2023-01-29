@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TaskRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.task</a> &gt; <span class="el_source">TaskRepository.java</span></div><h1>TaskRepository.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.task;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+
+import jakarta.persistence.criteria.Predicate;
+
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.repository.CrudRepository;
+
+import dev.vernite.vernite.common.exception.EntityNotFoundException;
+import dev.vernite.vernite.event.EventFilter;
+import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.user.User;
+import dev.vernite.vernite.utils.ObjectNotFoundException;
+
+/**
+ * CRUD repository for task entity.
+ */
+public interface TaskRepository extends CrudRepository&lt;Task, Long&gt;, JpaSpecificationExecutor&lt;Task&gt; {
+
+    /**
+     * Finds a task by its number and project.
+     * 
+     * @param project the project.
+     * @param number  the number of the task.
+     * @return optional of the task.
+     */
+    Optional&lt;Task&gt; findByStatusProjectAndNumber(Project project, long number);
+
+    /**
+     * Finds a task by its number and project or throws error when not found.
+     * 
+     * @param project the project.
+     * @param number  the number of the task.
+     * @return the task.
+     * @throws ObjectNotFoundException when not found.
+     */
+    default Task findByProjectAndNumberOrThrow(Project project, long number) {
+<span class="fc" id="L72">        return findByStatusProjectAndNumber(project, number)</span>
+<span class="fc" id="L73">                .orElseThrow(() -&gt; new EntityNotFoundException(&quot;task&quot;, number));</span>
+    }
+
+    /**
+     * Finds tasks by specification.
+     * 
+     * @param spec the specification.
+     * @return the tasks ordered by name and number.
+     */
+    default List&lt;Task&gt; findAllOrdered(Specification&lt;Task&gt; spec) {
+<span class="fc" id="L83">        return findAll(spec, Sort.by(Direction.ASC, &quot;name&quot;, &quot;number&quot;));</span>
+    }
+
+    /**
+     * Finds tasks by user assigned and between dates.
+     * 
+     * @param user      the user.
+     * @param startDate the start date.
+     * @param endDate   the end date.
+     * @return the tasks.
+     */
+    default List&lt;Task&gt; findAllFromUserAndDateDeadline(User user, Date startDate, Date endDate, EventFilter filter) {
+<span class="fc" id="L95">        return findAll((root, query, cb) -&gt; {</span>
+<span class="fc" id="L96">            List&lt;Predicate&gt; predicates = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L97">            predicates.add(cb.isNotNull(root.get(&quot;assignee&quot;)));</span>
+<span class="fc" id="L98">            predicates.add(cb.equal(root.get(&quot;assignee&quot;), user));</span>
+<span class="pc bpc" id="L99" title="1 of 2 branches missed.">            if (filter.isShowEnded()) {</span>
+<span class="fc" id="L100">                predicates.add(cb.equal(root.get(&quot;status&quot;).get(&quot;isFinal&quot;), false));</span>
+            }
+<span class="fc" id="L102">            predicates.add(cb.and(</span>
+<span class="fc" id="L103">                    cb.isNotNull(root.get(&quot;deadline&quot;)),</span>
+<span class="fc" id="L104">                    cb.between(root.get(&quot;deadline&quot;), startDate, endDate)));</span>
+<span class="fc" id="L105">            return cb.and(predicates.toArray(new Predicate[0]));</span>
+        });
+    }
+
+    /**
+     * Finds tasks by project and between dates.
+     * 
+     * @param project   the project.
+     * @param startDate the start date.
+     * @param endDate   the end date.
+     * @return the tasks.
+     */
+    default List&lt;Task&gt; findAllFromProjectAndDateDeadline(Project project, Date startDate, Date endDate,
+            EventFilter filter) {
+<span class="fc" id="L119">        return findAll((root, query, cb) -&gt; {</span>
+<span class="fc" id="L120">            List&lt;Predicate&gt; predicates = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L121">            predicates.add(cb.equal(root.get(&quot;status&quot;).get(&quot;project&quot;), project));</span>
+<span class="pc bpc" id="L122" title="1 of 2 branches missed.">            if (filter.isShowEnded()) {</span>
+<span class="fc" id="L123">                predicates.add(cb.equal(root.get(&quot;status&quot;).get(&quot;isFinal&quot;), false));</span>
+            }
+<span class="fc" id="L125">            predicates.add(cb.and(</span>
+<span class="fc" id="L126">                    cb.isNotNull(root.get(&quot;deadline&quot;)),</span>
+<span class="fc" id="L127">                    cb.between(root.get(&quot;deadline&quot;), startDate, endDate)));</span>
+<span class="fc" id="L128">            return cb.and(predicates.toArray(new Predicate[0]));</span>
+        });
+    }
+
+    /**
+     * Finds tasks by user assigned and between dates.
+     * 
+     * @param user      the user.
+     * @param startDate the start date.
+     * @param endDate   the end date.
+     * @return the tasks.
+     */
+    default List&lt;Task&gt; findAllFromUserAndDateEstimate(User user, Date startDate, Date endDate, EventFilter filter) {
+<span class="fc" id="L141">        return findAll((root, query, cb) -&gt; {</span>
+<span class="fc" id="L142">            List&lt;Predicate&gt; predicates = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L143">            predicates.add(cb.isNotNull(root.get(&quot;assignee&quot;)));</span>
+<span class="fc" id="L144">            predicates.add(cb.equal(root.get(&quot;assignee&quot;), user));</span>
+<span class="pc bpc" id="L145" title="1 of 2 branches missed.">            if (filter.isShowEnded()) {</span>
+<span class="fc" id="L146">                predicates.add(cb.equal(root.get(&quot;status&quot;).get(&quot;isFinal&quot;), false));</span>
+            }
+<span class="fc" id="L148">            predicates.add(</span>
+<span class="fc" id="L149">                    cb.and(</span>
+<span class="fc" id="L150">                            cb.isNotNull(root.get(&quot;estimatedDate&quot;)),</span>
+<span class="fc" id="L151">                            cb.between(root.get(&quot;estimatedDate&quot;), startDate, endDate)));</span>
+<span class="fc" id="L152">            return cb.and(predicates.toArray(new Predicate[0]));</span>
+        });
+    }
+
+    /**
+     * Finds tasks by project and between dates.
+     * 
+     * @param project   the project.
+     * @param startDate the start date.
+     * @param endDate   the end date.
+     * @return the tasks.
+     */
+    default List&lt;Task&gt; findAllFromProjectAndDateEstimate(Project project, Date startDate, Date endDate,
+            EventFilter filter) {
+<span class="fc" id="L166">        return findAll((root, query, cb) -&gt; {</span>
+<span class="fc" id="L167">            List&lt;Predicate&gt; predicates = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L168">            predicates.add(cb.equal(root.get(&quot;status&quot;).get(&quot;project&quot;), project));</span>
+<span class="pc bpc" id="L169" title="1 of 2 branches missed.">            if (filter.isShowEnded()) {</span>
+<span class="fc" id="L170">                predicates.add(cb.equal(root.get(&quot;status&quot;).get(&quot;isFinal&quot;), false));</span>
+            }
+<span class="fc" id="L172">            predicates.add(</span>
+<span class="fc" id="L173">                    cb.and(</span>
+<span class="fc" id="L174">                            cb.isNotNull(root.get(&quot;estimatedDate&quot;)),</span>
+<span class="fc" id="L175">                            cb.between(root.get(&quot;estimatedDate&quot;), startDate, endDate)));</span>
+<span class="fc" id="L176">            return cb.and(predicates.toArray(new Predicate[0]));</span>
+        });
+    }
+
+    List&lt;Task&gt; findByAssigneeAndStatusIsFinalFalse(User loggedUser);
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

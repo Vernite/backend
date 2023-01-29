@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserSession.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.user</a> &gt; <span class="el_source">UserSession.java</span></div><h1>UserSession.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.user;
+
+import java.util.Date;
+import java.util.Objects;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.ForeignKey;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Transient;
+import jakarta.validation.constraints.NotNull;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import dev.vernite.vernite.user.session.GeoIP;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
+@Entity
+<span class="fc" id="L51">public class UserSession {</span>
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
+
+    @Column(unique = true)
+    @NotNull
+    @JsonIgnore
+    private String session;
+
+    @NotNull
+    private String userAgent;
+
+    @NotNull
+    private String ip;
+
+    @NotNull
+    @ManyToOne
+    @JsonIgnore
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = &quot;user_id&quot;, nullable = false, foreignKey = @ForeignKey(name = &quot;fk_user_session_user&quot;))
+    private User user;
+
+    private Date lastUsed;
+
+    private boolean remembered;
+
+    @Transient
+    private GeoIP geoip;
+    @Transient
+    private boolean current;
+
+    public long getId() {
+<span class="fc" id="L84">        return id;</span>
+    }
+
+    public void setId(long id) {
+<span class="nc" id="L88">        this.id = id;</span>
+<span class="nc" id="L89">    }</span>
+
+    public String getSession() {
+<span class="fc" id="L92">        return session;</span>
+    }
+
+    public void setSession(String session) {
+<span class="fc" id="L96">        this.session = session;</span>
+<span class="fc" id="L97">    }</span>
+
+    public String getUserAgent() {
+<span class="nc" id="L100">        return userAgent;</span>
+    }
+
+    public void setUserAgent(String userAgent) {
+<span class="fc" id="L104">        this.userAgent = userAgent;</span>
+<span class="fc" id="L105">    }</span>
+
+    public String getIp() {
+<span class="fc" id="L108">        return ip;</span>
+    }
+
+    public void setIp(String ip) {
+<span class="fc" id="L112">        this.ip = ip;</span>
+<span class="fc" id="L113">    }</span>
+
+    public User getUser() {
+<span class="fc" id="L116">        return user;</span>
+    }
+
+    public void setUser(User user) {
+<span class="fc" id="L120">        this.user = user;</span>
+<span class="fc" id="L121">    }</span>
+
+    public Date getLastUsed() {
+<span class="fc" id="L124">        return lastUsed;</span>
+    }
+
+    public void setLastUsed(Date lastUsed) {
+<span class="fc" id="L128">        this.lastUsed = lastUsed;</span>
+<span class="fc" id="L129">    }</span>
+
+    public boolean isRemembered() {
+<span class="nc" id="L132">        return remembered;</span>
+    }
+
+    public void setRemembered(boolean remembered) {
+<span class="fc" id="L136">        this.remembered = remembered;</span>
+<span class="fc" id="L137">    }</span>
+
+    public GeoIP getGeoip() {
+<span class="nc" id="L140">        return geoip;</span>
+    }
+
+    public void setGeoip(GeoIP geoip) {
+<span class="nc" id="L144">        this.geoip = geoip;</span>
+<span class="nc" id="L145">    }</span>
+
+    public boolean isCurrent() {
+<span class="nc" id="L148">        return current;</span>
+    }
+
+    public void setCurrent(boolean current) {
+<span class="nc" id="L152">        this.current = current;</span>
+<span class="nc" id="L153">    }</span>
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L157">        return Objects.hash(isCurrent(), getGeoip(), getId(), getIp(), getLastUsed(), isRemembered(), getSession(), getUser(), getUserAgent());</span>
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+<span class="nc bnc" id="L162" title="All 2 branches missed.">        if (this == obj)</span>
+<span class="nc" id="L163">            return true;</span>
+<span class="nc bnc" id="L164" title="All 2 branches missed.">        if (!(obj instanceof UserSession))</span>
+<span class="nc" id="L165">            return false;</span>
+<span class="nc" id="L166">        UserSession other = (UserSession) obj;</span>
+<span class="nc bnc" id="L167" title="All 6 branches missed.">        return isCurrent() == other.isCurrent() &amp;&amp; Objects.equals(getGeoip(), other.getGeoip()) &amp;&amp; getId() == other.getId()</span>
+<span class="nc bnc" id="L168" title="All 4 branches missed.">                &amp;&amp; Objects.equals(getIp(), other.getIp()) &amp;&amp; Objects.equals(getLastUsed(), other.getLastUsed())</span>
+<span class="nc bnc" id="L169" title="All 4 branches missed.">                &amp;&amp; isRemembered() == other.isRemembered() &amp;&amp; Objects.equals(getSession(), other.getSession())</span>
+<span class="nc bnc" id="L170" title="All 4 branches missed.">                &amp;&amp; Objects.equals(getUser(), other.getUser()) &amp;&amp; Objects.equals(getUserAgent(), other.getUserAgent());</span>
+    }
+    
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

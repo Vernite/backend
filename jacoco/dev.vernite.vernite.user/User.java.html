@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>User.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.user</a> &gt; <span class="el_source">User.java</span></div><h1>User.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.user;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.OrderBy;
+import jakarta.validation.constraints.NotNull;
+import lombok.Getter;
+import lombok.Setter;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import dev.vernite.vernite.common.utils.counter.CounterSequence;
+import dev.vernite.vernite.workspace.Workspace;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
+@Entity
+@JsonIgnoreProperties({ &quot;hibernateLazyInitializer&quot;, &quot;handler&quot; })
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
+
+    private Date deleted;
+
+    private boolean deletedPermanently;
+
+    @Column(nullable = false, unique = true)
+    private String email;
+
+    @JsonIgnore
+    @Column(nullable = false, length = 32)
+    @NotNull
+    private byte[] hash;
+
+    @JsonIgnore
+    @Column(nullable = false, length = 20)
+    private byte[] salt;
+
+    private String avatar;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false)
+    private String surname;
+
+    @Column(nullable = false, unique = true)
+    private String username;
+
+    private String language;
+    private String dateFormat;
+
+    @Getter
+    @Setter
+    private String timeFormat;
+
+    @Getter
+    @Setter
+    private Integer firstDayOfWeek;
+
+    @JsonIgnore
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @OneToOne(cascade = { CascadeType.PERSIST }, optional = false)
+    private CounterSequence counterSequence;
+
+<span class="fc" id="L112">    @JsonIgnore</span>
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = &quot;user&quot;)
+    @OrderBy(&quot;name, id&quot;)
+    private List&lt;Workspace&gt; workspaces = new ArrayList&lt;&gt;();
+
+<span class="fc" id="L118">    public User() {</span>
+<span class="fc" id="L119">    }</span>
+
+    public User(String name, String surname, String username, String email, String password) {
+<span class="fc" id="L122">        this(name, surname, username, email, password, null, null);</span>
+<span class="fc" id="L123">    }</span>
+
+    public User(String name, String surname, String username, String email, String password, String language,
+<span class="fc" id="L126">            String dateFormat) {</span>
+<span class="fc" id="L127">        this.setName(name);</span>
+<span class="fc" id="L128">        this.setSurname(surname);</span>
+<span class="fc" id="L129">        this.setUsername(username);</span>
+<span class="fc" id="L130">        this.setEmail(email);</span>
+<span class="fc" id="L131">        this.setPassword(password);</span>
+<span class="fc" id="L132">        this.setLanguage(language);</span>
+<span class="fc" id="L133">        this.setDateFormat(dateFormat);</span>
+<span class="fc" id="L134">        this.setCounterSequence(new CounterSequence());</span>
+<span class="fc" id="L135">    }</span>
+
+    public long getId() {
+<span class="fc" id="L138">        return id;</span>
+    }
+
+    public void setId(long id) {
+<span class="fc" id="L142">        this.id = id;</span>
+<span class="fc" id="L143">    }</span>
+
+    public boolean isDeleted() {
+<span class="pc bpc" id="L146" title="1 of 2 branches missed.">        return getDeleted() != null;</span>
+    }
+
+    public Date getDeleted() {
+<span class="fc" id="L150">        return deleted;</span>
+    }
+
+    public void setDeleted(Date deleted) {
+<span class="fc" id="L154">        this.deleted = deleted;</span>
+<span class="fc" id="L155">    }</span>
+
+    public boolean isDeletedPermanently() {
+<span class="fc" id="L158">        return deletedPermanently;</span>
+    }
+
+    public void setDeletedPermanently(boolean deletedPermanently) {
+<span class="fc" id="L162">        this.deletedPermanently = deletedPermanently;</span>
+<span class="fc" id="L163">    }</span>
+
+    public String getEmail() {
+<span class="pc bpc" id="L166" title="1 of 2 branches missed.">        return isDeleted() ? &quot;(deleted)&quot; : email;</span>
+    }
+
+    public void setEmail(String email) {
+<span class="fc" id="L170">        this.email = email;</span>
+<span class="fc" id="L171">    }</span>
+
+    public byte[] getHash() {
+<span class="nc" id="L174">        return hash;</span>
+    }
+
+    public void setHash(byte[] hash) {
+<span class="fc" id="L178">        this.hash = hash;</span>
+<span class="fc" id="L179">    }</span>
+
+    public byte[] getSalt() {
+<span class="nc" id="L182">        return salt;</span>
+    }
+
+    public void setSalt(byte[] salt) {
+<span class="fc" id="L186">        this.salt = salt;</span>
+<span class="fc" id="L187">    }</span>
+
+    public String getAvatar() {
+<span class="pc bpc" id="L190" title="1 of 2 branches missed.">        return isDeleted() ? null : avatar;</span>
+    }
+
+    public void setAvatar(String avatar) {
+<span class="fc" id="L194">        this.avatar = avatar;</span>
+<span class="fc" id="L195">    }</span>
+
+    public String getName() {
+<span class="pc bpc" id="L198" title="1 of 2 branches missed.">        return isDeleted() ? &quot;(deleted)&quot; : name;</span>
+    }
+
+    public void setName(String name) {
+<span class="fc" id="L202">        this.name = name;</span>
+<span class="fc" id="L203">    }</span>
+
+    public String getSurname() {
+<span class="pc bpc" id="L206" title="1 of 2 branches missed.">        return isDeleted() ? &quot;(deleted)&quot; : surname;</span>
+    }
+
+    public void setSurname(String surname) {
+<span class="fc" id="L210">        this.surname = surname;</span>
+<span class="fc" id="L211">    }</span>
+
+    public String getUsername() {
+<span class="pc bpc" id="L214" title="1 of 2 branches missed.">        return isDeleted() ? &quot;(deleted)&quot; : username;</span>
+    }
+
+    public void setUsername(String username) {
+<span class="fc" id="L218">        this.username = username;</span>
+<span class="fc" id="L219">    }</span>
+
+    public List&lt;Workspace&gt; getWorkspaces() {
+<span class="fc" id="L222">        return workspaces;</span>
+    }
+
+    public void setWorkspaces(List&lt;Workspace&gt; workspaces) {
+<span class="nc" id="L226">        this.workspaces = workspaces;</span>
+<span class="nc" id="L227">    }</span>
+
+    public boolean checkPassword(String password) {
+        byte[] hash;
+        try {
+<span class="nc" id="L232">            MessageDigest digest = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
+<span class="nc" id="L233">            digest.update(password.getBytes(StandardCharsets.UTF_8));</span>
+<span class="nc" id="L234">            digest.update(this.getSalt());</span>
+<span class="nc" id="L235">            hash = digest.digest();</span>
+<span class="nc" id="L236">        } catch (NoSuchAlgorithmException e) {</span>
+<span class="nc" id="L237">            throw new RuntimeException(e);</span>
+<span class="nc" id="L238">        }</span>
+<span class="nc" id="L239">        return MessageDigest.isEqual(hash, this.getHash());</span>
+    }
+
+    public void setPassword(String password) {
+<span class="fc" id="L243">        byte[] salt = new byte[20];</span>
+<span class="fc" id="L244">        new SecureRandom().nextBytes(salt);</span>
+        byte[] hash;
+        try {
+<span class="fc" id="L247">            MessageDigest digest = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
+<span class="fc" id="L248">            digest.update(password.getBytes(StandardCharsets.UTF_8));</span>
+<span class="fc" id="L249">            digest.update(salt);</span>
+<span class="fc" id="L250">            hash = digest.digest();</span>
+<span class="nc" id="L251">        } catch (NoSuchAlgorithmException e) {</span>
+<span class="nc" id="L252">            throw new RuntimeException(e);</span>
+<span class="fc" id="L253">        }</span>
+<span class="fc" id="L254">        this.setHash(hash);</span>
+<span class="fc" id="L255">        this.setSalt(salt);</span>
+<span class="fc" id="L256">    }</span>
+
+    public String getLanguage() {
+<span class="fc" id="L259">        return language;</span>
+    }
+
+    public void setLanguage(String language) {
+<span class="fc" id="L263">        this.language = language;</span>
+<span class="fc" id="L264">    }</span>
+
+    public String getDateFormat() {
+<span class="fc" id="L267">        return dateFormat;</span>
+    }
+
+    public void setDateFormat(String dateFormat) {
+<span class="fc" id="L271">        this.dateFormat = dateFormat;</span>
+<span class="fc" id="L272">    }</span>
+
+    public CounterSequence getCounterSequence() {
+<span class="fc" id="L275">        return counterSequence;</span>
+    }
+
+    public void setCounterSequence(CounterSequence counterSequence) {
+<span class="fc" id="L279">        this.counterSequence = counterSequence;</span>
+<span class="fc" id="L280">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L284">        return &quot;U[&quot; + this.getUsername() + &quot;#&quot; + this.getId() + &quot;]&quot;;</span>
+    }
+
+    // TODO: lombok auto generate
+    @Override
+    public int hashCode() {
+        // final int prime = 31;
+        // int result = 1;
+        // result = prime * result + Arrays.hashCode(getHash());
+        // result = prime * result + Arrays.hashCode(getSalt());
+        // result = prime * result + Objects.hash(getAvatar(), getCounterSequence(),
+        // getEmail(), getId(), getName(), getSurname(), getUsername(), getWorkspaces(),
+        // getDeleted(), getLanguage(), getDateFormat());
+<span class="fc" id="L297">        return (int) getId();</span>
+    }
+
+    // TODO: lombok auto generate
+    @Override
+    public boolean equals(Object obj) {
+<span class="fc bfc" id="L303" title="All 2 branches covered.">        if (this == obj)</span>
+<span class="fc" id="L304">            return true;</span>
+<span class="pc bpc" id="L305" title="1 of 2 branches missed.">        if (!(obj instanceof User))</span>
+<span class="nc" id="L306">            return false;</span>
+<span class="fc" id="L307">        User other = (User) obj;</span>
+<span class="pc bpc" id="L308" title="1 of 2 branches missed.">        return getId() == other.getId();</span>
+        // return Objects.equals(getAvatar(), other.getAvatar()) &amp;&amp;
+        // Objects.equals(getCounterSequence(), other.getCounterSequence())
+        // &amp;&amp; Objects.equals(getEmail(), other.getEmail()) &amp;&amp; Arrays.equals(getHash(),
+        // other.getHash()) &amp;&amp; getId() == other.getId()
+        // &amp;&amp; Objects.equals(getName(), other.getName()) &amp;&amp; Arrays.equals(getSalt(),
+        // other.getSalt())
+        // &amp;&amp; Objects.equals(getSurname(), other.getSurname()) &amp;&amp;
+        // Objects.equals(getUsername(), other.getUsername())
+        // &amp;&amp; Objects.equals(getWorkspaces(), other.getWorkspaces()) &amp;&amp;
+        // Objects.equals(getDeleted(), other.getDeleted())
+        // &amp;&amp; Objects.equals(getLanguage(), other.getLanguage()) &amp;&amp;
+        // Objects.equals(getDateFormat(), other.getDateFormat());
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

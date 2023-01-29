@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SessionController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.user.session</a> &gt; <span class="el_source">SessionController.java</span></div><h1>SessionController.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.user.session;
+
+import java.time.Duration;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
+
+import jakarta.validation.constraints.NotNull;
+
+import dev.vernite.vernite.user.User;
+import dev.vernite.vernite.user.UserSession;
+import dev.vernite.vernite.user.UserSessionRepository;
+import dev.vernite.vernite.user.auth.AuthController;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.server.ResponseStatusException;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import reactor.netty.http.client.HttpClient;
+
+@RestController
+@RequestMapping(&quot;/session&quot;)
+<span class="fc" id="L73">public class SessionController {</span>
+<span class="fc" id="L74">    private static final Logger L = Logger.getLogger(&quot;GeoIP&quot;);</span>
+<span class="fc" id="L75">    private static final ScheduledExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadScheduledExecutor();</span>
+<span class="fc" id="L76">    private static final WebClient CLIENT = WebClient.builder()</span>
+<span class="fc" id="L77">            .clientConnector(new ReactorClientHttpConnector(HttpClient.create().responseTimeout(Duration.ofSeconds(1))))</span>
+<span class="fc" id="L78">            .build();</span>
+<span class="fc" id="L79">    private static final Map&lt;String, GeoIP&gt; geoip = new ConcurrentHashMap&lt;&gt;();</span>
+
+    @Autowired
+    private UserSessionRepository userSessionRepository;
+
+    @Value(&quot;${maxmindPassword}&quot;)
+    private String maxmindPassword;
+
+    @Operation(summary = &quot;List all active sessions&quot;, description = &quot;This method returns array of all sessions. Result can be empty array.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;List of all active sessions. Can be empty.&quot;, content = {
+                    @Content(mediaType = &quot;application/json&quot;, array = @ArraySchema(schema = @Schema(implementation = UserSession.class)))
+            })
+    @GetMapping
+    public Future&lt;List&lt;UserSession&gt;&gt; all(@NotNull @Parameter(hidden = true) User loggedUser,
+            @Parameter(hidden = true) @CookieValue(AuthController.COOKIE_NAME) String session) {
+<span class="nc" id="L94">        List&lt;UserSession&gt; sessions = userSessionRepository.findByUser(loggedUser);</span>
+<span class="nc" id="L95">        HashSet&lt;String&gt; ips = new HashSet&lt;&gt;();</span>
+<span class="nc" id="L96">        long t = System.currentTimeMillis();</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">        for (UserSession s : sessions) {</span>
+<span class="nc" id="L98">            s.setCurrent(s.getSession().equals(session));</span>
+<span class="nc" id="L99">            GeoIP g = geoip.get(s.getIp());</span>
+<span class="nc bnc" id="L100" title="All 4 branches missed.">            if (g != null &amp;&amp; t - g.getCache() &gt; TimeUnit.DAYS.toMillis(1)) {</span>
+<span class="nc" id="L101">                geoip.remove(s.getIp());</span>
+<span class="nc" id="L102">                g = null;</span>
+            }
+<span class="nc bnc" id="L104" title="All 2 branches missed.">            if (g == null) {</span>
+<span class="nc" id="L105">                ips.add(s.getIp());</span>
+            } else {
+<span class="nc" id="L107">                s.setGeoip(g);</span>
+            }
+<span class="nc" id="L109">        }</span>
+<span class="nc" id="L110">        CountDownLatch countDownLatch = new CountDownLatch(ips.size());</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">        for (String ip : ips) {</span>
+<span class="nc" id="L112">            CLIENT.get()</span>
+<span class="nc" id="L113">                    .uri(&quot;https://geolite.info/geoip/v2.1/city/&quot; + ip)</span>
+<span class="nc" id="L114">                    .header(&quot;Authorization&quot;, &quot;Basic &quot; + maxmindPassword)</span>
+<span class="nc" id="L115">                    .retrieve().bodyToMono(MaxmindResponse.class)</span>
+<span class="nc" id="L116">                    .subscribe(n -&gt; {</span>
+<span class="nc" id="L117">                        GeoIP geoIP = new GeoIP();</span>
+<span class="nc" id="L118">                        geoIP.setCache(t);</span>
+<span class="nc bnc" id="L119" title="All 4 branches missed.">                        if (n.getCity() != null &amp;&amp; n.getCity().getNames().containsKey(&quot;en&quot;)) {</span>
+<span class="nc" id="L120">                            geoIP.setCity(n.getCity().getNames().get(&quot;en&quot;));</span>
+                        }
+<span class="nc bnc" id="L122" title="All 4 branches missed.">                        if (n.getCountry() != null &amp;&amp; n.getCountry().getNames().containsKey(&quot;en&quot;)) {</span>
+<span class="nc" id="L123">                            geoIP.setCountry(n.getCountry().getNames().get(&quot;en&quot;));</span>
+                        }
+<span class="nc" id="L125">                        geoip.put(ip, geoIP);</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">                        for (UserSession s : sessions) {</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">                            if (s.getIp().equals(ip)) {</span>
+<span class="nc" id="L128">                                s.setGeoip(geoIP);</span>
+                            }
+<span class="nc" id="L130">                        }</span>
+<span class="nc" id="L131">                        countDownLatch.countDown();</span>
+<span class="nc" id="L132">                    }, (e) -&gt; {</span>
+<span class="nc" id="L133">                        L.warning(&quot;Failed: &quot; + e);</span>
+<span class="nc" id="L134">                        countDownLatch.countDown();</span>
+<span class="nc" id="L135">                    });</span>
+<span class="nc" id="L136">        }</span>
+<span class="nc" id="L137">        CompletableFuture&lt;List&lt;UserSession&gt;&gt; f = new CompletableFuture&lt;&gt;();</span>
+<span class="nc" id="L138">        EXECUTOR_SERVICE.execute(() -&gt; {</span>
+            try {
+<span class="nc" id="L140">                countDownLatch.await(1, TimeUnit.SECONDS);</span>
+<span class="nc" id="L141">            } catch (InterruptedException e) {</span>
+<span class="nc" id="L142">            }</span>
+<span class="nc" id="L143">            f.complete(sessions);</span>
+<span class="nc" id="L144">        });</span>
+<span class="nc" id="L145">        return f;</span>
+    }
+
+    @Operation(summary = &quot;Revoke session&quot;, description = &quot;This method is used to revoke session. On success does not return anything.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Session revoked&quot;)
+    @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Cannot revoke current (active) session or another user&quot;)
+    @DeleteMapping(&quot;/{id}&quot;)
+    public void delete(@NotNull @Parameter(hidden = true) User loggedUser,
+            @Parameter(hidden = true) @CookieValue(AuthController.COOKIE_NAME) String session, @PathVariable long id) {
+<span class="nc" id="L154">        UserSession sess = this.userSessionRepository.findById(id).orElse(null);</span>
+<span class="nc bnc" id="L155" title="All 2 branches missed.">        if (sess == null) {</span>
+<span class="nc" id="L156">            return;</span>
+        }
+<span class="nc bnc" id="L158" title="All 2 branches missed.">        if (sess.getSession().equals(session)) {</span>
+<span class="nc" id="L159">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;cannot revoke current session, click logout&quot;);</span>
+        }
+<span class="nc bnc" id="L161" title="All 2 branches missed.">        if (sess.getUser().getId() != loggedUser.getId()) {</span>
+<span class="nc" id="L162">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;cannot revoke session with given ID&quot;);</span>
+        }
+<span class="nc" id="L164">        this.userSessionRepository.delete(sess);</span>
+<span class="nc" id="L165">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

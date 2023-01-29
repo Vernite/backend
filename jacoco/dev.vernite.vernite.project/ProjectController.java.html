@@ -1,0 +1,447 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProjectController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.project</a> &gt; <span class="el_source">ProjectController.java</span></div><h1>ProjectController.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.project;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+
+import dev.vernite.vernite.auditlog.AuditLog;
+import dev.vernite.vernite.auditlog.AuditLogRepository;
+import dev.vernite.vernite.cdn.File;
+import dev.vernite.vernite.cdn.FileManager;
+import dev.vernite.vernite.event.Event;
+import dev.vernite.vernite.event.EventFilter;
+import dev.vernite.vernite.event.EventService;
+import dev.vernite.vernite.integration.calendar.CalendarIntegration;
+import dev.vernite.vernite.integration.calendar.CalendarIntegrationRepository;
+import dev.vernite.vernite.integration.git.Branch;
+import dev.vernite.vernite.integration.git.GitTaskService;
+import dev.vernite.vernite.integration.git.Issue;
+import dev.vernite.vernite.integration.git.PullRequest;
+import dev.vernite.vernite.projectworkspace.ProjectMember;
+import dev.vernite.vernite.projectworkspace.ProjectWorkspace;
+import dev.vernite.vernite.projectworkspace.ProjectWorkspaceRepository;
+import dev.vernite.vernite.task.time.TimeTrack;
+import dev.vernite.vernite.task.time.TimeTrackRepository;
+import dev.vernite.vernite.user.User;
+import dev.vernite.vernite.user.UserRepository;
+import dev.vernite.vernite.utils.ErrorType;
+import dev.vernite.vernite.utils.ImageConverter;
+import dev.vernite.vernite.utils.ObjectNotFoundException;
+import dev.vernite.vernite.utils.SecureStringUtils;
+import dev.vernite.vernite.workspace.Workspace;
+import dev.vernite.vernite.workspace.WorkspaceId;
+import dev.vernite.vernite.workspace.WorkspaceRepository;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import reactor.core.publisher.Flux;
+
+/**
+ * Rest controller for performing CRUD operations on Projects entities.
+ */
+@RestController
+@AllArgsConstructor
+@RequestMapping(&quot;/project&quot;)
+public class ProjectController {
+
+    private ProjectRepository projectRepository;
+
+    private WorkspaceRepository workspaceRepository;
+
+    private ProjectWorkspaceRepository projectWorkspaceRepository;
+
+    private UserRepository userRepository;
+
+    private TimeTrackRepository timeTrackRepository;
+
+    private EventService eventService;
+
+    private FileManager fileManager;
+
+    private CalendarIntegrationRepository calendarRepository;
+
+    private AuditLogRepository auditLogRepository;
+
+    private GitTaskService service;
+
+    /**
+     * Create new project. Creating user will be automatically added to that
+     * project.
+     * 
+     * @param user   logged in user
+     * @param create data for new project
+     * @return newly created project
+     */
+    @PostMapping
+    public Project create(@NotNull @Parameter(hidden = true) User user, @RequestBody @Valid CreateProject create) {
+<span class="fc" id="L126">        long id = create.getWorkspaceId();</span>
+<span class="fc" id="L127">        Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceId(id, user.getId()));</span>
+<span class="fc" id="L128">        Project project = projectRepository.save(new Project(create));</span>
+<span class="fc" id="L129">        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, 1L));</span>
+<span class="fc" id="L130">        return project;</span>
+    }
+
+    /**
+     * Retrieve project. If user is not member of project with given ID this method
+     * returns not found error.
+     * 
+     * @param user logged in user
+     * @param id   ID of project
+     * @return project with given ID
+     */
+    @GetMapping(&quot;/{id}&quot;)
+    public Project get(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+<span class="fc" id="L143">        return projectRepository.findByIdAndMemberOrThrow(id, user);</span>
+    }
+
+    /**
+     * Update project with given ID. Performs partial update using only supplied
+     * fields from request body. Authenticated user must be member of project.
+     * 
+     * @param user   logged in user
+     * @param id     ID of project
+     * @param update data to update
+     * @return project after update
+     */
+    @PutMapping(&quot;/{id}&quot;)
+    public Project update(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+            @RequestBody @Valid UpdateProject update) {
+<span class="fc" id="L158">        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">        if (update.getWorkspaceId() != null) {</span>
+<span class="fc" id="L160">            changeWorkspace(update.getWorkspaceId(), project, user);</span>
+        }
+<span class="fc" id="L162">        project.update(update);</span>
+<span class="fc" id="L163">        return projectRepository.save(project);</span>
+    }
+
+    private void changeWorkspace(long workspaceId, Project project, User user) {
+<span class="fc" id="L167">        Workspace workspace = workspaceRepository.findByIdOrThrow(new WorkspaceId(workspaceId, user.getId()));</span>
+<span class="fc" id="L168">        ProjectWorkspace pw = project.removeMember(user);</span>
+<span class="fc" id="L169">        projectWorkspaceRepository.delete(pw);</span>
+<span class="fc" id="L170">        projectWorkspaceRepository.save(new ProjectWorkspace(project, workspace, pw.getPrivileges()));</span>
+<span class="pc bpc" id="L171" title="3 of 4 branches missed.">        if (pw.getWorkspace().getId().getId() == 0 &amp;&amp; pw.getWorkspace().getProjectWorkspaces().isEmpty()) {</span>
+<span class="nc" id="L172">            workspaceRepository.delete(pw.getWorkspace());</span>
+        }
+<span class="fc" id="L174">    }</span>
+
+    /**
+     * Delete project with given ID. Project will be soft deleted and full delete
+     * wil happen after a week. Authenticated user must be member of project.
+     * 
+     * @param user logged in user
+     * @param id   ID of project
+     */
+    @DeleteMapping(&quot;/{id}&quot;)
+    public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+<span class="fc" id="L185">        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);</span>
+<span class="fc" id="L186">        project.softDelete();</span>
+<span class="fc" id="L187">        projectRepository.save(project);</span>
+<span class="fc" id="L188">    }</span>
+
+    /**
+     * Retrieve project members. Authenticated user must be member of project.
+     * 
+     * @param user logged in user
+     * @param id   ID of project
+     * @return list of project members
+     */
+    @GetMapping(&quot;/{id}/member&quot;)
+    public List&lt;ProjectMember&gt; getProjectMembers(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+<span class="fc" id="L199">        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);</span>
+<span class="fc" id="L200">        return projectWorkspaceRepository.findByProjectOrderByWorkspaceUserUsernameAscWorkspaceUserIdAsc(project)</span>
+<span class="fc" id="L201">                .stream().map(ProjectWorkspace::getProjectMember).toList();</span>
+    }
+
+    /**
+     * Retrieve project member. Authenticated user must be member of project.
+     * 
+     * @param user     logged in user
+     * @param id       ID of project
+     * @param memberId ID of searched user
+     * @return project member
+     */
+    @GetMapping(&quot;/{id}/member/{memberId}&quot;)
+    public ProjectMember getProjectMember(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+            @PathVariable long memberId) {
+<span class="fc" id="L215">        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);</span>
+<span class="fc" id="L216">        return projectWorkspaceRepository.findByProjectOrderByWorkspaceUserUsernameAscWorkspaceUserIdAsc(project)</span>
+<span class="fc bfc" id="L217" title="All 2 branches covered.">                .stream().map(ProjectWorkspace::getProjectMember).filter(member -&gt; member.user().getId() == memberId)</span>
+<span class="fc" id="L218">                .findFirst().orElseThrow(ObjectNotFoundException::new);</span>
+    }
+
+    /**
+     * Adds members to projects. Adds every given user to every given project. In
+     * order to add users to project authenticated user must be member of every
+     * project. If authenticated user is not member of project no one will be added
+     * to this project. If user with given email / username does not exists no error
+     * will be thrown.
+     * 
+     * @param user   logged in user
+     * @param invite list of project and user to add.
+     * @return list with project and users which were added to projects
+     */
+    @PostMapping(&quot;/member&quot;)
+    public ProjectInvite addProjectMembers(@NotNull @Parameter(hidden = true) User user,
+            @RequestBody ProjectInvite invite) {
+<span class="fc" id="L235">        List&lt;User&gt; users = userRepository.findByEmailInOrUsernameIn(invite.getEmails(), invite.getEmails());</span>
+<span class="fc" id="L236">        Iterable&lt;Project&gt; projects = projectRepository.findAllById(invite.getProjects());</span>
+<span class="fc" id="L237">        List&lt;Project&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L238" title="All 2 branches covered.">        for (Project project : projects) {</span>
+<span class="fc bfc" id="L239" title="All 2 branches covered.">            if (project.isMember(user)) {</span>
+<span class="fc" id="L240">                result.add(project);</span>
+<span class="fc bfc" id="L241" title="All 2 branches covered.">                for (User invitedUser : users) {</span>
+<span class="fc bfc" id="L242" title="All 2 branches covered.">                    if (project.isMember(invitedUser)) {</span>
+<span class="fc" id="L243">                        continue;</span>
+                    }
+<span class="fc" id="L245">                    Workspace workspace = workspaceRepository.findById(new WorkspaceId(0, invitedUser.getId()))</span>
+<span class="fc" id="L246">                            .orElseGet(() -&gt; workspaceRepository.save(new Workspace(0, &quot;inbox&quot;, invitedUser)));</span>
+<span class="fc" id="L247">                    projectWorkspaceRepository</span>
+<span class="fc" id="L248">                            .save(new ProjectWorkspace(project, workspace, 2L));</span>
+<span class="fc" id="L249">                }</span>
+            }
+<span class="fc" id="L251">        }</span>
+<span class="fc bfc" id="L252" title="All 4 branches covered.">        if (result.isEmpty() || users.isEmpty()) {</span>
+<span class="fc" id="L253">            return new ProjectInvite(new ArrayList&lt;&gt;(), new ArrayList&lt;&gt;());</span>
+        }
+<span class="fc" id="L255">        return new ProjectInvite(users.stream().map(User::getUsername).toList(), result);</span>
+    }
+
+    /**
+     * Remove members from project. Authenticated user must be member of project and
+     * have sufficient privileges.
+     * 
+     * @param user logged in user
+     * @param id   ID of project
+     * @param ids  IDs of users to remove
+     * @return removed users
+     */
+    @PutMapping(&quot;/{id}/member&quot;)
+    @ApiResponse(description = &quot;List with actual users removed from project.&quot;, responseCode = &quot;200&quot;)
+    @ApiResponse(description = &quot;Not enough privileges.&quot;, responseCode = &quot;403&quot;, content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    public List&lt;User&gt; deleteMember(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+            @RequestBody List&lt;Long&gt; ids) {
+<span class="fc" id="L272">        Project project = projectRepository.findByIdOrThrow(id);</span>
+<span class="fc" id="L273">        int index = project.member(user);</span>
+<span class="fc bfc" id="L274" title="All 2 branches covered.">        if (index == -1) {</span>
+<span class="fc" id="L275">            throw new ObjectNotFoundException();</span>
+        }
+<span class="fc bfc" id="L277" title="All 2 branches covered.">        if (project.getProjectWorkspaces().get(index).getPrivileges() != 1L) {</span>
+<span class="fc" id="L278">            throw new ResponseStatusException(HttpStatus.FORBIDDEN);</span>
+        }
+<span class="fc bfc" id="L280" title="All 2 branches covered.">        Iterable&lt;User&gt; users = userRepository.findAllById(ids.stream().filter(i -&gt; i != user.getId()).toList());</span>
+<span class="fc" id="L281">        List&lt;ProjectWorkspace&gt; projectWorkspaces = projectWorkspaceRepository.findByWorkspaceUserInAndProject(users,</span>
+                project);
+<span class="fc" id="L283">        projectWorkspaceRepository.deleteAll(projectWorkspaces);</span>
+<span class="fc" id="L284">        return projectWorkspaces.stream().map(ps -&gt; ps.getWorkspace().getUser()).toList();</span>
+    }
+
+    /**
+     * Leave project. Authenticated user leaves project with given ID.
+     * 
+     * @param user logged in user
+     * @param id   ID of project
+     */
+    @DeleteMapping(&quot;/{id}/member&quot;)
+    public void leaveProject(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+<span class="fc" id="L295">        Project project = projectRepository.findByIdOrThrow(id);</span>
+<span class="fc" id="L296">        int index = project.member(user);</span>
+<span class="fc bfc" id="L297" title="All 2 branches covered.">        if (index == -1) {</span>
+<span class="fc" id="L298">            throw new ObjectNotFoundException();</span>
+        }
+<span class="fc" id="L300">        ProjectWorkspace pw = project.getProjectWorkspaces().get(index);</span>
+<span class="fc" id="L301">        projectWorkspaceRepository.delete(pw);</span>
+<span class="fc" id="L302">    }</span>
+
+    /**
+     * Retrieve project time tracks. Authenticated user must be member of project.
+     * 
+     * @param user logged in user
+     * @param id   ID of project
+     * @return list with all time tracks from given project
+     */
+    @GetMapping(&quot;/{id}/track&quot;)
+    public List&lt;TimeTrack&gt; getTimeTracks(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+<span class="fc" id="L313">        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);</span>
+<span class="fc" id="L314">        return timeTrackRepository.findByTaskStatusProject(project);</span>
+    }
+
+    /**
+     * Retrieve git issues for project. Retrieve all issues from integrated git
+     * providers.
+     * 
+     * @param user logged in user
+     * @param id   ID of project
+     * @return list with issues
+     */
+    @GetMapping(&quot;/{id}/integration/git/issue&quot;)
+    public Flux&lt;Issue&gt; getIssues(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+<span class="fc" id="L327">        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);</span>
+<span class="fc" id="L328">        return service.getIssues(project);</span>
+    }
+
+    /**
+     * Retrieve git pull requests for project. Retrieve all pull requests from
+     * integrated git providers.
+     * 
+     * @param user logged in user
+     * @param id   ID of project
+     * @return list with pull requests
+     */
+    @GetMapping(&quot;/{id}/integration/git/pull&quot;)
+    public Flux&lt;PullRequest&gt; getPullRequests(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+<span class="fc" id="L341">        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);</span>
+<span class="fc" id="L342">        return service.getPullRequests(project);</span>
+    }
+
+    /**
+     * Retrieve git branches for project. Retrieve all branches from integrated git
+     * providers.
+     * 
+     * @param user logged in user
+     * @param id   ID of project
+     * @return list with branches
+     */
+    @GetMapping(&quot;/{id}/integration/git/branch&quot;)
+    public Flux&lt;Branch&gt; getBranches(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+<span class="nc" id="L355">        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);</span>
+<span class="nc" id="L356">        return service.getBranches(project);</span>
+    }
+
+    /**
+     * Retrieve events for project.
+     * 
+     * @param user   logged in user
+     * @param id     ID of project
+     * @param from   timestamp after events happen
+     * @param to     timestamp before events happen
+     * @param filter filter for events
+     * @return list with events after 'from' and before 'to' filtered by 'filter'
+     */
+    @GetMapping(&quot;/{id}/events&quot;)
+    public Set&lt;Event&gt; getEvents(@NotNull @Parameter(hidden = true) User user, @PathVariable long id, long from,
+            long to, @ModelAttribute EventFilter filter) {
+<span class="fc" id="L372">        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);</span>
+<span class="fc" id="L373">        return eventService.getProjectEvents(project, new Date(from), new Date(to), filter);</span>
+    }
+
+    /**
+     * Update project logo. Given file will be converted to image/webp format with
+     * resolution 400x400. Alpha channel is supported.
+     * 
+     * @param user logged in user
+     * @param id   ID of project
+     * @param file new logo image
+     * @return new logo file information
+     */
+    @PostMapping(path = &quot;/{id}/logo&quot;, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ApiResponse(description = &quot;Project logo changed.&quot;, responseCode = &quot;200&quot;)
+    @ApiResponse(description = &quot;Cannot convert image.&quot;, responseCode = &quot;400&quot;, content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    public File uploadLogo(@NotNull @Parameter(hidden = true) User user, @PathVariable long id,
+            @RequestParam(&quot;file&quot;) MultipartFile file) {
+<span class="nc" id="L390">        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);</span>
+        byte[] converted;
+        try {
+<span class="nc" id="L393">            converted = ImageConverter.convertImage(file.getOriginalFilename(), file.getBytes());</span>
+<span class="nc" id="L394">        } catch (IOException e) {</span>
+<span class="nc" id="L395">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());</span>
+<span class="nc" id="L396">        }</span>
+<span class="nc" id="L397">        File f = fileManager.uploadFile(&quot;image/webp&quot;, converted);</span>
+<span class="nc" id="L398">        project.setLogo(f);</span>
+<span class="nc" id="L399">        project = projectRepository.save(project);</span>
+<span class="nc" id="L400">        return f;</span>
+    }
+
+    /**
+     * Delete project logo. After that logo will be empty.
+     * 
+     * @param user logged in user
+     * @param id   ID of project
+     */
+    @DeleteMapping(path = &quot;/{id}/logo&quot;)
+    public void uploadImage(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+<span class="nc" id="L411">        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);</span>
+<span class="nc" id="L412">        project.setLogo(null);</span>
+<span class="nc" id="L413">        project = projectRepository.save(project);</span>
+<span class="nc" id="L414">    }</span>
+
+    /**
+     * Create calendar synchronization link. Creates link for iCalendar format
+     * synchronization of project calendar.
+     * 
+     * @param user logged in user
+     * @param id   ID of project
+     * @return link to project calendar in iCalendar format
+     */
+    @PostMapping(&quot;/{id}/events/sync&quot;)
+    public String createCalendarSync(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+<span class="nc" id="L426">        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);</span>
+<span class="nc" id="L427">        String key = SecureStringUtils.generateRandomSecureString();</span>
+<span class="nc bnc" id="L428" title="All 2 branches missed.">        while (calendarRepository.findByKey(key).isPresent()) {</span>
+<span class="nc" id="L429">            key = SecureStringUtils.generateRandomSecureString();</span>
+        }
+<span class="nc" id="L431">        Optional&lt;CalendarIntegration&gt; integration = calendarRepository.findByUserAndProject(user, project);</span>
+<span class="nc bnc" id="L432" title="All 2 branches missed.">        if (integration.isPresent()) {</span>
+<span class="nc" id="L433">            key = integration.get().getKey();</span>
+        } else {
+<span class="nc" id="L435">            calendarRepository.save(new CalendarIntegration(user, project, key));</span>
+        }
+<span class="nc" id="L437">        return &quot;https://vernite.dev/api/webhook/calendar?key=&quot; + key;</span>
+    }
+
+    @GetMapping(&quot;/{id}/auditlog&quot;)
+    public List&lt;AuditLog&gt; getAuditLog(@NotNull @Parameter(hidden = true) User user, @PathVariable long id) {
+<span class="nc" id="L442">        Project project = projectRepository.findByIdAndMemberOrThrow(id, user);</span>
+<span class="nc" id="L443">        return auditLogRepository.findByProject(project);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

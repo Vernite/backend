@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GitHubIssue.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.integration.git.github.data</a> &gt; <span class="el_source">GitHubIssue.java</span></div><h1>GitHubIssue.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.integration.git.github.data;
+
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import dev.vernite.vernite.integration.git.Issue;
+import dev.vernite.vernite.task.Task;
+
+/**
+ * Object to represent a GitHub Rest api issue.
+ */
+public class GitHubIssue {
+    private long number;
+    private String url;
+    private String state;
+    private String title;
+    private String body;
+<span class="pc" id="L45">    @JsonProperty(access = JsonProperty.Access.READ_ONLY)</span>
+<span class="pc" id="L46">    private List&lt;String&gt; assignees = List.of();</span>
+
+<span class="fc" id="L48">    public GitHubIssue() {</span>
+<span class="fc" id="L49">    }</span>
+
+<span class="fc" id="L51">    public GitHubIssue(long number, String url, String state, String title, String body) {</span>
+<span class="fc" id="L52">        this.number = number;</span>
+<span class="fc" id="L53">        this.url = url;</span>
+<span class="fc" id="L54">        this.state = state;</span>
+<span class="fc" id="L55">        this.title = title;</span>
+<span class="fc" id="L56">        this.body = body;</span>
+<span class="fc" id="L57">    }</span>
+
+<span class="nc" id="L59">    public GitHubIssue(Task task, List&lt;String&gt; assignees) {</span>
+<span class="nc" id="L60">        this.title = task.getName();</span>
+<span class="nc" id="L61">        this.body = task.getDescription();</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        this.state = task.getStatus().isFinal() ? &quot;closed&quot; : &quot;open&quot;;</span>
+<span class="nc" id="L63">        this.assignees = assignees;</span>
+<span class="nc" id="L64">    }</span>
+
+    public Issue toIssue() {
+<span class="nc" id="L67">        return new Issue(number, url.replace(&quot;api.&quot;, &quot;&quot;).replace(&quot;/repos&quot;, &quot;&quot;), title, body, &quot;github&quot;);</span>
+    }
+
+    public long getNumber() {
+<span class="fc" id="L71">        return number;</span>
+    }
+
+    public void setNumber(long number) {
+<span class="fc" id="L75">        this.number = number;</span>
+<span class="fc" id="L76">    }</span>
+
+    public String getState() {
+<span class="fc" id="L79">        return state;</span>
+    }
+
+    public void setState(String state) {
+<span class="fc" id="L83">        this.state = state;</span>
+<span class="fc" id="L84">    }</span>
+
+    public String getUrl() {
+<span class="fc" id="L87">        return url;</span>
+    }
+
+    public void setUrl(String url) {
+<span class="fc" id="L91">        this.url = url;</span>
+<span class="fc" id="L92">    }</span>
+
+    public String getTitle() {
+<span class="fc" id="L95">        return title;</span>
+    }
+
+    public void setTitle(String title) {
+<span class="fc" id="L99">        this.title = title;</span>
+<span class="fc" id="L100">    }</span>
+
+    public String getBody() {
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">        return body == null ? &quot;&quot; : body;</span>
+    }
+
+    public void setBody(String body) {
+<span class="fc" id="L107">        this.body = body;</span>
+<span class="fc" id="L108">    }</span>
+
+    public List&lt;String&gt; getAssignees() {
+<span class="fc" id="L111">        return assignees;</span>
+    }
+
+    public void setAssignees(List&lt;String&gt; assignees) {
+<span class="nc" id="L115">        this.assignees = assignees;</span>
+<span class="nc" id="L116">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

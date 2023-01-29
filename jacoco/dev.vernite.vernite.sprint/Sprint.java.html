@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Sprint.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.sprint</a> &gt; <span class="el_source">Sprint.java</span></div><h1>Sprint.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.sprint;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.task.Task;
+import dev.vernite.vernite.utils.FieldErrorException;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
+/**
+ * Entity representing a scrum sprint.
+ */
+@Data
+@Entity
+@NoArgsConstructor
+public class Sprint {
+
+<span class="fc" id="L71">    public enum Status {</span>
+<span class="fc" id="L72">        CREATED, ACTIVE, CLOSED</span>
+    }
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @PositiveOrZero(message = &quot;Id must be positive or zero&quot;)
+    private long id;
+
+    @Column(nullable = false, length = 50)
+    @NotBlank(message = &quot;Name must not be blank&quot;)
+    @Size(min = 1, max = 50, message = &quot;status name must be shorter than 50 characters&quot;)
+    private String name;
+
+    @Column(nullable = false)
+    @NotNull(message = &quot;Start date must not be null&quot;)
+    private Date startDate;
+
+    @Column(nullable = false)
+    @NotNull(message = &quot;Finish date must not be null&quot;)
+    private Date finishDate;
+
+    @PositiveOrZero(message = &quot;Status must be positive or zero&quot;)
+    private int status;
+
+    @Column(nullable = false, length = 1000)
+    @NotNull(message = &quot;description cannot be null&quot;)
+    @Size(max = 1000, message = &quot;description must be shorter than 1000 characters&quot;)
+    private String description;
+
+    @ManyToOne
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @NotNull(message = &quot;Project must not be null&quot;)
+    private Project project;
+
+<span class="fc" id="L109">    @ToString.Exclude</span>
+    @OrderBy(&quot;name ASC&quot;)
+    @EqualsAndHashCode.Exclude
+    @NotNull(message = &quot;Tasks must not be null&quot;)
+    @OneToMany(mappedBy = &quot;sprint&quot;, cascade = CascadeType.PERSIST)
+    private List&lt;Task&gt; tasks = new ArrayList&lt;&gt;();
+
+<span class="fc" id="L116">    @ToString.Exclude</span>
+    @OrderBy(&quot;name ASC&quot;)
+    @EqualsAndHashCode.Exclude
+    @NotNull(message = &quot;Archive tasks must not be null&quot;)
+    @ManyToMany(mappedBy = &quot;archiveSprints&quot;, cascade = CascadeType.PERSIST)
+    private List&lt;Task&gt; archiveTasks = new ArrayList&lt;&gt;();
+
+    /**
+     * Default constructor for Sprint.
+     * 
+     * @param name        must not be {@literal null} or empty
+     * @param start       must not be {@literal null}
+     * @param finish      must not be {@literal null}
+     * @param status      must not be {@literal null}
+     * @param description must not be {@literal null}
+     * @param project     must not be {@literal null}
+     */
+<span class="fc" id="L133">    public Sprint(String name, Date start, Date finish, Status status, String description, Project project) {</span>
+<span class="fc" id="L134">        setName(name);</span>
+<span class="fc" id="L135">        this.startDate = start;</span>
+<span class="fc" id="L136">        this.finishDate = finish;</span>
+<span class="fc" id="L137">        this.status = status.ordinal();</span>
+<span class="fc" id="L138">        setDescription(description);</span>
+<span class="fc" id="L139">        this.project = project;</span>
+
+<span class="fc bfc" id="L141" title="All 2 branches covered.">        if (getStartDate().after(getFinishDate())) {</span>
+<span class="fc" id="L142">            throw new FieldErrorException(&quot;date&quot;, &quot;Start date must be before end date&quot;);</span>
+        }
+<span class="fc" id="L144">    }</span>
+
+    /**
+     * Constructor for Sprint from create request.
+     * 
+     * @param project must not be {@literal null}
+     * @param create  must not be {@literal null} and must be valid
+     */
+    public Sprint(Project project, CreateSprint create) {
+<span class="fc" id="L153">        this(create.getName(), create.getStartDate(), create.getFinishDate(), Status.values()[create.getStatus()],</span>
+<span class="fc" id="L154">                create.getDescription(), project);</span>
+<span class="fc" id="L155">    }</span>
+
+    /**
+     * Updates sprint with update request.
+     * 
+     * @param update must not be {@literal null} and must be valid
+     */
+    public void update(UpdateSprint update) {
+<span class="fc bfc" id="L163" title="All 2 branches covered.">        if (update.getName() != null) {</span>
+<span class="fc" id="L164">            setName(update.getName());</span>
+        }
+
+<span class="fc bfc" id="L167" title="All 2 branches covered.">        if (update.getDescription() != null) {</span>
+<span class="fc" id="L168">            setDescription(update.getDescription());</span>
+        }
+
+<span class="fc bfc" id="L171" title="All 2 branches covered.">        if (update.getStartDate() != null) {</span>
+<span class="fc" id="L172">            setStartDate(update.getStartDate());</span>
+        }
+
+<span class="fc bfc" id="L175" title="All 2 branches covered.">        if (update.getFinishDate() != null) {</span>
+<span class="fc" id="L176">            setFinishDate(update.getFinishDate());</span>
+        }
+
+<span class="fc bfc" id="L179" title="All 2 branches covered.">        if (update.getStatus() != null) {</span>
+<span class="fc" id="L180">            setStatus(update.getStatus());</span>
+        }
+
+<span class="fc bfc" id="L183" title="All 2 branches covered.">        if (getStartDate().after(getFinishDate())) {</span>
+<span class="fc" id="L184">            throw new FieldErrorException(&quot;date&quot;, &quot;Start date must be before end date&quot;);</span>
+        }
+<span class="fc" id="L186">    }</span>
+
+    @JsonIgnore
+    public Status getStatusEnum() {
+<span class="fc" id="L190">        return Status.values()[status];</span>
+    }
+
+    /**
+     * Sets name and trims it.
+     * 
+     * @param name must not be {@literal null}
+     */
+    public void setName(String name) {
+<span class="fc" id="L199">        this.name = name.trim();</span>
+<span class="fc" id="L200">    }</span>
+
+    /**
+     * Sets description and trims it.
+     * 
+     * @param description must not be {@literal null}
+     */
+    public void setDescription(String description) {
+<span class="fc" id="L208">        this.description = description.trim();</span>
+<span class="fc" id="L209">    }</span>
+
+    public void setStatus(Integer status) {
+<span class="fc" id="L212">        this.status = status;</span>
+<span class="fc bfc" id="L213" title="All 2 branches covered.">        if (status == 2) {</span>
+<span class="fc" id="L214">            this.setArchiveTasks(new ArrayList&lt;&gt;(this.getTasks().stream().map(t -&gt; {</span>
+<span class="nc" id="L215">                t.setSprint(null);</span>
+<span class="nc" id="L216">                Set&lt;Sprint&gt; newArchive = new HashSet&lt;&gt;(t.getArchiveSprints());</span>
+<span class="nc" id="L217">                newArchive.add(this);</span>
+<span class="nc" id="L218">                t.setArchiveSprints(newArchive);</span>
+<span class="nc" id="L219">                return t;</span>
+<span class="fc" id="L220">            }).toList()));</span>
+<span class="fc" id="L221">            this.setTasks(new ArrayList&lt;&gt;());</span>
+        }
+<span class="fc" id="L223">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

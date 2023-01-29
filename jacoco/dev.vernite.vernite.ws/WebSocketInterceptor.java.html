@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WebSocketInterceptor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.ws</a> &gt; <span class="el_source">WebSocketInterceptor.java</span></div><h1>WebSocketInterceptor.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.ws;
+
+import java.net.HttpCookie;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.logging.Logger;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.server.ServerHttpRequest;
+import org.springframework.http.server.ServerHttpResponse;
+import org.springframework.lang.Nullable;
+import org.springframework.stereotype.Component;
+import org.springframework.web.socket.WebSocketHandler;
+import org.springframework.web.socket.server.HandshakeInterceptor;
+
+import dev.vernite.vernite.user.UserSession;
+import dev.vernite.vernite.user.UserSessionRepository;
+import dev.vernite.vernite.user.auth.AuthController;
+
+@Component
+<span class="fc" id="L50">public class WebSocketInterceptor implements HandshakeInterceptor {</span>
+
+<span class="fc" id="L52">    private static final Logger L = Logger.getLogger(&quot;WebSocketInterceptor&quot;);</span>
+
+    @Autowired
+    private UserSessionRepository userSessionRepository;
+
+    @Override
+    public void afterHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler,
+            @Nullable Exception exception) {
+<span class="nc bnc" id="L60" title="All 2 branches missed.">        if (exception != null) {</span>
+<span class="nc" id="L61">            return;</span>
+        }
+<span class="nc" id="L63">    }</span>
+
+    @Override
+    public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler,
+            Map&lt;String, Object&gt; attributes) throws Exception {
+        // this list contains separated by space cookies in one string... why?
+<span class="nc" id="L69">        List&lt;String&gt; cookie = request.getHeaders().get(&quot;cookie&quot;);</span>
+<span class="nc bnc" id="L70" title="All 4 branches missed.">        if (cookie == null || cookie.isEmpty()) {</span>
+<span class="nc" id="L71">            return true;</span>
+        }
+<span class="nc bnc" id="L73" title="All 2 branches missed.">        for (String c : cookie) {</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">            for (HttpCookie parsed : HttpCookie.parse(c)) {</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">                if (parsed.getName().equals(AuthController.COOKIE_NAME)) {</span>
+<span class="nc" id="L76">                    Optional&lt;UserSession&gt; session = userSessionRepository.findBySession(parsed.getValue());</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">                    if (!session.isPresent()) {</span>
+<span class="nc" id="L78">                        break;</span>
+                    }
+<span class="nc" id="L80">                    UserSession us = session.get();</span>
+<span class="nc" id="L81">                    us.setIp(request.getHeaders().getFirst(&quot;X-Forwarded-For&quot;));</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">                    if (us.getIp() == null) {</span>
+<span class="nc" id="L83">                        us.setIp(request.getRemoteAddress().getAddress().getHostAddress());</span>
+                    }
+<span class="nc" id="L85">                    us.setLastUsed(new Date());</span>
+<span class="nc" id="L86">                    userSessionRepository.save(us);</span>
+<span class="nc bnc" id="L87" title="All 2 branches missed.">                    if (!us.getUser().isDeleted()) {</span>
+<span class="nc" id="L88">                        L.info(&quot;User &quot; + us.getUser().getUsername() + &quot; connected from &quot; + us.getIp());</span>
+<span class="nc" id="L89">                        attributes.put(&quot;user&quot;, us.getUser());</span>
+<span class="nc" id="L90">                        return true;</span>
+                    }
+                }
+<span class="nc" id="L93">            }</span>
+<span class="nc" id="L94">        }</span>
+<span class="nc" id="L95">        return true;</span>
+    }
+    
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

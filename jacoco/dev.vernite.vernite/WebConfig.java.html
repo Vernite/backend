@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WebConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite</a> &gt; <span class="el_source">WebConfig.java</span></div><h1>WebConfig.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite;
+
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.CacheControl;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.servlet.config.annotation.AsyncSupportConfigurer;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.mvc.WebContentInterceptor;
+import org.springframework.web.socket.config.annotation.EnableWebSocket;
+import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
+
+import dev.vernite.vernite.user.UserResolver;
+import dev.vernite.vernite.ws.SocketHandler;
+import dev.vernite.vernite.ws.WebSocketInterceptor;
+
+@EnableWebMvc
+@Configuration
+@EnableWebSocket
+@EnableAsync
+<span class="fc" id="L58">public class WebConfig implements WebMvcConfigurer, WebSocketConfigurer {</span>
+
+    @Autowired
+    private UserResolver userResolver;
+
+    @Autowired
+    private WebSocketInterceptor webSocketInterceptor;
+
+<span class="fc" id="L66">    @Value(&quot;${vernite.rate-limit.enabled}&quot;)</span>
+<span class="fc" id="L67">    private Boolean rateLimitEnabled = true;</span>
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+<span class="fc" id="L71">        registry.addMapping(&quot;/**&quot;)</span>
+<span class="fc" id="L72">                .allowedOrigins(&quot;http://localhost:4200&quot;, &quot;http://localhost:4201&quot;, &quot;https://vernite.dev&quot;,</span>
+                        &quot;https://insiders.vernite.dev&quot;, &quot;tauri://localhost&quot;)
+<span class="fc" id="L74">                .allowedMethods(&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;DELETE&quot;);</span>
+<span class="fc" id="L75">    }</span>
+
+    @Override
+    public void addArgumentResolvers(
+            List&lt;HandlerMethodArgumentResolver&gt; resolvers) {
+<span class="fc" id="L80">        resolvers.add(userResolver);</span>
+<span class="fc" id="L81">    }</span>
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+<span class="pc bpc" id="L85" title="1 of 2 branches missed.">        if (rateLimitEnabled) {</span>
+<span class="nc" id="L86">            registry.addInterceptor(new RateLimitInterceptor());</span>
+        }
+<span class="fc" id="L88">        var interceptor = new WebContentInterceptor();</span>
+<span class="fc" id="L89">        interceptor.addCacheMapping(CacheControl.maxAge(30, TimeUnit.SECONDS)</span>
+<span class="fc" id="L90">                .noTransform().mustRevalidate(), &quot;/user/integration/slack/*/user&quot;);</span>
+<span class="fc" id="L91">        registry.addInterceptor(interceptor);</span>
+<span class="fc" id="L92">    }</span>
+
+    @Override
+    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+<span class="fc" id="L96">        registry.addHandler(new SocketHandler(), &quot;/ws&quot;)</span>
+<span class="fc" id="L97">                .addInterceptors(webSocketInterceptor)</span>
+<span class="fc" id="L98">                .setAllowedOrigins(</span>
+                        &quot;http://localhost:4200&quot;, &quot;https://insiders.vernite.dev&quot;,
+                        &quot;http://localhost:4201&quot;, &quot;https://vernite.dev&quot;, &quot;tauri://localhost&quot;);
+<span class="fc" id="L101">    }</span>
+
+    @Override
+    public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
+<span class="fc" id="L105">        final ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();</span>
+<span class="fc" id="L106">        executor.setCorePoolSize(1);</span>
+<span class="fc" id="L107">        executor.setMaxPoolSize(16);</span>
+<span class="fc" id="L108">        executor.setThreadNamePrefix(&quot;mvc-task-executor-&quot;);</span>
+<span class="fc" id="L109">        executor.initialize();</span>
+<span class="fc" id="L110">        configurer.setTaskExecutor(executor);</span>
+<span class="fc" id="L111">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StateManager.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.integration.communicator.slack</a> &gt; <span class="el_source">StateManager.java</span></div><h1>StateManager.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.integration.communicator.slack;
+
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map.Entry;
+
+<span class="fc" id="L34">public class StateManager {</span>
+<span class="nc" id="L35">    private record Container(long userId, Date time) {</span>
+    }
+
+<span class="fc" id="L38">    private final HashMap&lt;String, Container&gt; inner = new HashMap&lt;&gt;();</span>
+
+    private void update() {
+<span class="nc bnc" id="L41" title="All 2 branches missed.">        for (Entry&lt;String, Container&gt; entry : inner.entrySet()) {</span>
+<span class="nc bnc" id="L42" title="All 2 branches missed.">            if (new Date().getTime() - entry.getValue().time.getTime() &gt; 300000) {</span>
+<span class="nc" id="L43">                inner.remove(entry.getKey());</span>
+            }
+<span class="nc" id="L45">        }</span>
+<span class="nc" id="L46">    }</span>
+
+    public int size() {
+<span class="nc" id="L49">        update();</span>
+<span class="nc" id="L50">        return inner.size();</span>
+    }
+
+    public boolean isEmpty() {
+<span class="nc" id="L54">        update();</span>
+<span class="nc" id="L55">        return inner.isEmpty();</span>
+    }
+
+    public boolean containsKey(Object key) {
+<span class="nc" id="L59">        update();</span>
+<span class="nc" id="L60">        return inner.containsKey(key);</span>
+    }
+
+    public boolean containsValue(Object value) {
+<span class="nc" id="L64">        update();</span>
+<span class="nc" id="L65">        return inner.containsValue(value);</span>
+    }
+
+    public Long get(Object key) {
+<span class="nc" id="L69">        update();</span>
+<span class="nc" id="L70">        return inner.get(key).userId;</span>
+    }
+
+    public Long put(String key, Long value) {
+<span class="nc" id="L74">        update();</span>
+<span class="nc" id="L75">        Container old = inner.put(key, new Container(value, new Date()));</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        return old == null ? null : old.userId;</span>
+    }
+
+    public Long remove(Object key) {
+<span class="nc" id="L80">        return inner.remove(key).userId;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

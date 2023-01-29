@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PacketExecutor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.ws</a> &gt; <span class="el_source">PacketExecutor.java</span></div><h1>PacketExecutor.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.ws;
+
+import java.lang.reflect.ParameterizedType;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Logger;
+
+import com.google.protobuf.Any;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.Descriptors.Descriptor;
+import com.google.protobuf.Message;
+
+import dev.vernite.protobuf.VerniteProtobuf;
+
+<span class="nc" id="L43">public class PacketExecutor {</span>
+<span class="nc" id="L44">    private static final Logger L = Logger.getLogger(&quot;PacketExecutor&quot;);</span>
+
+    private static final Map&lt;String, IHandler&lt;? extends Message&gt;&gt; HANDLERS;
+    private static final Map&lt;String, Class&lt;? extends Message&gt;&gt; PACKET_CLASSES;
+
+    public static void call(SocketSession session, Any payload) throws InvalidProtocolBufferException {
+<span class="nc" id="L50">        String type = getTypeNameFromTypeUrl(payload.getTypeUrl());</span>
+        @SuppressWarnings(&quot;unchecked&quot;)
+<span class="nc" id="L52">        IHandler&lt;Message&gt; handler = (IHandler&lt;Message&gt;) HANDLERS.get(type);</span>
+<span class="nc bnc" id="L53" title="All 2 branches missed.">        if (handler == null) {</span>
+<span class="nc" id="L54">            L.warning(session + &quot;: No handler for &quot; + type);</span>
+<span class="nc" id="L55">            return;</span>
+        }
+<span class="nc" id="L57">        Message m = payload.unpack(PACKET_CLASSES.get(type));</span>
+<span class="nc" id="L58">        handler.handle(session, m);</span>
+<span class="nc" id="L59">    }</span>
+
+    private static String getTypeNameFromTypeUrl(String typeUrl) {
+<span class="nc" id="L62">        int pos = typeUrl.lastIndexOf('/');</span>
+<span class="nc bnc" id="L63" title="All 2 branches missed.">        if (pos == -1) {</span>
+<span class="nc" id="L64">            return &quot;&quot;;</span>
+        }
+<span class="nc" id="L66">        return typeUrl.substring(pos + 1);</span>
+    }
+
+    private static void fill(HashMap&lt;String, Class&lt;? extends Message&gt;&gt; packetClasses,
+            HashMap&lt;String, IHandler&lt;? extends Message&gt;&gt; handlers, Descriptor descriptor) {
+<span class="nc bnc" id="L71" title="All 2 branches missed.">        if (handlers.containsKey(descriptor.getFullName())) {</span>
+<span class="nc" id="L72">            throw new RuntimeException(&quot;Duplicate handler: &quot; + descriptor.getFullName());</span>
+        }
+<span class="nc" id="L74">        String pkg = SocketHandler.class.getPackageName();</span>
+<span class="nc" id="L75">        String name = descriptor.getName();</span>
+<span class="nc" id="L76">        String clName = String.format(&quot;%s.packets.%sHandler&quot;, pkg, name);</span>
+        try {
+<span class="nc" id="L78">            Class&lt;?&gt; cl = SocketHandler.class.getClassLoader().loadClass(clName);</span>
+<span class="nc bnc" id="L79" title="All 2 branches missed.">            for (var i : cl.getGenericInterfaces()) {</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">                if (!(i instanceof ParameterizedType)) {</span>
+<span class="nc" id="L81">                    continue;</span>
+                }
+<span class="nc" id="L83">                ParameterizedType pt = (ParameterizedType) i;</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">                if (pt.getRawType() != IHandler.class) {</span>
+<span class="nc" id="L85">                    continue;</span>
+                }
+                @SuppressWarnings(&quot;unchecked&quot;)
+<span class="nc" id="L88">                Class&lt;? extends Message&gt; clazz = (Class&lt;? extends Message&gt;) pt.getActualTypeArguments()[0];</span>
+<span class="nc" id="L89">                packetClasses.put(descriptor.getFullName(), clazz);</span>
+            }
+<span class="nc" id="L91">            IHandler&lt;?&gt; handler = (IHandler&lt;?&gt;) cl.getDeclaredConstructor().newInstance();</span>
+<span class="nc" id="L92">            handlers.put(descriptor.getFullName(), handler);</span>
+
+<span class="nc" id="L94">        } catch (ClassNotFoundException e) {</span>
+            // no handler
+<span class="nc" id="L96">        } catch (ReflectiveOperationException e) {</span>
+<span class="nc" id="L97">            throw new RuntimeException(e);</span>
+<span class="nc" id="L98">        }</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">        for (Descriptor i : descriptor.getNestedTypes()) {</span>
+<span class="nc" id="L100">            fill(packetClasses, handlers, i);</span>
+<span class="nc" id="L101">        }</span>
+<span class="nc" id="L102">    }</span>
+
+    static {
+<span class="nc" id="L105">        HashMap&lt;String, Class&lt;? extends Message&gt;&gt; packetClasses = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L106">        HashMap&lt;String, IHandler&lt;? extends Message&gt;&gt; map = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        for (Descriptor m : VerniteProtobuf.getDescriptor().getMessageTypes()) {</span>
+<span class="nc" id="L108">            fill(packetClasses, map, m);</span>
+<span class="nc" id="L109">        }</span>
+<span class="nc" id="L110">        HANDLERS = Collections.unmodifiableMap(map);</span>
+<span class="nc" id="L111">        PACKET_CLASSES = Collections.unmodifiableMap(packetClasses);</span>
+<span class="nc" id="L112">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

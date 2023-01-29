@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SprintController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.sprint</a> &gt; <span class="el_source">SprintController.java</span></div><h1>SprintController.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.sprint;
+
+import java.util.List;
+import java.util.Optional;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import dev.vernite.vernite.project.ProjectRepository;
+import dev.vernite.vernite.task.TaskRepository;
+import dev.vernite.vernite.user.User;
+
+import io.swagger.v3.oas.annotations.Parameter;
+
+/**
+ * Rest controller for performing CRUD operations on Sprint entities.
+ */
+@RestController
+@AllArgsConstructor
+@RequestMapping(&quot;/project/{projectId}/sprint&quot;)
+public class SprintController {
+
+    private ProjectRepository projectRepository;
+
+    private SprintRepository sprintRepository;
+
+    private TaskRepository taskRepository;
+
+    /**
+     * Returns all sprints for project. If status is provided, returns only sprints
+     * with given status. Otherwise returns all sprints for project. Results are
+     * ordered by start date.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param status    status of sprints to return
+     * @return list of sprints
+     */
+    @GetMapping
+    public List&lt;Sprint&gt; getAll(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @Parameter(allowEmptyValue = true) Integer status) {
+<span class="fc" id="L79">        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);</span>
+<span class="fc" id="L80">        return Optional.ofNullable(status)</span>
+<span class="fc" id="L81">                .map(s -&gt; sprintRepository.findAllByProjectAndStatus(project, s.intValue()))</span>
+<span class="fc" id="L82">                .orElseGet(project::getSprints);</span>
+    }
+
+    /**
+     * Creates a new sprint for project.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param create    data for new sprint
+     * @return newly created sprint
+     */
+    @PostMapping
+    public Sprint create(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @RequestBody @Valid CreateSprint create) {
+<span class="fc" id="L96">        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);</span>
+<span class="fc" id="L97">        return sprintRepository.save(new Sprint(project, create));</span>
+    }
+
+    /**
+     * Returns sprint with given id for project.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param id        ID of sprint
+     * @return sprint with given id
+     */
+    @GetMapping(&quot;/{id}&quot;)
+    public Sprint get(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long id) {
+<span class="fc" id="L111">        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);</span>
+<span class="fc" id="L112">        return sprintRepository.findByIdAndProjectOrThrow(id, project);</span>
+    }
+
+    /**
+     * Updates sprint with given id for project.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param id        ID of sprint
+     * @param update    data to update
+     * @return updated sprint
+     */
+    @PutMapping(&quot;/{id}&quot;)
+    public Sprint update(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long id, @RequestBody @Valid UpdateSprint update) {
+<span class="fc" id="L127">        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);</span>
+<span class="fc" id="L128">        var sprint = sprintRepository.findByIdAndProjectOrThrow(id, project);</span>
+<span class="fc" id="L129">        sprint.update(update);</span>
+<span class="fc" id="L130">        return sprintRepository.save(sprint);</span>
+    }
+
+    /**
+     * Deletes sprint with given id for project.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param id        ID of sprint
+     */
+    @DeleteMapping(&quot;/{id}&quot;)
+    public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long id) {
+<span class="fc" id="L143">        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);</span>
+<span class="fc" id="L144">        var sprint = sprintRepository.findByIdAndProjectOrThrow(id, project);</span>
+<span class="fc" id="L145">        var tasks = sprint.getTasks();</span>
+<span class="pc" id="L146">        tasks.forEach(t -&gt; t.setSprint(null));</span>
+<span class="fc" id="L147">        taskRepository.saveAll(tasks);</span>
+<span class="fc" id="L148">        sprintRepository.delete(sprint);</span>
+<span class="fc" id="L149">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Workspace.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.workspace</a> &gt; <span class="el_source">Workspace.java</span></div><h1>Workspace.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.workspace;
+
+import java.util.List;
+import java.util.Set;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Entity;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
+
+import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.projectworkspace.ProjectWithPrivileges;
+import dev.vernite.vernite.projectworkspace.ProjectWorkspace;
+import dev.vernite.vernite.user.User;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.annotations.Where;
+
+/**
+ * Entity for representing collection of projects.
+ * Its connected to user and has unique id for that user.
+ */
+@Entity
+@ToString
+@NoArgsConstructor
+@EqualsAndHashCode
+public class Workspace {
+
+    @Valid
+    @Setter
+    @Getter
+    @EmbeddedId
+    @JsonUnwrapped
+    @NotNull(message = &quot;workspace id cannot be null&quot;)
+    private WorkspaceId id;
+
+    @Getter
+    @Column(nullable = false, length = 50)
+    @Size(min = 1, max = 50, message = &quot;workspace name must be shorter than 50 characters&quot;)
+    @NotBlank(message = &quot;workspace name must contain at least one non-whitespace character&quot;)
+    private String name;
+
+    @Setter
+    @Getter
+    @JsonIgnore
+    @MapsId(&quot;userId&quot;)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(optional = false)
+    @NotNull(message = &quot;workspace must have user set&quot;)
+    private User user;
+
+<span class="fc" id="L99">    @Setter</span>
+    @Getter
+    @JsonIgnore
+    @Deprecated
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @OneToMany(mappedBy = &quot;workspace&quot;)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @NotNull(message = &quot;project workspaces connection must be set&quot;)
+<span class="fc" id="L108">    private List&lt;ProjectWorkspace&gt; projectWorkspaces = List.of();</span>
+
+<span class="fc" id="L110">    @Setter</span>
+    @Getter
+    @ManyToMany
+    @ToString.Exclude
+    @OrderBy(&quot;name, id&quot;)
+    @EqualsAndHashCode.Exclude
+    @Where(clause = &quot;active is null&quot;)
+    @NotNull(message = &quot;projects connection must be set&quot;)
+    @JoinTable(name = &quot;project_workspace&quot;, joinColumns = {
+            @JoinColumn(name = &quot;workspace_user_id&quot;, referencedColumnName = &quot;user_id&quot;),
+            @JoinColumn(name = &quot;workspace_id&quot;, referencedColumnName = &quot;id&quot;),
+    }, inverseJoinColumns = @JoinColumn(name = &quot;project_id&quot;, referencedColumnName = &quot;id&quot;))
+<span class="fc" id="L122">    private Set&lt;Project&gt; projects = Set.of();</span>
+
+    /**
+     * Default constructor for workspace.
+     * 
+     * @param id   unique to user positive number for new workspace
+     * @param name must not be {@literal null} and have size between 1 and 50
+     * @param user must not be {@literal null} and must be entity from database
+     */
+<span class="fc" id="L131">    public Workspace(long id, String name, User user) {</span>
+<span class="fc" id="L132">        this.setId(new WorkspaceId(id, user.getId()));</span>
+<span class="fc" id="L133">        this.setName(name);</span>
+<span class="fc" id="L134">        this.setUser(user);</span>
+<span class="fc" id="L135">    }</span>
+
+    /**
+     * Constructor for workspace from create request.
+     * 
+     * @param id     unique to user positive number for new workspace
+     * @param user   must not be {@literal null} and must be entity from database
+     * @param create must not be {@literal null} and must be valid
+     */
+    public Workspace(long id, User user, CreateWorkspace create) {
+<span class="fc" id="L145">        this(id, create.getName(), user);</span>
+<span class="fc" id="L146">    }</span>
+
+    /**
+     * Updates workspace entity with data from update.
+     * 
+     * @param update must not be {@literal null} and be valid
+     */
+    public void update(UpdateWorkspace update) {
+<span class="fc bfc" id="L154" title="All 2 branches covered.">        if (update.getName() != null) {</span>
+<span class="fc" id="L155">            setName(update.getName());</span>
+        }
+<span class="fc" id="L157">    }</span>
+
+    /**
+     * Setter for name value. It performs {@link String#trim()} on its argument.
+     * 
+     * @param name must not be {@literal null} and have at least one non-whitespace
+     *             character and less than 50 characters
+     */
+    public void setName(String name) {
+<span class="fc" id="L166">        this.name = name.trim();</span>
+<span class="fc" id="L167">    }</span>
+
+    @Deprecated
+    public List&lt;ProjectWithPrivileges&gt; getProjectsWithPrivileges() {
+<span class="pc" id="L171">        return getProjects().stream().map(p -&gt; new ProjectWithPrivileges(p, 69L)).toList();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TaskController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.task</a> &gt; <span class="el_source">TaskController.java</span></div><h1>TaskController.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.task;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+
+import dev.vernite.vernite.auditlog.AuditLog;
+import dev.vernite.vernite.auditlog.AuditLogRepository;
+import dev.vernite.vernite.auditlog.JsonDiff;
+import dev.vernite.vernite.common.utils.counter.CounterSequenceRepository;
+import dev.vernite.vernite.integration.git.GitTaskService;
+import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.project.ProjectRepository;
+import dev.vernite.vernite.release.Release;
+import dev.vernite.vernite.release.ReleaseRepository;
+import dev.vernite.vernite.sprint.Sprint;
+import dev.vernite.vernite.sprint.SprintRepository;
+import dev.vernite.vernite.status.StatusRepository;
+import dev.vernite.vernite.task.Task.Type;
+import dev.vernite.vernite.user.User;
+import dev.vernite.vernite.user.UserRepository;
+import dev.vernite.vernite.utils.FieldErrorException;
+import dev.vernite.vernite.utils.ObjectNotFoundException;
+import io.swagger.v3.oas.annotations.Parameter;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+@RestController
+@AllArgsConstructor
+@RequestMapping(&quot;/project/{projectId}/task&quot;)
+public class TaskController {
+
+    private static final String PARENT_FIELD = &quot;parentTaskId&quot;;
+
+    private MappingJackson2HttpMessageConverter converter;
+
+    private TaskRepository taskRepository;
+
+    private StatusRepository statusRepository;
+
+    private AuditLogRepository auditLogRepository;
+
+    private ProjectRepository projectRepository;
+
+    private UserRepository userRepository;
+
+    private SprintRepository sprintRepository;
+
+    private ReleaseRepository releaseRepository;
+
+    private CounterSequenceRepository counterSequenceRepository;
+
+    private GitTaskService service;
+
+    /**
+     * Handle the request to change sprint of a task.
+     * 
+     * @param sprintId the sprint id (can be null)
+     * @param task     the task
+     * @param project  the project
+     */
+    private void handleSprint(Long sprintId, Task task, Project project) {
+<span class="fc" id="L110">        Sprint sprint = null;</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">        if (sprintId != null) {</span>
+<span class="fc" id="L112">            sprint = sprintRepository.findByIdAndProjectOrThrow(sprintId, project);</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">            if (sprint.getStatusEnum() == Sprint.Status.CLOSED) {</span>
+<span class="fc" id="L114">                throw new ResponseStatusException(HttpStatus.CONFLICT, &quot;cannot assign task to closed sprint&quot;);</span>
+            }
+        }
+<span class="fc" id="L117">        task.setSprint(sprint);</span>
+<span class="fc" id="L118">    }</span>
+
+    /**
+     * Handle the request to change release ID of a task.
+     * 
+     * @param sprintId the release id (can be null)
+     * @param task     the task
+     * @param project  the project
+     */
+    private void handleReleaseId(Long releaseId, Task task, Project project) {
+<span class="fc" id="L128">        Release release = null;</span>
+<span class="pc bpc" id="L129" title="1 of 2 branches missed.">        if (releaseId != null) {</span>
+<span class="nc" id="L130">            release = releaseRepository.findById(releaseId)</span>
+<span class="nc" id="L131">                    .orElseThrow(() -&gt; new ObjectNotFoundException());</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">            if (release.getProject().getId() != project.getId()) {</span>
+<span class="nc" id="L133">                throw new ObjectNotFoundException();</span>
+            }
+        }
+<span class="fc" id="L136">        task.setRelease(release);</span>
+<span class="fc" id="L137">    }</span>
+
+    /**
+     * Handle the request to change the assignee of a task.
+     * 
+     * @param assigneeId the assignee id (can be null)
+     * @param task       the task
+     */
+    private void handleAssignee(Optional&lt;Long&gt; assigneeId, Task task) {
+<span class="fc" id="L146">        User assignee = null;</span>
+<span class="fc bfc" id="L147" title="All 2 branches covered.">        if (assigneeId.isPresent()) {</span>
+<span class="fc" id="L148">            assignee = userRepository.findById(assigneeId.get()).orElse(null);</span>
+<span class="pc bpc" id="L149" title="1 of 2 branches missed.">            if (!task.getStatus().getProject().isMember(assignee)) {</span>
+<span class="nc" id="L150">                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Invalid assignee&quot;);</span>
+            }
+        }
+<span class="fc" id="L153">        task.setAssignee(assignee);</span>
+<span class="fc" id="L154">    }</span>
+
+    /**
+     * Handle the request to change the parent task of a task.
+     * 
+     * @param parentTaskId the parent task id (can be null)
+     * @param task         the task
+     * @param project      the project
+     */
+    private void handleParent(Optional&lt;Long&gt; parentTaskId, Task task, Project project) {
+<span class="fc" id="L164">        Task parentTask = null;</span>
+<span class="fc bfc" id="L165" title="All 2 branches covered.">        if (parentTaskId.isPresent()) {</span>
+<span class="fc" id="L166">            parentTask = taskRepository.findByProjectAndNumberOrThrow(project, parentTaskId.get());</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">            if (!Type.values()[task.getType()].isValidParent(Type.values()[parentTask.getType()])) {</span>
+<span class="fc" id="L168">                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Invalid parent task&quot;);</span>
+            }
+        }
+<span class="fc" id="L171">        task.setParentTask(parentTask);</span>
+<span class="fc" id="L172">    }</span>
+
+    /**
+     * Get all tasks for project with given ID.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param filter    filter for tasks
+     * @return list of tasks
+     */
+    @GetMapping
+    public List&lt;Task&gt; getAll(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @ModelAttribute TaskFilter filter) {
+<span class="fc" id="L185">        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);</span>
+<span class="fc" id="L186">        return taskRepository.findAllOrdered(filter.toSpecification(project));</span>
+    }
+
+    /**
+     * Get task with given ID.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param id        ID of task
+     * @return task with given ID
+     */
+    @GetMapping(&quot;/{id}&quot;)
+    public Task get(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long id) {
+<span class="fc" id="L199">        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);</span>
+<span class="fc" id="L200">        return taskRepository.findByProjectAndNumberOrThrow(project, id);</span>
+    }
+
+    /**
+     * Create new task.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param create    request with task data
+     * @return newly created task
+     */
+    @PostMapping
+    public Mono&lt;Task&gt; create(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @RequestBody @Valid CreateTask create) {
+<span class="fc" id="L214">        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);</span>
+<span class="fc" id="L215">        var status = statusRepository.findByIdAndProjectOrThrow(create.getStatusId(), project);</span>
+<span class="fc" id="L216">        var id = counterSequenceRepository.getIncrementCounter(project.getTaskCounter().getId());</span>
+<span class="fc" id="L217">        var task = new Task(id, status, user, create);</span>
+
+<span class="fc" id="L219">        handleSprint(create.getSprintId(), task, project);</span>
+<span class="fc" id="L220">        handleAssignee(Optional.ofNullable(create.getAssigneeId()), task);</span>
+<span class="fc" id="L221">        handleParent(Optional.ofNullable(create.getParentTaskId()), task, project);</span>
+<span class="fc" id="L222">        handleReleaseId(create.getReleaseId(), task, project);</span>
+
+<span class="fc bfc" id="L224" title="All 4 branches covered.">        if (task.getType() == Task.Type.SUBTASK.ordinal() &amp;&amp; task.getParentTask() == null) {</span>
+<span class="fc" id="L225">            throw new FieldErrorException(PARENT_FIELD, &quot;subtask must have parent&quot;);</span>
+        }
+
+<span class="fc" id="L228">        Task savedTask = taskRepository.save(task);</span>
+<span class="fc" id="L229">        List&lt;Mono&lt;Void&gt;&gt; results = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L230" title="1 of 2 branches missed.">        if (create.getIssue() != null) {</span>
+<span class="nc" id="L231">            results.add(service.handleIssueAction(create.getIssue(), task).then());</span>
+        }
+<span class="pc bpc" id="L233" title="1 of 2 branches missed.">        if (create.getPull() != null) {</span>
+<span class="nc" id="L234">            results.add(service.handlePullAction(create.getPull(), task).then());</span>
+        }
+<span class="fc" id="L236">        return Flux.concat(results).then(Mono.fromRunnable(() -&gt; {</span>
+<span class="fc" id="L237">            JsonNode newValue = converter.getObjectMapper().valueToTree(savedTask);</span>
+<span class="fc" id="L238">            AuditLog log = new AuditLog();</span>
+<span class="fc" id="L239">            log.setDate(new Date());</span>
+<span class="fc" id="L240">            log.setUser(user);</span>
+<span class="fc" id="L241">            log.setProject(project);</span>
+<span class="fc" id="L242">            log.setType(&quot;task&quot;);</span>
+<span class="fc" id="L243">            log.setOldValues(null);</span>
+            try {
+<span class="fc" id="L245">                log.setNewValues(converter.getObjectMapper().writeValueAsString(newValue));</span>
+<span class="nc" id="L246">            } catch (JsonProcessingException e) {</span>
+<span class="nc" id="L247">                throw new RuntimeException(e);</span>
+<span class="fc" id="L248">            }</span>
+<span class="fc" id="L249">            log.setSameValues(null);</span>
+<span class="fc" id="L250">            auditLogRepository.save(log);</span>
+<span class="fc" id="L251">        })).then(Mono.just(savedTask));</span>
+    }
+
+    /**
+     * Update task with given ID.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param id        ID of task
+     * @param update    request with task data
+     * @return updated task
+     */
+    @PutMapping(&quot;/{id}&quot;)
+    public Mono&lt;Task&gt; update(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long id, @RequestBody @Valid UpdateTask update) {
+<span class="fc" id="L266">        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);</span>
+<span class="fc" id="L267">        var task = taskRepository.findByProjectAndNumberOrThrow(project, id);</span>
+<span class="fc" id="L268">        JsonNode oldValue = converter.getObjectMapper().valueToTree(task);</span>
+
+<span class="fc" id="L270">        task.update(update);</span>
+
+<span class="pc bpc" id="L272" title="1 of 2 branches missed.">        if (update.isSprintIdSet()) {</span>
+<span class="fc" id="L273">            handleSprint(update.getSprintId(), task, project);</span>
+        }
+
+<span class="pc bpc" id="L276" title="1 of 2 branches missed.">        if (update.isAssigneeIdSet()) {</span>
+<span class="fc" id="L277">            handleAssignee(Optional.ofNullable(update.getAssigneeId()), task);</span>
+        }
+
+<span class="pc bpc" id="L280" title="1 of 2 branches missed.">        if (update.isParentTaskIdSet()) {</span>
+<span class="fc" id="L281">            handleParent(Optional.ofNullable(update.getParentTaskId()), task, project);</span>
+        }
+
+<span class="pc bpc" id="L284" title="1 of 2 branches missed.">        if (update.isReleaseIdSet()) {</span>
+<span class="fc" id="L285">            handleReleaseId(update.getReleaseId(), task, project);</span>
+        }
+
+<span class="fc bfc" id="L288" title="All 2 branches covered.">        if (update.getStatusId() != null) {</span>
+<span class="fc" id="L289">            var status = statusRepository.findByIdAndProjectOrThrow(update.getStatusId(), project);</span>
+<span class="fc" id="L290">            task.setStatus(status);</span>
+        }
+
+<span class="fc bfc" id="L293" title="All 4 branches covered.">        if (task.getType() == Task.Type.SUBTASK.ordinal() &amp;&amp; task.getParentTask() == null) {</span>
+<span class="fc" id="L294">            throw new FieldErrorException(PARENT_FIELD, &quot;subtask must have parent&quot;);</span>
+        }
+
+<span class="fc" id="L297">        Task savedTask = taskRepository.save(task);</span>
+<span class="fc" id="L298">        List&lt;Mono&lt;Void&gt;&gt; results = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L299" title="1 of 2 branches missed.">        if (update.getIssue() != null) {</span>
+<span class="nc" id="L300">            results.add(service.handleIssueAction(update.getIssue(), task).then());</span>
+        }
+<span class="pc bpc" id="L302" title="1 of 2 branches missed.">        if (update.getPull() != null) {</span>
+<span class="nc" id="L303">            results.add(service.handlePullAction(update.getPull(), task).then());</span>
+        }
+<span class="fc" id="L305">        return Flux.concat(results).then(service.patchIssue(task).then()).then(Mono.fromRunnable(() -&gt; {</span>
+<span class="fc" id="L306">            JsonNode newValue = converter.getObjectMapper().valueToTree(savedTask);</span>
+<span class="fc" id="L307">            JsonNode[] out = new JsonNode[3];</span>
+<span class="fc" id="L308">            JsonDiff.diff(oldValue, newValue, out);</span>
+<span class="pc bpc" id="L309" title="1 of 4 branches missed.">            if (out[0] == null &amp;&amp; out[1] == null) {</span>
+<span class="fc" id="L310">                return;</span>
+            }
+<span class="fc" id="L312">            AuditLog log = new AuditLog();</span>
+<span class="fc" id="L313">            log.setDate(new Date());</span>
+<span class="fc" id="L314">            log.setUser(user);</span>
+<span class="fc" id="L315">            log.setProject(project);</span>
+<span class="fc" id="L316">            log.setType(&quot;task&quot;);</span>
+            try {
+<span class="fc" id="L318">                log.apply(converter.getObjectMapper(), out);</span>
+<span class="nc" id="L319">            } catch (JsonProcessingException e) {</span>
+<span class="nc" id="L320">                throw new RuntimeException(e);</span>
+<span class="fc" id="L321">            }</span>
+<span class="fc" id="L322">            auditLogRepository.save(log);</span>
+<span class="fc" id="L323">        })).thenReturn(savedTask);</span>
+    }
+
+    /**
+     * Delete task with given ID.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param id        ID of task
+     * @throws JsonProcessingException thrown when JSON serialization fails
+     */
+    @DeleteMapping(&quot;/{id}&quot;)
+    public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
+            @PathVariable long id) throws JsonProcessingException {
+<span class="fc" id="L337">        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);</span>
+<span class="fc" id="L338">        Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);</span>
+
+<span class="fc" id="L340">        JsonNode oldValue = converter.getObjectMapper().valueToTree(task);</span>
+<span class="fc" id="L341">        AuditLog log = new AuditLog();</span>
+<span class="fc" id="L342">        log.setDate(new Date());</span>
+<span class="fc" id="L343">        log.setUser(user);</span>
+<span class="fc" id="L344">        log.setProject(project);</span>
+<span class="fc" id="L345">        log.setType(&quot;task&quot;);</span>
+<span class="fc" id="L346">        log.setOldValues(converter.getObjectMapper().writeValueAsString(oldValue));</span>
+<span class="fc" id="L347">        log.setNewValues(null);</span>
+<span class="fc" id="L348">        log.setSameValues(null);</span>
+<span class="fc" id="L349">        auditLogRepository.save(log);</span>
+
+<span class="fc" id="L351">        taskRepository.delete(task);</span>
+<span class="fc" id="L352">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

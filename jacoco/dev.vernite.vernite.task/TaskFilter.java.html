@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TaskFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.task</a> &gt; <span class="el_source">TaskFilter.java</span></div><h1>TaskFilter.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.task;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.jpa.domain.Specification;
+
+import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.task.Task.Type;
+import io.swagger.v3.oas.annotations.Parameter;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import lombok.Getter;
+
+@ParameterObject
+@Getter
+<span class="fc" id="L49">public class TaskFilter {</span>
+    private static final String NUMBER = &quot;number&quot;;
+    private static final String STATUS = &quot;status&quot;;
+
+<span class="fc" id="L53">    @Parameter(description = &quot;Id of sprint to filter by (filters are combined with 'and')&quot;)</span>
+<span class="fc" id="L54">    private Optional&lt;Long&gt; sprintId = Optional.empty();</span>
+<span class="fc" id="L55">    @Parameter(description = &quot;Id of assignee to filter by (filters are combined with 'and')&quot;)</span>
+<span class="fc" id="L56">    private Optional&lt;List&lt;Long&gt;&gt; assigneeIds = Optional.empty();</span>
+<span class="fc" id="L57">    @Parameter(description = &quot;Id of status to filter by (filters are combined with 'and'); multiple values are allowed&quot;)</span>
+<span class="fc" id="L58">    private Optional&lt;List&lt;Long&gt;&gt; statusId = Optional.empty();</span>
+<span class="fc" id="L59">    @Parameter(description = &quot;Type of filtered tasks (filters are combined with 'and'); multiple values are allowed&quot;)</span>
+<span class="fc" id="L60">    private Optional&lt;List&lt;Integer&gt;&gt; type = Optional.empty();</span>
+<span class="fc" id="L61">    @Parameter(description = &quot;Id of parent task to filter by (filters are combined with 'and')&quot;)</span>
+<span class="fc" id="L62">    private Optional&lt;Long&gt; parentId = Optional.empty();</span>
+<span class="fc" id="L63">    @Parameter(description = &quot;Return only backlog tasks (filters are combined with 'and')&quot;)</span>
+<span class="fc" id="L64">    private Optional&lt;Boolean&gt; backlog = Optional.empty();</span>
+<span class="fc" id="L65">    @Parameter(description = &quot;Priority of filtered tasks (filters are combined with 'and')&quot;)</span>
+<span class="fc" id="L66">    private Optional&lt;String&gt; priority = Optional.empty();</span>
+
+    public void setSprintId(long sprintId) {
+<span class="fc" id="L69">        this.sprintId = Optional.of(sprintId);</span>
+<span class="fc" id="L70">    }</span>
+
+    public void setAssigneeId(List&lt;String&gt; assigneeId) {
+<span class="pc bpc" id="L73" title="1 of 2 branches missed.">        this.assigneeIds = Optional.of(assigneeId.stream().map(x -&gt; &quot;null&quot;.equalsIgnoreCase(x) ? null : Long.parseLong(x)).toList());</span>
+<span class="fc" id="L74">    }</span>
+
+    public void setStatusId(List&lt;Long&gt; statusId) {
+<span class="fc" id="L77">        this.statusId = Optional.of(statusId);</span>
+<span class="fc" id="L78">    }</span>
+
+    public void setType(List&lt;Integer&gt; type) {
+<span class="fc" id="L81">        this.type = Optional.of(type);</span>
+<span class="fc" id="L82">    }</span>
+
+    public void setParentId(long parentId) {
+<span class="fc" id="L85">        this.parentId = Optional.of(parentId);</span>
+<span class="fc" id="L86">    }</span>
+
+    public void setBacklog(boolean backlog) {
+<span class="fc" id="L89">        this.backlog = Optional.of(backlog);</span>
+<span class="fc" id="L90">    }</span>
+
+    public void setPriority(String priority) {
+<span class="nc" id="L93">        this.priority = Optional.of(priority);</span>
+<span class="nc" id="L94">    }</span>
+
+    public Specification&lt;Task&gt; toSpecification(Project project) {
+<span class="fc" id="L97">        return (Root&lt;Task&gt; root, CriteriaQuery&lt;?&gt; query, CriteriaBuilder builder) -&gt; {</span>
+<span class="fc" id="L98">            List&lt;Predicate&gt; predicates = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L99">            predicates.add(builder.equal(root.get(STATUS).get(&quot;project&quot;), project));</span>
+<span class="fc" id="L100">            predicates.add(builder.notEqual(root.get(&quot;type&quot;), Type.SUBTASK.ordinal()));</span>
+<span class="fc" id="L101">            sprintId.ifPresent(id -&gt; predicates</span>
+<span class="fc" id="L102">                    .add(builder.or(builder.in(root.join(&quot;archiveSprints&quot;, JoinType.LEFT).get(&quot;id&quot;)).value(id),</span>
+<span class="fc" id="L103">                            builder.equal(root.get(&quot;sprint&quot;).get(&quot;id&quot;), id))));</span>
+<span class="fc" id="L104">            assigneeIds.ifPresent(id -&gt; {</span>
+<span class="fc" id="L105">                List&lt;Predicate&gt; assigneePredicates = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">                if (id.contains(null)) {</span>
+<span class="nc" id="L107">                    assigneePredicates.add(builder.isNull(root.get(&quot;assignee&quot;)));</span>
+                }
+<span class="pc bpc" id="L109" title="1 of 2 branches missed.">                id.stream().filter(x -&gt; x != null).forEach(x -&gt; assigneePredicates.add(builder.equal(root.get(&quot;assignee&quot;).get(&quot;id&quot;), x)));</span>
+<span class="fc" id="L110">                predicates.add(builder.or(assigneePredicates.toArray(new Predicate[0])));</span>
+<span class="fc" id="L111">            });</span>
+<span class="fc" id="L112">            statusId.ifPresent(ids -&gt; predicates.add(builder.in(root.get(STATUS).get(&quot;id&quot;)).value(ids)));</span>
+<span class="fc" id="L113">            type.ifPresent(types -&gt; predicates.add(builder.in(root.get(&quot;type&quot;)).value(types)));</span>
+<span class="fc" id="L114">            parentId.ifPresent(id -&gt; predicates.add(builder.equal(root.get(&quot;parentTask&quot;).get(NUMBER), id)));</span>
+<span class="fc" id="L115">            backlog.ifPresent(isBacklog -&gt; {</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">                if (Boolean.FALSE.equals(isBacklog)) {</span>
+<span class="fc" id="L117">                    predicates.add(builder.isNotNull(root.get(&quot;sprint&quot;)));</span>
+                } else {
+<span class="fc" id="L119">                    predicates.add(builder.isNull(root.get(&quot;sprint&quot;)));</span>
+<span class="fc" id="L120">                    predicates.add(builder.equal(root.get(STATUS).get(&quot;isFinal&quot;), false));</span>
+                }
+<span class="fc" id="L122">            });</span>
+<span class="fc" id="L123">            parentId.ifPresent(id -&gt; predicates.add(builder.equal(root.get(&quot;parentTask&quot;).get(NUMBER), id)));</span>
+<span class="pc" id="L124">            priority.ifPresent(priority -&gt; predicates.add(builder.equal(root.get(&quot;priority&quot;), priority)));</span>
+<span class="fc" id="L125">            query.distinct(true);</span>
+<span class="fc" id="L126">            return builder.and(predicates.toArray(new Predicate[predicates.size()]));</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

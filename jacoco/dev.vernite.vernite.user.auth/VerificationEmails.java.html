@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VerificationEmails.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.user.auth</a> &gt; <span class="el_source">VerificationEmails.java</span></div><h1>VerificationEmails.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.user.auth;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
+
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import dev.vernite.vernite.common.utils.SecureRandomUtils;
+import dev.vernite.vernite.user.User;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
+@Component
+<span class="fc" id="L43">public class VerificationEmails {</span>
+<span class="fc" id="L44">    private static final long CODE_MAX_TIME = TimeUnit.MINUTES.toMillis(30);</span>
+<span class="fc" id="L45">    private static final HashMap&lt;String, VerificationEntry&gt; code2user = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L46">    private static final HashMap&lt;String, VerificationEntry&gt; email2user = new HashMap&lt;&gt;();</span>
+
+    /**
+     * prepares the user to be registered
+     * @param user the user to be registered
+     * @return the code that should be sent to the user
+     */
+    public static synchronized String prepareUser(User user) {
+<span class="nc" id="L54">        long t = System.currentTimeMillis();</span>
+<span class="nc" id="L55">        String code = SecureRandomUtils.generateSecureRandomString();</span>
+<span class="nc" id="L56">        VerificationEntry entry = email2user.get(user.getEmail().toLowerCase());</span>
+<span class="nc bnc" id="L57" title="All 4 branches missed.">        if (entry != null &amp;&amp; entry.destroyed) {</span>
+<span class="nc" id="L58">            entry = null;</span>
+        }
+<span class="nc bnc" id="L60" title="All 2 branches missed.">        if (entry != null) {</span>
+<span class="nc" id="L61">            entry.setTime(t);</span>
+<span class="nc" id="L62">            entry.setUser(user);</span>
+        } else {
+<span class="nc" id="L64">            entry = new VerificationEntry(user, t, false);</span>
+        }
+<span class="nc" id="L66">        code2user.put(code, entry);</span>
+<span class="nc" id="L67">        return code;</span>
+    }
+
+    /**
+     * returns the user that should be register
+     * @param code the code that was in e-mail
+     * @return user or null if code is invalid
+     */
+    public static synchronized User pollUser(String code) {
+<span class="nc" id="L76">        VerificationEntry entry = code2user.remove(code);</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">        if (entry == null) {</span>
+<span class="nc" id="L78">            return null;</span>
+        }
+<span class="nc" id="L80">        email2user.remove(entry.getUser().getEmail().toLowerCase());</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">        if (entry.isDestroyed()) {</span>
+<span class="nc" id="L82">            return null;</span>
+        }
+<span class="nc bnc" id="L84" title="All 2 branches missed.">        if (System.currentTimeMillis() - entry.getTime() &gt; CODE_MAX_TIME) {</span>
+<span class="nc" id="L85">            entry.setDestroyed(true);</span>
+<span class="nc" id="L86">            return null;</span>
+        }
+<span class="nc" id="L88">        entry.setDestroyed(true);</span>
+<span class="nc" id="L89">        return entry.getUser();</span>
+    }
+
+    private static void clear(Iterator&lt;VerificationEntry&gt; it) {
+<span class="fc" id="L93">        long now = System.currentTimeMillis();</span>
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">        while (it.hasNext()) {</span>
+<span class="nc" id="L95">            VerificationEntry entry = it.next();</span>
+<span class="nc bnc" id="L96" title="All 4 branches missed.">            if (entry.isDestroyed() || now - entry.getTime() &gt; CODE_MAX_TIME) {</span>
+<span class="nc" id="L97">                it.remove();</span>
+            }
+<span class="nc" id="L99">        }</span>
+<span class="fc" id="L100">    }</span>
+
+    private static synchronized void clear() {
+<span class="fc" id="L103">        clear(code2user.values().iterator());</span>
+<span class="fc" id="L104">        clear(email2user.values().iterator());</span>
+<span class="fc" id="L105">    }</span>
+
+    @Scheduled(cron = &quot;0 * * * * *&quot;)
+    public void clearScheduler() {
+<span class="fc" id="L109">        clear();</span>
+<span class="fc" id="L110">    }</span>
+
+    @Data
+    @AllArgsConstructor
+    private static class VerificationEntry {
+        private User user;
+        private long time;
+        private boolean destroyed;
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

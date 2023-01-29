@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StateManager.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.common.utils</a> &gt; <span class="el_source">StateManager.java</span></div><h1>StateManager.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.common.utils;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import lombok.RequiredArgsConstructor;
+
+/**
+ * Manager for states sent to integrated services. Its internal state is
+ * thread-safe.
+ */
+@RequiredArgsConstructor
+public class StateManager {
+
+<span class="nc" id="L42">    private static record Item(long id, long expire) {</span>
+
+        /**
+         * Checks if the item is invalid.
+         * 
+         * @param now the current time
+         * @return true if the item is invalid
+         */
+        public boolean isInvalid(long now) {
+<span class="nc bnc" id="L51" title="All 2 branches missed.">            return expire &lt; now;</span>
+        }
+
+    }
+
+    private final Map&lt;String, Item&gt; stateMap = new ConcurrentHashMap&lt;&gt;();
+
+    private final long ttl;
+
+    private final int stateSize;
+
+    /**
+     * Creates a new state manager with ttl of 5 minutes and state size of 128.
+     */
+    public StateManager() {
+<span class="fc" id="L66">        this(1000 * 60 * 5, 128);</span>
+<span class="fc" id="L67">    }</span>
+
+    private void update() {
+<span class="nc" id="L70">        var now = System.currentTimeMillis();</span>
+<span class="nc" id="L71">        stateMap.entrySet().removeIf(entry -&gt; entry.getValue().isInvalid(now));</span>
+<span class="nc" id="L72">    }</span>
+
+    /**
+     * Creates a new state.
+     * 
+     * @param id id connected to the state
+     * @return the state
+     */
+    public String createState(long id) {
+<span class="nc" id="L81">        update();</span>
+<span class="nc" id="L82">        var state = SecureRandomUtils.generateSecureRandomString(stateSize);</span>
+<span class="nc" id="L83">        stateMap.put(state, new Item(id, System.currentTimeMillis() + ttl));</span>
+<span class="nc" id="L84">        return state;</span>
+    }
+
+    /**
+     * Checks if the state is valid.
+     * 
+     * @param state the state
+     * @return true if the state is valid
+     */
+    public boolean containsState(String state) {
+<span class="nc" id="L94">        update();</span>
+<span class="nc" id="L95">        return stateMap.containsKey(state);</span>
+    }
+
+    /**
+     * Gets the id connected to the state. Removes the state from the manager in
+     * case of success.
+     * 
+     * @param state the state
+     * @return the id or null if the state is invalid
+     */
+    public Long retrieveState(String state) {
+<span class="nc" id="L106">        update();</span>
+<span class="nc" id="L107">        var item = stateMap.get(state);</span>
+
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        if (item == null) {</span>
+<span class="nc" id="L110">            return null;</span>
+        }
+
+<span class="nc" id="L113">        return item.id;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

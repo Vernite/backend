@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SlackInstallation.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.integration.communicator.slack.entity</a> &gt; <span class="el_source">SlackInstallation.java</span></div><h1>SlackInstallation.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.integration.communicator.slack.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import dev.vernite.vernite.user.User;
+
+@Entity
+public class SlackInstallation {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
+
+    @JsonIgnore
+    @Column(unique = true, nullable = false, length = 100)
+    private String token;
+
+    private String installerUserId;
+
+    @JsonIgnore
+    private String teamId;
+
+    private String teamName;
+
+    @JsonIgnore
+    @ManyToOne(optional = false)
+    private User user;
+
+<span class="fc" id="L62">    public SlackInstallation() {</span>
+<span class="fc" id="L63">    }</span>
+
+<span class="nc" id="L65">    public SlackInstallation(String token, String installerUserId, String teamId, String teamName, User user) {</span>
+<span class="nc" id="L66">        this.token = token;</span>
+<span class="nc" id="L67">        this.installerUserId = installerUserId;</span>
+<span class="nc" id="L68">        this.teamId = teamId;</span>
+<span class="nc" id="L69">        this.teamName = teamName;</span>
+<span class="nc" id="L70">        this.user = user;</span>
+<span class="nc" id="L71">    }</span>
+
+    public long getId() {
+<span class="nc" id="L74">        return id;</span>
+    }
+
+    public void setId(long id) {
+<span class="nc" id="L78">        this.id = id;</span>
+<span class="nc" id="L79">    }</span>
+
+    public String getToken() {
+<span class="nc" id="L82">        return token;</span>
+    }
+
+    public void setToken(String token) {
+<span class="nc" id="L86">        this.token = token;</span>
+<span class="nc" id="L87">    }</span>
+
+    public String getInstallerUserId() {
+<span class="nc" id="L90">        return installerUserId;</span>
+    }
+
+    public void setInstallerUserId(String installerUserId) {
+<span class="nc" id="L94">        this.installerUserId = installerUserId;</span>
+<span class="nc" id="L95">    }</span>
+
+    public String getTeamId() {
+<span class="nc" id="L98">        return teamId;</span>
+    }
+
+    public void setTeamId(String teamId) {
+<span class="nc" id="L102">        this.teamId = teamId;</span>
+<span class="nc" id="L103">    }</span>
+
+    public User getUser() {
+<span class="nc" id="L106">        return user;</span>
+    }
+
+    public void setUser(User user) {
+<span class="nc" id="L110">        this.user = user;</span>
+<span class="nc" id="L111">    }</span>
+
+    public String getTeamName() {
+<span class="nc" id="L114">        return teamName;</span>
+    }
+
+    public void setTeamName(String teamName) {
+<span class="nc" id="L118">        this.teamName = teamName;</span>
+<span class="nc" id="L119">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

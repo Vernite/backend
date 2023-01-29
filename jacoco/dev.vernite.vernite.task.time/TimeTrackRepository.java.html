@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TimeTrackRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.task.time</a> &gt; <span class="el_source">TimeTrackRepository.java</span></div><h1>TimeTrackRepository.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.task.time;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.repository.CrudRepository;
+
+import dev.vernite.vernite.common.exception.EntityNotFoundException;
+import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.task.Task;
+import dev.vernite.vernite.user.User;
+
+/**
+ * CRUD repository for time track entity.
+ */
+public interface TimeTrackRepository extends CrudRepository&lt;TimeTrack, Long&gt; {
+
+    /**
+     * Finds time track by id and task.
+     * 
+     * @param id   time track id
+     * @param task task
+     * @return time track
+     * @throws EntityNotFoundException if time track is not found
+     *                                 or if it is not related to the task.
+     */
+    default TimeTrack findByIdAndTaskOrThrow(Long id, Task task) throws EntityNotFoundException {
+<span class="fc" id="L55">        var timeTrack = findById(id).orElseThrow(() -&gt; new EntityNotFoundException(&quot;time track&quot;, id));</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        if (timeTrack.getTask().getId() != task.getId()) {</span>
+<span class="fc" id="L57">            throw new EntityNotFoundException(&quot;time track&quot;, id);</span>
+        }
+<span class="fc" id="L59">        return timeTrack;</span>
+    }
+
+    /**
+     * Finds time tracks for a project.
+     * 
+     * @param project the project.
+     * @return list with time tracks.
+     */
+    List&lt;TimeTrack&gt; findByTaskStatusProject(Project project);
+
+    /**
+     * Finds time tracks for a user.
+     * 
+     * @param user the user.
+     * @return list with time tracks.
+     */
+    List&lt;TimeTrack&gt; findByUser(User user);
+
+    /**
+     * Finds time track for a task and user that is currently tracking.
+     * 
+     * @param user the user.
+     * @param task the task.
+     * @return the time track. Might be empty.
+     */
+    Optional&lt;TimeTrack&gt; findByUserAndTaskAndEndDateNull(User user, Task task);
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

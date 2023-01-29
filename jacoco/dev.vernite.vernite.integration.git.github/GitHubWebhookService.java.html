@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GitHubWebhookService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.integration.git.github</a> &gt; <span class="el_source">GitHubWebhookService.java</span></div><h1>GitHubWebhookService.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.integration.git.github;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.commons.codec.digest.HmacAlgorithms;
+import org.apache.commons.codec.digest.HmacUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import dev.vernite.vernite.common.utils.counter.CounterSequenceRepository;
+import dev.vernite.vernite.integration.git.github.data.GitHubInstallationApi;
+import dev.vernite.vernite.integration.git.github.data.GitHubRepository;
+import dev.vernite.vernite.integration.git.github.data.GitHubWebhookData;
+import dev.vernite.vernite.integration.git.github.model.AuthorizationRepository;
+import dev.vernite.vernite.integration.git.github.model.CommentIntegration;
+import dev.vernite.vernite.integration.git.github.model.CommentIntegrationRepository;
+import dev.vernite.vernite.integration.git.github.model.Installation;
+import dev.vernite.vernite.integration.git.github.model.InstallationRepository;
+import dev.vernite.vernite.integration.git.github.model.ProjectIntegration;
+import dev.vernite.vernite.integration.git.github.model.ProjectIntegrationRepository;
+import dev.vernite.vernite.integration.git.github.model.TaskIntegrationRepository;
+import dev.vernite.vernite.integration.git.github.model.TaskIntegration;
+import dev.vernite.vernite.integration.git.github.model.TaskIntegrationId;
+import dev.vernite.vernite.status.Status;
+import dev.vernite.vernite.task.Task;
+import dev.vernite.vernite.task.TaskRepository;
+import dev.vernite.vernite.task.comment.Comment;
+import dev.vernite.vernite.task.comment.CommentRepository;
+import dev.vernite.vernite.user.User;
+import dev.vernite.vernite.user.UserRepository;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+@Service
+@Component
+<span class="fc" id="L71">public class GitHubWebhookService {</span>
+    private HmacUtils utils;
+<span class="fc" id="L73">    private static final Pattern PATTERN = Pattern.compile(&quot;(reopen|close)?!(\\d+)&quot;);</span>
+    private static final String CLOSED = &quot;closed&quot;;
+    private static final String EDITED = &quot;edited&quot;;
+    @Autowired
+    private InstallationRepository installationRepository;
+    @Autowired
+    private ProjectIntegrationRepository integrationRepository;
+    @Autowired
+    private TaskRepository taskRepository;
+    @Autowired
+    private TaskIntegrationRepository issueRepository;
+    @Autowired
+    private GitHubService service;
+    @Autowired
+    private CounterSequenceRepository counterSequenceRepository;
+    @Autowired
+    private AuthorizationRepository authorizationRepository;
+    @Autowired
+    private CommentRepository commentRepository;
+    @Autowired
+    private CommentIntegrationRepository commentIntegrationRepository;
+    private User systemUser;
+
+    @Autowired
+    public void setSystemUser(UserRepository userRepository) {
+<span class="fc" id="L98">        systemUser = userRepository.findByUsername(&quot;Username&quot;); // TODO change system user</span>
+<span class="fc bfc" id="L99" title="All 2 branches covered.">        if (systemUser == null) {</span>
+<span class="fc" id="L100">            systemUser = userRepository.save(new User(&quot;Name&quot;, &quot;Surname&quot;, &quot;Username&quot;, &quot;contact@vernite.dev&quot;, &quot;1&quot;));</span>
+        }
+<span class="fc" id="L102">    }</span>
+
+    @Value(&quot;${githubKey}&quot;)
+    private void loadHmacUtils(String githubKey) {
+<span class="fc" id="L106">        utils = new HmacUtils(HmacAlgorithms.HMAC_SHA_256, githubKey);</span>
+<span class="fc" id="L107">    }</span>
+
+    public boolean isAuthorized(String token, String dataRaw) {
+<span class="fc" id="L110">        return MessageDigest.isEqual(token.getBytes(StandardCharsets.UTF_8),</span>
+<span class="fc" id="L111">                (&quot;sha256=&quot; + utils.hmacHex(dataRaw)).getBytes(StandardCharsets.UTF_8));</span>
+    }
+
+    public Mono&lt;Void&gt; handleWebhook(String event, GitHubWebhookData data) {
+<span class="pc bpc" id="L115" title="1 of 7 branches missed.">        switch (event) {</span>
+            case &quot;installation_repositories&quot;:
+<span class="fc" id="L117">                handleInstallationRepositories(data);</span>
+<span class="fc" id="L118">                break;</span>
+            case &quot;issues&quot;:
+<span class="fc" id="L120">                handleIssue(data);</span>
+<span class="fc" id="L121">                break;</span>
+            case &quot;push&quot;:
+<span class="fc" id="L123">                return handlePush(data);</span>
+            case &quot;installation&quot;:
+<span class="fc" id="L125">                handleInstallation(data);</span>
+<span class="fc" id="L126">                break;</span>
+            case &quot;pull_request&quot;:
+<span class="fc" id="L128">                handlePullRequest(data);</span>
+<span class="fc" id="L129">                break;</span>
+            case &quot;issue_comment&quot;:
+<span class="nc" id="L131">                handleIssueComment(data);</span>
+<span class="nc" id="L132">                break;</span>
+            default:
+                break;
+        }
+<span class="fc" id="L136">        return Mono.empty();</span>
+    }
+
+    private void handleIssueComment(GitHubWebhookData data) {
+<span class="nc bnc" id="L140" title="All 4 branches missed.">        switch (data.getAction()) {</span>
+            case &quot;created&quot;:
+<span class="nc" id="L142">                var name = data.getRepository().getFullName().split(&quot;/&quot;);</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">                if (commentIntegrationRepository.findById(data.getComment().getId()).isPresent()) {</span>
+<span class="nc" id="L144">                    return;</span>
+                }
+<span class="nc" id="L146">                integrationRepository.findByRepositoryOwnerAndRepositoryName(name[0], name[1])</span>
+<span class="nc" id="L147">                        .forEach(projectIntegration -&gt; {</span>
+<span class="nc" id="L148">                            var issues = issueRepository.findByProjectIntegrationAndIssueId(projectIntegration,</span>
+<span class="nc" id="L149">                                    data.getIssue().getNumber());</span>
+<span class="nc" id="L150">                            issues.forEach(issue -&gt; {</span>
+<span class="nc" id="L151">                                var task = issue.getTask();</span>
+<span class="nc" id="L152">                                var comment = new Comment(task, data.getComment().getBody(), systemUser);</span>
+<span class="nc" id="L153">                                commentRepository.save(comment);</span>
+<span class="nc" id="L154">                                var commentIntegration = new CommentIntegration(data.getComment().getId(), comment);</span>
+<span class="nc" id="L155">                                commentIntegrationRepository.save(commentIntegration);</span>
+<span class="nc" id="L156">                            });</span>
+<span class="nc" id="L157">                        });</span>
+
+<span class="nc" id="L159">                break;</span>
+            case &quot;edited&quot;:
+<span class="nc" id="L161">                var integration = commentIntegrationRepository.findById(data.getComment().getId());</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">                if (integration.isEmpty()) {</span>
+<span class="nc" id="L163">                    return;</span>
+                }
+<span class="nc" id="L165">                var commentIntegration = integration.get();</span>
+<span class="nc" id="L166">                var commentEntity = commentIntegration.getComment();</span>
+<span class="nc" id="L167">                commentEntity.setContent(data.getComment().getBody());</span>
+<span class="nc" id="L168">                commentRepository.save(commentEntity);</span>
+<span class="nc" id="L169">                break;</span>
+            case &quot;deleted&quot;:
+<span class="nc" id="L171">                integration = commentIntegrationRepository.findById(data.getComment().getId());</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">                if (integration.isEmpty()) {</span>
+<span class="nc" id="L173">                    return;</span>
+                }
+<span class="nc" id="L175">                commentIntegration = integration.get();</span>
+<span class="nc" id="L176">                commentRepository.delete(commentIntegration.getComment());</span>
+<span class="nc" id="L177">                break;</span>
+            default:
+                break;
+        }
+<span class="nc" id="L181">    }</span>
+
+    private void handleInstallation(GitHubWebhookData data) {
+<span class="fc" id="L184">        GitHubInstallationApi installationApi = data.getInstallation();</span>
+<span class="fc" id="L185">        Optional&lt;Installation&gt; optional = installationRepository.findById(installationApi.getId());</span>
+<span class="fc bfc" id="L186" title="All 2 branches covered.">        if (optional.isEmpty()) {</span>
+<span class="fc" id="L187">            return;</span>
+        }
+<span class="fc" id="L189">        var installation = optional.get();</span>
+<span class="fc bfc" id="L190" title="All 4 branches covered.">        switch (data.getAction()) {</span>
+            case &quot;suspend&quot;:
+<span class="fc" id="L192">                installation.setSuspended(true);</span>
+<span class="fc" id="L193">                installationRepository.save(installation);</span>
+<span class="fc" id="L194">                break;</span>
+            case &quot;unsuspend&quot;:
+<span class="fc" id="L196">                installation.setSuspended(false);</span>
+<span class="fc" id="L197">                installationRepository.save(installation);</span>
+<span class="fc" id="L198">                break;</span>
+            case &quot;deleted&quot;:
+<span class="fc" id="L200">                installationRepository.delete(installation);</span>
+<span class="fc" id="L201">                break;</span>
+            default:
+                break;
+        }
+<span class="fc" id="L205">    }</span>
+
+    private Mono&lt;Void&gt; handlePush(GitHubWebhookData data) {
+<span class="fc" id="L208">        var repository = data.getRepository();</span>
+<span class="fc" id="L209">        List&lt;Task&gt; tasks = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L210">        var name = repository.getFullName().split(&quot;/&quot;);</span>
+<span class="fc bfc" id="L211" title="All 2 branches covered.">        for (var integration : integrationRepository.findByRepositoryOwnerAndRepositoryName(name[0], name[1])) {</span>
+<span class="fc bfc" id="L212" title="All 2 branches covered.">            for (var commit : data.getCommits()) {</span>
+<span class="fc" id="L213">                Matcher matcher = PATTERN.matcher(commit.getMessage());</span>
+<span class="fc bfc" id="L214" title="All 2 branches covered.">                if (matcher.find()) {</span>
+<span class="fc" id="L215">                    boolean isOpen = &quot;reopen&quot;.equals(matcher.group(1));</span>
+<span class="fc" id="L216">                    long taskId = Long.parseLong(matcher.group(2));</span>
+<span class="fc" id="L217">                    taskRepository.findByStatusProjectAndNumber(integration.getProject(), taskId)</span>
+<span class="fc" id="L218">                            .ifPresent(task -&gt; {</span>
+<span class="fc" id="L219">                                task.changeStatus(isOpen);</span>
+<span class="fc" id="L220">                                tasks.add(taskRepository.save(task));</span>
+<span class="fc" id="L221">                            });</span>
+
+                }
+<span class="fc" id="L224">            }</span>
+<span class="fc" id="L225">        }</span>
+<span class="fc" id="L226">        return Flux.fromIterable(tasks).flatMap(service::patchIssue).then();</span>
+    }
+
+    private void handleIssue(GitHubWebhookData data) {
+<span class="fc" id="L230">        var repository = data.getRepository();</span>
+<span class="fc" id="L231">        var issue = data.getIssue();</span>
+<span class="fc" id="L232">        var name = repository.getFullName().split(&quot;/&quot;);</span>
+<span class="fc bfc" id="L233" title="All 2 branches covered.">        for (var integration : integrationRepository.findByRepositoryOwnerAndRepositoryName(name[0], name[1])) {</span>
+<span class="fc bfc" id="L234" title="All 2 branches covered.">            if (data.getAction().equals(&quot;opened&quot;)</span>
+<span class="fc bfc" id="L235" title="All 2 branches covered.">                    &amp;&amp; issueRepository.findByProjectIntegrationAndIssueId(integration, issue.getNumber()).isEmpty()) {</span>
+<span class="fc" id="L236">                long id = counterSequenceRepository</span>
+<span class="fc" id="L237">                        .getIncrementCounter(integration.getProject().getTaskCounter().getId());</span>
+<span class="fc" id="L238">                Status status = integration.getProject().getStatuses().get(0);</span>
+<span class="fc" id="L239">                Task task = new Task(id, issue.getTitle(), issue.getBody(), status, systemUser, 0);</span>
+<span class="fc" id="L240">                task.changeStatus(true);</span>
+<span class="fc" id="L241">                task = taskRepository.save(task);</span>
+<span class="fc" id="L242">                issueRepository</span>
+<span class="fc" id="L243">                        .save(new TaskIntegration(task, integration, issue.getNumber(), TaskIntegration.Type.ISSUE));</span>
+<span class="fc" id="L244">            } else {</span>
+<span class="fc bfc" id="L245" title="All 2 branches covered.">                for (var gitTask : issueRepository.findByProjectIntegrationAndIssueId(integration, issue.getNumber())) {</span>
+<span class="fc" id="L246">                    Task task = gitTask.getTask();</span>
+<span class="pc bpc" id="L247" title="2 of 7 branches missed.">                    switch (data.getAction()) {</span>
+                        case EDITED:
+<span class="fc" id="L249">                            task.setName(issue.getTitle());</span>
+<span class="fc" id="L250">                            task.setDescription(issue.getBody());</span>
+<span class="fc" id="L251">                            taskRepository.save(task);</span>
+<span class="fc" id="L252">                            issueRepository.save(gitTask);</span>
+<span class="fc" id="L253">                            break;</span>
+                        case CLOSED:
+<span class="fc" id="L255">                            task.changeStatus(false);</span>
+<span class="fc" id="L256">                            taskRepository.save(task);</span>
+<span class="fc" id="L257">                            break;</span>
+                        case &quot;reopened&quot;:
+<span class="fc" id="L259">                            task.changeStatus(true);</span>
+<span class="fc" id="L260">                            taskRepository.save(task);</span>
+<span class="fc" id="L261">                            break;</span>
+                        case &quot;deleted&quot;:
+<span class="fc" id="L263">                            issueRepository.delete(gitTask);</span>
+<span class="fc" id="L264">                            taskRepository.delete(task);</span>
+<span class="fc" id="L265">                            break;</span>
+                        case &quot;assigned&quot;:
+<span class="nc" id="L267">                            authorizationRepository.findById(data.getAssignee().getId())</span>
+<span class="nc" id="L268">                                    .ifPresent(installation -&gt; {</span>
+<span class="nc bnc" id="L269" title="All 2 branches missed.">                                        if (integration.getProject().member(installation.getUser()) != -1) {</span>
+<span class="nc" id="L270">                                            task.setAssignee(installation.getUser());</span>
+<span class="nc" id="L271">                                            taskRepository.save(task);</span>
+                                        }
+<span class="nc" id="L273">                                    });</span>
+<span class="nc" id="L274">                            break;</span>
+                        case &quot;unassigned&quot;:
+<span class="nc" id="L276">                            task.setAssignee(null);</span>
+<span class="nc" id="L277">                            taskRepository.save(task);</span>
+<span class="nc" id="L278">                            break;</span>
+                        default:
+                            break;
+                    }
+<span class="fc" id="L282">                }</span>
+            }
+<span class="fc" id="L284">        }</span>
+<span class="fc" id="L285">    }</span>
+
+    private void handleInstallationRepositories(GitHubWebhookData data) {
+<span class="fc bfc" id="L288" title="All 2 branches covered.">        if (data.getRepositoriesRemoved() == null) {</span>
+<span class="fc" id="L289">            return;</span>
+        }
+<span class="fc" id="L291">        List&lt;ProjectIntegration&gt; integrations = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L292" title="All 2 branches covered.">        for (GitHubRepository repository : data.getRepositoriesRemoved()) {</span>
+<span class="fc" id="L293">            var name = repository.getFullName().split(&quot;/&quot;);</span>
+<span class="fc" id="L294">            integrations.addAll(integrationRepository.findByRepositoryOwnerAndRepositoryName(name[0], name[1]));</span>
+<span class="fc" id="L295">        }</span>
+<span class="fc" id="L296">        integrationRepository.deleteAll(integrations);</span>
+<span class="fc" id="L297">    }</span>
+
+    private void handlePullRequest(GitHubWebhookData data) {
+<span class="fc" id="L300">        var pullRequest = data.getPullRequest();</span>
+<span class="fc" id="L301">        GitHubRepository repository = data.getRepository();</span>
+<span class="fc" id="L302">        var name = repository.getFullName().split(&quot;/&quot;);</span>
+<span class="fc bfc" id="L303" title="All 2 branches covered.">        for (var integration : integrationRepository.findByRepositoryOwnerAndRepositoryName(name[0], name[1])) {</span>
+<span class="fc bfc" id="L304" title="All 2 branches covered.">            for (var gitTask : issueRepository.findByProjectIntegrationAndIssueId(integration,</span>
+<span class="fc" id="L305">                    pullRequest.getNumber())) {</span>
+<span class="fc" id="L306">                Task task = gitTask.getTask();</span>
+<span class="pc bpc" id="L307" title="3 of 5 branches missed.">                switch (data.getAction()) {</span>
+                    case CLOSED:
+                    case &quot;reopened&quot;:
+<span class="fc bfc" id="L310" title="All 2 branches covered.">                        if (pullRequest.isMerged()) {</span>
+<span class="fc" id="L311">                            gitTask.setMerged(true);</span>
+<span class="fc" id="L312">                            issueRepository.save(gitTask);</span>
+                        }
+<span class="fc" id="L314">                        task.changeStatus(pullRequest.getState().equals(&quot;open&quot;));</span>
+<span class="fc" id="L315">                        taskRepository.save(task);</span>
+<span class="fc" id="L316">                        break;</span>
+                    case &quot;assigned&quot;:
+<span class="nc" id="L318">                        authorizationRepository.findById(data.getAssignee().getId())</span>
+<span class="nc" id="L319">                                .ifPresent(installation -&gt; {</span>
+<span class="nc bnc" id="L320" title="All 2 branches missed.">                                    if (integration.getProject().member(installation.getUser()) != -1) {</span>
+<span class="nc" id="L321">                                        task.setAssignee(installation.getUser());</span>
+<span class="nc" id="L322">                                        taskRepository.save(task);</span>
+                                    }
+<span class="nc" id="L324">                                });</span>
+<span class="nc" id="L325">                        break;</span>
+                    case &quot;unassigned&quot;:
+<span class="nc" id="L327">                        task.setAssignee(null);</span>
+<span class="nc" id="L328">                        taskRepository.save(task);</span>
+<span class="nc" id="L329">                        break;</span>
+                    case EDITED:
+<span class="fc" id="L331">                        task.setName(pullRequest.getTitle());</span>
+<span class="fc" id="L332">                        task.setDescription(pullRequest.getBody());</span>
+<span class="fc" id="L333">                        taskRepository.save(task);</span>
+<span class="fc" id="L334">                        issueRepository.save(gitTask);</span>
+<span class="fc" id="L335">                        break;</span>
+                    default:
+                        break;
+                }
+<span class="fc" id="L339">            }</span>
+<span class="fc" id="L340">        }</span>
+<span class="fc" id="L341">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

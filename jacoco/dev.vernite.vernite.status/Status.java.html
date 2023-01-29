@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Status.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.status</a> &gt; <span class="el_source">Status.java</span></div><h1>Status.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.status;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import dev.vernite.vernite.common.exception.ConflictStateException;
+import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.task.Task;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
+/**
+ * Entity representing a status of a task in project workflow.
+ */
+@Data
+@Entity
+@NoArgsConstructor
+public class Status {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @PositiveOrZero(message = &quot;status id must be non negative number&quot;)
+    private long id;
+
+    @Column(nullable = false, length = 50)
+    @Size(min = 1, max = 50, message = &quot;status name must be shorter than 50 characters&quot;)
+    @NotBlank(message = &quot;status name must contain at least one non-whitespace character&quot;)
+    private String name;
+
+    @Column(nullable = false)
+    @PositiveOrZero(message = &quot;status color must be non negative number&quot;)
+    private int color;
+
+    @Column(nullable = false)
+    @PositiveOrZero(message = &quot;status color must be non negative number&quot;)
+    private int ordinal;
+
+    @Column(nullable = false)
+    private boolean isBegin;
+
+    @Column(nullable = false)
+    private boolean isFinal;
+
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @NotNull(message = &quot;status must belong to a project&quot;)
+    private Project project;
+
+<span class="fc" id="L98">    @JsonIgnore</span>
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @OneToMany(mappedBy = &quot;status&quot;)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @NotNull(message = &quot;status must have tasks&quot;)
+    private List&lt;Task&gt; tasks = new ArrayList&lt;&gt;();
+
+    /**
+     * Default constructor for status.
+     * 
+     * @param name    must not be {@literal null} or empty
+     * @param color   color of the status as integer
+     * @param ordinal ordinal of the status
+     * @param isFinal is the status final (tasks ends in this status)
+     * @param isBegin is the status begin (tasks starts in this status)
+     * @param project project the status belongs to; must not be {@literal null}
+     */
+<span class="fc" id="L116">    public Status(String name, int color, int ordinal, boolean isFinal, boolean isBegin, Project project) {</span>
+<span class="fc" id="L117">        setName(name);</span>
+<span class="fc" id="L118">        this.color = color;</span>
+<span class="fc" id="L119">        this.ordinal = ordinal;</span>
+<span class="fc" id="L120">        this.isFinal = isFinal;</span>
+<span class="fc" id="L121">        this.isBegin = isBegin;</span>
+<span class="fc" id="L122">        this.project = project;</span>
+<span class="fc" id="L123">    }</span>
+
+    /**
+     * Constructor for status from create request.
+     * 
+     * @param project project the status belongs to; must not be {@literal null}
+     * @param create  must not be {@literal null} and must be valid
+     */
+    public Status(Project project, CreateStatus create) {
+<span class="fc" id="L132">        this(create.getName(), create.getColor(), create.getOrdinal(), create.getIsFinal(), create.getBegin(), project);</span>
+<span class="pc bpc" id="L133" title="3 of 4 branches missed.">        if (this.isBegin() &amp;&amp; this.isFinal()) {</span>
+<span class="nc" id="L134">            throw new ConflictStateException(&quot;status cannot be begin and final at the same time&quot;);</span>
+        }
+<span class="fc" id="L136">    }</span>
+
+    /**
+     * Update status with data from update.
+     * 
+     * @param update must not be {@literal null} and must be valid
+     */
+    public void update(UpdateStatus update) {
+<span class="fc bfc" id="L144" title="All 2 branches covered.">        if (update.getName() != null) {</span>
+<span class="fc" id="L145">            setName(update.getName());</span>
+        }
+<span class="fc bfc" id="L147" title="All 2 branches covered.">        if (update.getColor() != null) {</span>
+<span class="fc" id="L148">            setColor(update.getColor());</span>
+        }
+<span class="fc bfc" id="L150" title="All 2 branches covered.">        if (update.getOrdinal() != null) {</span>
+<span class="fc" id="L151">            setOrdinal(update.getOrdinal());</span>
+        }
+<span class="fc bfc" id="L153" title="All 2 branches covered.">        if (update.getBegin() != null) {</span>
+<span class="fc" id="L154">            setBegin(update.getBegin());</span>
+        }
+<span class="fc bfc" id="L156" title="All 2 branches covered.">        if (update.getIsFinal() != null) {</span>
+<span class="fc" id="L157">            setFinal(update.getIsFinal());</span>
+        }
+<span class="pc bpc" id="L159" title="1 of 4 branches missed.">        if (this.isBegin() &amp;&amp; this.isFinal()) {</span>
+<span class="nc" id="L160">            throw new ConflictStateException(&quot;status cannot be begin and final at the same time&quot;);</span>
+        }
+<span class="fc" id="L162">    }</span>
+
+    /**
+     * Setter for name value. It performs {@link String#trim()} on its argument.
+     * 
+     * @param name must not be {@literal null} and have at least one non-whitespace
+     *             character and less than 50 characters
+     */
+    public void setName(String name) {
+<span class="fc" id="L171">        this.name = name.trim();</span>
+<span class="fc" id="L172">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

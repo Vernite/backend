@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CalendarSyncService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.integration.calendar</a> &gt; <span class="el_source">CalendarSyncService.java</span></div><h1>CalendarSyncService.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.integration.calendar;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Set;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
+import dev.vernite.vernite.event.Event;
+import dev.vernite.vernite.event.EventFilter;
+import dev.vernite.vernite.event.EventService;
+import dev.vernite.vernite.utils.ObjectNotFoundException;
+import net.fortuna.ical4j.data.CalendarOutputter;
+import net.fortuna.ical4j.model.Calendar;
+import net.fortuna.ical4j.model.Date;
+import net.fortuna.ical4j.model.DateTime;
+import net.fortuna.ical4j.model.component.VEvent;
+import net.fortuna.ical4j.model.property.CalScale;
+import net.fortuna.ical4j.model.property.Description;
+import net.fortuna.ical4j.model.property.Location;
+import net.fortuna.ical4j.model.property.ProdId;
+import net.fortuna.ical4j.model.property.Uid;
+import net.fortuna.ical4j.model.property.Version;
+
+@Service
+@Component
+<span class="fc" id="L60">public class CalendarSyncService {</span>
+<span class="fc" id="L61">    private static final java.util.Date FROM = new java.util.Date(0);</span>
+
+    @Autowired
+    private EventService eventService;
+    @Autowired
+    private CalendarIntegrationRepository repository;
+
+    public byte[] handleCalendar(String key) {
+<span class="nc" id="L69">        java.util.Date to = java.util.Date.from(Instant.now().plus(1000, ChronoUnit.DAYS));</span>
+<span class="nc" id="L70">        CalendarIntegration integration = repository.findByKey(key).orElseThrow(ObjectNotFoundException::new);</span>
+        Set&lt;Event&gt; events;
+<span class="nc" id="L72">        Calendar calendar = new Calendar();</span>
+<span class="nc bnc" id="L73" title="All 2 branches missed.">        if (integration.getProject() == null) {</span>
+<span class="nc" id="L74">            events = eventService.getUserEvents(integration.getUser(), FROM, to, new EventFilter());</span>
+<span class="nc" id="L75">            calendar.getProperties()</span>
+<span class="nc" id="L76">                    .add(new CalendarName(&quot;Vernite - &quot; + integration.getUser().getUsername() + &quot; user calendar&quot;));</span>
+        } else {
+<span class="nc" id="L78">            events = eventService.getProjectEvents(integration.getProject(), FROM, to, new EventFilter());</span>
+<span class="nc" id="L79">            calendar.getProperties()</span>
+<span class="nc" id="L80">                    .add(new CalendarName(&quot;Vernite - &quot; + integration.getProject().getName() + &quot; project calendar&quot;));</span>
+        }
+<span class="nc" id="L82">        calendar.getProperties().add(new ProdId(&quot;-//Vernite//EN&quot;));</span>
+<span class="nc" id="L83">        calendar.getProperties().add(Version.VERSION_2_0);</span>
+<span class="nc" id="L84">        calendar.getProperties().add(CalScale.GREGORIAN);</span>
+<span class="nc bnc" id="L85" title="All 2 branches missed.">        for (Event event : events) {</span>
+            VEvent calEvent;
+<span class="nc bnc" id="L87" title="All 2 branches missed.">            if (event.getStartDate() == null) {</span>
+<span class="nc" id="L88">                calEvent = new VEvent(new Date(event.getEndDate()), event.getName());</span>
+            } else {
+<span class="nc" id="L90">                calEvent = new VEvent(new DateTime(event.getStartDate()), new DateTime(event.getEndDate()), event.getName());</span>
+            }
+<span class="nc" id="L92">            calEvent.getProperties().add(new Uid(String.format(&quot;project_%d_event_%d_%d&quot;, event.getProjectId(),</span>
+<span class="nc" id="L93">                    event.getType().ordinal(), event.getRelatedId())));</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">            if (event.getDescription() != null) {</span>
+<span class="nc" id="L95">                calEvent.getProperties().add(new Description(event.getDescription()));</span>
+            }
+<span class="nc bnc" id="L97" title="All 2 branches missed.">            if (event.getLocation() != null) {</span>
+<span class="nc" id="L98">                calEvent.getProperties().add(new Location(event.getLocation()));</span>
+            }
+<span class="nc" id="L100">            calendar.getComponents().add(calEvent);</span>
+<span class="nc" id="L101">        }</span>
+<span class="nc" id="L102">        CalendarOutputter calendarOutputter = new CalendarOutputter();</span>
+<span class="nc" id="L103">        ByteArrayOutputStream stream = new ByteArrayOutputStream();</span>
+        try {
+<span class="nc" id="L105">            calendarOutputter.output(calendar, stream);</span>
+<span class="nc" id="L106">        } catch (IOException e) {</span>
+<span class="nc" id="L107">            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;IO error&quot;);</span>
+<span class="nc" id="L108">        }</span>
+<span class="nc" id="L109">        return stream.toByteArray();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Release.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.release</a> &gt; <span class="el_source">Release.java</span></div><h1>Release.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.release;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.task.Task;
+
+/**
+ * Entity representing a release of a project.
+ */
+@Data
+@NoArgsConstructor
+@Entity(name = &quot;releases&quot;)
+public class Release {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @PositiveOrZero(message = &quot;release id must be non negative number&quot;)
+    private long id;
+
+    @Column(nullable = false, length = 50)
+    @Size(min = 1, max = 50, message = &quot;release name must be shorter than 50 characters&quot;)
+    @NotBlank(message = &quot;release name must contain at least one non-whitespace character&quot;)
+    private String name;
+
+    @Column(nullable = false, length = 1000)
+    @NotNull(message = &quot;release description must not be null&quot;)
+    @Size(max = 1000, message = &quot;release description must be shorter than 1000 characters&quot;)
+    private String description;
+
+    @NotNull(message = &quot;release deadline must not be null&quot;)
+    private Date deadline;
+
+<span class="fc" id="L84">    private boolean released = false;</span>
+
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @NotNull(message = &quot;release must belong to a project&quot;)
+    private Project project;
+
+<span class="fc" id="L94">    @ToString.Exclude</span>
+    @EqualsAndHashCode.Exclude
+    @OneToMany(mappedBy = &quot;release&quot;)
+    @NotNull(message = &quot;release must have tasks&quot;)
+    private List&lt;Task&gt; tasks = new ArrayList&lt;&gt;();
+
+<span class="fc" id="L100">    @JsonIgnore</span>
+    private long gitReleaseId = 0;
+
+    /**
+     * Creates release with given name, description, deadline and project.
+     * 
+     * @param name        must not be {@literal null} and have at least one
+     *                    non-whitespace
+     * @param description must not be {@literal null} and have less than 1000
+     *                    characters
+     * @param deadline    must not be {@literal null}
+     * @param project     must not be {@literal null} and must exist in database
+     */
+<span class="fc" id="L113">    public Release(String name, String description, Date deadline, Project project) {</span>
+<span class="fc" id="L114">        setName(name);</span>
+<span class="fc" id="L115">        setDescription(description);</span>
+<span class="fc" id="L116">        this.deadline = deadline;</span>
+<span class="fc" id="L117">        this.project = project;</span>
+<span class="fc" id="L118">    }</span>
+
+    /**
+     * Constructs release from create release request.
+     * 
+     * @param project must not be {@literal null} and must exist in database
+     * @param create  must not be {@literal null} and must have valid fields
+     */
+    public Release(Project project, CreateRelease create) {
+<span class="fc" id="L127">        this(create.getName(), create.getDescription(), create.getDeadline(), project);</span>
+<span class="fc" id="L128">    }</span>
+
+    /**
+     * Updates release with non-empty update fields.
+     * 
+     * @param update must not be {@literal null}. When fields are not present in
+     *               update, they are not updated.
+     */
+    public void update(UpdateRelease update) {
+<span class="fc bfc" id="L137" title="All 2 branches covered.">        if (update.getName() != null) {</span>
+<span class="fc" id="L138">            this.setName(update.getName());</span>
+        }
+<span class="fc bfc" id="L140" title="All 2 branches covered.">        if (update.getDescription() != null) {</span>
+<span class="fc" id="L141">            this.setDescription(update.getDescription());</span>
+        }
+<span class="fc bfc" id="L143" title="All 2 branches covered.">        if (update.getDeadline() != null) {</span>
+<span class="fc" id="L144">            this.setDeadline(update.getDeadline());</span>
+        }
+<span class="fc" id="L146">    }</span>
+
+    /**
+     * Setter for name value. It performs {@link String#trim()} on its argument.
+     * 
+     * @param name must not be {@literal null} and have at least one non-whitespace
+     *             character and less than 50 characters
+     */
+    public void setName(String name) {
+<span class="fc" id="L155">        this.name = name.trim();</span>
+<span class="fc" id="L156">    }</span>
+
+    /**
+     * Setter for description value. It performs {@link String#trim()} on its
+     * argument.
+     * 
+     * @param description must not be {@literal null} and have at least one
+     *                    non-whitespace character and less than 1000 characters
+     */
+    public void setDescription(String description) {
+<span class="fc" id="L166">        this.description = description.trim();</span>
+<span class="fc" id="L167">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

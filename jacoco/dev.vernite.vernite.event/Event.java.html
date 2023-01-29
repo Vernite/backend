@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Event.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.event</a> &gt; <span class="el_source">Event.java</span></div><h1>Event.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.event;
+
+import java.util.Date;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
+/**
+ * Model representing a generic event in calendar.
+ */
+@Data
+@AllArgsConstructor
+public class Event implements Comparable&lt;Event&gt; {
+
+    /**
+     * Event type enum. Used to determine what was the entity that is connected to
+     * this event.
+     */
+<span class="fc" id="L53">    public enum Type {</span>
+<span class="fc" id="L54">        MEETING, SPRINT, TASK_ESTIMATE, TASK_DEADLINE, RELEASE</span>
+    }
+
+    @Positive
+    private long projectId;
+
+    @JsonIgnore
+    private Type type;
+
+    @Positive
+    private long relatedId;
+
+    @NotBlank
+    private String name;
+
+    @NotNull
+    private String description;
+
+    private Date startDate;
+
+    @NotNull
+    private Date endDate;
+
+    private String location;
+
+    /**
+     * @return the type of the event as a int (ordinal)
+     */
+    @JsonProperty(&quot;type&quot;)
+    public int getEventType() {
+<span class="fc" id="L84">        return type.ordinal();</span>
+    }
+
+    @Override
+    public int compareTo(Event o) {
+        int result;
+<span class="pc bpc" id="L90" title="1 of 4 branches missed.">        if (startDate != null &amp;&amp; o.startDate != null) {</span>
+<span class="fc" id="L91">            result = startDate.compareTo(o.startDate);</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">            if (result != 0) {</span>
+<span class="fc" id="L93">                return result;</span>
+            }
+<span class="pc bpc" id="L95" title="1 of 2 branches missed.">        } else if (startDate != null) {</span>
+<span class="nc" id="L96">            result = startDate.compareTo(o.endDate);</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">            if (result != 0) {</span>
+<span class="nc" id="L98">                return result;</span>
+            }
+<span class="fc bfc" id="L100" title="All 2 branches covered.">        } else if (o.startDate != null) {</span>
+<span class="fc" id="L101">            result = endDate.compareTo(o.startDate);</span>
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">            if (result != 0) {</span>
+<span class="fc" id="L103">                return result;</span>
+            }
+        }
+<span class="fc" id="L106">        result = endDate.compareTo(o.endDate);</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">        if (result != 0) {</span>
+<span class="fc" id="L108">            return result;</span>
+        }
+<span class="fc" id="L110">        result = Integer.compare(type.ordinal(), o.type.ordinal());</span>
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">        if (result != 0) {</span>
+<span class="nc" id="L112">            return result;</span>
+        }
+<span class="fc" id="L114">        result = name.compareTo(o.name);</span>
+<span class="pc bpc" id="L115" title="1 of 2 branches missed.">        if (result != 0) {</span>
+<span class="nc" id="L116">            return result;</span>
+        }
+<span class="fc" id="L118">        result = Long.compare(projectId, o.projectId);</span>
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">        if (result != 0) {</span>
+<span class="nc" id="L120">            return result;</span>
+        }
+<span class="fc" id="L122">        return Long.compare(relatedId, o.relatedId);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

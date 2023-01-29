@@ -1,0 +1,698 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GitHubService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.integration.git.github</a> &gt; <span class="el_source">GitHubService.java</span></div><h1>GitHubService.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.integration.git.github;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+
+import org.apache.hc.core5.net.URIBuilder;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.support.WebClientAdapter;
+import org.springframework.web.service.invoker.HttpServiceProxyFactory;
+
+import dev.vernite.vernite.common.exception.ExternalApiException;
+import dev.vernite.vernite.integration.git.Branch;
+import dev.vernite.vernite.integration.git.Issue;
+import dev.vernite.vernite.integration.git.PullRequest;
+import dev.vernite.vernite.integration.git.Repository;
+import dev.vernite.vernite.integration.git.github.api.GitHubApiClient;
+import dev.vernite.vernite.integration.git.github.api.GitHubConfiguration;
+import dev.vernite.vernite.integration.git.github.api.model.BranchName;
+import dev.vernite.vernite.integration.git.github.api.model.GitHubComment;
+import dev.vernite.vernite.integration.git.github.api.model.GitHubIssue;
+import dev.vernite.vernite.integration.git.github.api.model.GitHubPullRequest;
+import dev.vernite.vernite.integration.git.github.api.model.GitHubRelease;
+import dev.vernite.vernite.integration.git.github.api.model.GitHubRepository;
+import dev.vernite.vernite.integration.git.github.api.model.Installations;
+import dev.vernite.vernite.integration.git.github.api.model.Repositories;
+import dev.vernite.vernite.integration.git.github.api.model.request.OauthRefreshTokenRequest;
+import dev.vernite.vernite.integration.git.github.api.model.request.OauthTokenRequest;
+import dev.vernite.vernite.integration.git.github.model.Authorization;
+import dev.vernite.vernite.integration.git.github.model.AuthorizationRepository;
+import dev.vernite.vernite.integration.git.github.model.CommentIntegration;
+import dev.vernite.vernite.integration.git.github.model.CommentIntegrationRepository;
+import dev.vernite.vernite.integration.git.github.model.Installation;
+import dev.vernite.vernite.integration.git.github.model.InstallationRepository;
+import dev.vernite.vernite.integration.git.github.model.ProjectIntegration;
+import dev.vernite.vernite.integration.git.github.model.ProjectIntegrationRepository;
+import dev.vernite.vernite.integration.git.github.model.TaskIntegration;
+import dev.vernite.vernite.integration.git.github.model.TaskIntegrationId;
+import dev.vernite.vernite.integration.git.github.model.TaskIntegrationRepository;
+import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.release.Release;
+import dev.vernite.vernite.task.Task;
+import dev.vernite.vernite.task.comment.Comment;
+import dev.vernite.vernite.user.User;
+import io.jsonwebtoken.Jwts;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+/**
+ * Service for GitHub integration.
+ */
+@Service
+public class GitHubService {
+
+    private final GitHubApiClient client;
+
+    private GitHubConfiguration config;
+
+    private AuthorizationRepository authorizationRepository;
+
+    private InstallationRepository installationRepository;
+
+    private ProjectIntegrationRepository projectIntegrationRepository;
+
+    private TaskIntegrationRepository taskIntegrationRepository;
+
+    private CommentIntegrationRepository commentIntegrationRepository;
+
+    public GitHubService(GitHubConfiguration config, AuthorizationRepository authorizationRepository,
+            InstallationRepository installationRepository, ProjectIntegrationRepository projectIntegrationRepository,
+            TaskIntegrationRepository taskIntegrationRepository,
+<span class="fc" id="L106">            CommentIntegrationRepository commentIntegrationRepository) {</span>
+<span class="fc" id="L107">        this.config = config;</span>
+<span class="fc" id="L108">        this.authorizationRepository = authorizationRepository;</span>
+<span class="fc" id="L109">        this.installationRepository = installationRepository;</span>
+<span class="fc" id="L110">        this.projectIntegrationRepository = projectIntegrationRepository;</span>
+<span class="fc" id="L111">        this.taskIntegrationRepository = taskIntegrationRepository;</span>
+<span class="fc" id="L112">        this.commentIntegrationRepository = commentIntegrationRepository;</span>
+
+<span class="fc" id="L114">        var webClient = WebClient.builder().baseUrl(config.getApiURL())</span>
+<span class="fc" id="L115">                .defaultStatusHandler(HttpStatusCode::isError,</span>
+<span class="nc" id="L116">                        resp -&gt; Mono.error(new ExternalApiException(&quot;github&quot;, &quot;github error&quot; + resp.statusCode())))</span>
+<span class="fc" id="L117">                .build();</span>
+<span class="fc" id="L118">        var adapter = WebClientAdapter.forClient(webClient);</span>
+<span class="fc" id="L119">        client = HttpServiceProxyFactory.builder(adapter).build().createClient(GitHubApiClient.class);</span>
+<span class="fc" id="L120">    }</span>
+
+    /**
+     * Get the GitHub OAuth installation URL for the given state.
+     * 
+     * @param state the state to pass to GitHub
+     * @return the installation URL
+     * @throws URISyntaxException if the URL cannot be built
+     */
+    public URI getAuthorizationUrl(String state) throws URISyntaxException {
+<span class="nc" id="L130">        var builder = new URIBuilder(GitHubConfiguration.GITHUB_AUTH_URL);</span>
+<span class="nc" id="L131">        builder.addParameter(&quot;client_id&quot;, config.getClientId());</span>
+<span class="nc" id="L132">        builder.addParameter(&quot;state&quot;, state);</span>
+<span class="nc" id="L133">        return builder.build();</span>
+    }
+
+    /**
+     * Create an authorization for the given user and code.
+     * 
+     * @param user the user to create the authorization for
+     * @param code the code to use to create the authorization
+     * @return the authorization
+     */
+    public Mono&lt;Authorization&gt; createAuthorization(User user, String code) {
+<span class="nc" id="L144">        var request = new OauthTokenRequest(config.getClientId(), config.getClientSecret(), code);</span>
+<span class="nc" id="L145">        return client.createOauthAccessToken(request)</span>
+<span class="nc" id="L146">                .flatMap(token -&gt; client.getAuthenticatedUser(&quot;Bearer &quot; + token.getAccessToken()).map(githubUser -&gt; {</span>
+<span class="nc" id="L147">                    var auth = authorizationRepository.findById(githubUser.getId()).orElseGet(Authorization::new);</span>
+<span class="nc" id="L148">                    auth.update(token, githubUser, user);</span>
+<span class="nc" id="L149">                    return authorizationRepository.save(auth);</span>
+                }));
+    }
+
+    /**
+     * Retrieves repositories available for user from GitHub api.
+     * 
+     * @param user the user
+     * @return list with all repositories
+     */
+    public Flux&lt;Repository&gt; getUserRepositories(User user) {
+<span class="nc" id="L160">        return Flux.fromIterable(authorizationRepository.findByUser(user))</span>
+<span class="nc" id="L161">                .flatMap(this::refreshToken)</span>
+<span class="nc" id="L162">                .flatMap(this::getUserInstallations)</span>
+<span class="nc" id="L163">                .flatMap(this::refreshToken)</span>
+<span class="nc" id="L164">                .map(Installation::getToken)</span>
+<span class="nc" id="L165">                .map(token -&gt; &quot;Bearer &quot; + token)</span>
+<span class="nc" id="L166">                .flatMap(client::getInstallationRepositories)</span>
+<span class="nc" id="L167">                .flatMapIterable(Repositories::getRepositoryList)</span>
+<span class="nc" id="L168">                .map(repo -&gt; new Repository(repo.getId(), repo.getName(), repo.getFullName(), repo.getHtmlUrl(),</span>
+<span class="nc" id="L169">                        repo.isPrivate(), &quot;github&quot;));</span>
+    }
+
+    /**
+     * Create a project integration for the given project and repository.
+     * 
+     * @param user               the user; must have an authorization to the
+     *                           repository
+     * @param project            the project
+     * @param repositoryFullName the repository full name
+     * @return the project integration
+     */
+    public Mono&lt;ProjectIntegration&gt; createProjectIntegration(User user, Project project, String repositoryFullName) {
+<span class="nc" id="L182">        return Flux.fromIterable(authorizationRepository.findByUser(user))</span>
+<span class="nc" id="L183">                .flatMap(this::refreshToken)</span>
+<span class="nc" id="L184">                .flatMap(this::getUserInstallations)</span>
+<span class="nc" id="L185">                .flatMap(this::refreshToken)</span>
+<span class="nc" id="L186">                .filterWhen(inst -&gt; hasRepository(inst, repositoryFullName))</span>
+<span class="nc" id="L187">                .reduce(Optional.&lt;Installation&gt;empty(), (acc, inst) -&gt; Optional.of(inst))</span>
+<span class="nc" id="L188">                .filter(Optional::isPresent)</span>
+<span class="nc" id="L189">                .map(Optional::get)</span>
+<span class="nc" id="L190">                .map(inst -&gt; new ProjectIntegration(repositoryFullName, project, inst))</span>
+<span class="nc" id="L191">                .map(projectIntegrationRepository::save);</span>
+    }
+
+    /**
+     * Get issues for the given project.
+     * 
+     * @param project the project
+     * @return the issues
+     */
+    public Flux&lt;Issue&gt; getIssues(Project project) {
+<span class="fc" id="L201">        var integrationOptional = projectIntegrationRepository.findByProject(project);</span>
+
+<span class="fc bfc" id="L203" title="All 2 branches covered.">        if (integrationOptional.isEmpty()) {</span>
+<span class="fc" id="L204">            return Flux.empty();</span>
+        }
+
+<span class="fc" id="L207">        var integration = integrationOptional.get();</span>
+<span class="fc" id="L208">        var owner = integration.getRepositoryOwner();</span>
+<span class="fc" id="L209">        var repo = integration.getRepositoryName();</span>
+
+<span class="fc" id="L211">        return Mono.just(integration.getInstallation())</span>
+<span class="fc bfc" id="L212" title="All 2 branches covered.">                .filter(inst -&gt; !inst.isSuspended())</span>
+<span class="fc" id="L213">                .flatMap(this::refreshToken)</span>
+<span class="fc" id="L214">                .map(Installation::getToken)</span>
+<span class="fc" id="L215">                .map(token -&gt; &quot;Bearer &quot; + token)</span>
+<span class="fc" id="L216">                .flatMapMany(token -&gt; client.getRepositoryIssues(token, owner, repo))</span>
+<span class="fc" id="L217">                .map(GitHubIssue::toIssue);</span>
+    }
+
+    /**
+     * Connect the given task to the given issue.
+     * 
+     * @param task the task
+     * @param id   the issue id
+     * @return the issue
+     */
+    public Mono&lt;Issue&gt; connectIssue(Task task, long id) {
+<span class="fc" id="L228">        var integrationOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());</span>
+
+<span class="fc bfc" id="L230" title="All 2 branches covered.">        if (integrationOptional.isEmpty()) {</span>
+<span class="fc" id="L231">            return Mono.empty();</span>
+        }
+
+<span class="fc" id="L234">        var integration = integrationOptional.get();</span>
+<span class="fc" id="L235">        var owner = integration.getRepositoryOwner();</span>
+<span class="fc" id="L236">        var repo = integration.getRepositoryName();</span>
+
+<span class="fc" id="L238">        Set&lt;Long&gt; assignees = new HashSet&lt;&gt;();</span>
+<span class="pc bpc" id="L239" title="1 of 2 branches missed.">        if (task.getAssignee() != null) {</span>
+<span class="nc" id="L240">            authorizationRepository.findByUser(task.getAssignee()).forEach(auth -&gt; assignees.add(auth.getId()));</span>
+        }
+
+<span class="fc" id="L243">        return Mono.just(integration.getInstallation())</span>
+<span class="pc bpc" id="L244" title="1 of 2 branches missed.">                .filter(inst -&gt; !inst.isSuspended())</span>
+<span class="fc" id="L245">                .flatMap(this::refreshToken)</span>
+<span class="fc" id="L246">                .map(Installation::getToken)</span>
+<span class="pc" id="L247">                .map(token -&gt; &quot;Bearer &quot; + token)</span>
+<span class="pc" id="L248">                .flatMap(token -&gt; client.getRepositoryIssue(token, owner, repo, id))</span>
+<span class="fc" id="L249">                .map(GitHubIssue::toIssue)</span>
+<span class="pc" id="L250">                .map(issue -&gt; new TaskIntegration(task, integration, id, TaskIntegration.Type.ISSUE))</span>
+<span class="fc" id="L251">                .map(taskIntegrationRepository::save)</span>
+<span class="fc" id="L252">                .then(patchIssue(task));</span>
+    }
+
+    /**
+     * Create a GitHub issue for the given task.
+     * 
+     * @param task the task
+     * @return the issue
+     */
+    public Mono&lt;Issue&gt; createIssue(Task task) {
+<span class="fc" id="L262">        var integrationOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());</span>
+
+<span class="fc bfc" id="L264" title="All 2 branches covered.">        if (integrationOptional.isEmpty()) {</span>
+<span class="fc" id="L265">            return Mono.empty();</span>
+        }
+
+<span class="fc" id="L268">        var integration = integrationOptional.get();</span>
+<span class="fc" id="L269">        var owner = integration.getRepositoryOwner();</span>
+<span class="fc" id="L270">        var repo = integration.getRepositoryName();</span>
+
+<span class="fc" id="L272">        var issue = new GitHubIssue(0, null, null, task.getName(), task.getDescription(), new ArrayList&lt;&gt;());</span>
+<span class="fc" id="L273">        Set&lt;Long&gt; assignees = new HashSet&lt;&gt;();</span>
+<span class="pc bpc" id="L274" title="1 of 2 branches missed.">        if (task.getAssignee() != null) {</span>
+<span class="nc" id="L275">            authorizationRepository.findByUser(task.getAssignee()).forEach(auth -&gt; assignees.add(auth.getId()));</span>
+        }
+
+<span class="fc" id="L278">        return Mono.just(integration.getInstallation())</span>
+<span class="pc bpc" id="L279" title="1 of 2 branches missed.">                .filter(inst -&gt; !inst.isSuspended())</span>
+<span class="fc" id="L280">                .flatMap(this::refreshToken)</span>
+<span class="pc" id="L281">                .flatMap(inst -&gt; setCollaborators(inst, owner, repo, issue, assignees))</span>
+<span class="pc" id="L282">                .flatMap(inst -&gt; client.createRepositoryIssue(&quot;Bearer &quot; + inst.getToken(), owner, repo, issue))</span>
+<span class="fc" id="L283">                .map(newIssue -&gt; {</span>
+<span class="nc" id="L284">                    var i = new TaskIntegration(task, integration, newIssue.getNumber(), TaskIntegration.Type.ISSUE);</span>
+<span class="nc" id="L285">                    taskIntegrationRepository.save(i);</span>
+<span class="nc" id="L286">                    return newIssue.toIssue();</span>
+                });
+    }
+
+    /**
+     * Update the GitHub issue for the given task.
+     * 
+     * @param task the task
+     * @return the issue
+     */
+    public Mono&lt;Issue&gt; patchIssue(Task task) {
+<span class="fc" id="L297">        var integrationProjectOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());</span>
+
+<span class="fc bfc" id="L299" title="All 2 branches covered.">        if (integrationProjectOptional.isEmpty()) {</span>
+<span class="fc" id="L300">            return Mono.empty();</span>
+        }
+
+<span class="fc" id="L303">        var integrationProject = integrationProjectOptional.get();</span>
+
+<span class="fc" id="L305">        var integrationOptional = taskIntegrationRepository.findById(</span>
+<span class="fc" id="L306">                new TaskIntegrationId(task.getId(), integrationProject.getId(), TaskIntegration.Type.ISSUE.ordinal()));</span>
+
+<span class="fc bfc" id="L308" title="All 2 branches covered.">        if (integrationOptional.isEmpty()) {</span>
+<span class="fc" id="L309">            return Mono.empty();</span>
+        }
+
+<span class="fc" id="L312">        var integration = integrationOptional.get();</span>
+
+<span class="fc" id="L314">        var issue = new GitHubIssue(integration.getIssueId(), integration.link(),</span>
+<span class="pc bpc" id="L315" title="1 of 2 branches missed.">                task.getStatus().isFinal() ? &quot;closed&quot; : &quot;open&quot;, task.getName(), task.getDescription(),</span>
+                new ArrayList&lt;&gt;());
+<span class="fc" id="L317">        Set&lt;Long&gt; assignees = new HashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L318" title="All 2 branches covered.">        if (task.getAssignee() != null) {</span>
+<span class="fc" id="L319">            authorizationRepository.findByUser(task.getAssignee()).forEach(auth -&gt; assignees.add(auth.getId()));</span>
+        }
+
+<span class="fc" id="L322">        var owner = integrationProject.getRepositoryOwner();</span>
+<span class="fc" id="L323">        var repo = integrationProject.getRepositoryName();</span>
+
+<span class="fc" id="L325">        return Mono.just(integrationProject.getInstallation())</span>
+<span class="pc bpc" id="L326" title="1 of 2 branches missed.">                .filter(inst -&gt; !inst.isSuspended())</span>
+<span class="fc" id="L327">                .flatMap(this::refreshToken)</span>
+<span class="fc" id="L328">                .flatMap(inst -&gt; setCollaborators(inst, owner, repo, issue, assignees))</span>
+<span class="fc" id="L329">                .flatMap(inst -&gt; client.patchRepositoryIssue(&quot;Bearer &quot; + inst.getToken(), owner, repo,</span>
+<span class="fc" id="L330">                        issue.getNumber(), issue))</span>
+<span class="fc" id="L331">                .map(gitIssue -&gt; gitIssue.toIssue());</span>
+    }
+
+    /**
+     * Delete the GitHub issue connection for the given task.
+     * 
+     * @param task the task
+     */
+    public void deleteIssue(Task task) {
+<span class="fc" id="L340">        var integrationOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());</span>
+
+<span class="pc bpc" id="L342" title="1 of 2 branches missed.">        if (integrationOptional.isEmpty()) {</span>
+<span class="nc" id="L343">            return;</span>
+        }
+
+<span class="fc" id="L346">        var integration = integrationOptional.get();</span>
+
+<span class="fc" id="L348">        taskIntegrationRepository</span>
+<span class="fc" id="L349">                .findById(</span>
+<span class="fc" id="L350">                        new TaskIntegrationId(task.getId(), integration.getId(), TaskIntegration.Type.ISSUE.ordinal()))</span>
+<span class="fc" id="L351">                .ifPresent(taskIntegrationRepository::delete);</span>
+<span class="fc" id="L352">    }</span>
+
+    /**
+     * Get the GitHub pull requests for the given project.
+     * 
+     * @param project the project
+     * @return the pull requests
+     */
+    public Flux&lt;PullRequest&gt; getPullRequests(Project project) {
+<span class="fc" id="L361">        var integrationOptional = projectIntegrationRepository.findByProject(project);</span>
+
+<span class="fc bfc" id="L363" title="All 2 branches covered.">        if (integrationOptional.isEmpty()) {</span>
+<span class="fc" id="L364">            return Flux.empty();</span>
+        }
+
+<span class="fc" id="L367">        var integration = integrationOptional.get();</span>
+<span class="fc" id="L368">        var owner = integration.getRepositoryOwner();</span>
+<span class="fc" id="L369">        var repo = integration.getRepositoryName();</span>
+
+<span class="fc" id="L371">        return Mono.just(integration.getInstallation())</span>
+<span class="fc bfc" id="L372" title="All 2 branches covered.">                .filter(inst -&gt; !inst.isSuspended())</span>
+<span class="fc" id="L373">                .flatMap(this::refreshToken)</span>
+<span class="fc" id="L374">                .map(Installation::getToken)</span>
+<span class="fc" id="L375">                .map(token -&gt; &quot;Bearer &quot; + token)</span>
+<span class="fc" id="L376">                .flatMapMany(token -&gt; client.getRepositoryPullRequests(token, owner, repo))</span>
+<span class="fc" id="L377">                .map(GitHubPullRequest::toPullRequest);</span>
+    }
+
+    /**
+     * Connect the given task to the given GitHub pull request.
+     * 
+     * @param task the task
+     * @param id   the pull request id
+     * @return the pull request
+     */
+    public Mono&lt;PullRequest&gt; connectPullRequest(Task task, long id) {
+<span class="fc" id="L388">        var integrationOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());</span>
+
+<span class="fc bfc" id="L390" title="All 2 branches covered.">        if (integrationOptional.isEmpty()) {</span>
+<span class="fc" id="L391">            return Mono.empty();</span>
+        }
+
+<span class="fc" id="L394">        var integration = integrationOptional.get();</span>
+<span class="fc" id="L395">        var owner = integration.getRepositoryOwner();</span>
+<span class="fc" id="L396">        var repo = integration.getRepositoryName();</span>
+
+<span class="fc" id="L398">        Set&lt;Long&gt; assignees = new HashSet&lt;&gt;();</span>
+<span class="pc bpc" id="L399" title="1 of 2 branches missed.">        if (task.getAssignee() != null) {</span>
+<span class="nc" id="L400">            authorizationRepository.findByUser(task.getAssignee()).forEach(auth -&gt; assignees.add(auth.getId()));</span>
+        }
+
+<span class="fc" id="L403">        return Mono.just(integration.getInstallation())</span>
+<span class="pc bpc" id="L404" title="1 of 2 branches missed.">                .filter(inst -&gt; !inst.isSuspended())</span>
+<span class="fc" id="L405">                .flatMap(this::refreshToken)</span>
+<span class="fc" id="L406">                .map(Installation::getToken)</span>
+<span class="pc" id="L407">                .map(token -&gt; &quot;Bearer &quot; + token)</span>
+<span class="pc" id="L408">                .flatMap(token -&gt; client.getRepositoryPullRequest(token, owner, repo, id))</span>
+<span class="fc" id="L409">                .map(pull -&gt; {</span>
+<span class="nc" id="L410">                    var i = new TaskIntegration(task, integration, id, TaskIntegration.Type.PULL_REQUEST);</span>
+<span class="nc" id="L411">                    i.setMerged(pull.isMerged());</span>
+<span class="nc" id="L412">                    taskIntegrationRepository.save(i);</span>
+<span class="nc" id="L413">                    return pull;</span>
+                })
+<span class="fc" id="L415">                .map(GitHubPullRequest::toPullRequest);</span>
+    }
+
+    /**
+     * Patch the GitHub pull request for the given task.
+     * 
+     * @param task the task
+     * @return the pull request
+     */
+    public Mono&lt;PullRequest&gt; patchPullRequest(Task task) {
+<span class="fc" id="L425">        var integrationProjectOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());</span>
+
+<span class="fc bfc" id="L427" title="All 2 branches covered.">        if (integrationProjectOptional.isEmpty()) {</span>
+<span class="fc" id="L428">            return Mono.empty();</span>
+        }
+
+<span class="fc" id="L431">        var integrationProject = integrationProjectOptional.get();</span>
+
+<span class="fc" id="L433">        var integrationOptional = taskIntegrationRepository.findById(new TaskIntegrationId(task.getId(),</span>
+<span class="fc" id="L434">                integrationProject.getId(), TaskIntegration.Type.PULL_REQUEST.ordinal()));</span>
+
+<span class="pc bpc" id="L436" title="1 of 2 branches missed.">        if (integrationOptional.isEmpty()) {</span>
+<span class="nc" id="L437">            return Mono.empty();</span>
+        }
+
+<span class="fc" id="L440">        var integration = integrationOptional.get();</span>
+
+<span class="fc" id="L442">        var pullRequest = new GitHubPullRequest(integration.getIssueId(), null, null, task.getName(),</span>
+<span class="fc" id="L443">                task.getDescription(), new ArrayList&lt;&gt;(), null, false);</span>
+
+<span class="fc" id="L445">        Set&lt;Long&gt; assignees = new HashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L446" title="All 2 branches covered.">        if (task.getAssignee() != null) {</span>
+<span class="fc" id="L447">            authorizationRepository.findByUser(task.getAssignee()).forEach(auth -&gt; assignees.add(auth.getId()));</span>
+        }
+
+<span class="fc" id="L450">        var owner = integrationProject.getRepositoryOwner();</span>
+<span class="fc" id="L451">        var repo = integrationProject.getRepositoryName();</span>
+
+<span class="pc bpc" id="L453" title="1 of 4 branches missed.">        if (task.getStatus().isFinal() &amp;&amp; !integration.isMerged()) {</span>
+<span class="fc" id="L454">            return refreshToken(integrationProject.getInstallation())</span>
+<span class="pc bpc" id="L455" title="1 of 2 branches missed.">                    .filter(inst -&gt; !inst.isSuspended())</span>
+<span class="fc" id="L456">                    .flatMap(this::refreshToken)</span>
+<span class="fc" id="L457">                    .flatMap(inst -&gt; client.mergePullRequest(&quot;Bearer &quot; + inst.getToken(), owner, repo,</span>
+<span class="fc" id="L458">                            integration.getIssueId()))</span>
+<span class="fc" id="L459">                    .map(merge -&gt; {</span>
+<span class="fc" id="L460">                        integration.setMerged(merge.isMerged());</span>
+<span class="fc" id="L461">                        return integration;</span>
+                    })
+<span class="fc" id="L463">                    .map(taskIntegrationRepository::save)</span>
+<span class="fc" id="L464">                    .then(Mono.empty());</span>
+        }
+
+<span class="fc" id="L467">        return Mono.just(integrationProject.getInstallation())</span>
+<span class="fc bfc" id="L468" title="All 2 branches covered.">                .filter(inst -&gt; !inst.isSuspended())</span>
+<span class="fc" id="L469">                .flatMap(this::refreshToken)</span>
+<span class="fc" id="L470">                .flatMap(inst -&gt; setCollaborators(inst, owner, repo, (GitHubIssue) pullRequest, assignees))</span>
+<span class="fc" id="L471">                .flatMap(inst -&gt; client.patchRepositoryPullRequest(&quot;Bearer &quot; + inst.getToken(), owner, repo,</span>
+<span class="fc" id="L472">                        pullRequest.getNumber(), pullRequest))</span>
+<span class="fc" id="L473">                .map(pull -&gt; pull.toPullRequest());</span>
+    }
+
+    /**
+     * Delete the GitHub pull request for the given task.
+     * 
+     * @param task the task
+     */
+    public void deletePullRequest(Task task) {
+<span class="nc" id="L482">        var integrationOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());</span>
+
+<span class="nc bnc" id="L484" title="All 2 branches missed.">        if (integrationOptional.isEmpty()) {</span>
+<span class="nc" id="L485">            return;</span>
+        }
+
+<span class="nc" id="L488">        var integration = integrationOptional.get();</span>
+
+<span class="nc" id="L490">        taskIntegrationRepository</span>
+<span class="nc" id="L491">                .findById(new TaskIntegrationId(task.getId(), integration.getId(),</span>
+<span class="nc" id="L492">                        TaskIntegration.Type.PULL_REQUEST.ordinal()))</span>
+<span class="nc" id="L493">                .ifPresent(taskIntegrationRepository::delete);</span>
+<span class="nc" id="L494">    }</span>
+
+    /**
+     * Get git branches for the given project.
+     * 
+     * @param project the project
+     * @return the branches
+     */
+    public Flux&lt;Branch&gt; getBranches(Project project) {
+<span class="nc" id="L503">        var integrationOptional = projectIntegrationRepository.findByProject(project);</span>
+
+<span class="nc bnc" id="L505" title="All 2 branches missed.">        if (integrationOptional.isEmpty()) {</span>
+<span class="nc" id="L506">            return Flux.empty();</span>
+        }
+
+<span class="nc" id="L509">        var integration = integrationOptional.get();</span>
+<span class="nc" id="L510">        var owner = integration.getRepositoryOwner();</span>
+<span class="nc" id="L511">        var repo = integration.getRepositoryName();</span>
+
+<span class="nc" id="L513">        return Mono.just(integration.getInstallation())</span>
+<span class="nc bnc" id="L514" title="All 2 branches missed.">                .filter(inst -&gt; !inst.isSuspended())</span>
+<span class="nc" id="L515">                .flatMap(this::refreshToken)</span>
+<span class="nc" id="L516">                .map(Installation::getToken)</span>
+<span class="nc" id="L517">                .map(token -&gt; &quot;Bearer &quot; + token)</span>
+<span class="nc" id="L518">                .flatMapMany(token -&gt; client.getRepositoryBranches(token, owner, repo))</span>
+<span class="nc" id="L519">                .map(BranchName::toBranch);</span>
+    }
+
+    /**
+     * Create new release for the given project.
+     * 
+     * @param release the release
+     * @param branch  the branch
+     * @return the release
+     */
+    public Mono&lt;Long&gt; publishRelease(Release release, String branch) {
+<span class="nc" id="L530">        var integrationOptional = projectIntegrationRepository.findByProject(release.getProject());</span>
+
+<span class="nc bnc" id="L532" title="All 2 branches missed.">        if (integrationOptional.isEmpty()) {</span>
+<span class="nc" id="L533">            return Mono.empty();</span>
+        }
+
+<span class="nc" id="L536">        var integration = integrationOptional.get();</span>
+<span class="nc" id="L537">        var owner = integration.getRepositoryOwner();</span>
+<span class="nc" id="L538">        var repo = integration.getRepositoryName();</span>
+
+<span class="nc" id="L540">        return Mono.just(integration.getInstallation())</span>
+<span class="nc bnc" id="L541" title="All 2 branches missed.">                .filter(inst -&gt; !inst.isSuspended())</span>
+<span class="nc" id="L542">                .flatMap(this::refreshToken)</span>
+<span class="nc" id="L543">                .map(Installation::getToken)</span>
+<span class="nc" id="L544">                .map(token -&gt; &quot;Bearer &quot; + token)</span>
+<span class="nc" id="L545">                .flatMap(token -&gt; client.createRepositoryRelease(token, owner, repo, new GitHubRelease(release)))</span>
+<span class="nc" id="L546">                .map(GitHubRelease::getId);</span>
+    }
+
+    /**
+     * Create a new GitHub issue comment for given comment.
+     * 
+     * @param comment the comment
+     * @return the comment
+     */
+    public Mono&lt;GitHubComment&gt; createComment(Comment comment) {
+<span class="fc" id="L556">        var task = comment.getTask();</span>
+<span class="fc" id="L557">        var integrationProjectOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());</span>
+
+<span class="pc bpc" id="L559" title="1 of 2 branches missed.">        if (integrationProjectOptional.isEmpty()) {</span>
+<span class="fc" id="L560">            return Mono.empty();</span>
+        }
+
+<span class="nc" id="L563">        var integrationProject = integrationProjectOptional.get();</span>
+
+<span class="nc" id="L565">        var comments = new ArrayList&lt;Mono&lt;GitHubComment&gt;&gt;();</span>
+
+<span class="nc" id="L567">        var integrationOptional = taskIntegrationRepository.findById(</span>
+<span class="nc" id="L568">                new TaskIntegrationId(task.getId(), integrationProject.getId(), TaskIntegration.Type.ISSUE.ordinal()));</span>
+
+<span class="nc" id="L570">        integrationOptional.ifPresent(integration -&gt; comments.add(createCommentUtil(integrationProject, integration,</span>
+                comment)));
+
+<span class="nc" id="L573">        integrationOptional = taskIntegrationRepository.findById(new TaskIntegrationId(task.getId(),</span>
+<span class="nc" id="L574">                integrationProject.getId(), TaskIntegration.Type.PULL_REQUEST.ordinal()));</span>
+
+<span class="nc" id="L576">        integrationOptional.ifPresent(integration -&gt; comments.add(createCommentUtil(integrationProject, integration,</span>
+                comment)));
+
+<span class="nc" id="L579">        return Flux.concat(comments).collectList().map(list -&gt; list.get(0));</span>
+    }
+
+    private Mono&lt;GitHubComment&gt; createCommentUtil(ProjectIntegration integrationProject,
+            TaskIntegration taskIntegration, Comment comment) {
+<span class="nc" id="L584">        return Mono.just(integrationProject.getInstallation())</span>
+<span class="nc bnc" id="L585" title="All 2 branches missed.">                .filter(inst -&gt; !inst.isSuspended())</span>
+<span class="nc" id="L586">                .flatMap(this::refreshToken)</span>
+<span class="nc" id="L587">                .flatMap(inst -&gt; client.createIssueComment(&quot;Bearer &quot; + inst.getToken(),</span>
+<span class="nc" id="L588">                        integrationProject.getRepositoryOwner(),</span>
+<span class="nc" id="L589">                        integrationProject.getRepositoryName(), taskIntegration.getIssueId(),</span>
+                        new GitHubComment(comment)))
+<span class="nc" id="L591">                .map(gitComment -&gt; {</span>
+<span class="nc" id="L592">                    commentIntegrationRepository.save(new CommentIntegration(gitComment.getId(), comment));</span>
+<span class="nc" id="L593">                    return gitComment;</span>
+                });
+    }
+
+    /**
+     * Patch the GitHub issue comment for given comment.
+     * 
+     * @param comment the comment
+     * @return the comment
+     */
+    public Mono&lt;GitHubComment&gt; patchComment(Comment comment) {
+<span class="fc" id="L604">        var task = comment.getTask();</span>
+<span class="fc" id="L605">        var integrationProjectOptional = projectIntegrationRepository.findByProject(task.getStatus().getProject());</span>
+
+<span class="pc bpc" id="L607" title="1 of 2 branches missed.">        if (integrationProjectOptional.isEmpty()) {</span>
+<span class="fc" id="L608">            return Mono.empty();</span>
+        }
+
+<span class="nc" id="L611">        var integrationProject = integrationProjectOptional.get();</span>
+
+<span class="nc" id="L613">        var integrations = commentIntegrationRepository.findByComment(comment);</span>
+
+<span class="nc bnc" id="L615" title="All 2 branches missed.">        if (integrations.isEmpty()) {</span>
+<span class="nc" id="L616">            return Mono.empty();</span>
+        }
+
+<span class="nc" id="L619">        return Mono.just(integrationProject.getInstallation())</span>
+<span class="nc bnc" id="L620" title="All 2 branches missed.">                .filter(inst -&gt; !inst.isSuspended())</span>
+<span class="nc" id="L621">                .flatMap(this::refreshToken)</span>
+<span class="nc" id="L622">                .flatMapMany(inst -&gt; Flux.concat(integrations.stream()</span>
+<span class="nc" id="L623">                        .map(integration -&gt; client.patchIssueComment(&quot;Bearer &quot; + inst.getToken(),</span>
+<span class="nc" id="L624">                                integrationProject.getRepositoryOwner(), integrationProject.getRepositoryName(),</span>
+<span class="nc" id="L625">                                integration.getId(), new GitHubComment(comment)))</span>
+<span class="nc" id="L626">                        .toList()))</span>
+<span class="nc" id="L627">                .collectList().map(list -&gt; list.get(0));</span>
+    }
+
+    /**
+     * Delete the GitHub issue comment for given comment.
+     * 
+     * @param comment the comment
+     */
+    public void deleteComment(Comment comment) {
+<span class="fc" id="L636">        commentIntegrationRepository.findByComment(comment).forEach(commentIntegrationRepository::delete);</span>
+<span class="fc" id="L637">    }</span>
+
+    private Mono&lt;Installation&gt; refreshToken(Installation installation) {
+<span class="fc bfc" id="L640" title="All 2 branches covered.">        return installation.shouldRefreshToken()</span>
+<span class="fc" id="L641">                ? client.createInstallationAccessToken(&quot;Bearer &quot; + createJWT(), installation.getId()).map(token -&gt; {</span>
+<span class="fc" id="L642">                    installation.refreshToken(token);</span>
+<span class="fc" id="L643">                    return installationRepository.save(installation);</span>
+                })
+<span class="fc" id="L645">                : Mono.just(installation);</span>
+    }
+
+    private Mono&lt;Authorization&gt; refreshToken(Authorization authorization) {
+<span class="nc bnc" id="L649" title="All 2 branches missed.">        if (authorization.shouldRefreshToken()) {</span>
+<span class="nc" id="L650">            var request = new OauthRefreshTokenRequest(authorization.getRefreshToken(), &quot;refresh_token&quot;,</span>
+<span class="nc" id="L651">                    config.getClientId(), config.getClientSecret());</span>
+<span class="nc" id="L652">            return client.refreshOauthAccessToken(request).map(token -&gt; {</span>
+<span class="nc" id="L653">                authorization.refreshToken(token);</span>
+<span class="nc" id="L654">                return authorizationRepository.save(authorization);</span>
+            });
+        }
+<span class="nc" id="L657">        return Mono.just(authorization);</span>
+    }
+
+    private Flux&lt;Installation&gt; getUserInstallations(Authorization authorization) {
+<span class="nc" id="L661">        return client.getUserInstallations(&quot;Bearer &quot; + authorization.getAccessToken())</span>
+<span class="nc" id="L662">                .map(Installations::getInstallationList)</span>
+<span class="nc" id="L663">                .flatMapMany(Flux::fromIterable)</span>
+<span class="nc bnc" id="L664" title="All 2 branches missed.">                .filter(installation -&gt; installation.getAppId() == config.getAppId())</span>
+<span class="nc" id="L665">                .map(installation -&gt; {</span>
+<span class="nc" id="L666">                    var inst = installationRepository.findById(installation.getId()).orElseGet(Installation::new);</span>
+<span class="nc" id="L667">                    inst.update(installation);</span>
+<span class="nc" id="L668">                    return installationRepository.save(inst);</span>
+                });
+    }
+
+    private Mono&lt;Boolean&gt; hasRepository(Installation installation, String repositoryFullName) {
+<span class="nc" id="L673">        return client.getInstallationRepositories(&quot;Bearer &quot; + installation.getToken())</span>
+<span class="nc" id="L674">                .map(Repositories::getRepositoryList)</span>
+<span class="nc" id="L675">                .flatMapMany(Flux::fromIterable)</span>
+<span class="nc" id="L676">                .map(GitHubRepository::getFullName)</span>
+<span class="nc" id="L677">                .any(repositoryFullName::equals);</span>
+    }
+
+    private Mono&lt;Installation&gt; setCollaborators(Installation installation, String owner, String name,
+            GitHubIssue issue, Set&lt;Long&gt; assignees) {
+<span class="fc bfc" id="L682" title="All 2 branches covered.">        if (assignees.isEmpty()) {</span>
+<span class="fc" id="L683">            return Mono.just(installation);</span>
+        }
+<span class="fc" id="L685">        return client.getRepositoryCollaborators(&quot;Bearer &quot; + installation.getToken(), owner, name)</span>
+<span class="fc" id="L686">                .filter(user -&gt; assignees.contains(user.getId()))</span>
+<span class="fc" id="L687">                .map(user -&gt; issue.getAssignees().add(user.getLogin()))</span>
+<span class="fc" id="L688">                .then(Mono.just(installation));</span>
+    }
+
+    private String createJWT() {
+<span class="fc" id="L692">        var now = Instant.now();</span>
+<span class="fc" id="L693">        return Jwts.builder().setIssuedAt(Date.from(now)).setIssuer(Long.toString(config.getAppId()))</span>
+<span class="fc" id="L694">                .signWith(config.getJwtKey()).setExpiration(Date.from(now.plusSeconds(60))).compact();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

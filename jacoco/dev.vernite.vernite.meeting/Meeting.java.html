@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Meeting.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.meeting</a> &gt; <span class="el_source">Meeting.java</span></div><h1>Meeting.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.meeting;
+
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
+import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.user.User;
+import dev.vernite.vernite.utils.FieldErrorException;
+
+/**
+ * Entity for representing meeting in project.
+ */
+@Data
+@Entity
+@NoArgsConstructor
+public class Meeting {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @PositiveOrZero(message = &quot;Id must be positive or zero&quot;)
+    private long id;
+
+    @Column(nullable = false, length = 50)
+    @Size(min = 1, max = 50, message = &quot;name must be shorter than 50 characters&quot;)
+    @NotBlank(message = &quot;name must contain at least one non-whitespace character&quot;)
+    private String name;
+
+    @Column(nullable = false, length = 1000)
+    @NotNull(message = &quot;description cannot be null&quot;)
+    @Size(max = 1000, message = &quot;description must be shorter than 1000 characters&quot;)
+    private String description;
+
+    @Column(length = 1000)
+    @Size(max = 1000, message = &quot;location must be shorter than 1000 characters&quot;)
+    private String location;
+
+    @Column(nullable = false)
+    @NotNull(message = &quot;start date cannot be null&quot;)
+    private Date startDate;
+
+    @Column(nullable = false)
+    @NotNull(message = &quot;end date cannot be null&quot;)
+    private Date endDate;
+
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @NotNull(message = &quot;project connection must be set&quot;)
+    private Project project;
+
+<span class="fc" id="L100">    @ToString.Exclude</span>
+    @EqualsAndHashCode.Exclude
+    @ManyToMany(cascade = CascadeType.MERGE)
+    @NotNull(message = &quot;users connection must be set&quot;)
+    private Set&lt;User&gt; participants = new HashSet&lt;&gt;();
+
+    /**
+     * Default constructor for meeting.
+     * 
+     * @param project     project to which meeting belongs
+     * @param name        name of meeting
+     * @param description description of meeting
+     * @param startDate   start date of meeting
+     * @param endDate     end date of meeting
+     */
+<span class="fc" id="L115">    public Meeting(Project project, String name, String description, Date startDate, Date endDate) {</span>
+<span class="fc" id="L116">        this.project = project;</span>
+<span class="fc" id="L117">        this.name = name.trim();</span>
+<span class="fc" id="L118">        this.description = description.trim();</span>
+
+<span class="fc bfc" id="L120" title="All 2 branches covered.">        if (startDate.after(endDate)) {</span>
+<span class="fc" id="L121">            throw new FieldErrorException(&quot;startDate&quot;, &quot;start date must be before end date&quot;);</span>
+        }
+
+<span class="fc" id="L124">        this.startDate = startDate;</span>
+<span class="fc" id="L125">        this.endDate = endDate;</span>
+<span class="fc" id="L126">    }</span>
+
+    /**
+     * Constructor for meeting from create request.
+     * 
+     * @param project project to which meeting belongs
+     * @param create  create request
+     */
+    public Meeting(Project project, CreateMeeting create) {
+<span class="fc" id="L135">        this(project, create.getName(), create.getDescription(), create.getStartDate(), create.getEndDate());</span>
+<span class="fc" id="L136">        setLocation(create.getLocation());</span>
+<span class="fc" id="L137">    }</span>
+
+    /**
+     * Update meeting from update request.
+     * 
+     * @param update update request
+     */
+    public void update(UpdateMeeting update) {
+<span class="fc bfc" id="L145" title="All 2 branches covered.">        if (update.getName() != null) {</span>
+<span class="fc" id="L146">            setName(update.getName());</span>
+        }
+
+<span class="fc bfc" id="L149" title="All 2 branches covered.">        if (update.getDescription() != null) {</span>
+<span class="fc" id="L150">            setDescription(update.getDescription());</span>
+        }
+
+<span class="fc bfc" id="L153" title="All 2 branches covered.">        if (update.getLocation() != null) {</span>
+<span class="fc" id="L154">            setLocation(update.getLocation());</span>
+        }
+
+<span class="fc bfc" id="L157" title="All 2 branches covered.">        if (update.getStartDate() != null) {</span>
+<span class="fc" id="L158">            setStartDate(update.getStartDate());</span>
+        }
+
+<span class="fc bfc" id="L161" title="All 2 branches covered.">        if (update.getEndDate() != null) {</span>
+<span class="fc" id="L162">            setEndDate(update.getEndDate());</span>
+        }
+
+<span class="fc bfc" id="L165" title="All 2 branches covered.">        if (getStartDate().after(getEndDate())) {</span>
+<span class="fc" id="L166">            throw new FieldErrorException(&quot;date&quot;, &quot;Start date must be before end date&quot;);</span>
+        }
+<span class="fc" id="L168">    }</span>
+
+    /**
+     * Set name of meeting. Trimmed to remove whitespace.
+     * 
+     * @param name name of meeting
+     */
+    public void setName(String name) {
+<span class="fc" id="L176">        this.name = name.trim();</span>
+<span class="fc" id="L177">    }</span>
+
+    /**
+     * Set description of meeting. Trimmed to remove whitespace.
+     * 
+     * @param description description of meeting
+     */
+    public void setDescription(String description) {
+<span class="fc" id="L185">        this.description = description.trim();</span>
+<span class="fc" id="L186">    }</span>
+
+    /**
+     * Set location of meeting. Trimmed to remove whitespace.
+     * 
+     * @param location location of meeting
+     */
+    public void setLocation(String location) {
+<span class="fc" id="L194">        this.location = location;</span>
+<span class="fc bfc" id="L195" title="All 2 branches covered.">        if (this.location != null) {</span>
+<span class="fc" id="L196">            this.location = this.location.trim();</span>
+        }
+<span class="fc" id="L198">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

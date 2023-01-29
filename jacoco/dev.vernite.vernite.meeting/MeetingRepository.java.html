@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MeetingRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">vernite</a> &gt; <a href="index.source.html" class="el_package">dev.vernite.vernite.meeting</a> &gt; <span class="el_source">MeetingRepository.java</span></div><h1>MeetingRepository.java</h1><pre class="source lang-java linenums">/*
+ * BSD 2-Clause License
+ * 
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package dev.vernite.vernite.meeting;
+
+import java.util.Date;
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.repository.CrudRepository;
+
+import dev.vernite.vernite.common.exception.EntityNotFoundException;
+import dev.vernite.vernite.project.Project;
+import dev.vernite.vernite.user.User;
+
+/**
+ * CRUD repository for meeting entity.
+ */
+public interface MeetingRepository extends CrudRepository&lt;Meeting, Long&gt;, JpaSpecificationExecutor&lt;Meeting&gt; {
+
+    /**
+     * Finds a meeting by its ID and project.
+     * 
+     * @param id      meeting ID
+     * @param project project
+     * @return meeting with given ID and project
+     * @throws EntityNotFoundException thrown when meeting with given ID and project
+     *                                 does not exist
+     */
+    default Meeting findByIdAndProjectOrThrow(Long id, Project project) throws EntityNotFoundException {
+<span class="fc" id="L55">        var meeting = findById(id).orElseThrow(() -&gt; new EntityNotFoundException(&quot;meeting&quot;, id));</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        if (meeting.getProject().getId() != project.getId()) {</span>
+<span class="fc" id="L57">            throw new EntityNotFoundException(&quot;meeting&quot;, id);</span>
+        }
+<span class="fc" id="L59">        return meeting;</span>
+    }
+
+    /**
+     * Finds a meeting by project and between dates.
+     * 
+     * @param project   the project.
+     * @param startDate the start date.
+     * @param endDate   the end date.
+     * @return list of meetings.
+     */
+    default List&lt;Meeting&gt; findMeetingsByProjectAndDate(Project project, Date startDate, Date endDate) {
+<span class="fc" id="L71">        return findAll((root, query, cb) -&gt; {</span>
+<span class="fc" id="L72">            return cb.and(cb.equal(root.get(&quot;project&quot;), project),</span>
+<span class="fc" id="L73">                    cb.between(root.get(&quot;startDate&quot;), startDate, endDate));</span>
+        });
+    }
+
+    /**
+     * Finds a meeting by user and between dates.
+     * 
+     * @param user      the user.
+     * @param startDate the start date.
+     * @param endDate   the end date.
+     * @return list of meetings.
+     */
+    default List&lt;Meeting&gt; findMeetingsByUserAndDate(User user, Date startDate, Date endDate) {
+<span class="fc" id="L86">        return findAll((root, query, cb) -&gt; {</span>
+<span class="fc" id="L87">            return cb.and(cb.equal(root.join(&quot;participants&quot;), user),</span>
+<span class="fc" id="L88">                    cb.between(root.get(&quot;startDate&quot;), startDate, endDate));</span>
+        });
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
