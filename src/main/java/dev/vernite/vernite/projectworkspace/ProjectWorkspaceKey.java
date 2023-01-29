@@ -30,7 +30,8 @@ package dev.vernite.vernite.projectworkspace;
 import java.io.Serializable;
 
 import jakarta.persistence.Embeddable;
-
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.workspace.Workspace;
 import dev.vernite.vernite.workspace.WorkspaceId;
@@ -38,53 +39,16 @@ import dev.vernite.vernite.workspace.WorkspaceId;
 /**
  * Composite key for pivot table. Composed of workspace id and project id.
  */
+@Data
 @Embeddable
+@NoArgsConstructor
 public class ProjectWorkspaceKey implements Serializable, Comparable<ProjectWorkspaceKey> {
     WorkspaceId workspaceId;
     long projectId;
 
-    public ProjectWorkspaceKey() {
-    }
-
     public ProjectWorkspaceKey(Workspace workspace, Project project) {
         this.workspaceId = workspace.getId();
         this.projectId = project.getId();
-    }
-
-    public WorkspaceId getWorkspaceId() {
-        return workspaceId;
-    }
-
-    public void setWorkspaceId(WorkspaceId workspaceId) {
-        this.workspaceId = workspaceId;
-    }
-
-    public long getProjectId() {
-        return projectId;
-    }
-
-    public void setProjectId(long projectId) {
-        this.projectId = projectId;
-    }
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int hash = prime + Long.hashCode(projectId);
-        hash = prime * hash + (workspaceId == null ? 0 : workspaceId.hashCode());
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null || getClass() != obj.getClass())
-            return false;
-        ProjectWorkspaceKey other = (ProjectWorkspaceKey) obj;
-        if (projectId != other.projectId)
-            return false;
-        if (workspaceId == null)
-            return other.workspaceId == null;
-        return workspaceId.equals(other.workspaceId);
     }
 
     @Override
