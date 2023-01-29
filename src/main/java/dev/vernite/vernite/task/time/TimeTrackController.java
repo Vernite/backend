@@ -63,10 +63,10 @@ public class TimeTrackController {
     /**
      * Create new time track for given task.
      * 
-     * @param user             logged in user
-     * @param projectId        project id
-     * @param taskId           task id
-     * @param timeTrackRequest request body
+     * @param user      logged in user
+     * @param projectId project id
+     * @param taskId    task id
+     * @param create    request body
      * @return created time track
      */
     @PostMapping
@@ -120,11 +120,11 @@ public class TimeTrackController {
     /**
      * Edit time tracking for given task. Sets edited flag to true.
      * 
-     * @param user         logged in user
-     * @param projectId    project id
-     * @param taskId       task id
-     * @param id           time track id
-     * @param trackRequest request body
+     * @param user      logged in user
+     * @param projectId project id
+     * @param taskId    task id
+     * @param id        time track id
+     * @param update    request body
      * @return created time track
      */
     @PutMapping("/{id}")

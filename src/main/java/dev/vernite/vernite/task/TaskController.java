@@ -203,9 +203,9 @@ public class TaskController {
     /**
      * Create new task.
      * 
-     * @param user        logged in user
-     * @param projectId   ID of project
-     * @param taskRequest request with task data
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param create    request with task data
      * @return newly created task
      */
     @PostMapping
@@ -254,10 +254,10 @@ public class TaskController {
     /**
      * Update task with given ID.
      * 
-     * @param user        logged in user
-     * @param projectId   ID of project
-     * @param id          ID of task
-     * @param taskRequest request with task data
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param id        ID of task
+     * @param update    request with task data
      * @return updated task
      */
     @PutMapping("/{id}")
