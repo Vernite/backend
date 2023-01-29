@@ -31,19 +31,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
 
 import dev.vernite.vernite.task.Task.Type;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@TestInstance(Lifecycle.PER_CLASS)
-@TestPropertySource({ "classpath:application.properties", "classpath:application-test.properties" })
 class TaskTypeTests {
+
     @Test
     void isValidParentEpicTests() {
         assertFalse(Type.EPIC.isValidParent(Type.EPIC));
@@ -88,4 +80,5 @@ class TaskTypeTests {
         assertFalse(Type.USER_STORY.isValidParent(Type.TASK));
         assertFalse(Type.USER_STORY.isValidParent(Type.USER_STORY));
     }
+
 }

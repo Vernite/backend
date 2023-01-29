@@ -34,7 +34,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -49,7 +48,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
@@ -60,10 +58,6 @@ import dev.vernite.vernite.projectworkspace.ProjectWorkspaceRepository;
 import dev.vernite.vernite.sprint.Sprint;
 import dev.vernite.vernite.sprint.SprintRepository;
 import dev.vernite.vernite.status.Status;
-import dev.vernite.vernite.task.time.CreateTimeTrack;
-import dev.vernite.vernite.task.time.TimeTrack;
-import dev.vernite.vernite.task.time.TimeTrackRepository;
-import dev.vernite.vernite.task.time.UpdateTimeTrack;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.user.UserRepository;
 import dev.vernite.vernite.user.UserSession;
@@ -93,8 +87,6 @@ class TaskControllerTests {
     private TaskRepository taskRepository;
     @Autowired
     private SprintRepository sprintRepository;
-    @Autowired
-    private TimeTrackRepository timeTrackRepository;
 
     private User user;
     private UserSession session;
@@ -630,284 +622,5 @@ class TaskControllerTests {
         Task task = taskRepository.save(new Task(1, "N", "D", forbiddenProject.getStatuses().get(0), user, 0, "low"));
         client.delete().uri("/project/{pId}/task/{id}", forbiddenProject.getId(), task.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
-    }
-
-    @Test
-    void createTrackingSuccess() {
-        Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
-
-        Date date = Date.from(Instant.now().minus(1, ChronoUnit.DAYS));
-
-        TimeTrack track = client.post()
-                .uri("/project/{pId}/task/{id}/track", project.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new CreateTimeTrack(date, new Date()))
-                .exchange().expectStatus().isOk().expectBody(TimeTrack.class).returnResult().getResponseBody();
-        assertNotNull(track);
-        assertEquals(true, track.isEdited());
-        assertEquals(date, track.getStartDate());
-    }
-
-    @Test
-    void createTrackingBadRequest() {
-        Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
-
-        client.post()
-                .uri("/project/{pId}/task/{id}/track", project.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new CreateTimeTrack())
-                .exchange().expectStatus().isBadRequest();
-
-        client.post()
-                .uri("/project/{pId}/task/{id}/track", project.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new CreateTimeTrack(new Date(), null))
-                .exchange().expectStatus().isBadRequest();
-
-        Date date = Date.from(Instant.now().minus(1, ChronoUnit.DAYS));
-
-        client.post()
-                .uri("/project/{pId}/task/{id}/track", project.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new CreateTimeTrack(new Date(), date))
-                .exchange().expectStatus().isEqualTo(HttpStatus.CONFLICT);
-    }
-
-    @Test
-    void createTrackingUnauthorized() {
-        Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
-        client.post().uri("/project/{pId}/task/{id}/track", project.getId(), task.getNumber())
-                .bodyValue(new CreateTimeTrack()).exchange().expectStatus().isUnauthorized();
-    }
-
-    @Test
-    void createTrackingNotFound() {
-        client.post().uri("/project/{pId}/task/{tId}/track", project.getId(), Long.MAX_VALUE)
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new CreateTimeTrack(new Date(), new Date()))
-                .exchange().expectStatus().isNotFound();
-        Task task = taskRepository
-                .save(new Task(1, "NAME", "DESC", forbiddenProject.getStatuses().get(0), user, 0, "low"));
-        client.post().uri("/project/{pId}/task/{id}/track", forbiddenProject.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new CreateTimeTrack(new Date(), new Date()))
-                .exchange().expectStatus().isNotFound();
-
-        task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
-        client.post().uri("/project/{pId}/task/{id}/track", forbiddenProject.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new CreateTimeTrack(new Date(), new Date()))
-                .exchange().expectStatus().isNotFound();
-    }
-
-    @Test
-    void startTrackingSuccess() throws InterruptedException {
-        Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
-
-        TimeTrack track = client.post().uri("/project/{pId}/task/{id}/track/start", project.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
-                .expectBody(TimeTrack.class).returnResult().getResponseBody();
-        assertNotNull(track);
-        assertNull(track.getEndDate());
-        assertEquals(false, track.isEdited());
-        assertNotNull(track.getStartDate());
-    }
-
-    @Test
-    void startTrackingUnauthorized() {
-        Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
-        client.post().uri("/project/{pId}/task/{id}/track/start", project.getId(), task.getNumber()).exchange()
-                .expectStatus().isUnauthorized();
-    }
-
-    @Test
-    void startTrackingNotFound() {
-        client.post().uri("/project/{pId}/task/1/track/start", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
-        Task task = taskRepository
-                .save(new Task(1, "NAME", "DESC", forbiddenProject.getStatuses().get(0), user, 0, "low"));
-        client.post().uri("/project/{pId}/task/{id}/track/start", forbiddenProject.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange()
-                .expectStatus().isNotFound();
-    }
-
-    @Test
-    void startTrackingConflict() throws InterruptedException {
-        Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
-
-        client.post().uri("/project/{pId}/task/{id}/track/start", project.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
-                .expectBody(TimeTrack.class);
-
-        client.post().uri("/project/{pId}/task/{id}/track/start", project.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus()
-                .isEqualTo(HttpStatus.CONFLICT);
-    }
-
-    @Test
-    void stopTrackingSuccess() throws InterruptedException {
-        Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
-        timeTrackRepository.save(new TimeTrack(user, task));
-
-        TimeTrack track = client.post().uri("/project/{pId}/task/{id}/track/stop", project.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk()
-                .expectBody(TimeTrack.class).returnResult().getResponseBody();
-        assertNotNull(track);
-        assertNotNull(track.getEndDate());
-        assertEquals(false, track.isEdited());
-        assertNotNull(track.getStartDate());
-    }
-
-    @Test
-    void stopTrackingUnauthorized() {
-        Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
-        client.post().uri("/project/{pId}/task/{id}/track/stop", project.getId(), task.getNumber()).exchange()
-                .expectStatus().isUnauthorized();
-    }
-
-    @Test
-    void stopTrackingNotFound() {
-        client.post().uri("/project/{pId}/task/1/track/stop", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
-        Task task = taskRepository
-                .save(new Task(1, "NAME", "DESC", forbiddenProject.getStatuses().get(0), user, 0, "low"));
-        client.post().uri("/project/{pId}/task/{id}/track/stop", forbiddenProject.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange()
-                .expectStatus().isNotFound();
-    }
-
-    @Test
-    void stopTrackingConflict() throws InterruptedException {
-        Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
-
-        client.post().uri("/project/{pId}/task/{id}/track/stop", project.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus()
-                .isEqualTo(HttpStatus.CONFLICT);
-    }
-
-    @Test
-    void editTrackingSuccess() {
-        Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
-        TimeTrack timeTrack = new TimeTrack(user, task);
-        timeTrack.setEndDate(new Date());
-        timeTrack = timeTrackRepository.save(timeTrack);
-
-        Date date = Date.from(Instant.now().minus(1, ChronoUnit.DAYS));
-
-        TimeTrack track = client.put()
-                .uri("/project/{pId}/task/{id}/track/{trackId}", project.getId(), task.getNumber(), timeTrack.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new UpdateTimeTrack(date, null))
-                .exchange().expectStatus().isOk().expectBody(TimeTrack.class).returnResult().getResponseBody();
-        assertNotNull(track);
-        assertEquals(true, track.isEdited());
-        assertEquals(date, track.getStartDate());
-
-        date = new Date();
-
-        track = client.put()
-                .uri("/project/{pId}/task/{id}/track/{trackId}", project.getId(), task.getNumber(), timeTrack.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new UpdateTimeTrack(null, date))
-                .exchange().expectStatus().isOk().expectBody(TimeTrack.class).returnResult().getResponseBody();
-
-        assertNotNull(track);
-        assertEquals(true, track.isEdited());
-        assertEquals(date, track.getEndDate());
-    }
-
-    @Test
-    void editTrackingBadRequest() {
-        Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
-        TimeTrack timeTrack = new TimeTrack(user, task);
-        timeTrack = timeTrackRepository.save(timeTrack);
-
-        client.put()
-                .uri("/project/{pId}/task/{id}/track/{trackId}", project.getId(), task.getNumber(), timeTrack.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new UpdateTimeTrack())
-                .exchange().expectStatus().isEqualTo(HttpStatus.CONFLICT);
-
-        timeTrack.setEndDate(new Date());
-        timeTrackRepository.save(timeTrack);
-        Date date = Date.from(Instant.now().minus(1, ChronoUnit.DAYS));
-
-        client.put()
-                .uri("/project/{pId}/task/{id}/track/{trackId}", project.getId(), task.getNumber(), timeTrack.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new UpdateTimeTrack(null, date))
-                .exchange().expectStatus().isEqualTo(HttpStatus.CONFLICT);
-
-        date = Date.from(Instant.now().plus(1, ChronoUnit.DAYS));
-
-        client.put()
-                .uri("/project/{pId}/task/{id}/track/{trackId}", project.getId(), task.getNumber(), timeTrack.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new UpdateTimeTrack(null, date))
-                .exchange().expectStatus().isEqualTo(HttpStatus.CONFLICT);
-    }
-
-    @Test
-    void editTrackingUnauthorized() {
-        Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
-        client.put().uri("/project/{pId}/task/{id}/track/{trackId}", project.getId(), task.getNumber(), 1)
-                .bodyValue(new UpdateTimeTrack()).exchange().expectStatus().isUnauthorized();
-    }
-
-    @Test
-    void editTrackingNotFound() {
-        client.put().uri("/project/{pId}/task/1/track/1", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new UpdateTimeTrack())
-                .exchange().expectStatus().isNotFound();
-        Task task = taskRepository
-                .save(new Task(1, "NAME", "DESC", forbiddenProject.getStatuses().get(0), user, 0, "low"));
-        client.put().uri("/project/{pId}/task/{id}/track/1", forbiddenProject.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new UpdateTimeTrack())
-                .exchange().expectStatus().isNotFound();
-
-        task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
-        client.put().uri("/project/{pId}/task/{id}/track/1", forbiddenProject.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new UpdateTimeTrack())
-                .exchange().expectStatus().isNotFound();
-
-        task = taskRepository
-                .save(new Task(3, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
-        Task task2 = taskRepository.save(new Task(2, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
-        TimeTrack timeTrack = timeTrackRepository.save(new TimeTrack(user, task2));
-
-        client.put()
-                .uri("/project/{pId}/task/{id}/track/{trackId}", project.getId(), task.getNumber(), timeTrack.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new UpdateTimeTrack(null, null))
-                .exchange().expectStatus().isNotFound();
-    }
-
-    @Test
-    void deleteTrackingSuccess() {
-        Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
-        TimeTrack timeTrack = timeTrackRepository.save(new TimeTrack(user, task));
-        client.delete()
-                .uri("/project/{pId}/task/{id}/track/{trackId}", project.getId(), task.getNumber(), timeTrack.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isOk();
-    }
-
-    @Test
-    void deleteTrackingUnauthorized() {
-        Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
-        client.delete().uri("/project/{pId}/task/{id}/track/1", project.getId(), task.getNumber())
-                .exchange().expectStatus().isUnauthorized();
-    }
-
-    @Test
-    void deleteTrackingNotFound() {
-        client.delete().uri("/project/{pId}/task/1/track/1", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange().expectStatus().isNotFound();
-        Task task = taskRepository
-                .save(new Task(1, "NAME", "DESC", forbiddenProject.getStatuses().get(0), user, 0, "low"));
-        client.delete().uri("/project/{pId}/task/{id}/track/1", forbiddenProject.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange()
-                .expectStatus().isNotFound();
-
-        task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
-        client.delete().uri("/project/{pId}/task/{id}/track/1", project.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange()
-                .expectStatus().isNotFound();
-
-        Task task2 = taskRepository.save(new Task(2, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
-        TimeTrack timeTrack = timeTrackRepository.save(new TimeTrack(user, task2));
-        client.delete()
-                .uri("/project/{pId}/task/{id}/track/{trackId}", project.getId(), task.getNumber(), timeTrack.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).exchange()
-                .expectStatus().isNotFound();
     }
 }
