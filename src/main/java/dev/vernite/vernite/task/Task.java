@@ -305,6 +305,24 @@ public class Task {
         }
     }
 
+    /**
+     * Sets the name of the task. Trims the name.
+     * 
+     * @param name name of the task
+     */
+    public void setName(String name) {
+        this.name = name.trim();
+    }
+
+    /**
+     * Sets the description of the task. Trims the description.
+     * 
+     * @param description description of the task
+     */
+    public void setDescription(String description) {
+        this.description = description.trim();
+    }
+
     public long getStatusId() {
         return this.getStatus().getId();
     }

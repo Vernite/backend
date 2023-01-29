@@ -30,15 +30,34 @@ package dev.vernite.vernite.task.time;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.repository.CrudRepository;
+
+import dev.vernite.vernite.common.exception.EntityNotFoundException;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.task.Task;
 import dev.vernite.vernite.user.User;
-import dev.vernite.vernite.utils.NotFoundRepository;
 
 /**
  * CRUD repository for time track entity.
  */
-public interface TimeTrackRepository extends NotFoundRepository<TimeTrack, Long> {
+public interface TimeTrackRepository extends CrudRepository<TimeTrack, Long> {
+
+    /**
+     * Finds time track by id and task.
+     * 
+     * @param id   time track id
+     * @param task task
+     * @return time track
+     * @throws EntityNotFoundException if time track is not found
+     *                                 or if it is not related to the task.
+     */
+    default TimeTrack findByIdAndTaskOrThrow(Long id, Task task) throws EntityNotFoundException {
+        var timeTrack = findById(id).orElseThrow(() -> new EntityNotFoundException("time track", id));
+        if (timeTrack.getTask().getId() != task.getId()) {
+            throw new EntityNotFoundException("time track", id);
+        }
+        return timeTrack;
+    }
 
     /**
      * Finds time tracks for a project.

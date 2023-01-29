@@ -29,7 +29,6 @@ package dev.vernite.vernite.task.time;
 
 import java.util.Date;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,14 +36,13 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
+import dev.vernite.vernite.common.exception.ConflictStateException;
 import dev.vernite.vernite.project.ProjectRepository;
-import dev.vernite.vernite.task.Task;
 import dev.vernite.vernite.task.TaskRepository;
 import dev.vernite.vernite.user.User;
-import dev.vernite.vernite.utils.ObjectNotFoundException;
 import io.swagger.v3.oas.annotations.Parameter;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 
@@ -73,11 +71,10 @@ public class TimeTrackController {
      */
     @PostMapping
     public TimeTrack create(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @PathVariable long taskId, @RequestBody TimeTrackRequest timeTrackRequest) {
+            @PathVariable long taskId, @RequestBody @Valid CreateTimeTrack create) {
         var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
-        Task task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
-        TimeTrack timeTrack = timeTrackRequest.createEntity(user, task);
-        return trackRepository.save(timeTrack);
+        var task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
+        return trackRepository.save(new TimeTrack(user, task, create));
     }
 
     /**
@@ -93,9 +90,9 @@ public class TimeTrackController {
     public TimeTrack startTracking(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long taskId) {
         var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
-        Task task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
+        var task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
         if (trackRepository.findByUserAndTaskAndEndDateNull(user, task).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Already tracking");
+            throw new ConflictStateException("already tracking");
         }
         return trackRepository.save(new TimeTrack(user, task));
     }
@@ -113,9 +110,9 @@ public class TimeTrackController {
     public TimeTrack stopTracking(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long taskId) {
         var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
-        Task task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
+        var task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
         TimeTrack track = trackRepository.findByUserAndTaskAndEndDateNull(user, task)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "Not tracking"));
+                .orElseThrow(() -> new ConflictStateException("not tracking"));
         track.setEndDate(new Date());
         return trackRepository.save(track);
     }
@@ -132,14 +129,11 @@ public class TimeTrackController {
      */
     @PutMapping("/{id}")
     public TimeTrack editTracking(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @PathVariable long taskId, @PathVariable long id, @RequestBody TimeTrackRequest trackRequest) {
+            @PathVariable long taskId, @PathVariable long id, @RequestBody @Valid UpdateTimeTrack update) {
         var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
-        Task task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
-        TimeTrack timeTrack = trackRepository.findByIdOrThrow(id);
-        if (timeTrack.getTask().getId() != task.getId()) {
-            throw new ObjectNotFoundException();
-        }
-        timeTrack.update(trackRequest);
+        var task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
+        var timeTrack = trackRepository.findByIdAndTaskOrThrow(id, task);
+        timeTrack.update(update);
         return trackRepository.save(timeTrack);
     }
 
@@ -155,11 +149,8 @@ public class TimeTrackController {
     public void deleteTracking(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long taskId, @PathVariable long id) {
         var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
-        Task task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
-        TimeTrack timeTrack = trackRepository.findByIdOrThrow(id);
-        if (timeTrack.getTask().getId() != task.getId()) {
-            throw new ObjectNotFoundException();
-        }
+        var task = taskRepository.findByProjectAndNumberOrThrow(project, taskId);
+        var timeTrack = trackRepository.findByIdAndTaskOrThrow(id, task);
         trackRepository.delete(timeTrack);
     }
 }

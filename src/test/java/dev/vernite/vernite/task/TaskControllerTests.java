@@ -60,9 +60,10 @@ import dev.vernite.vernite.projectworkspace.ProjectWorkspaceRepository;
 import dev.vernite.vernite.sprint.Sprint;
 import dev.vernite.vernite.sprint.SprintRepository;
 import dev.vernite.vernite.status.Status;
+import dev.vernite.vernite.task.time.CreateTimeTrack;
 import dev.vernite.vernite.task.time.TimeTrack;
 import dev.vernite.vernite.task.time.TimeTrackRepository;
-import dev.vernite.vernite.task.time.TimeTrackRequest;
+import dev.vernite.vernite.task.time.UpdateTimeTrack;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.user.UserRepository;
 import dev.vernite.vernite.user.UserSession;
@@ -640,10 +641,10 @@ class TaskControllerTests {
         TimeTrack track = client.post()
                 .uri("/project/{pId}/task/{id}/track", project.getId(), task.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new TimeTrackRequest(date, new Date()))
+                .bodyValue(new CreateTimeTrack(date, new Date()))
                 .exchange().expectStatus().isOk().expectBody(TimeTrack.class).returnResult().getResponseBody();
         assertNotNull(track);
-        assertEquals(true, track.getEdited());
+        assertEquals(true, track.isEdited());
         assertEquals(date, track.getStartDate());
     }
 
@@ -653,13 +654,13 @@ class TaskControllerTests {
 
         client.post()
                 .uri("/project/{pId}/task/{id}/track", project.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new TimeTrackRequest())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new CreateTimeTrack())
                 .exchange().expectStatus().isBadRequest();
 
         client.post()
                 .uri("/project/{pId}/task/{id}/track", project.getId(), task.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new TimeTrackRequest(new Date(), null))
+                .bodyValue(new CreateTimeTrack(new Date(), null))
                 .exchange().expectStatus().isBadRequest();
 
         Date date = Date.from(Instant.now().minus(1, ChronoUnit.DAYS));
@@ -667,31 +668,31 @@ class TaskControllerTests {
         client.post()
                 .uri("/project/{pId}/task/{id}/track", project.getId(), task.getNumber())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
-                .bodyValue(new TimeTrackRequest(new Date(), date))
-                .exchange().expectStatus().isBadRequest();
+                .bodyValue(new CreateTimeTrack(new Date(), date))
+                .exchange().expectStatus().isEqualTo(HttpStatus.CONFLICT);
     }
 
     @Test
     void createTrackingUnauthorized() {
         Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
         client.post().uri("/project/{pId}/task/{id}/track", project.getId(), task.getNumber())
-                .bodyValue(new TimeTrackRequest()).exchange().expectStatus().isUnauthorized();
+                .bodyValue(new CreateTimeTrack()).exchange().expectStatus().isUnauthorized();
     }
 
     @Test
     void createTrackingNotFound() {
-        client.post().uri("/project/{pId}/task/1/track", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new TimeTrackRequest())
+        client.post().uri("/project/{pId}/task/{tId}/track", project.getId(), Long.MAX_VALUE)
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new CreateTimeTrack(new Date(), new Date()))
                 .exchange().expectStatus().isNotFound();
         Task task = taskRepository
                 .save(new Task(1, "NAME", "DESC", forbiddenProject.getStatuses().get(0), user, 0, "low"));
         client.post().uri("/project/{pId}/task/{id}/track", forbiddenProject.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new TimeTrackRequest())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new CreateTimeTrack(new Date(), new Date()))
                 .exchange().expectStatus().isNotFound();
 
         task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
         client.post().uri("/project/{pId}/task/{id}/track", forbiddenProject.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new TimeTrackRequest())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new CreateTimeTrack(new Date(), new Date()))
                 .exchange().expectStatus().isNotFound();
     }
 
@@ -704,7 +705,7 @@ class TaskControllerTests {
                 .expectBody(TimeTrack.class).returnResult().getResponseBody();
         assertNotNull(track);
         assertNull(track.getEndDate());
-        assertEquals(false, track.getEdited());
+        assertEquals(false, track.isEdited());
         assertNotNull(track.getStartDate());
     }
 
@@ -749,7 +750,7 @@ class TaskControllerTests {
                 .expectBody(TimeTrack.class).returnResult().getResponseBody();
         assertNotNull(track);
         assertNotNull(track.getEndDate());
-        assertEquals(false, track.getEdited());
+        assertEquals(false, track.isEdited());
         assertNotNull(track.getStartDate());
     }
 
@@ -791,21 +792,21 @@ class TaskControllerTests {
 
         TimeTrack track = client.put()
                 .uri("/project/{pId}/task/{id}/track/{trackId}", project.getId(), task.getNumber(), timeTrack.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new TimeTrackRequest(date, null))
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new UpdateTimeTrack(date, null))
                 .exchange().expectStatus().isOk().expectBody(TimeTrack.class).returnResult().getResponseBody();
         assertNotNull(track);
-        assertEquals(true, track.getEdited());
+        assertEquals(true, track.isEdited());
         assertEquals(date, track.getStartDate());
 
         date = new Date();
 
         track = client.put()
                 .uri("/project/{pId}/task/{id}/track/{trackId}", project.getId(), task.getNumber(), timeTrack.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new TimeTrackRequest(null, date))
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new UpdateTimeTrack(null, date))
                 .exchange().expectStatus().isOk().expectBody(TimeTrack.class).returnResult().getResponseBody();
 
         assertNotNull(track);
-        assertEquals(true, track.getEdited());
+        assertEquals(true, track.isEdited());
         assertEquals(date, track.getEndDate());
     }
 
@@ -817,8 +818,8 @@ class TaskControllerTests {
 
         client.put()
                 .uri("/project/{pId}/task/{id}/track/{trackId}", project.getId(), task.getNumber(), timeTrack.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new TimeTrackRequest())
-                .exchange().expectStatus().isBadRequest();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new UpdateTimeTrack())
+                .exchange().expectStatus().isEqualTo(HttpStatus.CONFLICT);
 
         timeTrack.setEndDate(new Date());
         timeTrackRepository.save(timeTrack);
@@ -826,38 +827,38 @@ class TaskControllerTests {
 
         client.put()
                 .uri("/project/{pId}/task/{id}/track/{trackId}", project.getId(), task.getNumber(), timeTrack.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new TimeTrackRequest(null, date))
-                .exchange().expectStatus().isBadRequest();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new UpdateTimeTrack(null, date))
+                .exchange().expectStatus().isEqualTo(HttpStatus.CONFLICT);
 
         date = Date.from(Instant.now().plus(1, ChronoUnit.DAYS));
 
         client.put()
                 .uri("/project/{pId}/task/{id}/track/{trackId}", project.getId(), task.getNumber(), timeTrack.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new TimeTrackRequest(null, date))
-                .exchange().expectStatus().isBadRequest();
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new UpdateTimeTrack(null, date))
+                .exchange().expectStatus().isEqualTo(HttpStatus.CONFLICT);
     }
 
     @Test
     void editTrackingUnauthorized() {
         Task task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
         client.put().uri("/project/{pId}/task/{id}/track/{trackId}", project.getId(), task.getNumber(), 1)
-                .bodyValue(new TimeTrackRequest()).exchange().expectStatus().isUnauthorized();
+                .bodyValue(new UpdateTimeTrack()).exchange().expectStatus().isUnauthorized();
     }
 
     @Test
     void editTrackingNotFound() {
         client.put().uri("/project/{pId}/task/1/track/1", project.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new TimeTrackRequest())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new UpdateTimeTrack())
                 .exchange().expectStatus().isNotFound();
         Task task = taskRepository
                 .save(new Task(1, "NAME", "DESC", forbiddenProject.getStatuses().get(0), user, 0, "low"));
         client.put().uri("/project/{pId}/task/{id}/track/1", forbiddenProject.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new TimeTrackRequest())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new UpdateTimeTrack())
                 .exchange().expectStatus().isNotFound();
 
         task = taskRepository.save(new Task(1, "NAME", "DESC", project.getStatuses().get(0), user, 0, "low"));
         client.put().uri("/project/{pId}/task/{id}/track/1", forbiddenProject.getId(), task.getNumber())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new TimeTrackRequest())
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new UpdateTimeTrack())
                 .exchange().expectStatus().isNotFound();
 
         task = taskRepository
@@ -867,7 +868,7 @@ class TaskControllerTests {
 
         client.put()
                 .uri("/project/{pId}/task/{id}/track/{trackId}", project.getId(), task.getNumber(), timeTrack.getId())
-                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new TimeTrackRequest(null, null))
+                .cookie(AuthController.COOKIE_NAME, session.getSession()).bodyValue(new UpdateTimeTrack(null, null))
                 .exchange().expectStatus().isNotFound();
     }
 
