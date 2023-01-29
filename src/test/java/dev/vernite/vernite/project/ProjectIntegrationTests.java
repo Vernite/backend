@@ -175,7 +175,7 @@ public class ProjectIntegrationTests {
 
     @Test
     void getIssuesSuccess() throws JsonProcessingException {
-        Project newProject = projectRepository.save(new Project("NAME"));
+        Project newProject = projectRepository.save(new Project("NAME", ""));
         projectWorkspaceRepository.save(new ProjectWorkspace(newProject, workspace, 1L));
 
         List<Issue> issues = controller.getIssues(user, newProject.getId()).collectList().block();
@@ -216,7 +216,7 @@ public class ProjectIntegrationTests {
                 .exchange()
                 .expectStatus().isNotFound();
 
-        Project newProject = projectRepository.save(new Project("NAME"));
+        Project newProject = projectRepository.save(new Project("NAME", ""));
 
         client.get().uri("/project/{id}/integration/git/issue", newProject.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())
@@ -226,7 +226,7 @@ public class ProjectIntegrationTests {
 
     @Test
     void getPullRequestSuccess() throws JsonProcessingException {
-        Project newProject = projectRepository.save(new Project("NAME"));
+        Project newProject = projectRepository.save(new Project("NAME", ""));
         projectWorkspaceRepository.save(new ProjectWorkspace(newProject, workspace, 1L));
 
         List<PullRequest> pulls = controller.getPullRequests(user, newProject.getId()).collectList().block();
@@ -267,7 +267,7 @@ public class ProjectIntegrationTests {
                 .exchange()
                 .expectStatus().isNotFound();
 
-        Project newProject = projectRepository.save(new Project("NAME"));
+        Project newProject = projectRepository.save(new Project("NAME", ""));
 
         client.get().uri("/project/{id}/integration/git/pull", newProject.getId())
                 .cookie(AuthController.COOKIE_NAME, session.getSession())

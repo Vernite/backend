@@ -28,6 +28,7 @@
 package dev.vernite.vernite;
 
 import java.util.Date;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -201,7 +202,7 @@ public class AuthControllerTests {
     @Test
     void getUserEventsSuccess() {
         User u = new User("name", "surname", "usernameX", "contact+3@vernite.dev", "password", "English", "YYYY-MM-DD");
-        User registeredUser = userRepository.save(u);
+        User registeredUser = Optional.ofNullable(userRepository.findByUsername("usernameX")).orElseGet(() -> userRepository.save(u));
 
         UserSession session = new UserSession();
         session.setIp("127.0.0.1");
