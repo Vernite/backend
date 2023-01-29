@@ -8,9 +8,13 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+@Data
 @Entity
 public class File {
 
@@ -30,47 +34,9 @@ public class File {
 
     @Column(nullable = false)
     @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Blob file;
-
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public Date getUploaded() {
-        return uploaded;
-    }
-
-    public void setUploaded(Date uploaded) {
-        this.uploaded = uploaded;
-    }
-
-    public String getHash() {
-        return hash;
-    }
-
-    public void setHash(String hash) {
-        this.hash = hash;
-    }
-
-    public String getContentType() {
-        return contentType;
-    }
-
-    public void setContentType(String contetType) {
-        this.contentType = contetType;
-    }
-
-    public Blob getFile() {
-        return file;
-    }
-
-    public void setFile(Blob file) {
-        this.file = file;
-    }
 
     public String getURL() {
         return "/api/cdn/" + hash;
