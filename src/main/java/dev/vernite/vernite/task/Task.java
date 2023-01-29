@@ -166,7 +166,7 @@ public class Task {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(nullable = true)
+    @JoinColumn(nullable = true, name = "assignee")
     private User assignee;
 
     @Column(nullable = false)
