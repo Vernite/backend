@@ -1,7 +1,7 @@
 /*
  * BSD 2-Clause License
  * 
- * Copyright (c) 2023, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
+ * Copyright (c) 2022, [Aleksandra Serba, Marcin Czerniak, Bartosz Wawrzyniak, Adrian Antkowiak]
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -25,39 +25,34 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package dev.vernite.vernite.user;
+package dev.vernite.vernite.task.time;
 
-import java.util.List;
+import java.util.Date;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import dev.vernite.vernite.task.Task;
-import dev.vernite.vernite.task.TaskRepository;
-import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
- * Controller responsible for logged user connected operations.
+ * Class containing information needed to create new time track entity.
+ * Has required constraints annotated using Java Bean Validation.
  */
-@RestController
+@Data
+@NoArgsConstructor
 @AllArgsConstructor
-@RequestMapping("/me")
-public class MeController {
-
-    private TaskRepository taskRepository;
+public class CreateTimeTrack {
 
     /**
-     * This method gets tasks assigned for logged in user.
-     * 
-     * @param loggedUser logged user
-     * @return list with tasks
+     * Start date of time track.
      */
-    @GetMapping("/tasks")
-    public List<Task> getTasks(@NotNull @Parameter(hidden = true) User loggedUser) {
-        return taskRepository.findByAssigneeAndStatusIsFinalFalse(loggedUser);
-    }
+    @NotNull(message = "start date must be provided")
+    private Date startDate;
+
+    /**
+     * End date of time track.
+     */
+    @NotNull(message = "end date must be provided")
+    private Date endDate;
 
 }

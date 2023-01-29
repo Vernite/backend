@@ -37,124 +37,117 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.validation.constraints.NotNull;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import dev.vernite.vernite.common.exception.ConflictStateException;
 import dev.vernite.vernite.task.Task;
 import dev.vernite.vernite.user.User;
 
 /**
  * Entity for tracking time spent on a task.
  */
+@Data
 @Entity
+@NoArgsConstructor
 public class TimeTrack {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
     private boolean edited = false;
 
+    @NotNull
     @Column(nullable = false)
     private Date startDate;
 
     private Date endDate;
 
     @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private User user;
 
     @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private Task task;
 
-    public TimeTrack() {
-    }
-
+    /**
+     * Creates a new time track with the current date as the start date.
+     * 
+     * @param user the user who is tracking the time
+     * @param task the task the user is tracking the time on
+     */
     public TimeTrack(User user, Task task) {
         this.user = user;
         this.task = task;
         this.startDate = new Date();
     }
 
+    /**
+     * Creates a new time track with the given start and end date.
+     * 
+     * @param user      the user who is tracking the time
+     * @param task      the task the user is tracking the time on
+     * @param startDate the start date of the time track
+     * @param endDate   the end date of the time track
+     */
     public TimeTrack(User user, Task task, Date startDate, Date endDate) {
         this.user = user;
         this.task = task;
         this.startDate = startDate;
         this.endDate = endDate;
         this.edited = true;
+
+        if (startDate.after(endDate)) {
+            throw new ConflictStateException("start date is after end date");
+        }
     }
 
     /**
-     * Updates the time spent on the task. If value changes, the edited flag is set
-     * to true.
+     * Creates a new time track from a request.
      * 
-     * @param request the request to update the time spent on the task with.
+     * @param user   the user who is tracking the time
+     * @param task   the task the user is tracking the time on
+     * @param create the request to create the time track from
      */
-    public void update(@NotNull TimeTrackRequest request) {
+    public TimeTrack(User user, Task task, CreateTimeTrack create) {
+        this(user, task, create.getStartDate(), create.getEndDate());
+    }
+
+    /**
+     * Updates the time track with the given update.
+     * 
+     * @param update the update to update the time track with
+     */
+    public void update(UpdateTimeTrack update) {
         if (endDate == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Time track is not finished.");
+            throw new ConflictStateException("time track is not finished");
         }
 
-        edited = true;
-        request.getStartDate().ifPresent(this::setStartDate);
-        request.getEndDate().ifPresent(this::setEndDate);
+        if (update.getStartDate() != null) {
+            this.startDate = update.getStartDate();
+            this.edited = true;
+        }
+        if (update.getEndDate() != null) {
+            this.endDate = update.getEndDate();
+            this.edited = true;
+        }
 
         if (startDate.after(endDate)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start date is after end date.");
+            throw new ConflictStateException("start date is after end date");
         }
         if (endDate.after(new Date())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "End date is in the future.");
+            throw new ConflictStateException("end date is in the future");
         }
-    }
-
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public Date getStartDate() {
-        return startDate;
-    }
-
-    public void setStartDate(Date startTime) {
-        this.startDate = startTime;
-    }
-
-    public Date getEndDate() {
-        return endDate;
-    }
-
-    public void setEndDate(Date endTime) {
-        this.endDate = endTime;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public Task getTask() {
-        return task;
-    }
-
-    public void setTask(Task task) {
-        this.task = task;
-    }
-
-    public boolean getEdited() {
-        return edited;
-    }
-
-    public void setEdited(boolean edited) {
-        this.edited = edited;
     }
 
     public long getTaskId() {

@@ -75,7 +75,7 @@ public class TicketController {
         var status = project.getStatuses().stream().filter(x -> x.isBegin()).findFirst().get();
         var title = createTicket.getTitle();
         var description = createTicket.getDescription();
-        var task = new Task(id, title, description, status, user, Task.TaskType.ISSUE.ordinal());
+        var task = new Task(id, title, description, status, user, Task.Type.ISSUE.ordinal());
         taskRepository.save(task);
         gitTaskService.createIssue(task);
         return gitTaskService.createIssue(task).then().thenReturn(createTicket);

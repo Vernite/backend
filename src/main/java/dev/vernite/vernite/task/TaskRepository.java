@@ -38,14 +38,19 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.repository.CrudRepository;
 
+import dev.vernite.vernite.common.exception.EntityNotFoundException;
 import dev.vernite.vernite.event.EventFilter;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.utils.ObjectNotFoundException;
-import dev.vernite.vernite.utils.SoftDeleteRepository;
 
-public interface TaskRepository extends SoftDeleteRepository<Task, Long>, JpaSpecificationExecutor<Task> {
+/**
+ * CRUD repository for task entity.
+ */
+public interface TaskRepository extends CrudRepository<Task, Long>, JpaSpecificationExecutor<Task> {
+
     /**
      * Finds a task by its number and project.
      * 
@@ -53,7 +58,7 @@ public interface TaskRepository extends SoftDeleteRepository<Task, Long>, JpaSpe
      * @param number  the number of the task.
      * @return optional of the task.
      */
-    Optional<Task> findByStatusProjectAndNumberAndActiveNull(Project project, long number);
+    Optional<Task> findByStatusProjectAndNumber(Project project, long number);
 
     /**
      * Finds a task by its number and project or throws error when not found.
@@ -64,7 +69,8 @@ public interface TaskRepository extends SoftDeleteRepository<Task, Long>, JpaSpe
      * @throws ObjectNotFoundException when not found.
      */
     default Task findByProjectAndNumberOrThrow(Project project, long number) {
-        return findByStatusProjectAndNumberAndActiveNull(project, number).orElseThrow(ObjectNotFoundException::new);
+        return findByStatusProjectAndNumber(project, number)
+                .orElseThrow(() -> new EntityNotFoundException("task", number));
     }
 
     /**
@@ -93,7 +99,6 @@ public interface TaskRepository extends SoftDeleteRepository<Task, Long>, JpaSpe
             if (filter.isShowEnded()) {
                 predicates.add(cb.equal(root.get("status").get("isFinal"), false));
             }
-            predicates.add(cb.isNull(root.get("active")));
             predicates.add(cb.and(
                     cb.isNotNull(root.get("deadline")),
                     cb.between(root.get("deadline"), startDate, endDate)));
@@ -117,7 +122,6 @@ public interface TaskRepository extends SoftDeleteRepository<Task, Long>, JpaSpe
             if (filter.isShowEnded()) {
                 predicates.add(cb.equal(root.get("status").get("isFinal"), false));
             }
-            predicates.add(cb.isNull(root.get("active")));
             predicates.add(cb.and(
                     cb.isNotNull(root.get("deadline")),
                     cb.between(root.get("deadline"), startDate, endDate)));
@@ -141,7 +145,6 @@ public interface TaskRepository extends SoftDeleteRepository<Task, Long>, JpaSpe
             if (filter.isShowEnded()) {
                 predicates.add(cb.equal(root.get("status").get("isFinal"), false));
             }
-            predicates.add(cb.isNull(root.get("active")));
             predicates.add(
                     cb.and(
                             cb.isNotNull(root.get("estimatedDate")),
@@ -166,7 +169,6 @@ public interface TaskRepository extends SoftDeleteRepository<Task, Long>, JpaSpe
             if (filter.isShowEnded()) {
                 predicates.add(cb.equal(root.get("status").get("isFinal"), false));
             }
-            predicates.add(cb.isNull(root.get("active")));
             predicates.add(
                     cb.and(
                             cb.isNotNull(root.get("estimatedDate")),
@@ -175,6 +177,6 @@ public interface TaskRepository extends SoftDeleteRepository<Task, Long>, JpaSpe
         });
     }
 
-    List<Task> findByAssigneeAndStatusIsFinalFalseAndActiveNull(User loggedUser);
+    List<Task> findByAssigneeAndStatusIsFinalFalse(User loggedUser);
 
 }

@@ -32,7 +32,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -60,52 +59,44 @@ import dev.vernite.vernite.release.Release;
 import dev.vernite.vernite.release.ReleaseRepository;
 import dev.vernite.vernite.sprint.Sprint;
 import dev.vernite.vernite.sprint.SprintRepository;
-import dev.vernite.vernite.status.Status;
 import dev.vernite.vernite.status.StatusRepository;
-import dev.vernite.vernite.task.Task.TaskType;
-import dev.vernite.vernite.task.time.TimeTrack;
-import dev.vernite.vernite.task.time.TimeTrackRepository;
-import dev.vernite.vernite.task.time.TimeTrackRequest;
+import dev.vernite.vernite.task.Task.Type;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.user.UserRepository;
-import dev.vernite.vernite.utils.ErrorType;
 import dev.vernite.vernite.utils.FieldErrorException;
 import dev.vernite.vernite.utils.ObjectNotFoundException;
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
+@AllArgsConstructor
 @RequestMapping("/project/{projectId}/task")
 public class TaskController {
+
     private static final String PARENT_FIELD = "parentTaskId";
 
-    @Autowired
     private MappingJackson2HttpMessageConverter converter;
-    @Autowired
+
     private TaskRepository taskRepository;
-    @Autowired
+
     private StatusRepository statusRepository;
-    @Autowired
+
     private AuditLogRepository auditLogRepository;
-    @Autowired
+
     private ProjectRepository projectRepository;
-    @Autowired
+
     private UserRepository userRepository;
-    @Autowired
+
     private SprintRepository sprintRepository;
-    @Autowired
+
     private ReleaseRepository releaseRepository;
-    @Autowired
+
     private CounterSequenceRepository counterSequenceRepository;
-    @Autowired
-    private TimeTrackRepository trackRepository;
-    @Autowired
+
     private GitTaskService service;
 
     /**
@@ -173,72 +164,75 @@ public class TaskController {
         Task parentTask = null;
         if (parentTaskId.isPresent()) {
             parentTask = taskRepository.findByProjectAndNumberOrThrow(project, parentTaskId.get());
-            if (!TaskType.values()[task.getType()].isValidParent(TaskType.values()[parentTask.getType()])) {
+            if (!Type.values()[task.getType()].isValidParent(Type.values()[parentTask.getType()])) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid parent task");
             }
         }
         task.setParentTask(parentTask);
     }
 
-    @Operation(summary = "Get all tasks", description = "This method returns array of all tasks for project with given ID.")
-    @ApiResponse(description = "List of all tasks. Can be empty.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Get all tasks for project with given ID.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param filter    filter for tasks
+     * @return list of tasks
+     */
     @GetMapping
     public List<Task> getAll(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @ModelAttribute TaskFilter filter) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
         return taskRepository.findAllOrdered(filter.toSpecification(project));
     }
 
-    @Operation(summary = "Get task information", description = "This method is used to retrieve status with given ID. On success returns task with given ID. Throws 404 when project or task does not exist.")
-    @ApiResponse(description = "Task with given ID.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project or/and task with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Get task with given ID.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param id        ID of task
+     * @return task with given ID
+     */
     @GetMapping("/{id}")
     public Task get(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId, @PathVariable long id) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
         return taskRepository.findByProjectAndNumberOrThrow(project, id);
     }
 
-    @Operation(summary = "Create task", description = "This method creates new task. On success returns newly created task.")
-    @ApiResponse(description = "Newly created task.", responseCode = "200", content = @Content(schema = @Schema(implementation = Task.class)))
-    @ApiResponse(description = "Some fields are missing.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project or status not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Create new task.
+     * 
+     * @param user        logged in user
+     * @param projectId   ID of project
+     * @param taskRequest request with task data
+     * @return newly created task
+     */
     @PostMapping
     public Mono<Task> create(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @RequestBody TaskRequest taskRequest) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        long statusId = taskRequest.getStatusId().orElseThrow(() -> new FieldErrorException("statusId", "missing"));
-        Status status = statusRepository.findByIdAndProjectOrThrow(statusId, project);
-        long id = counterSequenceRepository.getIncrementCounter(project.getTaskCounter().getId());
-        Task task = taskRequest.createEntity(id, status, user);
-        taskRequest.getDeadline().ifPresent(task::setDeadline);
-        taskRequest.getEstimatedDate().ifPresent(task::setEstimatedDate);
-        taskRequest.getSprintId().ifPresent(sprintId -> handleSprint(sprintId.orElse(null), task, project));
-        taskRequest.getAssigneeId().ifPresent(assigneeId -> handleAssignee(assigneeId, task));
-        taskRequest.getParentTaskId().ifPresent(parentTaskId -> handleParent(parentTaskId, task, project));
-        taskRequest.getStoryPoints().ifPresent(task::setStoryPoints);
-        taskRequest.getReleaseId().ifPresent(releaseId -> handleReleaseId(releaseId.orElse(null), task, project));
+            @RequestBody @Valid CreateTask create) {
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        var status = statusRepository.findByIdAndProjectOrThrow(create.getStatusId(), project);
+        var id = counterSequenceRepository.getIncrementCounter(project.getTaskCounter().getId());
+        var task = new Task(id, status, user, create);
 
-        if (task.getType() == Task.TaskType.SUBTASK.ordinal() && task.getParentTask() == null) {
+        handleSprint(create.getSprintId(), task, project);
+        handleAssignee(Optional.ofNullable(create.getAssigneeId()), task);
+        handleParent(Optional.ofNullable(create.getParentTaskId()), task, project);
+        handleReleaseId(create.getReleaseId(), task, project);
+
+        if (task.getType() == Task.Type.SUBTASK.ordinal() && task.getParentTask() == null) {
             throw new FieldErrorException(PARENT_FIELD, "subtask must have parent");
         }
 
         Task savedTask = taskRepository.save(task);
         List<Mono<Void>> results = new ArrayList<>();
-        taskRequest.getIssue().ifPresent(issue -> results.add(service.handleIssueAction(issue, task).then()));
-        taskRequest.getPull().ifPresent(pull -> results.add(service.handlePullAction(pull, task).then()));
+        if (create.getIssue() != null) {
+            results.add(service.handleIssueAction(create.getIssue(), task).then());
+        }
+        if (create.getPull() != null) {
+            results.add(service.handlePullAction(create.getPull(), task).then());
+        }
         return Flux.concat(results).then(Mono.fromRunnable(() -> {
             JsonNode newValue = converter.getObjectMapper().valueToTree(savedTask);
             AuditLog log = new AuditLog();
@@ -257,40 +251,57 @@ public class TaskController {
         })).then(Mono.just(savedTask));
     }
 
-    @Operation(summary = "Alter the task", description = "This method is used to modify existing task. On success returns task.")
-    @ApiResponse(description = "Modified task.", responseCode = "200", content = @Content(schema = @Schema(implementation = Task.class)))
-    @ApiResponse(description = "Some fields are bad.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Task or status with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Update task with given ID.
+     * 
+     * @param user        logged in user
+     * @param projectId   ID of project
+     * @param id          ID of task
+     * @param taskRequest request with task data
+     * @return updated task
+     */
     @PutMapping("/{id}")
     public Mono<Task> update(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @PathVariable long id, @RequestBody TaskRequest taskRequest) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
+            @PathVariable long id, @RequestBody @Valid UpdateTask update) {
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
+        var task = taskRepository.findByProjectAndNumberOrThrow(project, id);
         JsonNode oldValue = converter.getObjectMapper().valueToTree(task);
 
-        task.update(taskRequest);
-        taskRequest.getSprintId().ifPresent(sprintId -> handleSprint(sprintId.orElse(null), task, project));
-        taskRequest.getAssigneeId().ifPresent(assigneeId -> handleAssignee(assigneeId, task));
-        taskRequest.getParentTaskId().ifPresent(parentTaskId -> handleParent(parentTaskId, task, project));
-        taskRequest.getStatusId().ifPresent(statusId -> {
-            Status status = statusRepository.findByIdAndProjectOrThrow(statusId, project);
-            task.setStatus(status);
-        });
+        task.update(update);
 
-        if (task.getType() == Task.TaskType.SUBTASK.ordinal() && task.getParentTask() == null) {
+        if (update.isSprintIdSet()) {
+            handleSprint(update.getSprintId(), task, project);
+        }
+
+        if (update.isAssigneeIdSet()) {
+            handleAssignee(Optional.ofNullable(update.getAssigneeId()), task);
+        }
+
+        if (update.isParentTaskIdSet()) {
+            handleParent(Optional.ofNullable(update.getParentTaskId()), task, project);
+        }
+
+        if (update.isReleaseIdSet()) {
+            handleReleaseId(update.getReleaseId(), task, project);
+        }
+
+        if (update.getStatusId() != null) {
+            var status = statusRepository.findByIdAndProjectOrThrow(update.getStatusId(), project);
+            task.setStatus(status);
+        }
+
+        if (task.getType() == Task.Type.SUBTASK.ordinal() && task.getParentTask() == null) {
             throw new FieldErrorException(PARENT_FIELD, "subtask must have parent");
         }
-        taskRequest.getStoryPoints().ifPresent(task::setStoryPoints);
-        taskRequest.getReleaseId().ifPresent(releaseId -> handleReleaseId(releaseId.orElse(null), task, project));
 
         Task savedTask = taskRepository.save(task);
         List<Mono<Void>> results = new ArrayList<>();
-        taskRequest.getIssue().ifPresent(issue -> results.add(service.handleIssueAction(issue, task).then()));
-        taskRequest.getPull().ifPresent(pull -> results.add(service.handlePullAction(pull, task).then()));
+        if (update.getIssue() != null) {
+            results.add(service.handleIssueAction(update.getIssue(), task).then());
+        }
+        if (update.getPull() != null) {
+            results.add(service.handlePullAction(update.getPull(), task).then());
+        }
         return Flux.concat(results).then(service.patchIssue(task).then()).then(Mono.fromRunnable(() -> {
             JsonNode newValue = converter.getObjectMapper().valueToTree(savedTask);
             JsonNode[] out = new JsonNode[3];
@@ -312,17 +323,18 @@ public class TaskController {
         })).thenReturn(savedTask);
     }
 
-    @Operation(summary = "Delete task", description = "This method is used to delete task. On success does not return anything. Throws 404 when task or project does not exist.")
-    @ApiResponse(description = "Task with given ID has been deleted.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project or task with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Delete task with given ID.
+     * 
+     * @param user      logged in user
+     * @param projectId ID of project
+     * @param id        ID of task
+     * @throws JsonProcessingException thrown when JSON serialization fails
+     */
     @DeleteMapping("/{id}")
     public void delete(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
             @PathVariable long id) throws JsonProcessingException {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
+        var project = projectRepository.findByIdAndMemberOrThrow(projectId, user);
         Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
 
         JsonNode oldValue = converter.getObjectMapper().valueToTree(task);
@@ -336,102 +348,7 @@ public class TaskController {
         log.setSameValues(null);
         auditLogRepository.save(log);
 
-        task.softDelete();
-        taskRepository.save(task);
+        taskRepository.delete(task);
     }
 
-    @Operation(summary = "Create new time track", description = "This method is used to create new time track. On success returns time track.")
-    @ApiResponse(description = "Created time track.", responseCode = "200")
-    @ApiResponse(description = "Invalid request.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project or task with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @PostMapping("/{id}/track")
-    public TimeTrack createTracking(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @PathVariable long id, @RequestBody TimeTrackRequest timeTrackRequest) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
-        TimeTrack timeTrack = timeTrackRequest.createEntity(user, task);
-        return trackRepository.save(timeTrack);
-    }
-
-    @Operation(summary = "Start task time tracking", description = "This method starts time tracking for task for current logged in user. On success returns tracking information.")
-    @ApiResponse(description = "Tracking information.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project or task with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Task is tracked already.", responseCode = "409", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @PostMapping("/{id}/track/start")
-    public TimeTrack startTracking(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @PathVariable long id) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
-        if (trackRepository.findByUserAndTaskAndEndDateNull(user, task).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Already tracking");
-        }
-        return trackRepository.save(new TimeTrack(user, task));
-    }
-
-    @Operation(summary = "Stop task time tracking", description = "This method stops time tracking for task for current logged in user. On success returns tracking information.")
-    @ApiResponse(description = "Tracking information.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project or task with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Task is not currently tracked.", responseCode = "409", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @PostMapping("/{id}/track/stop")
-    public TimeTrack stopTracking(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @PathVariable long id) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
-        TimeTrack track = trackRepository.findByUserAndTaskAndEndDateNull(user, task)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "Not tracking"));
-        track.setEndDate(new Date());
-        return trackRepository.save(track);
-    }
-
-    @Operation(summary = "Manually edit time tracking", description = "This method is used to manually edit time tracking for current logged in user. On success returns tracking information. Sets edited flag to true.")
-    @ApiResponse(description = "Tracking information.", responseCode = "200")
-    @ApiResponse(description = "Invalid request.", responseCode = "400", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project or task with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @PutMapping("/{id}/track/{trackId}")
-    public TimeTrack editTracking(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @PathVariable long id, @PathVariable long trackId, @RequestBody TimeTrackRequest trackRequest) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
-        TimeTrack timeTrack = trackRepository.findByIdOrThrow(trackId);
-        if (timeTrack.getTask().getId() != task.getId()) {
-            throw new ObjectNotFoundException();
-        }
-        timeTrack.update(trackRequest);
-        return trackRepository.save(timeTrack);
-    }
-
-    @Operation(summary = "Delete time tracking", description = "This method is used to delete time tracking for current logged in user. On success does not return anything.")
-    @ApiResponse(description = "Time tracking with given ID has been deleted.", responseCode = "200")
-    @ApiResponse(description = "No user logged in.", responseCode = "401", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @ApiResponse(description = "Project or task or time tracking with given ID not found.", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
-    @DeleteMapping("/{id}/track/{trackId}")
-    public void deleteTracking(@NotNull @Parameter(hidden = true) User user, @PathVariable long projectId,
-            @PathVariable long id, @PathVariable long trackId) {
-        Project project = projectRepository.findByIdOrThrow(projectId);
-        if (project.member(user) == -1) {
-            throw new ObjectNotFoundException();
-        }
-        Task task = taskRepository.findByProjectAndNumberOrThrow(project, id);
-        TimeTrack timeTrack = trackRepository.findByIdOrThrow(trackId);
-        if (timeTrack.getTask().getId() != task.getId()) {
-            throw new ObjectNotFoundException();
-        }
-        trackRepository.delete(timeTrack);
-    }
 }

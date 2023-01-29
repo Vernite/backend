@@ -214,7 +214,7 @@ public class GitHubWebhookService {
                 if (matcher.find()) {
                     boolean isOpen = "reopen".equals(matcher.group(1));
                     long taskId = Long.parseLong(matcher.group(2));
-                    taskRepository.findByStatusProjectAndNumberAndActiveNull(integration.getProject(), taskId)
+                    taskRepository.findByStatusProjectAndNumber(integration.getProject(), taskId)
                             .ifPresent(task -> {
                                 task.changeStatus(isOpen);
                                 tasks.add(taskRepository.save(task));
