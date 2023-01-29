@@ -32,7 +32,10 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
-
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 import dev.vernite.vernite.project.Project;
 import dev.vernite.vernite.workspace.Workspace;
 
@@ -43,16 +46,22 @@ import org.hibernate.annotations.OnDeleteAction;
  * Entity for representing relation between workspace (with user) and project.
  * Constrains privileges of user in project.
  */
+@Data
+@NoArgsConstructor
 @Entity(name = "project_workspace")
 public class ProjectWorkspace {
     @EmbeddedId
     private ProjectWorkspaceKey id;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OnDelete(action = OnDeleteAction.CASCADE)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId("workspaceId")
     private Workspace workspace;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OnDelete(action = OnDeleteAction.CASCADE)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId("projectId")
@@ -60,45 +69,10 @@ public class ProjectWorkspace {
 
     Long privileges;
 
-    public ProjectWorkspace() {
-    }
-
     public ProjectWorkspace(Project project, Workspace workspace, Long privileges) {
         this.id = new ProjectWorkspaceKey(workspace, project);
         this.project = project;
         this.workspace = workspace;
-        this.privileges = privileges;
-    }
-
-    public ProjectWorkspaceKey getId() {
-        return id;
-    }
-
-    public void setId(ProjectWorkspaceKey id) {
-        this.id = id;
-    }
-
-    public Workspace getWorkspace() {
-        return workspace;
-    }
-
-    public void setWorkspace(Workspace workspace) {
-        this.workspace = workspace;
-    }
-
-    public Project getProject() {
-        return project;
-    }
-
-    public void setProject(Project project) {
-        this.project = project;
-    }
-
-    public Long getPrivileges() {
-        return privileges;
-    }
-
-    public void setPrivileges(Long privileges) {
         this.privileges = privileges;
     }
 
@@ -110,23 +84,4 @@ public class ProjectWorkspace {
         return new ProjectMember(getWorkspace().getUser(), getPrivileges());
     }
 
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int hash = prime + (getId() == null ? 0 : getId().hashCode());
-        hash = prime * hash + Long.hashCode(getPrivileges());
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null || getClass() != obj.getClass())
-            return false;
-        ProjectWorkspace other = (ProjectWorkspace) obj;
-        if (getPrivileges() != other.getPrivileges())
-            return false;
-        if (getId() == null)
-            return other.getId() == null;
-        return getId().equals(other.getId());
-    }
 }
