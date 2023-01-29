@@ -37,6 +37,10 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -48,8 +52,11 @@ import dev.vernite.vernite.user.User;
 /**
  * Entity for tracking time spent on a task.
  */
+@Data
 @Entity
+@NoArgsConstructor
 public class TimeTrack {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
@@ -62,15 +69,16 @@ public class TimeTrack {
     private Date endDate;
 
     @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private User user;
 
     @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private Task task;
-
-    public TimeTrack() {
-    }
 
     public TimeTrack(User user, Task task) {
         this.user = user;
@@ -108,47 +116,7 @@ public class TimeTrack {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "End date is in the future.");
         }
     }
-
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public Date getStartDate() {
-        return startDate;
-    }
-
-    public void setStartDate(Date startTime) {
-        this.startDate = startTime;
-    }
-
-    public Date getEndDate() {
-        return endDate;
-    }
-
-    public void setEndDate(Date endTime) {
-        this.endDate = endTime;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public Task getTask() {
-        return task;
-    }
-
-    public void setTask(Task task) {
-        this.task = task;
-    }
-
+    
     public boolean getEdited() {
         return edited;
     }

@@ -37,7 +37,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 
-import dev.vernite.vernite.task.Task.TaskType;
+import dev.vernite.vernite.task.Task.Type;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -46,46 +46,46 @@ import dev.vernite.vernite.task.Task.TaskType;
 class TaskTypeTests {
     @Test
     void isValidParentEpicTests() {
-        assertFalse(TaskType.EPIC.isValidParent(TaskType.EPIC));
-        assertFalse(TaskType.EPIC.isValidParent(TaskType.ISSUE));
-        assertFalse(TaskType.EPIC.isValidParent(TaskType.SUBTASK));
-        assertFalse(TaskType.EPIC.isValidParent(TaskType.TASK));
-        assertFalse(TaskType.EPIC.isValidParent(TaskType.USER_STORY));
+        assertFalse(Type.EPIC.isValidParent(Type.EPIC));
+        assertFalse(Type.EPIC.isValidParent(Type.ISSUE));
+        assertFalse(Type.EPIC.isValidParent(Type.SUBTASK));
+        assertFalse(Type.EPIC.isValidParent(Type.TASK));
+        assertFalse(Type.EPIC.isValidParent(Type.USER_STORY));
     }
 
     @Test
     void isValidParentIssueTests() {
-        assertTrue(TaskType.ISSUE.isValidParent(TaskType.EPIC));
-        assertFalse(TaskType.ISSUE.isValidParent(TaskType.ISSUE));
-        assertFalse(TaskType.ISSUE.isValidParent(TaskType.SUBTASK));
-        assertTrue(TaskType.ISSUE.isValidParent(TaskType.TASK));
-        assertFalse(TaskType.ISSUE.isValidParent(TaskType.USER_STORY));
+        assertTrue(Type.ISSUE.isValidParent(Type.EPIC));
+        assertFalse(Type.ISSUE.isValidParent(Type.ISSUE));
+        assertFalse(Type.ISSUE.isValidParent(Type.SUBTASK));
+        assertTrue(Type.ISSUE.isValidParent(Type.TASK));
+        assertFalse(Type.ISSUE.isValidParent(Type.USER_STORY));
     }
 
     @Test
     void isValidParentSubtaskTests() {
-        assertFalse(TaskType.SUBTASK.isValidParent(TaskType.EPIC));
-        assertTrue(TaskType.SUBTASK.isValidParent(TaskType.ISSUE));
-        assertFalse(TaskType.SUBTASK.isValidParent(TaskType.SUBTASK));
-        assertTrue(TaskType.SUBTASK.isValidParent(TaskType.TASK));
-        assertTrue(TaskType.SUBTASK.isValidParent(TaskType.USER_STORY));
+        assertFalse(Type.SUBTASK.isValidParent(Type.EPIC));
+        assertTrue(Type.SUBTASK.isValidParent(Type.ISSUE));
+        assertFalse(Type.SUBTASK.isValidParent(Type.SUBTASK));
+        assertTrue(Type.SUBTASK.isValidParent(Type.TASK));
+        assertTrue(Type.SUBTASK.isValidParent(Type.USER_STORY));
     }
 
     @Test
     void isValidParentTaskTests() {
-        assertTrue(TaskType.TASK.isValidParent(TaskType.EPIC));
-        assertFalse(TaskType.TASK.isValidParent(TaskType.ISSUE));
-        assertFalse(TaskType.TASK.isValidParent(TaskType.SUBTASK));
-        assertFalse(TaskType.TASK.isValidParent(TaskType.TASK));
-        assertFalse(TaskType.TASK.isValidParent(TaskType.USER_STORY));
+        assertTrue(Type.TASK.isValidParent(Type.EPIC));
+        assertFalse(Type.TASK.isValidParent(Type.ISSUE));
+        assertFalse(Type.TASK.isValidParent(Type.SUBTASK));
+        assertFalse(Type.TASK.isValidParent(Type.TASK));
+        assertFalse(Type.TASK.isValidParent(Type.USER_STORY));
     }
 
     @Test
     void isValidParentUserStoryTests() {
-        assertTrue(TaskType.USER_STORY.isValidParent(TaskType.EPIC));
-        assertFalse(TaskType.USER_STORY.isValidParent(TaskType.ISSUE));
-        assertFalse(TaskType.USER_STORY.isValidParent(TaskType.SUBTASK));
-        assertFalse(TaskType.USER_STORY.isValidParent(TaskType.TASK));
-        assertFalse(TaskType.USER_STORY.isValidParent(TaskType.USER_STORY));
+        assertTrue(Type.USER_STORY.isValidParent(Type.EPIC));
+        assertFalse(Type.USER_STORY.isValidParent(Type.ISSUE));
+        assertFalse(Type.USER_STORY.isValidParent(Type.SUBTASK));
+        assertFalse(Type.USER_STORY.isValidParent(Type.TASK));
+        assertFalse(Type.USER_STORY.isValidParent(Type.USER_STORY));
     }
 }

@@ -35,7 +35,11 @@ import dev.vernite.vernite.task.Task;
 import dev.vernite.vernite.user.User;
 import dev.vernite.vernite.utils.NotFoundRepository;
 
+/**
+ * CRUD repository for time track entity.
+ */
 public interface TimeTrackRepository extends NotFoundRepository<TimeTrack, Long> {
+
     /**
      * Finds time tracks for a project.
      * 
@@ -60,4 +64,5 @@ public interface TimeTrackRepository extends NotFoundRepository<TimeTrack, Long>
      * @return the time track. Might be empty.
      */
     Optional<TimeTrack> findByUserAndTaskAndEndDateNull(User user, Task task);
+
 }

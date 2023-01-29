@@ -57,7 +57,7 @@ public class MeController {
      */
     @GetMapping("/tasks")
     public List<Task> getTasks(@NotNull @Parameter(hidden = true) User loggedUser) {
-        return taskRepository.findByAssigneeAndStatusIsFinalFalseAndActiveNull(loggedUser);
+        return taskRepository.findByAssigneeAndStatusIsFinalFalse(loggedUser);
     }
 
 }

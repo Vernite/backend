@@ -35,7 +35,7 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.jpa.domain.Specification;
 
 import dev.vernite.vernite.project.Project;
-import dev.vernite.vernite.task.Task.TaskType;
+import dev.vernite.vernite.task.Task.Type;
 import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
@@ -97,8 +97,7 @@ public class TaskFilter {
         return (Root<Task> root, CriteriaQuery<?> query, CriteriaBuilder builder) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(builder.equal(root.get(STATUS).get("project"), project));
-            predicates.add(builder.isNull(root.get("active")));
-            predicates.add(builder.notEqual(root.get("type"), TaskType.SUBTASK.ordinal()));
+            predicates.add(builder.notEqual(root.get("type"), Type.SUBTASK.ordinal()));
             sprintId.ifPresent(id -> predicates
                     .add(builder.or(builder.in(root.join("archiveSprints", JoinType.LEFT).get("id")).value(id),
                             builder.equal(root.get("sprint").get("id"), id))));

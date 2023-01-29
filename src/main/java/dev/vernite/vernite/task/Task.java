@@ -37,23 +37,23 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-import org.hibernate.annotations.Where;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -70,19 +70,22 @@ import dev.vernite.vernite.status.Status;
 import dev.vernite.vernite.task.comment.Comment;
 import dev.vernite.vernite.task.time.TimeTrack;
 import dev.vernite.vernite.user.User;
-import dev.vernite.vernite.utils.SoftDeleteEntity;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
-@EntityListeners(TaskListener.class)
+@Data
 @Entity
+@NoArgsConstructor
 @JsonInclude(Include.NON_NULL)
-public class Task extends SoftDeleteEntity {
+@EntityListeners(TaskListener.class)
+public class Task {
 
-    public enum TaskType {
+    public enum Type {
         TASK, USER_STORY, ISSUE, EPIC, SUBTASK;
 
-        public boolean isValidParent(TaskType parent) {
+        public boolean isValidParent(Type parent) {
             if (this == parent) {
                 return false;
             }
@@ -105,52 +108,65 @@ public class Task extends SoftDeleteEntity {
 
     @Id
     @JsonIgnore
+    @PositiveOrZero
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
+    @Positive
     @JsonProperty("id")
     @Column(nullable = false)
     private long number;
 
-    @Column(nullable = false, length = 50)
+    @NotBlank
+    @Column(nullable = false, length = 100)
     private String name;
 
-    @Setter
-    @Getter
     @ManyToOne
     @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Sprint sprint;
 
-    @Setter
-    @Getter
+    @NotNull
     @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @ManyToMany(cascade = CascadeType.MERGE)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Set<Sprint> archiveSprints = new HashSet<>();
 
-    @Lob
-    @Column(nullable = false)
+    @NotNull
+    @Column(nullable = false, length = 1000)
     private String description;
 
+    @NotNull
     @Column(nullable = false)
     private Date createdAt;
 
+    @NotNull
     @JsonIgnore
     @ManyToOne
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "status_id", nullable = false, foreignKey = @ForeignKey(name = "fk_task_status"))
+    @JoinColumn(nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Status status;
 
+    @NotNull
     @JsonIgnore
     @ManyToOne
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "created_by", nullable = false, foreignKey = @ForeignKey(name = "fk_task_user"))
+    @JoinColumn(name = "created_by", nullable = false)
     private User user;
 
     @JsonIgnore
     @ManyToOne
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "assignee", nullable = true, foreignKey = @ForeignKey(name = "fk_task_assignee"))
+    @JoinColumn(nullable = true)
     private User assignee;
 
     @Column(nullable = false)
@@ -159,20 +175,28 @@ public class Task extends SoftDeleteEntity {
     @JsonIgnore
     @ManyToOne
     @JoinColumn(nullable = true)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Task parentTask;
 
+    @NotNull
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToMany(mappedBy = "parentTask")
-    @Where(clause = "active is null")
     @OrderBy("name, id")
     private List<Task> subTasks = new ArrayList<>();
 
     private Date deadline;
     private Date estimatedDate;
 
+    @NotNull
     @Column(nullable = false)
     private String priority;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @NotNull
     @OneToMany(mappedBy = "task")
     @OnDelete(action = OnDeleteAction.CASCADE)
     private List<TimeTrack> timeTracks = new ArrayList<>();
@@ -180,38 +204,47 @@ public class Task extends SoftDeleteEntity {
     @Column(nullable = false)
     private long storyPoints;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @ManyToOne
     @JsonIgnore
     private Release release;
 
-    @Getter
-    @Setter
     @NotNull
     private Date lastUpdated;
 
-    @Getter
-    @Setter
     @NotNull
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @JsonIgnore
     @OrderBy("createdAt DESC")
     @OneToMany(mappedBy = "task")
     @OnDelete(action = OnDeleteAction.CASCADE)
     private List<Comment> comments = new ArrayList<>();
 
-    @Getter
-    @Setter
+    @NotNull
     @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "task")
     @OnDelete(action = OnDeleteAction.CASCADE)
     private List<TaskIntegration> gitHubTaskIntegrations = new ArrayList<>();
 
-    public Task() {
-    }
-
+    /**
+     * Default constructor for Task.
+     * 
+     * @param id          ID of the task
+     * @param name        name of the task
+     * @param description description of the task
+     * @param status      status of the task
+     * @param user        user who created the task
+     * @param type        type of the task
+     * @param priority    priority of the task
+     */
     public Task(long id, String name, String description, Status status, User user, int type, String priority) {
         this.number = id;
-        this.name = name;
-        this.description = description;
+        setName(name);
+        setDescription(description);
         this.status = status;
         this.user = user;
         this.type = type;
@@ -219,6 +252,25 @@ public class Task extends SoftDeleteEntity {
         this.createdAt = new Date();
     }
 
+    /**
+     * Constructor for Task from request.
+     * 
+     * @param id     ID of the task
+     * @param status status of the task
+     * @param user   user who created the task
+     * @param create request for creating task
+     */
+    public Task(long id, Status status, User user, CreateTask create) {
+        this(id, create.getName(), create.getDescription(), status, user, create.getType(), create.getPriority());
+        this.deadline = create.getDeadline();
+        this.estimatedDate = create.getEstimatedDate();
+
+        if (create.getStoryPoints() != null) {
+            this.storyPoints = create.getStoryPoints();
+        }
+    }
+
+    @Deprecated
     public Task(long id, String name, String description, Status status, User user, int type) {
         this(id, name, description, status, user, type, "low");
     }
@@ -226,97 +278,31 @@ public class Task extends SoftDeleteEntity {
     /**
      * Updates task with non-empty request fields.
      * 
-     * @param request must not be {@literal null}. When fields are not present in
-     *                request, they are not updated.
+     * @param update must not be {@literal null}. When fields are not present in
+     *               request, they are not updated.
      */
-    public void update(@NotNull TaskRequest request) {
-        request.getDeadline().ifPresent(this::setDeadline);
-        request.getEstimatedDate().ifPresent(this::setEstimatedDate);
-        request.getPriority().ifPresent(this::setPriority);
-        request.getName().ifPresent(this::setName);
-        request.getDescription().ifPresent(this::setDescription);
-        request.getType().ifPresent(this::setType);
-        request.getStoryPoints().ifPresent(this::setStoryPoints);
-    }
-
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public long getNumber() {
-        return number;
-    }
-
-    public void setNumber(long number) {
-        this.number = number;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public Date getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Date createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Status getStatus() {
-        return status;
-    }
-
-    public void setStatus(Status status) {
-        this.status = status;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public int getType() {
-        return type;
-    }
-
-    public void setType(Integer type) {
-        this.type = type;
-    }
-
-    public Date getDeadline() {
-        return deadline;
-    }
-
-    public void setDeadline(Date deadline) {
-        this.deadline = deadline;
-    }
-
-    public Date getEstimatedDate() {
-        return estimatedDate;
-    }
-
-    public void setEstimatedDate(Date estimatedDate) {
-        this.estimatedDate = estimatedDate;
+    public void update(UpdateTask update) {
+        if (update.getDeadline() != null) {
+            this.setDeadline(update.getDeadline());
+        }
+        if (update.getEstimatedDate() != null) {
+            this.setEstimatedDate(update.getEstimatedDate());
+        }
+        if (update.getPriority() != null) {
+            this.setPriority(update.getPriority());
+        }
+        if (update.getName() != null) {
+            this.setName(update.getName());
+        }
+        if (update.getDescription() != null) {
+            this.setDescription(update.getDescription());
+        }
+        if (update.getType() != null) {
+            this.setType(update.getType());
+        }
+        if (update.getStoryPoints() != null) {
+            this.setStoryPoints(update.getStoryPoints());
+        }
     }
 
     public long getStatusId() {
@@ -349,64 +335,12 @@ public class Task extends SoftDeleteEntity {
         }
     }
 
-    public Task getParentTask() {
-        return parentTask;
-    }
-
-    public void setParentTask(Task superTask) {
-        this.parentTask = superTask;
-    }
-
     public List<Task> getSubTasks() {
-        return type == TaskType.EPIC.ordinal() ? List.of() : subTasks;
-    }
-
-    public void setSubTasks(List<Task> subTasks) {
-        this.subTasks = subTasks;
+        return type == Type.EPIC.ordinal() ? List.of() : subTasks;
     }
 
     public Long getParentTaskId() {
         return this.parentTask != null ? this.parentTask.getNumber() : null;
-    }
-
-    public User getAssignee() {
-        return assignee;
-    }
-
-    public void setAssignee(User assignee) {
-        this.assignee = assignee;
-    }
-
-    public String getPriority() {
-        return priority;
-    }
-
-    public void setPriority(String priority) {
-        this.priority = priority;
-    }
-
-    public List<TimeTrack> getTimeTracks() {
-        return timeTracks;
-    }
-
-    public void setTimeTracks(List<TimeTrack> timeTracks) {
-        this.timeTracks = timeTracks;
-    }
-
-    public long getStoryPoints() {
-        return storyPoints;
-    }
-
-    public void setStoryPoints(Long storyPoints) {
-        this.storyPoints = storyPoints;
-    }
-
-    public Release getRelease() {
-        return release;
-    }
-
-    public void setRelease(Release release) {
-        this.release = release;
     }
 
     public Long getReleaseId() {
@@ -422,8 +356,8 @@ public class Task extends SoftDeleteEntity {
         return this.getArchiveSprints().stream().map(Sprint::getId).toList();
     }
 
-    @PrePersist
     @PreUpdate
+    @PrePersist
     private void updateDate() {
         this.setLastUpdated(new Date());
     }
