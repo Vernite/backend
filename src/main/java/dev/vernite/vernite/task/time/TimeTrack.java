@@ -36,6 +36,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -61,6 +62,7 @@ public class TimeTrack {
 
     private boolean edited = false;
 
+    @NotNull
     @Column(nullable = false)
     private Date startDate;
 
