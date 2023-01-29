@@ -4,7 +4,6 @@ import java.io.InputStream;
 import java.sql.Blob;
 import java.sql.SQLException;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,23 +15,26 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
-import dev.vernite.vernite.utils.ErrorType;
 import dev.vernite.vernite.utils.ObjectNotFoundException;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import lombok.AllArgsConstructor;
 
+/**
+ * Controller for file serving.
+ */
 @RestController
+@AllArgsConstructor
 @RequestMapping("/cdn")
 public class FileController {
 
-    @Autowired
     private FileRepository fileRepository;
 
-    @Operation(summary = "Returns file", description = "Returns file stored on the server")
-    @ApiResponse(description = "Content of the file", responseCode = "200")
-    @ApiResponse(description = "File not found", responseCode = "404", content = @Content(schema = @Schema(implementation = ErrorType.class)))
+    /**
+     * Returns file stored on the server.
+     * 
+     * @param req  request
+     * @param hash hash of the file
+     * @return file
+     */
     @GetMapping("/{hash}")
     public ResponseEntity<StreamingResponseBody> getFile(NativeWebRequest req, @PathVariable String hash) {
         File f = fileRepository.findByHash(hash);
